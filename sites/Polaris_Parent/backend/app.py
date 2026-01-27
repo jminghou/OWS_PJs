@@ -29,13 +29,6 @@ PROJECT_ROOT = os.path.dirname(SITES_DIR)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# DEBUG: Check if core exists in deployment
-print(f"DEBUG: Current directory content: {os.listdir('.')}")
-if os.path.exists('core'):
-    print(f"DEBUG: core/ content: {os.listdir('core')}")
-else:
-    print("DEBUG: core/ directory NOT FOUND!")
-
 # =============================================================================
 # Imports (after path setup)
 # =============================================================================

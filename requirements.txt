@@ -7,10 +7,10 @@ Flask==2.3.3
 Werkzeug==2.3.7
 
 # Database
-Flask-SQLAlchemy==3.0.5
-Flask-Migrate==4.0.5
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
 psycopg2-binary==2.9.9
-SQLAlchemy==2.0.23
+SQLAlchemy==2.0.36
 
 # Authentication
 Flask-Login==0.6.3
