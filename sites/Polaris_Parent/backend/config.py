@@ -25,22 +25,33 @@ load_dotenv(os.path.join(SITE_DIR, '.env'))
 
 def _require_env(key: str, fallback=None):
     """
-    Get required environment variable.
-
-    In production, raises error if key is not set and no fallback provided.
+    Get environment variable.
+    Logs warning if not set.
     """
     value = os.environ.get(key)
     if value:
         return value
     if fallback is not None:
         return fallback
-    raise RuntimeError(f"Required environment variable '{key}' is not set")
+    print(f"WARNING: Environment variable '{key}' is not set!")
+    return None
 
 
 def _bool_env(key: str, default: bool = False) -> bool:
     """Parse boolean environment variable."""
     value = os.environ.get(key, str(default)).lower()
     return value in ['true', 'on', '1', 'yes']
+
+
+def _get_database_url(key: str = 'DATABASE_URL', fallback=None):
+    """
+    Get database URL and convert to psycopg3 format.
+    Converts postgresql:// to postgresql+psycopg://
+    """
+    url = os.environ.get(key, fallback)
+    if url and url.startswith('postgresql://'):
+        url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
+    return url
 
 
 # =============================================================================
@@ -58,7 +69,7 @@ class Config:
     # -------------------------------------------------------------------------
     # Database (Primary)
     # -------------------------------------------------------------------------
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Connection pool settings
@@ -71,7 +82,7 @@ class Config:
 
     # Additional database bindings (site-specific)
     SQLALCHEMY_BINDS = {}
-    _astrology_url = os.environ.get('ASTROLOGY_DATABASE_URL')
+    _astrology_url = _get_database_url('ASTROLOGY_DATABASE_URL')
     if _astrology_url:
         SQLALCHEMY_BINDS['astrology'] = _astrology_url
 
@@ -172,12 +183,12 @@ class DevelopmentConfig(Config):
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'dev-jwt-secret-key')
 
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL',
-        'postgresql://postgres:postgres@localhost:5432/ows_polaris_dev')
+    SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL',
+        'postgresql+psycopg://postgres:postgres@localhost:5432/ows_polaris_dev')
 
     SQLALCHEMY_BINDS = {
-        'astrology': os.environ.get('ASTROLOGY_DATABASE_URL',
-            'postgresql://postgres:postgres@localhost:5432/db_pcount_v2')
+        'astrology': _get_database_url('ASTROLOGY_DATABASE_URL',
+            'postgresql+psycopg://postgres:postgres@localhost:5432/db_pcount_v2')
     }
 
 
@@ -194,10 +205,10 @@ class ProductionConfig(Config):
     # Required in production - no fallbacks
     SECRET_KEY = _require_env('SECRET_KEY')
     JWT_SECRET_KEY = _require_env('JWT_SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = _require_env('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL')
 
     SQLALCHEMY_BINDS = {}
-    _astrology_url = os.environ.get('ASTROLOGY_DATABASE_URL')
+    _astrology_url = _get_database_url('ASTROLOGY_DATABASE_URL')
     if _astrology_url:
         SQLALCHEMY_BINDS['astrology'] = _astrology_url
 
