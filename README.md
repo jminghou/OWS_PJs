@@ -6,7 +6,7 @@
 
 ```
 OWS_PJs/
-├── core/                   # [Git Submodule] 核心引擎
+├── core/                   # 核心引擎
 │   ├── backend_engine/     # Flask 後端邏輯
 │   ├── frontend_ui/        # Next.js 共用元件庫
 │   └── scripts/            # 維護與遷移腳本
@@ -30,12 +30,8 @@ OWS_PJs/
 ### 2. 克隆專案
 
 ```bash
-# 克隆時自動拉取 submodule
-git clone --recurse-submodules <repo-url>
+git clone <repo-url>
 cd OWS_PJs
-
-# 如果已克隆但沒有 submodule
-git submodule update --init --recursive
 ```
 
 ### 3. 設定環境變數
@@ -112,90 +108,6 @@ python -c "from app import app; from core.backend_engine.factory import db; app.
 
 # 3. 建立管理員帳號
 flask --app app.py create-admin
-```
-
-## Git Submodule 操作指南
-
-### 初始設定 (專案維護者)
-
-```bash
-# 1. 初始化主專案 repo
-cd D:/PJ_Projects/OWS_PJs
-git init
-
-# 2. 將 core 設為 submodule (假設 core repo 已存在)
-git submodule add https://github.com/your-org/ows-core.git core
-
-# 3. 提交變更
-git add .
-git commit -m "Add core as submodule"
-```
-
-### 克隆專案 (新開發者)
-
-```bash
-# 方法 1: 克隆時一併拉取 submodule
-git clone --recurse-submodules https://github.com/your-org/ows-pjs.git
-
-# 方法 2: 先克隆再初始化 submodule
-git clone https://github.com/your-org/ows-pjs.git
-cd ows-pjs
-git submodule update --init --recursive
-```
-
-### 更新 Core (從遠端拉取最新版)
-
-```bash
-# 方法 1: 進入 submodule 目錄更新
-cd core
-git checkout main
-git pull origin main
-cd ..
-git add core
-git commit -m "Update core to latest version"
-
-# 方法 2: 一鍵更新
-git submodule update --remote core
-git add core
-git commit -m "Update core to latest version"
-```
-
-### 修改 Core (開發者)
-
-```bash
-# 1. 進入 core 目錄
-cd core
-
-# 2. 確保在正確的分支
-git checkout main
-# 或創建新分支
-git checkout -b feature/my-feature
-
-# 3. 進行修改並提交
-git add .
-git commit -m "Add new feature"
-git push origin feature/my-feature
-
-# 4. 回到主專案更新引用
-cd ..
-git add core
-git commit -m "Update core submodule reference"
-```
-
-### 常用 Submodule 指令
-
-```bash
-# 查看 submodule 狀態
-git submodule status
-
-# 同步 submodule URL (如果遠端 URL 變更)
-git submodule sync
-
-# 強制重置 submodule 到指定 commit
-git submodule update --force
-
-# 列出所有 submodule
-git config --file .gitmodules --name-only --get-regexp path
 ```
 
 ## 專案結構說明
