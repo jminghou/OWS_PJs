@@ -1,0 +1,211 @@
+# =============================================================================
+# OWS Multi-Site Docker Compose Configuration
+# =============================================================================
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose up -d polaris      # Start only Polaris Parent
+#   docker-compose logs -f            # View logs
+#   docker-compose down               # Stop all services
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # Infrastructure Services
+  # ===========================================================================
+
+  # PostgreSQL Database
+  db:
+    image: postgres:14-alpine
+    container_name: ows_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ows_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./core/scripts/init_db.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ows_network
+
+  # Redis (caching, rate limiting, sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: ows_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ows_network
+
+  # ===========================================================================
+  # Polaris Parent Site
+  # ===========================================================================
+
+  # Polaris Backend (Flask)
+  polaris_backend:
+    build:
+      context: .
+      dockerfile: sites/Polaris_Parent/backend/Dockerfile
+    container_name: ows_polaris_backend
+    restart: unless-stopped
+    environment:
+      FLASK_CONFIG: ${FLASK_CONFIG:-production}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ows_polaris
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      CORS_ORIGINS: ${POLARIS_CORS_ORIGINS:-http://localhost:3001}
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+      GCS_CREDENTIALS_JSON: ${GCS_CREDENTIALS_JSON:-}
+      SITE_NAME: Polaris Parent
+    volumes:
+      - polaris_uploads:/app/uploads
+      - ./sites/Polaris_Parent/backend/logs:/app/logs
+    ports:
+      - "${POLARIS_BACKEND_PORT:-5001}:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ows_network
+
+  # Polaris Frontend (Next.js)
+  polaris_frontend:
+    build:
+      context: ./sites/Polaris_Parent/frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${POLARIS_API_URL:-http://localhost:5001/api/v1}
+        NEXT_PUBLIC_BACKEND_URL: ${POLARIS_BACKEND_URL:-http://localhost:5001}
+    container_name: ows_polaris_frontend
+    restart: unless-stopped
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      NEXT_PUBLIC_API_URL: ${POLARIS_API_URL:-http://localhost:5001/api/v1}
+      NEXT_PUBLIC_BACKEND_URL: ${POLARIS_BACKEND_URL:-http://localhost:5001}
+      NEXT_SERVER_API_URL: http://polaris_backend:5000/api/v1
+      NEXT_PUBLIC_SITE_NAME: Polaris Parent
+    ports:
+      - "${POLARIS_FRONTEND_PORT:-3001}:3000"
+    depends_on:
+      - polaris_backend
+    networks:
+      - ows_network
+
+  # ===========================================================================
+  # Claire Project Site
+  # ===========================================================================
+
+  # Claire Backend (Flask)
+  claire_backend:
+    build:
+      context: .
+      dockerfile: sites/Claire_Project/backend/Dockerfile
+    container_name: ows_claire_backend
+    restart: unless-stopped
+    environment:
+      FLASK_CONFIG: ${FLASK_CONFIG:-production}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ows_claire
+      REDIS_URL: redis://redis:6379/1
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      CORS_ORIGINS: ${CLAIRE_CORS_ORIGINS:-http://localhost:3002}
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+      GCS_CREDENTIALS_JSON: ${GCS_CREDENTIALS_JSON:-}
+      SITE_NAME: Claire Project
+    volumes:
+      - claire_uploads:/app/uploads
+      - ./sites/Claire_Project/backend/logs:/app/logs
+    ports:
+      - "${CLAIRE_BACKEND_PORT:-5002}:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ows_network
+
+  # Claire Frontend (Next.js)
+  claire_frontend:
+    build:
+      context: ./sites/Claire_Project/frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${CLAIRE_API_URL:-http://localhost:5002/api/v1}
+        NEXT_PUBLIC_BACKEND_URL: ${CLAIRE_BACKEND_URL:-http://localhost:5002}
+    container_name: ows_claire_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${CLAIRE_API_URL:-http://claire_backend:5000/api/v1}
+      NEXT_PUBLIC_BACKEND_URL: ${CLAIRE_BACKEND_URL:-http://claire_backend:5000}
+      NEXT_PUBLIC_SITE_NAME: Claire Project
+    ports:
+      - "${CLAIRE_FRONTEND_PORT:-3002}:3000"
+    depends_on:
+      - claire_backend
+    networks:
+      - ows_network
+
+  # ===========================================================================
+  # Optional Services
+  # ===========================================================================
+
+  # Nginx Reverse Proxy (optional - for production)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: ows_nginx
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/conf.d:/etc/nginx/conf.d:ro
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   depends_on:
+  #     - polaris_backend
+  #     - polaris_frontend
+  #     - claire_backend
+  #     - claire_frontend
+  #   networks:
+  #     - ows_network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  ows_network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  polaris_uploads:
+    driver: local
+  claire_uploads:
+    driver: local

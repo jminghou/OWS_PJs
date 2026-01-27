@@ -1,0 +1,50 @@
+{
+  "common": {
+    "home": "Home",
+    "articles": "Articles",
+    "posts": "Posts",
+    "about": "About",
+    "contact": "Contact",
+    "search": "Search",
+    "readMore": "Read More",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "notFound": "Page not found",
+    "back": "Back",
+    "language": "Language"
+  },
+  "article": {
+    "author": "Author",
+    "publishedAt": "Published on",
+    "updatedAt": "Updated on",
+    "views": "Views",
+    "likes": "Likes",
+    "tags": "Tags",
+    "category": "Category",
+    "relatedArticles": "Related Articles",
+    "noArticles": "No articles available"
+  },
+  "footer": {
+    "copyright": "Copyright",
+    "allRightsReserved": "All rights reserved"
+  },
+  "meta": {
+    "siteName": "My Blog",
+    "description": "Welcome to my blog"
+  },
+  "aboutPage": {
+    "title": "About Us - Qin Zi Blog",
+    "description": "Learn about the founding story of Qin Zi Blog and how we combine Zi Wei Dou Shu with data analysis to help parents understand their children",
+    "aboutMe": "About Me",
+    "story": "I am the founder of \"Qin Zi Blog\". In the past, I was a digital marketer focused on data and logic. Until 3 and a half years ago, when my son came into my life and opened up a whole new universe for me. On the path of parenting, I discovered Zi Wei Dou Shu and was amazed to find that this ancient wisdom could help me understand my child's uniqueness in such a systematic and data-driven way.",
+    "siteOriginTitle": "The Origin of This Website",
+    "siteOrigin": "The creation of this website stems from a simple intention: I want to share the experience of \"replacing worry with understanding.\" Gibran's poetry deeply touched me - our children are not our belongings, but independent individuals full of infinite possibilities.",
+    "missionTitle": "Our Mission",
+    "mission": "\"Qin Zi Blog\" is dedicated to digitalizing destiny analysis. We are not trying to predict the future, but to interpret the blueprint of talents. Our mission is to help every parent become the \"stable bow\" behind their child, using our understanding and support to help them shoot confidently towards their own future.",
+    "quote": "\"Your children are not your children. They are the sons and daughters of Life's longing for itself.\"",
+    "quoteAuthor": "— Kahlil Gibran",
+    "exploreTitle": "Explore With Us",
+    "exploreDescription": "If you are interested in the philosophy of Qin Zi Blog, or want to learn more about the application of Zi Wei Dou Shu in parenting, please feel free to contact us.",
+    "contactBtn": "Contact Us"
+  }
+}
