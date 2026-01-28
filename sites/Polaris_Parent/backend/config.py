@@ -216,6 +216,10 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
     JWT_COOKIE_SECURE = True
 
+    # Cross-domain cookie settings (frontend on Vercel, backend on Railway)
+    JWT_COOKIE_SAMESITE = 'None'  # Allow cross-origin cookies
+    SESSION_COOKIE_SAMESITE = 'None'
+
 
 # =============================================================================
 # Testing Configuration
