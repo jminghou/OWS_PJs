@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProductsPage() {
-  let products = [];
+  let products: any[] = [];
 
   try {
     const response = await productApi.getList({
