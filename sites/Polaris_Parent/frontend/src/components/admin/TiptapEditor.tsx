@@ -35,9 +35,8 @@ interface TiptapEditorProps {
 
 // --- 子組件：氣泡選單 (Bubble Menu) ---
 const EditorBubbleMenu = ({ editor }: { editor: any }) => {
-  if (!editor) return null;
-
   const setLink = useCallback(() => {
+    if (!editor) return;
     const previousUrl = editor.getAttributes('link').href;
     const url = window.prompt('輸入連結網址:', previousUrl);
 
@@ -48,6 +47,8 @@ const EditorBubbleMenu = ({ editor }: { editor: any }) => {
     }
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
+
+  if (!editor) return null;
 
   const items = [
     {
