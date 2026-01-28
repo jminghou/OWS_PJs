@@ -140,7 +140,7 @@ export default function EditProductPage() {
         sort_order: parseInt(formData.sort_order),
         meta_title: formData.meta_title,
         meta_description: formData.meta_description,
-        detail_content_id: formData.detail_content_id ? parseInt(formData.detail_content_id) : null,
+        detail_content_id: formData.detail_content_id ? parseInt(formData.detail_content_id) : undefined,
       };
 
       await productApi.adminUpdate(parseInt(productId), updateData);
