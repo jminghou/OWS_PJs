@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git check-ignore:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: add missing frontend lib files to git\n\n- Update .gitignore to not ignore frontend src/lib directory\n- Add all lib files that were previously ignored\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: resolve React Hook conditional call error in TiptapEditor\n\n- Move useCallback before the early return to comply with React Hooks rules\n- Hooks must be called in the same order on every render\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: change null to undefined for detail_content_id type compatibility\n\n- Fix TypeScript error: Type ''null'' is not assignable to type ''number | undefined''\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
