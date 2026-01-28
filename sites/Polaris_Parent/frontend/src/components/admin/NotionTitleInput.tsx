@@ -61,7 +61,7 @@ export default function NotionTitleInput({
       rows={1}
       className={`w-full text-4xl font-bold text-gray-900 placeholder-gray-300
                  border-none outline-none resize-none bg-transparent
-                 focus:ring-0 leading-tight py-2 ${className}`}
+                 focus:ring-0 leading-tight py-2 pl-14 ${className}`}
       style={{ minHeight: '3rem' }}
     />
   );

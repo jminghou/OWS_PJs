@@ -521,7 +521,7 @@ export default function EditPostPage() {
                       disabled={loading}
                       className="flex-1"
                     >
-                      {loading ? '發布中...' : '立即發布'}
+                      {loading ? '發布中...' : '立即發佈'}
                     </Button>
                   </div>
                 </CardContent>

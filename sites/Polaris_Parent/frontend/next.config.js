@@ -5,6 +5,8 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 轉譯 monorepo 內的套件
+  transpilePackages: ['@ows/ui'],
   turbopack: {
     rules: {
       '*.svg': {

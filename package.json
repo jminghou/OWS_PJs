@@ -1,0 +1,14 @@
+{
+  "name": "ows-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "sites/*/frontend"
+  ],
+  "scripts": {
+    "dev:polaris": "npm run dev --workspace=p-ows-frontend",
+    "build:polaris": "npm run build --workspace=p-ows-frontend",
+    "install:all": "npm install"
+  }
+}

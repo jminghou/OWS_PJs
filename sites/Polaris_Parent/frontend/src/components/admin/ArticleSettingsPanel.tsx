@@ -3,7 +3,6 @@
 import { X } from 'lucide-react';
 import CollapsibleSection from '@/components/ui/CollapsibleSection';
 import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
 import LanguageManager from '@/components/admin/LanguageManager';
 import { Category } from '@/types';
 
@@ -38,9 +37,9 @@ interface ArticleSettingsPanelProps {
   setTagInput: (value: string) => void;
   parseTagInput: (input: string) => string[];
   i18nSettings?: I18nSettings | null;
-  onSaveDraft: () => void;
-  onPublish: () => void;
-  loading: boolean;
+  onSaveDraft?: () => void;
+  onPublish?: () => void;
+  loading?: boolean;
   onClose?: () => void;
 }
 
@@ -52,9 +51,6 @@ export default function ArticleSettingsPanel({
   setTagInput,
   parseTagInput,
   i18nSettings,
-  onSaveDraft,
-  onPublish,
-  loading,
   onClose,
 }: ArticleSettingsPanelProps) {
   return (
@@ -245,26 +241,6 @@ export default function ArticleSettingsPanel({
         )}
       </div>
 
-      {/* 操作按鈕 - 固定在底部 */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3 flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onSaveDraft}
-          disabled={loading}
-          className="flex-1 text-sm"
-        >
-          {loading ? '儲存中...' : '儲存草稿'}
-        </Button>
-        <Button
-          type="button"
-          onClick={onPublish}
-          disabled={loading}
-          className="flex-1 text-sm"
-        >
-          {loading ? '發布中...' : '立即發布'}
-        </Button>
-      </div>
     </div>
   );
 }
