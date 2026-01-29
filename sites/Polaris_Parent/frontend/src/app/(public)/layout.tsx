@@ -9,7 +9,7 @@ export default function PublicLayout({
   return (
     <>
       <PublicHeader />
-      <main className="min-h-screen">
+      <main className="min-h-screen pt-16">
         {children}
       </main>
       <PublicFooter />

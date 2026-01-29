@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import LanguageSwitcher from './LanguageSwitcher';
 
 // 多語言導航內容
@@ -59,6 +59,7 @@ export default function PublicHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [i18nEnabled, setI18nEnabled] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   // 從路徑獲取當前語言
   const getCurrentLocale = () => {
@@ -72,6 +73,24 @@ export default function PublicHeader() {
   const currentLocale = getCurrentLocale();
   const content = navContent[currentLocale] || navContent['zh-TW'];
   const basePath = currentLocale === 'zh-TW' ? '' : `/${currentLocale}`;
+
+  // 判斷是否在首頁
+  const isHomePage = pathname === '/' || pathname === `/${currentLocale}` || pathname === `/${currentLocale}/`;
+
+  // 錨點跳轉處理
+  const scrollToSection = useCallback((sectionId: string) => {
+    if (isHomePage) {
+      // 在首頁：直接滾動到該區塊
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // 不在首頁：先跳轉到首頁，然後滾動
+      router.push(`${basePath || '/'}#${sectionId}`);
+    }
+    setIsMenuOpen(false);
+  }, [isHomePage, basePath, router]);
 
   // 檢查 i18n 是否啟用
   useEffect(() => {
@@ -92,46 +111,43 @@ export default function PublicHeader() {
   }, []);
 
   return (
-    <header className="bg-white shadow-sm border-b">
+    <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href={basePath || '/'} className="text-2xl font-bold text-brand-purple-700 hover:text-brand-purple-600">
+            <button
+              onClick={() => scrollToSection('hero')}
+              className="text-2xl font-bold text-brand-purple-700 hover:text-brand-purple-600 transition-colors"
+            >
               {content.siteName}
-            </Link>
+            </button>
           </div>
 
           <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              href={basePath || '/'}
+            <button
+              onClick={() => scrollToSection('hero')}
               className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.home}
-            </Link>
-            <Link
-              href={`${basePath}/about`}
+            </button>
+            <button
+              onClick={() => scrollToSection('about')}
               className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.about}
-            </Link>
-            <Link
-              href={`${basePath}/articles`}
+            </button>
+            <button
+              onClick={() => scrollToSection('articles')}
               className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.articles}
-            </Link>
-            <Link
-              href={`${basePath}/products`}
+            </button>
+            <button
+              onClick={() => scrollToSection('products')}
               className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.products}
-            </Link>
-            {/* <Link
-              href={`${basePath}/contact`}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.contact}
-            </Link> */}
+            </button>
             {i18nEnabled && <LanguageSwitcher />}
           </nav>
 
@@ -163,41 +179,30 @@ export default function PublicHeader() {
       {isMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
-            <Link
-              href={basePath || '/'}
-              className="text-gray-900 hover:bg-warm-50 block px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
+            <button
+              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              onClick={() => scrollToSection('hero')}
             >
               {content.home}
-            </Link>
-            <Link
-              href={`${basePath}/about`}
-              className="text-gray-900 hover:bg-warm-50 block px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
+            </button>
+            <button
+              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              onClick={() => scrollToSection('about')}
             >
               {content.about}
-            </Link>
-            <Link
-              href={`${basePath}/articles`}
-              className="text-gray-900 hover:bg-warm-50 block px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
+            </button>
+            <button
+              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              onClick={() => scrollToSection('articles')}
             >
               {content.articles}
-            </Link>
-            <Link
-              href={`${basePath}/products`}
-              className="text-gray-900 hover:bg-warm-50 block px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
+            </button>
+            <button
+              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              onClick={() => scrollToSection('products')}
             >
               {content.products}
-            </Link>
-            {/* <Link
-              href={`${basePath}/contact`}
-              className="text-gray-900 hover:bg-warm-50 block px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              {content.contact}
-            </Link> */}
+            </button>
           </div>
         </div>
       )}

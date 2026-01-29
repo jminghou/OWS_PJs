@@ -210,3 +210,18 @@
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
+
+/* 平滑滾動 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 隱藏滾動條（用於水平滾動輪播） */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
