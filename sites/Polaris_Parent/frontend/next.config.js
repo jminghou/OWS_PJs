@@ -54,6 +54,17 @@ const nextConfig = {
       },
     ];
   },
+  // API Proxy: 解決跨域第三方 cookie 被瀏覽器阻擋的問題
+  // 前端請求 /api/v1/* → Vercel 代理轉發到 Railway 後端
+  async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000';
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: `${backendUrl}/api/v1/:path*`,
+      },
+    ];
+  },
 }
 
 // 多語言關閉時直接導出 nextConfig
