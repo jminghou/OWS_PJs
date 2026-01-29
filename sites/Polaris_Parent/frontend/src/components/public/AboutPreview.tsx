@@ -25,11 +25,11 @@ export default function AboutPreview({
           <div className="order-2 lg:order-1">
             <div className="relative bg-gradient-to-br from-brand-purple-50 to-brand-purple-100 rounded-2xl aspect-[4/3] flex items-center justify-center">
               <div className="p-8 text-center">
-                <div className="text-5xl md:text-6xl text-brand-purple-300 mb-4 font-serif">"</div>
+                <div className="text-5xl md:text-6xl text-brand-purple-300 mb-4 font-serif">&ldquo;</div>
                 <p className="text-lg md:text-xl lg:text-2xl text-brand-purple-700 italic font-medium leading-relaxed">
                   {quote}
                 </p>
-                <div className="text-5xl md:text-6xl text-brand-purple-300 mt-4 font-serif">"</div>
+                <div className="text-5xl md:text-6xl text-brand-purple-300 mt-4 font-serif">&rdquo;</div>
               </div>
             </div>
           </div>
