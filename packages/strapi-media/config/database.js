@@ -3,12 +3,8 @@ const path = require('path');
 module.exports = ({ env }) => {
   const client = env('DATABASE_CLIENT', 'sqlite');
 
-  console.log('[Strapi DB] Loading database config...');
-  console.log('[Strapi DB] CLIENT:', client);
-
   if (client === 'postgres') {
     const databaseUrl = env('DATABASE_URL', '');
-    console.log('[Strapi DB] DATABASE_URL exists:', !!databaseUrl);
 
     return {
       connection: {
@@ -31,7 +27,6 @@ module.exports = ({ env }) => {
   }
 
   // SQLite for local development
-  console.log('[Strapi DB] Using SQLite');
   return {
     connection: {
       client: 'sqlite',
