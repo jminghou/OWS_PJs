@@ -51,10 +51,12 @@ COPY --from=builder --chown=strapi:nodejs /app/dist ./dist
 COPY --from=builder --chown=strapi:nodejs /app/public ./public
 COPY --from=builder --chown=strapi:nodejs /app/config ./config
 COPY --from=builder --chown=strapi:nodejs /app/src ./src
+COPY --from=builder --chown=strapi:nodejs /app/database ./database
 COPY --from=builder --chown=strapi:nodejs /app/package.json ./package.json
 
-# Create uploads directory (for local storage fallback)
-RUN mkdir -p /app/public/uploads && chown -R strapi:nodejs /app/public/uploads
+# Create required directories with proper permissions
+RUN mkdir -p /app/public/uploads /app/database/migrations /app/.tmp && \
+    chown -R strapi:nodejs /app/public/uploads /app/database /app/.tmp
 
 USER strapi
 
