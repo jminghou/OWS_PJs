@@ -32,8 +32,8 @@ RUN rm -f .env .env.* 2>/dev/null || true
 ENV NODE_ENV=production
 RUN npm run build
 
-# Remove dist/config to ensure runtime uses config/ directory with our JS files
-RUN rm -rf dist/config 2>/dev/null || true
+# Copy our JS config files to dist/config/ for production mode
+RUN mkdir -p dist/config && cp -r config/* dist/config/
 
 # Note: Don't run npm prune --production as it removes admin panel build files
 
