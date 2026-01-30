@@ -1,0 +1,43 @@
+# Environment files - use Railway environment variables instead
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+
+# Dependencies - will be installed fresh in Docker
+node_modules
+
+# Build artifacts - will be created fresh in Docker
+dist
+build
+.tmp
+.cache
+.strapi
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs
+
+# Test
+coverage
+.nyc_output
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml

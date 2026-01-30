@@ -22,8 +22,11 @@ COPY package.json package-lock.json* ./
 # Install ALL dependencies (including devDependencies for build)
 RUN npm ci
 
-# Copy source files
+# Copy source files (excluding .env via .dockerignore)
 COPY . .
+
+# Ensure no local .env files are present
+RUN rm -f .env .env.* 2>/dev/null || true
 
 # Build Strapi admin panel
 ENV NODE_ENV=production
