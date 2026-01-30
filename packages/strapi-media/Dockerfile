@@ -29,8 +29,7 @@ COPY . .
 ENV NODE_ENV=production
 RUN npm run build
 
-# Remove devDependencies after build
-RUN npm prune --production
+# Note: Don't run npm prune --production as it removes admin panel build files
 
 # =============================================================================
 # Production Stage
@@ -53,6 +52,7 @@ COPY --from=builder --chown=strapi:nodejs /app/config ./config
 COPY --from=builder --chown=strapi:nodejs /app/src ./src
 COPY --from=builder --chown=strapi:nodejs /app/database ./database
 COPY --from=builder --chown=strapi:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=strapi:nodejs /app/favicon.png ./favicon.png
 
 # Create required directories with proper permissions
 RUN mkdir -p /app/public/uploads /app/database/migrations /app/.tmp && \
