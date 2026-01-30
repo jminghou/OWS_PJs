@@ -1,4 +1,4 @@
-export default ({ env }) => {
+module.exports = ({ env }) => {
   const gcsEnabled = env('GCS_BUCKET_NAME', '') !== '';
 
   // If GCS is not configured, use default local storage
@@ -25,7 +25,7 @@ export default ({ env }) => {
         providerOptions: {
           bucketName: env('GCS_BUCKET_NAME'),
           publicFiles: true,
-          uniform: false,
+          uniform: true,  // Bucket has uniform bucket-level access enabled
           basePath: env('GCS_BASE_PATH', 'media'),
           serviceAccount,
         },

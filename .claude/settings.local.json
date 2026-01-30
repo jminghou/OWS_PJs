@@ -7,7 +7,9 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: change null to undefined for detail_content_id type compatibility\n\n- Fix TypeScript error: Type ''null'' is not assignable to type ''number | undefined''\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npm install:*)",
       "Bash(npm audit:*)",
-      "Bash(del \"d:\\\\PJ_Projects\\\\OWS_PJs\\\\nul\")"
+      "Bash(del \"d:\\\\PJ_Projects\\\\OWS_PJs\\\\nul\")",
+      "Bash(node:*)",
+      "Bash(del admin.ts api.ts database.ts middlewares.ts plugins.ts server.ts)"
     ],
     "additionalDirectories": [
       "d:\\PJ_Projects\\OWS_PJs\\packages\\ui\\src"

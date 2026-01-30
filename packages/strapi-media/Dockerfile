@@ -10,30 +10,27 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # =============================================================================
-# Dependencies Stage
-# =============================================================================
-FROM base AS deps
-
-# Copy package files
-COPY package.json package-lock.json* ./
-
-# Install dependencies
-RUN npm ci --only=production
-
-# =============================================================================
 # Builder Stage
 # =============================================================================
 FROM base AS builder
 
 WORKDIR /app
 
-# Copy dependencies
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci
+
+# Copy source files
 COPY . .
 
 # Build Strapi admin panel
 ENV NODE_ENV=production
 RUN npm run build
+
+# Remove devDependencies after build
+RUN npm prune --production
 
 # =============================================================================
 # Production Stage
