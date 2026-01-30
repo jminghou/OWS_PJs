@@ -44,15 +44,8 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 strapi
 
-# Copy built application
-COPY --from=builder --chown=strapi:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=strapi:nodejs /app/dist ./dist
-COPY --from=builder --chown=strapi:nodejs /app/public ./public
-COPY --from=builder --chown=strapi:nodejs /app/config ./config
-COPY --from=builder --chown=strapi:nodejs /app/src ./src
-COPY --from=builder --chown=strapi:nodejs /app/database ./database
-COPY --from=builder --chown=strapi:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=strapi:nodejs /app/favicon.png ./favicon.png
+# Copy entire app from builder (simpler approach to ensure all build artifacts are included)
+COPY --from=builder --chown=strapi:nodejs /app ./
 
 # Create required directories with proper permissions
 RUN mkdir -p /app/public/uploads /app/database/migrations /app/.tmp && \
