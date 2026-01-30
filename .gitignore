@@ -74,6 +74,7 @@ env/
 *.crt
 credentials.json
 service-account*.json
+polarisparent*.json
 secrets/
 *.secret
 
