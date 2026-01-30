@@ -55,6 +55,43 @@ services:
       - ows_network
 
   # ===========================================================================
+  # Strapi Media Hub (Shared across all sites)
+  # ===========================================================================
+
+  strapi:
+    build:
+      context: ./packages/strapi-media
+      dockerfile: Dockerfile
+    container_name: ows_strapi
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 1337
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DB_NAME:-ows_polaris_dev}
+      DATABASE_USERNAME: ${DB_USER:-postgres}
+      DATABASE_PASSWORD: ${DB_PASSWORD:-postgres}
+      DATABASE_SCHEMA: strapi
+      DATABASE_SSL: "false"
+      APP_KEYS: ${STRAPI_APP_KEYS:-toBeModified1,toBeModified2,toBeModified3,toBeModified4}
+      API_TOKEN_SALT: ${STRAPI_API_TOKEN_SALT:-tobemodified}
+      ADMIN_JWT_SECRET: ${STRAPI_ADMIN_JWT_SECRET:-tobemodified}
+      TRANSFER_TOKEN_SALT: ${STRAPI_TRANSFER_TOKEN_SALT:-tobemodified}
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+      GCS_SERVICE_ACCOUNT_JSON: ${GCS_SERVICE_ACCOUNT_JSON:-}
+      GCS_BASE_PATH: media
+      CORS_ORIGINS: ${STRAPI_CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+    ports:
+      - "${STRAPI_PORT:-1337}:1337"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ows_network
+
+  # ===========================================================================
   # Polaris Parent Site
   # ===========================================================================
 
@@ -96,6 +133,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${POLARIS_API_URL:-http://localhost:5001/api/v1}
         NEXT_PUBLIC_BACKEND_URL: ${POLARIS_BACKEND_URL:-http://localhost:5001}
+        NEXT_PUBLIC_STRAPI_URL: ${STRAPI_PUBLIC_URL:-http://localhost:1337}
     container_name: ows_polaris_frontend
     restart: unless-stopped
     extra_hosts:
@@ -105,10 +143,14 @@ services:
       NEXT_PUBLIC_BACKEND_URL: ${POLARIS_BACKEND_URL:-http://localhost:5001}
       NEXT_SERVER_API_URL: http://polaris_backend:5000/api/v1
       NEXT_PUBLIC_SITE_NAME: Polaris Parent
+      NEXT_PUBLIC_STRAPI_URL: ${STRAPI_PUBLIC_URL:-http://localhost:1337}
+      STRAPI_INTERNAL_URL: http://strapi:1337
+      STRAPI_UPLOAD_TOKEN: ${STRAPI_UPLOAD_TOKEN:-}
     ports:
       - "${POLARIS_FRONTEND_PORT:-3001}:3000"
     depends_on:
       - polaris_backend
+      - strapi
     networks:
       - ows_network
 

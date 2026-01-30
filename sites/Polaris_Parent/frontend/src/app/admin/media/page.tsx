@@ -5,6 +5,13 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { mediaApi } from '@/lib/api';
+import { getImageUrl } from '@/lib/utils';
+
+// 用於複製 URL 功能（需完整 URL，不使用 placeholder）
+const getFullMediaUrl = (filePath: string): string => {
+  if (filePath.startsWith('http')) return filePath;
+  return `${process.env.NEXT_PUBLIC_BACKEND_URL}${filePath}`;
+};
 
 interface MediaItem {
   id: number;
@@ -394,7 +401,7 @@ export default function MediaPage() {
                     >
                       <div className="aspect-square relative">
                         <img
-                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${item.file_path}`}
+                          src={getImageUrl(item.file_path)}
                           alt={item.alt_text || item.original_filename}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -537,7 +544,7 @@ export default function MediaPage() {
               {/* 圖片預覽 */}
               <div className="mb-6">
                 <img
-                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${editingItem.file_path}`}
+                  src={getImageUrl(editingItem.file_path)}
                   alt={editingItem.alt_text || editingItem.original_filename}
                   className="max-w-full max-h-64 mx-auto rounded-lg shadow-sm"
                 />
@@ -578,13 +585,13 @@ export default function MediaPage() {
                   <div className="relative">
                     <input
                       type="text"
-                      value={`${process.env.NEXT_PUBLIC_BACKEND_URL}${editingItem.file_path}`}
+                      value={getFullMediaUrl(editingItem.file_path)}
                       readOnly
                       className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 text-sm"
                     />
                     <button
                       onClick={() => {
-                        const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}${editingItem.file_path}`;
+                        const url = getFullMediaUrl(editingItem.file_path);
                         navigator.clipboard.writeText(url);
                         alert('圖片路徑已複製到剪貼板');
                       }}
@@ -605,14 +612,14 @@ export default function MediaPage() {
                   </label>
                   <div className="relative">
                     <textarea
-                      value={`<img src="${process.env.NEXT_PUBLIC_BACKEND_URL}${editingItem.file_path}" alt="${editingItem.alt_text || editingItem.original_filename}" className="w-full h-auto rounded-lg" />`}
+                      value={`<img src="${getFullMediaUrl(editingItem.file_path)}" alt="${editingItem.alt_text || editingItem.original_filename}" className="w-full h-auto rounded-lg" />`}
                       readOnly
                       rows={3}
                       className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 text-sm font-mono"
                     />
                     <button
                       onClick={() => {
-                        const htmlCode = `<img src="${process.env.NEXT_PUBLIC_BACKEND_URL}${editingItem.file_path}" alt="${editingItem.alt_text || editingItem.original_filename}" className="w-full h-auto rounded-lg" />`;
+                        const htmlCode = `<img src="${getFullMediaUrl(editingItem.file_path)}" alt="${editingItem.alt_text || editingItem.original_filename}" className="w-full h-auto rounded-lg" />`;
                         navigator.clipboard.writeText(htmlCode);
                         alert('HTML 代碼已複製到剪貼板');
                       }}
@@ -633,14 +640,14 @@ export default function MediaPage() {
                   </label>
                   <div className="relative">
                     <textarea
-                      value={`![${editingItem.alt_text || editingItem.original_filename}](${process.env.NEXT_PUBLIC_BACKEND_URL}${editingItem.file_path})`}
+                      value={`![${editingItem.alt_text || editingItem.original_filename}](${getFullMediaUrl(editingItem.file_path)})`}
                       readOnly
                       rows={2}
                       className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 text-sm font-mono"
                     />
                     <button
                       onClick={() => {
-                        const markdownCode = `![${editingItem.alt_text || editingItem.original_filename}](${process.env.NEXT_PUBLIC_BACKEND_URL}${editingItem.file_path})`;
+                        const markdownCode = `![${editingItem.alt_text || editingItem.original_filename}](${getFullMediaUrl(editingItem.file_path)})`;
                         navigator.clipboard.writeText(markdownCode);
                         alert('Markdown 代碼已複製到剪貼板');
                       }}

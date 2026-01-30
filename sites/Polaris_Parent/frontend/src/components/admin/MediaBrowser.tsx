@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { mediaApi } from '@/lib/api';
 import Button from '@/components/ui/Button';
+import { getImageUrl } from '@/lib/utils';
 
 interface MediaItem {
   id: number;
@@ -242,7 +243,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                     >
                       <div className="aspect-square relative">
                         <img
-                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${item.file_path}`}
+                          src={getImageUrl(item.file_path)}
                           alt={item.alt_text || item.original_filename}
                           className="w-full h-full object-cover"
                           onError={(e) => {

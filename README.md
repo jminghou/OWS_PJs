@@ -45,36 +45,59 @@ cp sites/Polaris_Parent/.env.example sites/Polaris_Parent/.env
 
 ### 4. 啟動服務
 
-#### 開發混合模式 (推薦)
-這是開發時最流暢的模式：**資料庫與 Redis 跑在 Docker，程式碼跑在原生 Windows**。
+#### 開發混合模式 A：最小 Docker (推薦新手)
+只有資料庫跑在 Docker，其他服務跑在原生環境，需要 **3 個終端機**。
 
-##### 1. 啟動 Docker 基礎設施 (DB, Redis)
-在專案根目錄執行：
 ```powershell
-# 啟動資料庫與快取
+# 終端機 1：啟動 DB 與 Redis
 docker-compose up -d db redis
-```
-*   **資料庫位址**: `localhost:5433` (透過 Docker 映射)
-*   **Redis 位址**: `localhost:6379`
 
-##### 2. 啟動後端 (Flask)
-開啟新的終端機，進入後端目錄：
-```powershell
+# 終端機 2：啟動 Python 後端
 cd sites/Polaris_Parent/backend
-# 啟動虛擬環境 (若已建立)
 .\venv\Scripts\Activate.ps1
-# 啟動後端
 python app.py
-```
-*   **API 網址**: `http://localhost:5000/api/v1`
 
-##### 3. 啟動前端 (Next.js)
-開啟另一個新的終端機，進入前端目錄：
-```powershell
-cd sites/Polaris_Parent/frontend
-npm run dev
+# 終端機 3：啟動 Strapi
+npm run dev:strapi
+
+# 終端機 4：啟動 Next.js 前端
+npm run dev:polaris
 ```
-*   **前端網址**: `http://localhost:3000`
+
+| 服務 | 網址 |
+|------|------|
+| 資料庫 | `localhost:5433` |
+| Redis | `localhost:6379` |
+| Python API | `http://localhost:5000/api/v1` |
+| Strapi | `http://localhost:1337` |
+| 前端 | `http://localhost:3000` |
+
+---
+
+#### 開發混合模式 B：後端 Docker + 前端原生 (推薦)
+後端服務全部跑在 Docker，只有前端跑在原生環境保留熱更新，只需 **1 個終端機**。
+
+```powershell
+# 啟動所有後端服務（背景執行）
+docker-compose up -d db redis polaris_backend strapi
+
+# 啟動前端（前景執行，有熱更新）
+npm run dev:polaris
+```
+
+| 服務 | 網址 |
+|------|------|
+| 資料庫 | `localhost:5433` |
+| Redis | `localhost:6379` |
+| Python API | `http://localhost:5001/api/v1` |
+| Strapi | `http://localhost:1337` |
+| 前端 | `http://localhost:3000` |
+
+> **注意**：此模式下 Python API 端口是 `5001`（Docker 映射），需修改前端 `.env.local`：
+> ```
+> NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
+> NEXT_PUBLIC_BACKEND_URL=http://localhost:5001
+> ```
 
 ---
 

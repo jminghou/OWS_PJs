@@ -47,7 +47,19 @@ export function generateMetaDescription(content: string, maxLength: number = 160
 
 export function getImageUrl(imagePath?: string): string {
   if (!imagePath) return '/placeholder.jpg';
-  if (imagePath.startsWith('http')) return imagePath;
+
+  // Absolute URLs (GCS, CDN, etc.) - return as-is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+
+  // Strapi relative URLs (when not using GCS)
+  if (imagePath.startsWith('/uploads/')) {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+    return `${strapiUrl}${imagePath}`;
+  }
+
+  // Legacy: Python backend relative paths
   return `${process.env.NEXT_PUBLIC_BACKEND_URL}${imagePath}`;
 }
 

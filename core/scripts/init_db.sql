@@ -8,6 +8,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- For full-text search optimization
 
 -- =============================================================================
+-- SCHEMA SETUP
+-- =============================================================================
+
+-- Create separate schema for Strapi Media Hub
+-- This keeps Strapi's tables isolated from the main application tables
+CREATE SCHEMA IF NOT EXISTS strapi;
+
+-- =============================================================================
 -- RBAC TABLES (New)
 -- =============================================================================
 
