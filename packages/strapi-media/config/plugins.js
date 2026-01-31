@@ -8,6 +8,10 @@ module.exports = ({ env }) => {
         jwtSecret: env('JWT_SECRET', 'defaultJwtSecretForDev123456'),
       },
     },
+    // Disable i18n plugin to avoid locale field issues
+    i18n: {
+      enabled: false,
+    },
   };
 
   // If GCS is not configured, use default local storage
