@@ -3,6 +3,9 @@ const path = require('path');
 module.exports = ({ env }) => {
   const client = env('DATABASE_CLIENT', 'sqlite');
 
+  // Debug: log database client
+  console.log('[Database Config] CLIENT:', client);
+
   if (client === 'postgres') {
     const databaseUrl = env('DATABASE_URL', '');
 
