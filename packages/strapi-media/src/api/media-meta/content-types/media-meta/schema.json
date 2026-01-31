@@ -37,7 +37,7 @@
     },
     "category": {
       "type": "relation",
-      "relation": "manyToOne",
+      "relation": "manyToMany",
       "target": "api::category.category"
     },
     "copyright": {
