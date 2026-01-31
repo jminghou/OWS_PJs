@@ -19,13 +19,12 @@
     "file": {
       "type": "media",
       "multiple": false,
-      "required": true,
+      "required": false,
       "allowedTypes": ["images", "files", "videos", "audios"]
     },
     "chartid": {
       "type": "string",
-      "maxLength": 18,
-      "regex": "^[0-9]{18}$"
+      "maxLength": 18
     },
     "place": {
       "type": "string",
