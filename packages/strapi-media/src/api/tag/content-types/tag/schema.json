@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tags",
+  "info": {
+    "singularName": "tag",
+    "pluralName": "tags",
+    "displayName": "Tag",
+    "description": "標籤系統"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "media_metas": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::media-meta.media-meta",
+      "mappedBy": "tags"
+    }
+  }
+}

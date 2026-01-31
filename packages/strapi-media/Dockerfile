@@ -1,5 +1,5 @@
 # =============================================================================
-# Strapi Media Hub - Production Dockerfile
+# Strapi Media Hub - Multi-Environment Dockerfile
 # =============================================================================
 
 FROM node:20-alpine AS base
@@ -19,38 +19,38 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install ALL dependencies (including devDependencies for build)
+# Install ALL dependencies
 RUN npm ci
 
-# Copy source files (excluding .env via .dockerignore)
+# Copy source files
 COPY . .
 
 # Ensure no local .env files are present
 RUN rm -f .env .env.* 2>/dev/null || true
 
-# Build Strapi admin panel
+# Build Strapi admin panel (required for both dev and prod in some cases)
 ENV NODE_ENV=production
 RUN npm run build
 
-# Copy our JS config files to dist/config/ for production mode
+# Copy config files to dist/config (they should not be processed by TypeScript)
 RUN mkdir -p dist/config && cp -r config/* dist/config/
 
-# Note: Don't run npm prune --production as it removes admin panel build files
-
 # =============================================================================
-# Production Stage
+# Runner Stage
 # =============================================================================
 FROM base AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV=production
+# Default to production, but can be overridden
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 strapi
 
-# Copy entire app from builder (simpler approach to ensure all build artifacts are included)
+# Copy everything from builder
 COPY --from=builder --chown=strapi:nodejs /app ./
 
 # Create required directories with proper permissions
@@ -61,4 +61,5 @@ USER strapi
 
 EXPOSE 1337
 
-CMD ["npm", "run", "start"]
+# Use a shell script to determine which command to run based on NODE_ENV
+CMD ["sh", "-c", "if [ \"$NODE_ENV\" = \"development\" ]; then npm run develop; else npm run start; fi"]

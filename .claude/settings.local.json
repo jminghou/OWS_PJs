@@ -9,7 +9,13 @@
       "Bash(npm audit:*)",
       "Bash(del \"d:\\\\PJ_Projects\\\\OWS_PJs\\\\nul\")",
       "Bash(node:*)",
-      "Bash(del admin.ts api.ts database.ts middlewares.ts plugins.ts server.ts)"
+      "Bash(del admin.ts api.ts database.ts middlewares.ts plugins.ts server.ts)",
+      "Bash(docker logs:*)",
+      "Bash(docker run:*)",
+      "Bash($env:STRAPI_NODE_ENV=\"production\")",
+      "Bash(STRAPI_NODE_ENV=production docker-compose up:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(curl:*)"
     ],
     "additionalDirectories": [
       "d:\\PJ_Projects\\OWS_PJs\\packages\\ui\\src"

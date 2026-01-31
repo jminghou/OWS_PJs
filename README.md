@@ -45,8 +45,10 @@ cp sites/Polaris_Parent/.env.example sites/Polaris_Parent/.env
 
 ### 4. 啟動服務
 
-#### 開發混合模式 A：最小 Docker (推薦新手)
-只有資料庫跑在 Docker，其他服務跑在原生環境，需要 **3 個終端機**。
+#### 開發混合模式 A：最小 Docker (推薦需要修改 Strapi 結構時)
+只有資料庫跑在 Docker，其他服務跑在原生環境，需要 **4 個終端機**。
+
+此模式下 Strapi 以**開發模式**運行，可以在 Admin 介面修改 Content Types。
 
 ```powershell
 # 終端機 1：啟動 DB 與 Redis
@@ -57,7 +59,7 @@ cd sites/Polaris_Parent/backend
 .\venv\Scripts\Activate.ps1
 python app.py
 
-# 終端機 3：啟動 Strapi
+# 終端機 3：啟動 Strapi（開發模式，可修改結構）
 npm run dev:strapi
 
 # 終端機 4：啟動 Next.js 前端
@@ -69,13 +71,16 @@ npm run dev:polaris
 | 資料庫 | `localhost:5433` |
 | Redis | `localhost:6379` |
 | Python API | `http://localhost:5000/api/v1` |
-| Strapi | `http://localhost:1337` |
+| Strapi | `http://localhost:1337` (開發模式) |
 | 前端 | `http://localhost:3000` |
 
 ---
 
-#### 開發混合模式 B：後端 Docker + 前端原生 (推薦)
+#### 開發混合模式 B：後端 Docker + 前端原生 (推薦日常開發)
 後端服務全部跑在 Docker，只有前端跑在原生環境保留熱更新，只需 **1 個終端機**。
+
+> **重要**：此模式下 Strapi 以**生產模式**運行，無法在 Admin 修改 Content Types。
+> 如需修改 Strapi 資料結構，請使用模式 A。
 
 ```powershell
 # 啟動所有後端服務（背景執行）
@@ -89,15 +94,127 @@ npm run dev:polaris
 |------|------|
 | 資料庫 | `localhost:5433` |
 | Redis | `localhost:6379` |
-| Python API | `http://localhost:5001/api/v1` |
-| Strapi | `http://localhost:1337` |
+| Python API | `http://localhost:5000/api/v1` |
+| Strapi | `http://localhost:1337` (生產模式) |
 | 前端 | `http://localhost:3000` |
 
-> **注意**：此模式下 Python API 端口是 `5001`（Docker 映射），需修改前端 `.env.local`：
-> ```
-> NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
-> NEXT_PUBLIC_BACKEND_URL=http://localhost:5001
-> ```
+> **首次啟動 Strapi**：請訪問 `http://localhost:1337/admin` 建立管理員帳號。
+
+---
+
+#### 修改 Strapi Content Types（手動編輯 Schema）
+
+由於本專案的 Strapi 以生產模式運行，無法在 Admin 介面修改 Content Types。
+請透過手動編輯 Schema JSON 文件來修改資料結構。
+
+##### 步驟 1：找到 Schema 文件
+
+```
+packages/strapi-media/src/api/[collection-name]/content-types/[collection-name]/schema.json
+```
+
+##### 步驟 2：編輯 Schema
+
+**新增 Collection Type 範例**：在 `src/api/` 下建立新資料夾結構：
+
+```
+packages/strapi-media/src/api/article/
+├── content-types/
+│   └── article/
+│       └── schema.json
+├── controllers/
+│   └── article.js
+├── routes/
+│   └── article.js
+└── services/
+    └── article.js
+```
+
+**schema.json 範例**：
+```json
+{
+  "kind": "collectionType",
+  "collectionName": "articles",
+  "info": {
+    "singularName": "article",
+    "pluralName": "articles",
+    "displayName": "Article",
+    "description": "文章內容"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "content": {
+      "type": "richtext"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    },
+    "cover": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "category": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::category.category"
+    }
+  }
+}
+```
+
+**controller、routes、services 範例**（最小配置）：
+
+```javascript
+// controllers/article.js
+'use strict';
+const { createCoreController } = require('@strapi/strapi').factories;
+module.exports = createCoreController('api::article.article');
+
+// services/article.js
+'use strict';
+const { createCoreService } = require('@strapi/strapi').factories;
+module.exports = createCoreService('api::article.article');
+
+// routes/article.js
+'use strict';
+const { createCoreRouter } = require('@strapi/strapi').factories;
+module.exports = createCoreRouter('api::article.article');
+```
+
+##### 步驟 3：重新建構並重啟 Strapi
+
+```powershell
+# 重新建構 Docker 映像（包含新的 Schema）
+docker-compose build strapi
+
+# 重啟 Strapi
+docker-compose up -d strapi
+```
+
+##### 常用欄位類型參考
+
+| 類型 | 說明 | 範例 |
+|------|------|------|
+| `string` | 短文字 | `{"type": "string", "required": true}` |
+| `text` | 長文字 | `{"type": "text"}` |
+| `richtext` | 富文本編輯器 | `{"type": "richtext"}` |
+| `integer` | 整數 | `{"type": "integer", "default": 0}` |
+| `boolean` | 布林值 | `{"type": "boolean", "default": false}` |
+| `date` | 日期 | `{"type": "date"}` |
+| `datetime` | 日期時間 | `{"type": "datetime"}` |
+| `media` | 媒體檔案 | `{"type": "media", "allowedTypes": ["images"]}` |
+| `relation` | 關聯 | `{"type": "relation", "relation": "manyToOne", "target": "api::xxx.xxx"}` |
+| `enumeration` | 列舉 | `{"type": "enumeration", "enum": ["draft", "published"]}` |
+| `json` | JSON 物件 | `{"type": "json"}` |
+| `uid` | 唯一識別碼 | `{"type": "uid", "targetField": "title"}` |
 
 ---
 
