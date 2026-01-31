@@ -29,14 +29,12 @@
     "tags": {
       "type": "relation",
       "relation": "manyToMany",
-      "target": "api::tag.tag",
-      "inversedBy": "media_metas"
+      "target": "api::tag.tag"
     },
     "category": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "api::category.category",
-      "inversedBy": "media_metas"
+      "target": "api::category.category"
     },
     "copyright": {
       "type": "string",

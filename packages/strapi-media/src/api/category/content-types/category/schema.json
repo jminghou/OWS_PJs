@@ -17,12 +17,6 @@
     },
     "description": {
       "type": "text"
-    },
-    "media_metas": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::media-meta.media-meta",
-      "mappedBy": "category"
     }
   }
 }
