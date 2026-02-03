@@ -143,6 +143,26 @@ python -c "from app import app; from core.backend_engine.factory import db; app.
 flask --app app.py create-admin
 ```
 
+#### 之後若要新增管理員（Docker 模式）
+
+當後端以 Docker 運行時，請在專案根目錄執行以下指令建立新管理員：
+
+```powershell
+docker exec -w /app ows_polaris_backend python -c "
+from sites.Polaris_Parent.backend.app import app
+with app.app_context():
+    from core.backend_engine.models import User
+    from core.backend_engine.factory import db
+    user = User(username='新帳號', email='email@example.com', role='admin', is_active=True)
+    user.set_password('您的密碼')  # 至少 8 字、含大小寫字母及數字
+    db.session.add(user)
+    db.session.commit()
+    print('成功！')
+"
+```
+
+> 密碼規則：至少 8 個字元，需包含大寫字母、小寫字母與數字。
+
 ## 專案結構說明
 
 ### Core (核心引擎)

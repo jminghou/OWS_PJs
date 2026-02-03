@@ -9,7 +9,7 @@ Werkzeug==2.3.7
 # Database
 Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.0.7
-psycopg[binary]==3.2.4
+psycopg[binary]>=3.2.13
 SQLAlchemy==2.0.36
 
 # Authentication

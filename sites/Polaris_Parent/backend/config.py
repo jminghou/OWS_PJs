@@ -176,8 +176,8 @@ class DevelopmentConfig(Config):
     SESSION_COOKIE_SECURE = False
     JWT_COOKIE_SECURE = False
 
-    # CORS for local frontend
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(',')
+    # CORS for local frontend (支援 3000 與 3001，依實際啟動埠調整)
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001').split(',')
 
     # Allow fallback values in development
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
