@@ -19,6 +19,15 @@ docker-compose up -d strapi
 
 **首次啟動**：請訪問 `http://localhost:1337/admin` 建立管理員帳號。
 
+### 讓 Next.js 管理頁能讀取媒體列表（避免 401 Unauthorized）
+Strapi 的 Upload 外掛會依 **Public** 角色的權限判斷，不是只看 API Token。請在 Strapi 後台：
+1. **Settings** → **Users & Permissions** → **Roles**
+2. 點 **Public**
+3. 在 **Upload** 區塊勾選 **find**、**findOne**（若要上傳/更新/刪除再勾選對應權限）
+4. 儲存
+
+完成後，Next.js 用 API Token 呼叫 `/api/upload/files` 就不會再回 401。
+
 ---
 
 ## 核心架構說明
@@ -40,15 +49,30 @@ docker-compose up -d strapi
 ## 資料同步與管理
 
 ### 1. 環境間資料同步 (Railway -> 本機)
-若要將 Railway 的媒體記錄同步回本機，請使用 Strapi Data Transfer：
-1. 在 Railway Admin -> Settings -> Transfer Tokens 建立一個 **Pull** Token。
-2. 在本機執行：
+若要將 Railway 的正式資料同步回本機做開發測試：
+1. 在 **Railway 雲端後台** -> **Settings** -> **Transfer Tokens** 建立一個 **Full Access** Token。
+2. 複製 Token 並在本機 `packages/strapi-media` 目錄下執行：
    ```bash
-   npx strapi transfer --from https://你的-railway-網址.app/admin
+   npx strapi transfer --from https://你的雲端網址/admin --from-token 你的金鑰
    ```
-3. 輸入 Token 即可同步「帳本」資訊。
 
-### 2. 撥亂反正：重置資料庫
+### 2. 本機同步到雲端 (本機 -> Railway)
+**警告：此操作為 1:1 全量覆蓋，雲端原有的資料會被清空！**
+適用於本機開發完成後，將測試好的結構與資料一次性推向雲端。
+1. 在 **Railway 雲端後台** -> **Settings** -> **Transfer Tokens**。
+2. 點擊 **Create new Transfer Token**：
+   - **Name**: `LocalToCloud`
+   - **Token duration**: `Unlimited` (永久)
+   - **Token type**: **Full Access**
+3. 儲存後**複製 Token**。
+4. 在本機 `packages/strapi-media` 目錄下執行：
+   ```bash
+   # 請將 <Token> 替換成剛才複製的金鑰，<URL> 替換成雲端後台網址
+   npx strapi transfer --to https://<URL>/admin --to-token <Token>
+   ```
+5. 遇到 `The transfer will delete local data` 詢問請輸入 `y` (這是指清除目標端的資料)。
+
+### 3. 撥亂反正：重置資料庫
 若資料庫結構混亂（例如出現 `relation "xxx" does not exist` 或欄位衝突），請執行以下「打掉重練」流程：
 1. **清空資料庫**：
    ```sql

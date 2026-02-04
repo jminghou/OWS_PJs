@@ -4,6 +4,17 @@ export type { FetchOptions } from './client';
 export { authApi } from './auth';
 export { contentApi, categoryApi, tagApi } from './content';
 export { mediaApi } from './media';
+export {
+  getOptimizedImageUrl,
+  getThumbnailUrl,
+  getSmallImageUrl,
+  getMediumImageUrl,
+  getLargeImageUrl,
+  getOriginalImageUrl,
+  hasResponsiveFormats,
+  getAvailableFormats,
+} from './imageUtils';
+export type { ImageSize } from './imageUtils';
 export { productApi } from './products';
 export { orderApi, paymentMethodApi } from './orders';
 export { i18nApi, homepageApi } from './settings';

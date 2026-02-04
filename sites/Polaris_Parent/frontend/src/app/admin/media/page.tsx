@@ -4,35 +4,20 @@ import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import DropZone from '@/components/admin/DropZone';
+import UploadProgress, { type UploadItem } from '@/components/admin/UploadProgress';
 import { mediaApi } from '@/lib/api';
+import { mediaMetaApi, type MediaMeta } from '@/lib/api/media';
+import { type MediaItem, type MediaFolder } from '@/lib/api/strapi';
+import { getThumbnailUrl, getLargeImageUrl } from '@/lib/api/imageUtils';
 import { getImageUrl } from '@/lib/utils';
+import { useDebounce } from '@/hooks';
 
 // 用於複製 URL 功能（需完整 URL，不使用 placeholder）
 const getFullMediaUrl = (filePath: string): string => {
   if (filePath.startsWith('http')) return filePath;
   return `${process.env.NEXT_PUBLIC_BACKEND_URL}${filePath}`;
 };
-
-interface MediaItem {
-  id: number;
-  filename: string;
-  original_filename: string;
-  file_path: string;
-  file_size: number;
-  mime_type: string;
-  alt_text?: string;
-  caption?: string;
-  folder_id?: number;
-  created_at: string;
-}
-
-interface MediaFolder {
-  id: number;
-  name: string;
-  parent_id?: number;
-  path: string;
-  created_at: string;
-}
 
 export default function MediaPage() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -52,12 +37,18 @@ export default function MediaPage() {
   const [showEditFolderModal, setShowEditFolderModal] = useState(false);
   const [editingFolder, setEditingFolder] = useState<MediaFolder | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
+  const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
+  const [editingMeta, setEditingMeta] = useState<MediaMeta | null>(null);
+  const [loadingMeta, setLoadingMeta] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 搜尋防抖 - 避免每次輸入都觸發 API 請求
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   useEffect(() => {
     fetchData();
-  }, [currentFolder, currentPage, searchQuery]);
+  }, [currentFolder, currentPage, debouncedSearchQuery]);
 
   const fetchData = async () => {
     try {
@@ -67,7 +58,7 @@ export default function MediaPage() {
           page: currentPage,
           per_page: 20,
           folder_id: currentFolder || undefined,
-          search: searchQuery || undefined,
+          search: debouncedSearchQuery || undefined,
         }),
         mediaApi.getFolders(),
       ]);
@@ -82,23 +73,66 @@ export default function MediaPage() {
     }
   };
 
-  const handleFileUpload = async (files: FileList) => {
+  const handleFileUpload = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
 
     setUploading(true);
-    try {
-      const uploadPromises = Array.from(files).map((file) =>
-        mediaApi.uploadMedia(file, currentFolder || undefined)
-      );
+    const fileArray = Array.from(files);
 
-      await Promise.all(uploadPromises);
-      await fetchData();
-    } catch (error) {
-      console.error('Error uploading files:', error);
-      alert('上傳失敗，請稍後再試');
-    } finally {
-      setUploading(false);
-    }
+    // 初始化上傳項目
+    const newUploadItems: UploadItem[] = fileArray.map((file, index) => ({
+      id: `${Date.now()}-${index}`,
+      filename: file.name,
+      progress: 0,
+      status: 'uploading' as const,
+    }));
+    setUploadItems((prev) => [...prev, ...newUploadItems]);
+
+    // 逐個上傳，追蹤進度
+    const uploadPromises = fileArray.map(async (file, index) => {
+      const itemId = newUploadItems[index].id;
+      try {
+        await mediaApi.uploadMedia(
+          file,
+          currentFolder || undefined,
+          (progress) => {
+            setUploadItems((prev) =>
+              prev.map((item) =>
+                item.id === itemId ? { ...item, progress } : item
+              )
+            );
+          }
+        );
+        // 標記完成
+        setUploadItems((prev) =>
+          prev.map((item) =>
+            item.id === itemId ? { ...item, status: 'completed', progress: 100 } : item
+          )
+        );
+      } catch (error) {
+        // 標記錯誤
+        setUploadItems((prev) =>
+          prev.map((item) =>
+            item.id === itemId
+              ? { ...item, status: 'error', error: (error as Error).message }
+              : item
+          )
+        );
+      }
+    });
+
+    await Promise.all(uploadPromises);
+    await fetchData();
+    setUploading(false);
+
+    // 3 秒後清除已完成的項目
+    setTimeout(() => {
+      setUploadItems((prev) => prev.filter((item) => item.status === 'uploading'));
+    }, 3000);
+  };
+
+  const handleDismissUpload = (id: string) => {
+    setUploadItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleCreateFolder = async () => {
@@ -132,16 +166,49 @@ export default function MediaPage() {
     }
   };
 
+  const handleOpenEditModal = async (item: MediaItem) => {
+    setEditingItem(item);
+    setShowEditModal(true);
+    setLoadingMeta(true);
+
+    // 載入 MediaMeta
+    try {
+      const meta = await mediaMetaApi.getByFileId(item.id);
+      setEditingMeta(meta);
+    } catch (error) {
+      console.error('Error loading media meta:', error);
+    } finally {
+      setLoadingMeta(false);
+    }
+  };
+
   const handleEditItem = async () => {
     if (!editingItem) return;
 
     try {
+      // 更新基本媒體資訊
       await mediaApi.updateMedia(editingItem.id, {
         alt_text: editingItem.alt_text,
         caption: editingItem.caption,
       });
+
+      // 如果有 MediaMeta 資料，也一起保存
+      if (editingMeta) {
+        await mediaMetaApi.save(
+          editingItem.id,
+          {
+            chartid: editingMeta.chartid,
+            place: editingMeta.place,
+            copyright: editingMeta.copyright,
+            isPublic: editingMeta.isPublic,
+          },
+          editingMeta.id
+        );
+      }
+
       setShowEditModal(false);
       setEditingItem(null);
+      setEditingMeta(null);
       await fetchData();
     } catch (error) {
       console.error('Error updating item:', error);
@@ -227,8 +294,14 @@ export default function MediaPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="mb-6">
+      <DropZone
+        onFilesDropped={handleFileUpload}
+        accept="image/*"
+        disabled={uploading}
+        className="min-h-full"
+      >
+        <div className="p-6">
+          <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">媒體庫</h1>
@@ -401,7 +474,7 @@ export default function MediaPage() {
                     >
                       <div className="aspect-square relative">
                         <img
-                          src={getImageUrl(item.file_path)}
+                          src={getImageUrl(getThumbnailUrl(item))}
                           alt={item.alt_text || item.original_filename}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -414,8 +487,7 @@ export default function MediaPage() {
                               className="p-2 bg-white rounded-full hover:bg-gray-100"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditingItem(item);
-                                setShowEditModal(true);
+                                handleOpenEditModal(item);
                               }}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -544,7 +616,7 @@ export default function MediaPage() {
               {/* 圖片預覽 */}
               <div className="mb-6">
                 <img
-                  src={getImageUrl(editingItem.file_path)}
+                  src={getImageUrl(getLargeImageUrl(editingItem))}
                   alt={editingItem.alt_text || editingItem.original_filename}
                   className="max-w-full max-h-64 mx-auto rounded-lg shadow-sm"
                 />
@@ -693,6 +765,93 @@ export default function MediaPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* MediaMeta 擴展欄位 */}
+                <div className="border-t pt-4">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">擴展資訊</h4>
+                  {loadingMeta ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+                      <p className="text-sm text-gray-500 mt-2">載入中...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            品號 / 編號
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={18}
+                            value={editingMeta?.chartid || ''}
+                            onChange={(e) =>
+                              setEditingMeta((prev) => ({
+                                ...prev,
+                                id: prev?.id || 0,
+                                chartid: e.target.value,
+                              }))
+                            }
+                            placeholder="最多 18 個字元"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            拍攝地點
+                          </label>
+                          <input
+                            type="text"
+                            value={editingMeta?.place || ''}
+                            onChange={(e) =>
+                              setEditingMeta((prev) => ({
+                                ...prev,
+                                id: prev?.id || 0,
+                                place: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          版權資訊
+                        </label>
+                        <input
+                          type="text"
+                          value={editingMeta?.copyright || ''}
+                          onChange={(e) =>
+                            setEditingMeta((prev) => ({
+                              ...prev,
+                              id: prev?.id || 0,
+                              copyright: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="isPublic"
+                          checked={editingMeta?.isPublic || false}
+                          onChange={(e) =>
+                            setEditingMeta((prev) => ({
+                              ...prev,
+                              id: prev?.id || 0,
+                              isPublic: e.target.checked,
+                            }))
+                          }
+                          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="isPublic" className="ml-2 text-sm font-medium text-gray-700">
+                          公開顯示
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 mt-6">
@@ -701,6 +860,7 @@ export default function MediaPage() {
                   onClick={() => {
                     setShowEditModal(false);
                     setEditingItem(null);
+                    setEditingMeta(null);
                   }}
                 >
                   關閉
@@ -819,7 +979,11 @@ export default function MediaPage() {
             </div>
           </div>
         )}
-      </div>
+
+        {/* Upload Progress */}
+        <UploadProgress items={uploadItems} onDismiss={handleDismissUpload} />
+        </div>
+      </DropZone>
     </AdminLayout>
   );
 }

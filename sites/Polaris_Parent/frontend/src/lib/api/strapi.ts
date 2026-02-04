@@ -58,6 +58,20 @@ export interface StrapiPagination {
   total: number;
 }
 
+// 響應式圖片格式
+export interface ImageFormat {
+  url: string;
+  width: number;
+  height: number;
+}
+
+export interface ImageFormats {
+  thumbnail?: ImageFormat;
+  small?: ImageFormat;
+  medium?: ImageFormat;
+  large?: ImageFormat;
+}
+
 // Legacy interfaces for compatibility with existing components
 export interface MediaItem {
   id: number;
@@ -70,6 +84,10 @@ export interface MediaItem {
   caption?: string;
   folder_id?: number;
   created_at: string;
+  // 響應式圖片格式 (Strapi 自動生成)
+  formats?: ImageFormats;
+  width?: number;
+  height?: number;
 }
 
 export interface MediaFolder {
@@ -99,6 +117,10 @@ export function strapiFileToMediaItem(file: StrapiFile): MediaItem {
     caption: file.caption ?? undefined,
     folder_id: file.folder?.id,
     created_at: file.createdAt,
+    // 響應式圖片格式
+    formats: file.formats ?? undefined,
+    width: file.width ?? undefined,
+    height: file.height ?? undefined,
   };
 }
 

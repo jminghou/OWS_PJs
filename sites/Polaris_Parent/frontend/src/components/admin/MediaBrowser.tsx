@@ -2,29 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { mediaApi } from '@/lib/api';
+import { type MediaItem, type MediaFolder } from '@/lib/api/strapi';
+import { getThumbnailUrl } from '@/lib/api/imageUtils';
 import Button from '@/components/ui/Button';
 import { getImageUrl } from '@/lib/utils';
-
-interface MediaItem {
-  id: number;
-  filename: string;
-  original_filename: string;
-  file_path: string;
-  file_size: number;
-  mime_type: string;
-  alt_text?: string;
-  caption?: string;
-  folder_id?: number;
-  created_at: string;
-}
-
-interface MediaFolder {
-  id: number;
-  name: string;
-  parent_id?: number;
-  path: string;
-  created_at: string;
-}
+import { useDebounce } from '@/hooks';
 
 interface MediaBrowserProps {
   isOpen: boolean;
@@ -43,11 +25,14 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
   const [pagination, setPagination] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // 搜尋防抖 - 避免每次輸入都觸發 API 請求
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   useEffect(() => {
     if (isOpen) {
       fetchData();
     }
-  }, [isOpen, currentFolder, currentPage, searchQuery]);
+  }, [isOpen, currentFolder, currentPage, debouncedSearchQuery]);
 
   const fetchData = async () => {
     try {
@@ -57,7 +42,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
           page: currentPage,
           per_page: 12,
           folder_id: currentFolder || undefined,
-          search: searchQuery || undefined,
+          search: debouncedSearchQuery || undefined,
         }),
         mediaApi.getFolders(),
       ]);
@@ -243,7 +228,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                     >
                       <div className="aspect-square relative">
                         <img
-                          src={getImageUrl(item.file_path)}
+                          src={getImageUrl(getThumbnailUrl(item))}
                           alt={item.alt_text || item.original_filename}
                           className="w-full h-full object-cover"
                           onError={(e) => {
