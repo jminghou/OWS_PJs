@@ -38,7 +38,8 @@
     "category": {
       "type": "relation",
       "relation": "manyToMany",
-      "target": "api::category.category"
+      "target": "api::category.category",
+      "inversedBy": "media_metas"
     },
     "copyright": {
       "type": "string",
