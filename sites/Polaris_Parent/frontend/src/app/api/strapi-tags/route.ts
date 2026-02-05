@@ -6,6 +6,7 @@ const STRAPI_TOKEN = process.env.STRAPI_UPLOAD_TOKEN;
 /**
  * GET /api/strapi-tags
  * 取得所有標籤
+ * 如果 API 不可用或無權限，返回空陣列而非錯誤
  */
 export async function GET(request: NextRequest) {
   try {
@@ -16,9 +17,17 @@ export async function GET(request: NextRequest) {
       headers['Authorization'] = `Bearer ${STRAPI_TOKEN}`;
     }
 
-    const response = await fetch(`${STRAPI_URL}/api/tags`, { headers });
+    const url = `${STRAPI_URL}/api/tags`;
+    console.log('[strapi-tags] Fetching URL:', url);
+    const response = await fetch(url, { headers });
+    console.log('[strapi-tags] Response status:', response.status);
 
+    // 如果無權限或 API 不存在，靜默返回空陣列
     if (!response.ok) {
+      if (response.status === 404 || response.status === 403 || response.status === 401) {
+        console.warn(`[strapi-tags] API 返回 ${response.status}，可能需要在 Strapi API Token 設定中開放 Tag 的 find 權限`);
+        return NextResponse.json({ data: [] });
+      }
       const error = await response.json().catch(() => ({}));
       return NextResponse.json(
         { error: error.error?.message || 'Failed to fetch tags' },
@@ -27,13 +36,12 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('[strapi-tags] Raw response data:', JSON.stringify(data, null, 2));
     return NextResponse.json({ data: data.data || [] });
   } catch (error) {
     console.error('Error fetching tags:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    // 網路錯誤時也返回空陣列，避免阻斷 UI
+    return NextResponse.json({ data: [] });
   }
 }
 

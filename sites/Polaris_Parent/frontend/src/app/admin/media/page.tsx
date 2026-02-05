@@ -1,367 +1,1011 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import DropZone from '@/components/admin/DropZone';
-import UploadProgress, { type UploadItem } from '@/components/admin/UploadProgress';
-import { mediaApi } from '@/lib/api';
-import { mediaMetaApi, type MediaMeta } from '@/lib/api/media';
-import { type MediaItem, type MediaFolder } from '@/lib/api/strapi';
-import { getThumbnailUrl, getLargeImageUrl } from '@/lib/api/imageUtils';
+import { Card, CardContent } from '@/components/ui/Card';
 import { getImageUrl } from '@/lib/utils';
-import { useDebounce } from '@/hooks';
 
-// 用於複製 URL 功能（需完整 URL，不使用 placeholder）
-const getFullMediaUrl = (filePath: string): string => {
-  if (filePath.startsWith('http')) return filePath;
-  return `${process.env.NEXT_PUBLIC_BACKEND_URL}${filePath}`;
+// =============================================================================
+// Types
+// =============================================================================
+
+interface StrapiFile {
+  id: number;
+  documentId: string;
+  name: string;
+  alternativeText: string | null;
+  caption: string | null;
+  width: number | null;
+  height: number | null;
+  formats: {
+    thumbnail?: { url: string; width: number; height: number; size: number };
+    small?: { url: string; width: number; height: number; size: number };
+    medium?: { url: string; width: number; height: number; size: number };
+    large?: { url: string; width: number; height: number; size: number };
+  } | null;
+  hash: string;
+  ext: string;
+  mime: string;
+  size: number;
+  url: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Category {
+  id: number;
+  documentId: string;
+  name: string;
+  description?: string;
+}
+
+interface MediaMeta {
+  id: number;
+  documentId: string;
+  file?: { id: number } | number;
+  category?: Category[];
+  chartid?: string;
+  place?: string;
+  copyright?: string;
+  isPublic?: boolean;
+}
+
+// 擴展 StrapiFile 以包含 MediaMeta 資訊
+interface StrapiFileWithMeta extends StrapiFile {
+  mediaMeta?: MediaMeta | null;
+}
+
+// =============================================================================
+// API Functions
+// =============================================================================
+
+const api = {
+  // 取得檔案列表
+  getFiles: async (params?: { page?: number; pageSize?: number; search?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.pageSize) searchParams.set('pageSize', params.pageSize.toString());
+    if (params?.search) searchParams.set('filters[name][$containsi]', params.search);
+
+    const response = await fetch(`/api/strapi-files?${searchParams.toString()}`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to fetch files');
+    }
+    return response.json() as Promise<StrapiFile[]>;
+  },
+
+  // 上傳檔案
+  uploadFiles: async (
+    files: File[],
+    onProgress?: (filename: string, progress: number) => void
+  ): Promise<StrapiFile[]> => {
+    const results: StrapiFile[] = [];
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('files', file);
+
+      const uploadedFiles = await new Promise<StrapiFile[]>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable && onProgress) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            onProgress(file.name, percent);
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch {
+              reject(new Error('Invalid response'));
+            }
+          } else {
+            try {
+              const error = JSON.parse(xhr.responseText);
+              reject(new Error(error.error || 'Upload failed'));
+            } catch {
+              reject(new Error('Upload failed'));
+            }
+          }
+        });
+
+        xhr.addEventListener('error', () => reject(new Error('Network error')));
+        xhr.open('POST', '/api/strapi-upload');
+        xhr.send(formData);
+      });
+
+      results.push(...uploadedFiles);
+    }
+
+    return results;
+  },
+
+  // 更新檔案資訊
+  updateFile: async (id: number, data: { alternativeText?: string; caption?: string }) => {
+    const response = await fetch(`/api/strapi-upload?fileId=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Update failed');
+    }
+    return response.json();
+  },
+
+  // 刪除檔案
+  deleteFile: async (id: number) => {
+    const response = await fetch(`/api/strapi-upload?fileId=${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Delete failed');
+    }
+  },
+
+  // 批量刪除
+  deleteFiles: async (ids: number[]) => {
+    await Promise.all(ids.map((id) => api.deleteFile(id)));
+  },
+
+  // 取得分類列表
+  getCategories: async (): Promise<Category[]> => {
+    const response = await fetch('/api/strapi-categories');
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.data || [];
+  },
+
+  // 建立分類
+  createCategory: async (name: string, description?: string): Promise<Category | null> => {
+    const response = await fetch('/api/strapi-categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description }),
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.data;
+  },
+
+  // 取得所有 MediaMeta（用於建立 file-category 對應）
+  getAllMediaMetas: async (): Promise<MediaMeta[]> => {
+    const response = await fetch('/api/strapi-media-meta/all');
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.data || [];
+  },
+
+  // 取得單一檔案的 MediaMeta
+  getMediaMeta: async (fileId: number): Promise<MediaMeta | null> => {
+    const response = await fetch(`/api/strapi-media-meta?fileId=${fileId}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.data;
+  },
+
+  // 更新 MediaMeta（包含分類）
+  updateMediaMeta: async (
+    fileId: number,
+    documentId: string | undefined,
+    data: { category?: number[] }
+  ): Promise<MediaMeta | null> => {
+    const response = await fetch('/api/strapi-media-meta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileId,
+        documentId,
+        ...data,
+      }),
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    return result.data;
+  },
 };
 
-export default function MediaPage() {
-  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [folders, setFolders] = useState<MediaFolder[]>([]);
-  const [currentFolder, setCurrentFolder] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [pagination, setPagination] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<MediaItem | null>(null);
-  const [showMoveModal, setShowMoveModal] = useState(false);
-  const [showEditFolderModal, setShowEditFolderModal] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<MediaFolder | null>(null);
-  const [editFolderName, setEditFolderName] = useState('');
-  const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
-  const [editingMeta, setEditingMeta] = useState<MediaMeta | null>(null);
-  const [loadingMeta, setLoadingMeta] = useState(false);
+// =============================================================================
+// Helper Functions
+// =============================================================================
 
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const getThumbnailUrl = (file: StrapiFile): string => {
+  if (file.formats?.thumbnail?.url) return file.formats.thumbnail.url;
+  if (file.formats?.small?.url) return file.formats.small.url;
+  return file.url;
+};
+
+const getFullUrl = (url: string): string => {
+  if (url.startsWith('http')) return url;
+  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  return `${strapiUrl}${url}`;
+};
+
+// =============================================================================
+// Category Sidebar Component
+// =============================================================================
+
+interface CategorySidebarProps {
+  categories: Category[];
+  selectedCategoryId: number | null;
+  onSelectCategory: (categoryId: number | null) => void;
+  onCreateCategory: (name: string) => Promise<void>;
+  fileCounts: Record<number, number>;
+  totalFileCount: number;
+}
+
+function CategorySidebar({
+  categories,
+  selectedCategoryId,
+  onSelectCategory,
+  onCreateCategory,
+  fileCounts,
+  totalFileCount,
+}: CategorySidebarProps) {
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    if (!newCategoryName.trim()) return;
+    setCreating(true);
+    try {
+      await onCreateCategory(newCategoryName.trim());
+      setNewCategoryName('');
+      setShowCreateForm(false);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="w-64 flex-shrink-0 border-r bg-gray-50">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-medium text-gray-900">分類資料夾</h3>
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+            title="新增分類"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+
+        {/* 新增分類表單 */}
+        {showCreateForm && (
+          <div className="mb-4 p-3 bg-white rounded-lg border">
+            <input
+              type="text"
+              placeholder="分類名稱..."
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded mb-2"
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreate}
+                disabled={creating || !newCategoryName.trim()}
+                className="flex-1 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              >
+                {creating ? '建立中...' : '建立'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setNewCategoryName('');
+                }}
+                className="flex-1 px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 分類列表 */}
+        <nav className="space-y-1">
+          {/* 全部檔案 */}
+          <button
+            onClick={() => onSelectCategory(null)}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+              selectedCategoryId === null
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="flex-1 truncate">全部檔案</span>
+            <span className="text-xs text-gray-500">{totalFileCount}</span>
+          </button>
+
+          {/* 未分類 */}
+          <button
+            onClick={() => onSelectCategory(0)}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+              selectedCategoryId === 0
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <svg className="w-5 h-5 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+            </svg>
+            <span className="flex-1 truncate">未分類</span>
+            <span className="text-xs text-gray-500">{fileCounts[0] || 0}</span>
+          </button>
+
+          {/* 分類資料夾 */}
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => onSelectCategory(category.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                selectedCategoryId === category.id
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <svg className="w-5 h-5 flex-shrink-0 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+              </svg>
+              <span className="flex-1 truncate">{category.name}</span>
+              <span className="text-xs text-gray-500">{fileCounts[category.id] || 0}</span>
+            </button>
+          ))}
+
+          {categories.length === 0 && (
+            <p className="px-3 py-4 text-sm text-gray-500 text-center">
+              尚未建立任何分類
+            </p>
+          )}
+        </nav>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Upload Modal Component
+// =============================================================================
+
+interface UploadModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onUploadComplete: () => void;
+  selectedCategoryId: number | null;
+}
+
+function UploadModal({ isOpen, onClose, onUploadComplete, selectedCategoryId }: UploadModalProps) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 搜尋防抖 - 避免每次輸入都觸發 API 請求
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      await handleUpload(files);
+    }
+  }, [selectedCategoryId]);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      await handleUpload(files);
+    }
+  };
+
+  const handleUpload = async (files: File[]) => {
+    setIsUploading(true);
+    const initialProgress: Record<string, number> = {};
+    files.forEach((f) => (initialProgress[f.name] = 0));
+    setUploadProgress(initialProgress);
+
+    try {
+      const uploadedFiles = await api.uploadFiles(files, (filename, progress) => {
+        setUploadProgress((prev) => ({ ...prev, [filename]: progress }));
+      });
+
+      // 如果有選擇分類，自動將上傳的檔案加入該分類
+      if (selectedCategoryId && selectedCategoryId > 0) {
+        for (const file of uploadedFiles) {
+          await api.updateMediaMeta(file.id, undefined, {
+            category: [selectedCategoryId],
+          });
+        }
+      }
+
+      onUploadComplete();
+      onClose();
+    } catch (error) {
+      alert(`上傳失敗: ${(error as Error).message}`);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress({});
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-lg">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="text-lg font-medium">上傳媒體檔案</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded" disabled={isUploading}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-6">
+          {/* 拖放區域 */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+            }`}
+          >
+            <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <p className="text-gray-600 mb-2">拖放檔案到此處</p>
+            <p className="text-gray-400 text-sm mb-4">或</p>
+            <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+              選擇檔案
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
+
+          {/* 上傳進度 */}
+          {Object.keys(uploadProgress).length > 0 && (
+            <div className="mt-4 space-y-2">
+              {Object.entries(uploadProgress).map(([filename, progress]) => (
+                <div key={filename} className="text-sm">
+                  <div className="flex justify-between mb-1">
+                    <span className="truncate">{filename}</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Edit Modal Component
+// =============================================================================
+
+interface EditModalProps {
+  file: StrapiFileWithMeta | null;
+  categories: Category[];
+  onClose: () => void;
+  onSave: (id: number, data: { alternativeText?: string; caption?: string }, categoryIds?: number[]) => Promise<void>;
+}
+
+function EditModal({ file, categories, onClose, onSave }: EditModalProps) {
+  const [altText, setAltText] = useState('');
+  const [caption, setCaption] = useState('');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [showSizes, setShowSizes] = useState(false);
+  const [showCode, setShowCode] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, [currentFolder, currentPage, debouncedSearchQuery]);
+    if (file) {
+      setAltText(file.alternativeText || '');
+      setCaption(file.caption || '');
+      // 從 MediaMeta 取得已選擇的分類
+      const categoryIds = file.mediaMeta?.category?.map((c) => c.id) || [];
+      setSelectedCategoryIds(categoryIds);
+    }
+  }, [file]);
 
-  const fetchData = async () => {
+  if (!file) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      setLoading(true);
-      const [mediaResponse, foldersResponse] = await Promise.all([
-        mediaApi.getMediaList({
-          page: currentPage,
-          per_page: 20,
-          folder_id: currentFolder || undefined,
-          search: debouncedSearchQuery || undefined,
-        }),
-        mediaApi.getFolders(),
-      ]);
-
-      setMediaItems(mediaResponse.media);
-      setPagination(mediaResponse.pagination);
-      setFolders(foldersResponse);
+      await onSave(file.id, { alternativeText: altText, caption }, selectedCategoryIds);
+      onClose();
     } catch (error) {
-      console.error('Error fetching media:', error);
+      alert(`儲存失敗: ${(error as Error).message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleCategory = (categoryId: number) => {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  const fullUrl = getFullUrl(file.url);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="text-lg font-medium">媒體詳情</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* 預覽 */}
+          <div className="flex justify-center">
+            <img
+              src={getImageUrl(getFullUrl(file.formats?.large?.url || file.url))}
+              alt={file.alternativeText || file.name}
+              className="max-w-full max-h-48 rounded-lg shadow-sm"
+            />
+          </div>
+
+          {/* 基本資訊 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">檔案名稱</label>
+              <input type="text" value={file.name} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">檔案大小</label>
+              <input type="text" value={formatFileSize(file.size * 1024)} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" />
+            </div>
+          </div>
+
+          {/* 分類選擇 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">分類資料夾</label>
+            <div className="flex flex-wrap gap-2">
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => toggleCategory(category.id)}
+                    className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                      selectedCategoryIds.includes(category.id)
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {category.name}
+                  </button>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">尚未建立任何分類</p>
+              )}
+            </div>
+          </div>
+
+          {/* 編輯資訊 */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">替代文字 (Alt Text)</label>
+              <input
+                type="text"
+                value={altText}
+                onChange={(e) => setAltText(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="描述圖片內容..."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">說明文字 (Caption)</label>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="圖片說明..."
+              />
+            </div>
+          </div>
+
+          {/* 圖片尺寸 - 可收合 */}
+          <div className="border-t pt-4">
+            <button
+              type="button"
+              onClick={() => setShowSizes(!showSizes)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <h4 className="text-md font-medium text-gray-900">圖片尺寸</h4>
+              <svg className={`w-5 h-5 text-gray-500 transition-transform ${showSizes ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showSizes && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="text-sm font-medium text-gray-700">原始尺寸</div>
+                  <div className="text-xs text-gray-500">{file.width && file.height ? `${file.width} × ${file.height} px` : '未知'}</div>
+                  <div className="text-xs text-gray-400 mt-1">{formatFileSize(file.size * 1024)}</div>
+                </div>
+                {file.formats?.large && (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-medium text-gray-700">Large</div>
+                    <div className="text-xs text-gray-500">{file.formats.large.width} × {file.formats.large.height} px</div>
+                    <div className="text-xs text-gray-400 mt-1">{formatFileSize(file.formats.large.size * 1024)}</div>
+                  </div>
+                )}
+                {file.formats?.medium && (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-medium text-gray-700">Medium</div>
+                    <div className="text-xs text-gray-500">{file.formats.medium.width} × {file.formats.medium.height} px</div>
+                    <div className="text-xs text-gray-400 mt-1">{formatFileSize(file.formats.medium.size * 1024)}</div>
+                  </div>
+                )}
+                {file.formats?.small && (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-medium text-gray-700">Small</div>
+                    <div className="text-xs text-gray-500">{file.formats.small.width} × {file.formats.small.height} px</div>
+                    <div className="text-xs text-gray-400 mt-1">{formatFileSize(file.formats.small.size * 1024)}</div>
+                  </div>
+                )}
+                {file.formats?.thumbnail && (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-medium text-gray-700">Thumbnail</div>
+                    <div className="text-xs text-gray-500">{file.formats.thumbnail.width} × {file.formats.thumbnail.height} px</div>
+                    <div className="text-xs text-gray-400 mt-1">{formatFileSize(file.formats.thumbnail.size * 1024)}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 引用代碼 - 可收合 */}
+          <div className="border-t pt-4">
+            <button
+              type="button"
+              onClick={() => setShowCode(!showCode)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <h4 className="text-md font-medium text-gray-900">引用代碼</h4>
+              <svg className={`w-5 h-5 text-gray-500 transition-transform ${showCode ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showCode && (
+              <div className="mt-3 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">圖片路徑</label>
+                  <div className="relative">
+                    <input type="text" value={fullUrl} readOnly className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-sm" />
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(fullUrl); alert('已複製'); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">HTML</label>
+                    <div className="relative">
+                      <textarea
+                        value={`<img src="${fullUrl}" alt="${altText || file.name}" />`}
+                        readOnly
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs font-mono"
+                      />
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(`<img src="${fullUrl}" alt="${altText || file.name}" />`); alert('已複製'); }}
+                        className="absolute right-2 top-2 p-1 text-gray-500 hover:text-gray-700"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Markdown</label>
+                    <div className="relative">
+                      <textarea
+                        value={`![${altText || file.name}](${fullUrl})`}
+                        readOnly
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs font-mono"
+                      />
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(`![${altText || file.name}](${fullUrl})`); alert('已複製'); }}
+                        className="absolute right-2 top-2 p-1 text-gray-500 hover:text-gray-700"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 p-4 border-t bg-gray-50">
+          <Button variant="outline" onClick={onClose}>關閉</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? '儲存中...' : '儲存變更'}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Main Media Page Component
+// =============================================================================
+
+export default function MediaPage() {
+  const [files, setFiles] = useState<StrapiFile[]>([]);
+  const [filesWithMeta, setFilesWithMeta] = useState<StrapiFileWithMeta[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [mediaMetas, setMediaMetas] = useState<MediaMeta[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [editingFile, setEditingFile] = useState<StrapiFileWithMeta | null>(null);
+
+  // 搜尋防抖
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // 載入分類
+  const fetchCategories = useCallback(async () => {
+    const result = await api.getCategories();
+    setCategories(result);
+  }, []);
+
+  // 載入所有 MediaMeta
+  const fetchMediaMetas = useCallback(async () => {
+    const result = await api.getAllMediaMetas();
+    setMediaMetas(result);
+  }, []);
+
+  // 載入檔案
+  const fetchFiles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await api.getFiles({
+        search: debouncedSearch || undefined,
+      });
+      setFiles(result);
+    } catch (error) {
+      console.error('Error fetching files:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearch]);
 
-  const handleFileUpload = async (files: FileList | File[]) => {
-    if (!files || files.length === 0) return;
+  // 合併 files 和 mediaMetas
+  useEffect(() => {
+    const merged = files.map((file) => {
+      const meta = mediaMetas.find((m) => {
+        const fileRef = m.file;
+        if (typeof fileRef === 'number') return fileRef === file.id;
+        return fileRef?.id === file.id;
+      });
+      return { ...file, mediaMeta: meta || null };
+    });
+    setFilesWithMeta(merged);
+  }, [files, mediaMetas]);
 
-    setUploading(true);
-    const fileArray = Array.from(files);
+  // 初始載入
+  useEffect(() => {
+    fetchCategories();
+    fetchMediaMetas();
+  }, [fetchCategories, fetchMediaMetas]);
 
-    // 初始化上傳項目
-    const newUploadItems: UploadItem[] = fileArray.map((file, index) => ({
-      id: `${Date.now()}-${index}`,
-      filename: file.name,
-      progress: 0,
-      status: 'uploading' as const,
-    }));
-    setUploadItems((prev) => [...prev, ...newUploadItems]);
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
 
-    // 逐個上傳，追蹤進度
-    const uploadPromises = fileArray.map(async (file, index) => {
-      const itemId = newUploadItems[index].id;
-      try {
-        await mediaApi.uploadMedia(
-          file,
-          currentFolder || undefined,
-          (progress) => {
-            setUploadItems((prev) =>
-              prev.map((item) =>
-                item.id === itemId ? { ...item, progress } : item
-              )
-            );
-          }
-        );
-        // 標記完成
-        setUploadItems((prev) =>
-          prev.map((item) =>
-            item.id === itemId ? { ...item, status: 'completed', progress: 100 } : item
-          )
-        );
-      } catch (error) {
-        // 標記錯誤
-        setUploadItems((prev) =>
-          prev.map((item) =>
-            item.id === itemId
-              ? { ...item, status: 'error', error: (error as Error).message }
-              : item
-          )
-        );
+  // 計算各分類的檔案數量
+  const fileCounts = useCallback(() => {
+    const counts: Record<number, number> = { 0: 0 };
+
+    filesWithMeta.forEach((file) => {
+      const categoryIds = file.mediaMeta?.category?.map((c) => c.id) || [];
+      if (categoryIds.length === 0) {
+        counts[0] = (counts[0] || 0) + 1;
+      } else {
+        categoryIds.forEach((id) => {
+          counts[id] = (counts[id] || 0) + 1;
+        });
       }
     });
 
-    await Promise.all(uploadPromises);
-    await fetchData();
-    setUploading(false);
+    return counts;
+  }, [filesWithMeta]);
 
-    // 3 秒後清除已完成的項目
-    setTimeout(() => {
-      setUploadItems((prev) => prev.filter((item) => item.status === 'uploading'));
-    }, 3000);
-  };
-
-  const handleDismissUpload = (id: string) => {
-    setUploadItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return;
-
-    try {
-      await mediaApi.createFolder({
-        name: newFolderName,
-        parent_id: currentFolder || undefined,
-      });
-      setNewFolderName('');
-      setShowNewFolderModal(false);
-      await fetchData();
-    } catch (error) {
-      console.error('Error creating folder:', error);
-      alert('創建資料夾失敗');
+  // 根據選擇的分類過濾檔案
+  const filteredFiles = useCallback(() => {
+    if (selectedCategoryId === null) {
+      // 全部檔案
+      return filesWithMeta;
     }
+    if (selectedCategoryId === 0) {
+      // 未分類
+      return filesWithMeta.filter((file) => {
+        const categoryIds = file.mediaMeta?.category?.map((c) => c.id) || [];
+        return categoryIds.length === 0;
+      });
+    }
+    // 特定分類
+    return filesWithMeta.filter((file) => {
+      const categoryIds = file.mediaMeta?.category?.map((c) => c.id) || [];
+      return categoryIds.includes(selectedCategoryId);
+    });
+  }, [filesWithMeta, selectedCategoryId]);
+
+  // 建立分類
+  const handleCreateCategory = async (name: string) => {
+    await api.createCategory(name);
+    await fetchCategories();
   };
 
+  // 批量刪除
   const handleDeleteSelected = async () => {
-    if (selectedItems.length === 0) return;
-    if (!confirm(`確定要刪除選中的 ${selectedItems.length} 個項目嗎？`)) return;
+    if (selectedIds.length === 0) return;
+    if (!confirm(`確定要刪除選中的 ${selectedIds.length} 個項目嗎？`)) return;
 
     try {
-      await Promise.all(selectedItems.map((id) => mediaApi.deleteMedia(id)));
-      setSelectedItems([]);
-      await fetchData();
+      await api.deleteFiles(selectedIds);
+      setSelectedIds([]);
+      await fetchFiles();
+      await fetchMediaMetas();
     } catch (error) {
-      console.error('Error deleting items:', error);
-      alert('刪除失敗');
+      alert(`刪除失敗: ${(error as Error).message}`);
     }
   };
 
-  const handleOpenEditModal = async (item: MediaItem) => {
-    setEditingItem(item);
-    setShowEditModal(true);
-    setLoadingMeta(true);
+  // 更新檔案
+  const handleUpdateFile = async (
+    id: number,
+    data: { alternativeText?: string; caption?: string },
+    categoryIds?: number[]
+  ) => {
+    await api.updateFile(id, data);
 
-    // 載入 MediaMeta
-    try {
-      const meta = await mediaMetaApi.getByFileId(item.id);
-      setEditingMeta(meta);
-    } catch (error) {
-      console.error('Error loading media meta:', error);
-    } finally {
-      setLoadingMeta(false);
-    }
-  };
-
-  const handleEditItem = async () => {
-    if (!editingItem) return;
-
-    try {
-      // 更新基本媒體資訊
-      await mediaApi.updateMedia(editingItem.id, {
-        alt_text: editingItem.alt_text,
-        caption: editingItem.caption,
+    // 更新 MediaMeta 分類
+    if (categoryIds !== undefined) {
+      const file = filesWithMeta.find((f) => f.id === id);
+      await api.updateMediaMeta(id, file?.mediaMeta?.documentId, {
+        category: categoryIds,
       });
-
-      // 如果有 MediaMeta 資料，也一起保存
-      if (editingMeta) {
-        await mediaMetaApi.save(
-          editingItem.id,
-          {
-            chartid: editingMeta.chartid,
-            place: editingMeta.place,
-            copyright: editingMeta.copyright,
-            isPublic: editingMeta.isPublic,
-          },
-          editingMeta.id
-        );
-      }
-
-      setShowEditModal(false);
-      setEditingItem(null);
-      setEditingMeta(null);
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating item:', error);
-      alert('更新失敗');
     }
+
+    await fetchFiles();
+    await fetchMediaMetas();
   };
 
-  const handleMoveToFolder = async (targetFolderId?: number) => {
-    if (selectedItems.length === 0) return;
+  // 選擇項目
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
 
-    try {
-      const response = await mediaApi.moveMedia(selectedItems, targetFolderId);
-      alert(response.message);
-      setSelectedItems([]);
-      setShowMoveModal(false);
-      await fetchData();
-    } catch (error) {
-      console.error('Error moving items:', error);
-      alert('移動失敗');
+  // 全選
+  const displayedFiles = filteredFiles();
+  const toggleSelectAll = () => {
+    if (selectedIds.length === displayedFiles.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(displayedFiles.map((f) => f.id));
     }
-  };
-
-  const handleEditFolder = (folder: MediaFolder) => {
-    setEditingFolder(folder);
-    setEditFolderName(folder.name);
-    setShowEditFolderModal(true);
-  };
-
-  const handleUpdateFolder = async () => {
-    if (!editingFolder || !editFolderName.trim()) return;
-
-    try {
-      const response = await mediaApi.updateFolder(editingFolder.id, {
-        name: editFolderName.trim()
-      });
-      alert(response.message);
-      setShowEditFolderModal(false);
-      setEditingFolder(null);
-      setEditFolderName('');
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating folder:', error);
-      alert('更新資料夾失敗');
-    }
-  };
-
-  const handleDeleteFolder = async (folder: MediaFolder) => {
-    if (!confirm(`確定要刪除資料夾 "${folder.name}" 嗎？`)) return;
-
-    try {
-      const response = await mediaApi.deleteFolder(folder.id);
-      alert(response.message);
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting folder:', error);
-      alert('刪除資料夾失敗');
-    }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getCurrentFolderPath = () => {
-    if (!currentFolder) return '根目錄';
-    const folder = folders.find((f) => f.id === currentFolder);
-    return folder ? folder.path : '根目錄';
-  };
-
-  const getCurrentFolderSubfolders = () => {
-    return folders.filter((folder) => folder.parent_id === currentFolder);
-  };
-
-  const getParentFolder = () => {
-    if (!currentFolder) return null;
-    const folder = folders.find((f) => f.id === currentFolder);
-    return folder?.parent_id || null;
   };
 
   return (
     <AdminLayout>
-      <DropZone
-        onFilesDropped={handleFileUpload}
-        accept="image/*"
-        disabled={uploading}
-        className="min-h-full"
-      >
-        <div className="p-6">
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* 分類側邊欄 */}
+        <CategorySidebar
+          categories={categories}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
+          onCreateCategory={handleCreateCategory}
+          fileCounts={fileCounts()}
+          totalFileCount={files.length}
+        />
+
+        {/* 主內容區 */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Header */}
           <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">媒體庫</h1>
-              <p className="text-gray-600">管理您的圖片和媒體文件</p>
-              <div className="mt-2 text-sm text-gray-500">
-                當前位置：{getCurrentFolderPath()}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">媒體庫</h1>
+                <p className="text-gray-600">
+                  {selectedCategoryId === null
+                    ? '全部媒體文件'
+                    : selectedCategoryId === 0
+                    ? '未分類的媒體文件'
+                    : `${categories.find((c) => c.id === selectedCategoryId)?.name || ''} 分類中的媒體文件`}
+                </p>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setShowNewFolderModal(true)}
-                variant="outline"
-                size="sm"
-              >
+              <Button onClick={() => setShowUploadModal(true)}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                 </svg>
-                新增資料夾
-              </Button>
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                size="sm"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                {uploading ? '上傳中...' : '上傳文件'}
+                上傳媒體
               </Button>
             </div>
           </div>
 
-          {/* Navigation Bar */}
-          <div className="mt-4 flex items-center gap-2">
-            {currentFolder && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentFolder(getParentFolder())}
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                返回上級
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentFolder(null)}
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2v0" />
-              </svg>
-              根目錄
-            </Button>
-          </div>
-
-          {/* Search and Actions */}
-          <div className="mt-4 flex flex-col sm:flex-row gap-4">
+          {/* Filters Bar */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <input
                 type="text"
@@ -371,619 +1015,150 @@ export default function MediaPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            {selectedItems.length > 0 && (
-              <div className="flex gap-2">
+
+            {/* 批量操作 */}
+            {selectedIds.length > 0 && (
+              <div className="flex gap-2 items-center">
                 <span className="px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg">
-                  已選擇 {selectedItems.length} 個項目
+                  已選擇 {selectedIds.length} 個項目
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowMoveModal(true)}
-                >
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8" />
-                  </svg>
-                  移動到
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteSelected}
-                >
+                <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
                   刪除選中
                 </Button>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Folders */}
-        {getCurrentFolderSubfolders().length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">資料夾</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                {getCurrentFolderSubfolders().map((folder) => (
-                  <div
-                    key={folder.id}
-                    className="relative group flex flex-col items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => setCurrentFolder(folder.id)}
-                  >
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="flex gap-2">
-                        <button
-                          className="p-2 bg-white rounded-full shadow-md hover:bg-blue-50 hover:shadow-lg transition-all duration-200"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditFolder(folder);
-                          }}
-                          title="編輯資料夾"
-                        >
-                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 hover:shadow-lg transition-all duration-200"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteFolder(folder);
-                          }}
-                          title="刪除資料夾"
-                        >
-                          <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <svg className="w-12 h-12 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2v0" />
-                    </svg>
-                    <span className="text-sm font-medium text-center truncate w-full">
-                      {folder.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          {/* Media Grid */}
+          <Card>
+            <CardContent className="p-6">
+              {/* 全選 checkbox */}
+              {displayedFiles.length > 0 && (
+                <div className="mb-4 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === displayedFiles.length && displayedFiles.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600">全選</span>
+                  <span className="text-sm text-gray-400">({displayedFiles.length} 個檔案)</span>
+                </div>
+              )}
 
-        {/* Media Grid */}
-        <Card>
-          <CardContent className="p-6">
-            {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
-                ))}
-              </div>
-            ) : mediaItems.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {mediaItems.map((item) => (
+              {loading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : displayedFiles.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {displayedFiles.map((file) => (
                     <div
-                      key={item.id}
+                      key={file.id}
                       className={`relative group border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
-                        selectedItems.includes(item.id) ? 'ring-2 ring-blue-500' : ''
+                        selectedIds.includes(file.id) ? 'ring-2 ring-blue-500' : ''
                       }`}
                     >
-                      <div className="aspect-square relative">
+                      <div className="aspect-square relative bg-gray-100">
                         <img
-                          src={getImageUrl(getThumbnailUrl(item))}
-                          alt={item.alt_text || item.original_filename}
+                          src={getImageUrl(getFullUrl(getThumbnailUrl(file)))}
+                          alt={file.alternativeText || file.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/images/placeholder.svg';
                           }}
                         />
+                        {/* Hover overlay */}
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
-                          <div className="opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity">
-                            <button
-                              className="p-2 bg-white rounded-full hover:bg-gray-100"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEditModal(item);
-                              }}
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                          </div>
+                          <button
+                            className="opacity-0 group-hover:opacity-100 p-2 bg-white rounded-full hover:bg-gray-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingFile(file);
+                            }}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
                         </div>
+                        {/* Checkbox */}
                         <div className="absolute top-2 left-2">
                           <input
                             type="checkbox"
-                            checked={selectedItems.includes(item.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedItems([...selectedItems, item.id]);
-                              } else {
-                                setSelectedItems(selectedItems.filter((id) => id !== item.id));
-                              }
-                            }}
-                            className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+                            checked={selectedIds.includes(file.id)}
+                            onChange={() => toggleSelect(file.id)}
                             onClick={(e) => e.stopPropagation()}
+                            className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
                           />
                         </div>
+                        {/* 分類標籤 */}
+                        {file.mediaMeta?.category && file.mediaMeta.category.length > 0 && (
+                          <div className="absolute bottom-2 right-2 flex gap-1">
+                            {file.mediaMeta.category.slice(0, 2).map((cat) => (
+                              <span
+                                key={cat.id}
+                                className="px-1.5 py-0.5 text-[10px] bg-blue-500 text-white rounded"
+                                title={cat.name}
+                              >
+                                {cat.name.slice(0, 4)}
+                              </span>
+                            ))}
+                            {file.mediaMeta.category.length > 2 && (
+                              <span className="px-1.5 py-0.5 text-[10px] bg-gray-500 text-white rounded">
+                                +{file.mediaMeta.category.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="p-3">
-                        <p className="text-sm font-medium truncate" title={item.original_filename}>
-                          {item.original_filename}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatFileSize(item.file_size)}
-                        </p>
+                        <p className="text-sm font-medium truncate" title={file.name}>{file.name}</p>
+                        <p className="text-xs text-gray-500">{formatFileSize(file.size * 1024)}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-
-                {/* Pagination */}
-                {pagination && pagination.pages > 1 && (
-                  <div className="mt-6 flex justify-center items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      disabled={!pagination.has_prev}
-                    >
-                      上一頁
-                    </Button>
-                    <span className="text-sm text-gray-600">
-                      第 {pagination.page} 頁，共 {pagination.pages} 頁
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={!pagination.has_next}
-                    >
-                      下一頁
-                    </Button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">沒有媒體文件</h3>
-                <p className="text-gray-500 mb-4">
-                  {searchQuery ? `沒有找到包含 "${searchQuery}" 的媒體文件` : '開始上傳您的第一個媒體文件'}
-                </p>
-                <Button onClick={() => fileInputRef.current?.click()}>
-                  上傳文件
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Hidden File Input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
-          className="hidden"
-        />
-
-        {/* New Folder Modal */}
-        {showNewFolderModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-medium mb-4">新增資料夾</h3>
-              <input
-                type="text"
-                placeholder="資料夾名稱"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowNewFolderModal(false);
-                    setNewFolderName('');
-                  }}
-                >
-                  取消
-                </Button>
-                <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
-                  創建
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Modal */}
-        {showEditModal && editingItem && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-              <h3 className="text-lg font-medium mb-4">媒體詳情</h3>
-
-              {/* 圖片預覽 */}
-              <div className="mb-6">
-                <img
-                  src={getImageUrl(getLargeImageUrl(editingItem))}
-                  alt={editingItem.alt_text || editingItem.original_filename}
-                  className="max-w-full max-h-64 mx-auto rounded-lg shadow-sm"
-                />
-              </div>
-
-              <div className="space-y-4">
-                {/* 基本資訊 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      檔案名稱
-                    </label>
-                    <input
-                      type="text"
-                      value={editingItem.original_filename}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      檔案大小
-                    </label>
-                    <input
-                      type="text"
-                      value={formatFileSize(editingItem.file_size)}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
+              ) : (
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">沒有媒體文件</h3>
+                  <p className="text-gray-500 mb-4">
+                    {debouncedSearch
+                      ? `沒有找到包含 "${debouncedSearch}" 的媒體文件`
+                      : selectedCategoryId !== null
+                      ? '此分類中沒有媒體文件'
+                      : '開始上傳您的第一個媒體文件'}
+                  </p>
+                  <Button onClick={() => setShowUploadModal(true)}>上傳文件</Button>
                 </div>
-
-                {/* 圖片路徑 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    圖片路徑
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={getFullMediaUrl(editingItem.file_path)}
-                      readOnly
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 text-sm"
-                    />
-                    <button
-                      onClick={() => {
-                        const url = getFullMediaUrl(editingItem.file_path);
-                        navigator.clipboard.writeText(url);
-                        alert('圖片路徑已複製到剪貼板');
-                      }}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700"
-                      title="複製路徑"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* HTML 代碼 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    HTML 引用代碼
-                  </label>
-                  <div className="relative">
-                    <textarea
-                      value={`<img src="${getFullMediaUrl(editingItem.file_path)}" alt="${editingItem.alt_text || editingItem.original_filename}" className="w-full h-auto rounded-lg" />`}
-                      readOnly
-                      rows={3}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 text-sm font-mono"
-                    />
-                    <button
-                      onClick={() => {
-                        const htmlCode = `<img src="${getFullMediaUrl(editingItem.file_path)}" alt="${editingItem.alt_text || editingItem.original_filename}" className="w-full h-auto rounded-lg" />`;
-                        navigator.clipboard.writeText(htmlCode);
-                        alert('HTML 代碼已複製到剪貼板');
-                      }}
-                      className="absolute right-2 top-2 p-1 text-gray-500 hover:text-gray-700"
-                      title="複製 HTML 代碼"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Markdown 代碼 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Markdown 引用代碼
-                  </label>
-                  <div className="relative">
-                    <textarea
-                      value={`![${editingItem.alt_text || editingItem.original_filename}](${getFullMediaUrl(editingItem.file_path)})`}
-                      readOnly
-                      rows={2}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 text-sm font-mono"
-                    />
-                    <button
-                      onClick={() => {
-                        const markdownCode = `![${editingItem.alt_text || editingItem.original_filename}](${getFullMediaUrl(editingItem.file_path)})`;
-                        navigator.clipboard.writeText(markdownCode);
-                        alert('Markdown 代碼已複製到剪貼板');
-                      }}
-                      className="absolute right-2 top-2 p-1 text-gray-500 hover:text-gray-700"
-                      title="複製 Markdown 代碼"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 可編輯欄位 */}
-                <div className="border-t pt-4">
-                  <h4 className="text-md font-medium text-gray-900 mb-3">編輯資訊</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        替代文字 (Alt Text)
-                      </label>
-                      <input
-                        type="text"
-                        value={editingItem.alt_text || ''}
-                        onChange={(e) =>
-                          setEditingItem({ ...editingItem, alt_text: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        說明文字
-                      </label>
-                      <textarea
-                        value={editingItem.caption || ''}
-                        onChange={(e) =>
-                          setEditingItem({ ...editingItem, caption: e.target.value })
-                        }
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* MediaMeta 擴展欄位 */}
-                <div className="border-t pt-4">
-                  <h4 className="text-md font-medium text-gray-900 mb-3">擴展資訊</h4>
-                  {loadingMeta ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
-                      <p className="text-sm text-gray-500 mt-2">載入中...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            品號 / 編號
-                          </label>
-                          <input
-                            type="text"
-                            maxLength={18}
-                            value={editingMeta?.chartid || ''}
-                            onChange={(e) =>
-                              setEditingMeta((prev) => ({
-                                ...prev,
-                                id: prev?.id || 0,
-                                chartid: e.target.value,
-                              }))
-                            }
-                            placeholder="最多 18 個字元"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            拍攝地點
-                          </label>
-                          <input
-                            type="text"
-                            value={editingMeta?.place || ''}
-                            onChange={(e) =>
-                              setEditingMeta((prev) => ({
-                                ...prev,
-                                id: prev?.id || 0,
-                                place: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          版權資訊
-                        </label>
-                        <input
-                          type="text"
-                          value={editingMeta?.copyright || ''}
-                          onChange={(e) =>
-                            setEditingMeta((prev) => ({
-                              ...prev,
-                              id: prev?.id || 0,
-                              copyright: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="isPublic"
-                          checked={editingMeta?.isPublic || false}
-                          onChange={(e) =>
-                            setEditingMeta((prev) => ({
-                              ...prev,
-                              id: prev?.id || 0,
-                              isPublic: e.target.checked,
-                            }))
-                          }
-                          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <label htmlFor="isPublic" className="ml-2 text-sm font-medium text-gray-700">
-                          公開顯示
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setEditingItem(null);
-                    setEditingMeta(null);
-                  }}
-                >
-                  關閉
-                </Button>
-                <Button onClick={handleEditItem}>
-                  保存變更
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Folder Modal */}
-        {showEditFolderModal && editingFolder && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-medium mb-4">編輯資料夾</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    資料夾名稱
-                  </label>
-                  <input
-                    type="text"
-                    value={editFolderName}
-                    onChange={(e) => setEditFolderName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    onKeyDown={(e) => e.key === 'Enter' && handleUpdateFolder()}
-                    autoFocus
-                  />
-                </div>
-                <div className="text-sm text-gray-500">
-                  當前路徑：{editingFolder.path}
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowEditFolderModal(false);
-                    setEditingFolder(null);
-                    setEditFolderName('');
-                  }}
-                >
-                  取消
-                </Button>
-                <Button
-                  onClick={handleUpdateFolder}
-                  disabled={!editFolderName.trim() || editFolderName.trim() === editingFolder.name}
-                >
-                  保存
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Move Modal */}
-        {showMoveModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-              <h3 className="text-lg font-medium mb-4">
-                移動 {selectedItems.length} 個項目到
-              </h3>
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {/* 根目錄選項 */}
-                <div
-                  className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-                    currentFolder === null ? 'bg-blue-50 border-blue-300' : 'border-gray-200'
-                  }`}
-                  onClick={() => handleMoveToFolder(undefined)}
-                >
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2v0" />
-                    </svg>
-                    <span className="font-medium">根目錄</span>
-                    {currentFolder === null && (
-                      <span className="ml-2 text-xs text-blue-600">(當前位置)</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* 所有資料夾選項 */}
-                {folders.map((folder) => (
-                  <div
-                    key={folder.id}
-                    className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-                      currentFolder === folder.id ? 'bg-blue-50 border-blue-300' : 'border-gray-200'
-                    }`}
-                    onClick={() => handleMoveToFolder(folder.id)}
-                  >
-                    <div className="flex items-center">
-                      <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2v0" />
-                      </svg>
-                      <div>
-                        <div className="font-medium">{folder.name}</div>
-                        <div className="text-xs text-gray-500">{folder.path}</div>
-                      </div>
-                      {currentFolder === folder.id && (
-                        <span className="ml-auto text-xs text-blue-600">(當前位置)</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-end gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowMoveModal(false)}
-                >
-                  取消
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Upload Progress */}
-        <UploadProgress items={uploadItems} onDismiss={handleDismissUpload} />
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </DropZone>
+      </div>
+
+      {/* Modals */}
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUploadComplete={() => {
+          fetchFiles();
+          fetchMediaMetas();
+        }}
+        selectedCategoryId={selectedCategoryId}
+      />
+
+      <EditModal
+        file={editingFile}
+        categories={categories}
+        onClose={() => setEditingFile(null)}
+        onSave={handleUpdateFile}
+      />
     </AdminLayout>
   );
 }

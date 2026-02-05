@@ -54,8 +54,11 @@ export async function GET() {
 
 // POST - Create folder
 export async function POST(request: NextRequest) {
+  console.log('[strapi-folders] POST request received');
+
   try {
     if (!STRAPI_TOKEN) {
+      console.log('[strapi-folders] No STRAPI_TOKEN configured');
       return NextResponse.json(
         { error: 'Server configuration error' },
         { status: 500 }
@@ -63,8 +66,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    console.log('[strapi-folders] Request body:', body);
 
-    const strapiResponse = await fetch(`${STRAPI_URL}/api/upload/folders`, {
+    const strapiUrl = `${STRAPI_URL}/api/upload/folders`;
+    console.log('[strapi-folders] Calling Strapi:', strapiUrl);
+
+    const strapiResponse = await fetch(strapiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -73,8 +80,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
+    console.log('[strapi-folders] Strapi response status:', strapiResponse.status);
+
     if (!strapiResponse.ok) {
       const error = await strapiResponse.json().catch(() => ({}));
+      console.log('[strapi-folders] Strapi error:', error);
       return NextResponse.json(
         { error: error.error?.message || 'Failed to create folder' },
         { status: strapiResponse.status }
@@ -82,6 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await strapiResponse.json();
+    console.log('[strapi-folders] Created folder:', result);
     return NextResponse.json(result);
   } catch (error) {
     console.error('Folder create error:', error);

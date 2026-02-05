@@ -406,11 +406,14 @@ export const mediaMetaApi = {
 
   /**
    * Create or update MediaMeta
+   * @param fileId - The Strapi file ID
+   * @param data - The metadata to save
+   * @param existingDocumentId - The documentId if updating an existing record (Strapi 5)
    */
   save: async (
     fileId: number,
     data: MediaMetaInput,
-    existingId?: number
+    existingDocumentId?: string
   ): Promise<MediaMeta | null> => {
     try {
       const response = await fetch('/api/strapi-media-meta', {
@@ -418,7 +421,7 @@ export const mediaMetaApi = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileId,
-          id: existingId,
+          documentId: existingDocumentId,
           ...data,
         }),
       });
