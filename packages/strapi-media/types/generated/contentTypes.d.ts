@@ -494,6 +494,10 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
       'api::category.category'
     > &
       Schema.Attribute.Private;
+    media_metas: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::media-meta.media-meta'
+    >;
     name: Schema.Attribute.String & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
