@@ -46,7 +46,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also handle folder operations that need authentication
+// Update file info (alt text, caption)
+// Strapi 5: POST /api/upload?id=X with fileInfo in FormData
 export async function PUT(request: NextRequest) {
   try {
     if (!STRAPI_TOKEN) {
@@ -67,11 +68,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+    console.log('[strapi-upload] PUT request for fileId:', fileId, 'body:', body);
 
     const formData = new FormData();
     formData.append('fileInfo', JSON.stringify(body));
 
-    const strapiResponse = await fetch(`${STRAPI_URL}/api/upload/files/${fileId}`, {
+    // Strapi 5 uses POST /api/upload?id=X to update file info
+    const strapiUrl = `${STRAPI_URL}/api/upload?id=${fileId}`;
+    console.log('[strapi-upload] Calling Strapi:', strapiUrl);
+
+    const strapiResponse = await fetch(strapiUrl, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${STRAPI_TOKEN}`,
@@ -79,15 +85,24 @@ export async function PUT(request: NextRequest) {
       body: formData,
     });
 
+    console.log('[strapi-upload] Strapi response status:', strapiResponse.status);
+
     if (!strapiResponse.ok) {
-      const error = await strapiResponse.json().catch(() => ({}));
+      const errorText = await strapiResponse.text();
+      console.error('[strapi-upload] Strapi error response:', errorText);
+      let errorMessage = 'Update failed';
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error?.message || errorMessage;
+      } catch {}
       return NextResponse.json(
-        { error: error.error?.message || 'Update failed' },
+        { error: errorMessage },
         { status: strapiResponse.status }
       );
     }
 
     const result = await strapiResponse.json();
+    console.log('[strapi-upload] Update successful');
     return NextResponse.json(result);
   } catch (error) {
     console.error('Update proxy error:', error);

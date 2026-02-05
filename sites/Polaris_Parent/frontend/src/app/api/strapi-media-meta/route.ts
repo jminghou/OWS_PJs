@@ -129,6 +129,9 @@ export async function GET(request: NextRequest) {
  * POST /api/strapi-media-meta
  * 建立或更新 MediaMeta
  * Body: { fileId, id?, documentId?, chartid?, place?, copyright?, isPublic?, tags?, category? }
+ *
+ * Strapi 5 關聯更新語法：
+ * - category: [1, 2, 3] 會被轉換為 { set: [1, 2, 3] }
  */
 export async function POST(request: NextRequest) {
   if (!STRAPI_TOKEN) {
@@ -140,17 +143,32 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { fileId, documentId, ...metaData } = body;
+    const { fileId, documentId, category, tags, ...otherMetaData } = body;
+
+    console.log('[strapi-media-meta] POST request:', { fileId, documentId, category, tags });
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${STRAPI_TOKEN}`,
     };
 
+    // 轉換關聯欄位為 Strapi 5 語法
+    const metaData: Record<string, any> = { ...otherMetaData };
+
+    // Strapi 5 關聯更新需要使用 set/connect/disconnect
+    if (category !== undefined) {
+      metaData.category = { set: Array.isArray(category) ? category : [] };
+    }
+    if (tags !== undefined) {
+      metaData.tags = { set: Array.isArray(tags) ? tags : [] };
+    }
+
     // Strapi 5 使用 documentId 進行更新
     // 如果提供了 documentId，則更新現有記錄
     if (documentId) {
       const url = `${STRAPI_URL}/api/media-metas/${documentId}`;
+      console.log('[strapi-media-meta] Updating existing record:', url);
+      console.log('[strapi-media-meta] Update data:', JSON.stringify({ data: metaData }));
 
       const response = await fetch(url, {
         method: 'PUT',
@@ -158,13 +176,15 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({ data: metaData }),
       });
 
-      // 靜默處理失敗（API 可能未啟用）
+      console.log('[strapi-media-meta] Update response status:', response.status);
+
       if (!response.ok) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[strapi-media-meta] Update failed, API 可能未啟用');
-        }
-        // 返回成功但不含資料，讓前端繼續運作
-        return NextResponse.json({ data: null, warning: 'MediaMeta API unavailable' });
+        const errorText = await response.text();
+        console.error('[strapi-media-meta] Update failed:', errorText);
+        return NextResponse.json(
+          { error: 'Update failed', details: errorText },
+          { status: response.status }
+        );
       }
 
       const data = await response.json();
@@ -178,33 +198,39 @@ export async function POST(request: NextRequest) {
     }
 
     const url = `${STRAPI_URL}/api/media-metas`;
+    console.log('[strapi-media-meta] Creating new record for fileId:', fileId);
+
+    // 建立新記錄時，file 關聯也需要使用正確語法
+    const createData = {
+      ...metaData,
+      file: fileId, // Strapi 5 media relation 可以直接用 ID
+    };
+    console.log('[strapi-media-meta] Create data:', JSON.stringify({ data: createData }));
 
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        data: {
-          ...metaData,
-          file: fileId,
-        },
-      }),
+      body: JSON.stringify({ data: createData }),
     });
 
-    // 靜默處理失敗（API 可能未啟用）
+    console.log('[strapi-media-meta] Create response status:', response.status);
+
     if (!response.ok) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[strapi-media-meta] Create failed, API 可能未啟用');
-      }
-      return NextResponse.json({ data: null, warning: 'MediaMeta API unavailable' });
+      const errorText = await response.text();
+      console.error('[strapi-media-meta] Create failed:', errorText);
+      return NextResponse.json(
+        { error: 'Create failed', details: errorText },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
     return NextResponse.json({ data: data.data });
   } catch (error) {
-    // 靜默處理所有錯誤
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[strapi-media-meta] Error:', error);
-    }
-    return NextResponse.json({ data: null });
+    console.error('[strapi-media-meta] Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
