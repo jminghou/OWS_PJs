@@ -16,7 +16,8 @@
       "Bash(STRAPI_NODE_ENV=production docker-compose up:*)",
       "Bash(docker-compose restart:*)",
       "Bash(curl:*)",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "Bash(./venv/Scripts/python.exe:*)"
     ],
     "additionalDirectories": [
       "d:\\PJ_Projects\\OWS_PJs\\packages\\ui\\src"

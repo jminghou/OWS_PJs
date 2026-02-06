@@ -45,14 +45,14 @@ cp sites/Polaris_Parent/.env.example sites/Polaris_Parent/.env
 
 ### 4. 啟動服務
 
-#### 開發混合模式 A：最小 Docker (推薦需要修改 Strapi 結構時)
-只有資料庫跑在 Docker，其他服務跑在原生環境，需要 **4 個終端機**。
+#### 開發混合模式 A：原生 PostgreSQL + 最小 Docker (目前預設)
+使用原生安裝的 PostgreSQL，只有 Redis 跑在 Docker，需要 **4 個終端機**。
 
 此模式下 Strapi 以**開發模式**運行，可以在 Admin 介面修改 Content Types。
 
 ```powershell
-# 終端機 1：啟動 DB 與 Redis
-docker-compose up -d db redis
+# 終端機 1：啟動 Redis（確保原生 PostgreSQL 已在運行）
+docker-compose up -d redis
 
 # 終端機 2：啟動 Python 後端
 cd sites/Polaris_Parent/backend
@@ -68,7 +68,7 @@ npm run dev:polaris
 
 | 服務 | 網址 |
 |------|------|
-| 資料庫 | `localhost:5433` |
+| 資料庫 | `localhost:5432` (原生 PostgreSQL) |
 | Redis | `localhost:6379` |
 | Python API | `http://localhost:5000/api/v1` |
 | Strapi | `http://localhost:1337` (開發模式) |
@@ -76,11 +76,82 @@ npm run dev:polaris
 
 ---
 
-#### 開發混合模式 B：後端 Docker + 前端原生 (推薦日常開發)
+#### 模式切換說明：原生 PostgreSQL vs Docker PostgreSQL
+
+目前 `.env` 預設使用**原生 PostgreSQL (port 5432)**。如果要切換到模式 B（全 Docker 後端），需要修改資料庫設定以避免端口衝突。
+
+<details>
+<summary><strong>切換到模式 B 的步驟</strong></summary>
+
+1. **修改 `sites/Polaris_Parent/.env`**：
+   ```bash
+   # 將 DB_PORT 從 5432 改為 5433
+   DB_PORT=5433
+
+   # 將 DATABASE_URL 改為使用 5433 端口
+   DATABASE_URL=postgresql://postgres:1234567@localhost:5433/ows_polaris
+   ```
+
+2. **停止原生 PostgreSQL**（選擇性，避免端口衝突）：
+   ```powershell
+   # Windows 服務
+   net stop postgresql-x64-14
+   ```
+
+3. **啟動 Docker 資料庫**：
+   ```powershell
+   docker-compose up -d db redis
+   ```
+
+4. **如果是首次使用 Docker PostgreSQL，需要初始化資料庫**：
+   ```powershell
+   # 建立資料庫
+   docker-compose exec db psql -U postgres -c "CREATE DATABASE ows_polaris;"
+
+   # 建立資料表
+   cd sites/Polaris_Parent/backend
+   .\venv\Scripts\Activate.ps1
+   python -c "from app import app; from core.backend_engine.factory import db; app.app_context().push(); db.create_all(); print('成功！')"
+
+   # 建立管理員帳號
+   flask --app app.py create-admin
+   ```
+
+</details>
+
+<details>
+<summary><strong>切換回模式 A 的步驟</strong></summary>
+
+1. **修改 `sites/Polaris_Parent/.env`**：
+   ```bash
+   # 將 DB_PORT 改回 5432
+   DB_PORT=5432
+
+   # 將 DATABASE_URL 改回使用 5432 端口
+   DATABASE_URL=postgresql://postgres:1234567@localhost:5432/ows_polaris
+   ```
+
+2. **停止 Docker 資料庫**：
+   ```powershell
+   docker-compose stop db
+   ```
+
+3. **啟動原生 PostgreSQL**：
+   ```powershell
+   net start postgresql-x64-14
+   ```
+
+</details>
+
+---
+
+#### 開發混合模式 B：後端 Docker + 前端原生
 後端服務全部跑在 Docker，只有前端跑在原生環境保留熱更新，只需 **1 個終端機**。
 
 > **重要**：此模式下 Strapi 以**生產模式**運行，無法在 Admin 修改 Content Types。
 > 如需修改 Strapi 資料結構，請使用模式 A。
+
+> **前置作業**：使用此模式前，請先參考上方「切換到模式 B 的步驟」修改 `.env` 設定。
 
 ```powershell
 # 啟動所有後端服務（背景執行）
@@ -92,7 +163,7 @@ npm run dev:polaris
 
 | 服務 | 網址 |
 |------|------|
-| 資料庫 | `localhost:5433` |
+| 資料庫 | `localhost:5433` (Docker PostgreSQL) |
 | Redis | `localhost:6379` |
 | Python API | `http://localhost:5000/api/v1` |
 | Strapi | `http://localhost:1337` (生產模式) |

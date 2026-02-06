@@ -32,7 +32,7 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'categories' | 'tags'>('tags');
+  const [activeTab, setActiveTab] = useState<'categories' | 'tags'>('categories');
 
   // --- i18n 狀態 ---
   const [i18nSettings, setI18nSettings] = useState<I18nSettings | null>(null);
@@ -302,17 +302,6 @@ export default function CategoriesPage() {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
               <button
-                onClick={() => setActiveTab('tags')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === 'tags'
-                    ? 'border-brand-purple-500 text-brand-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Filter className="w-4 h-4" />
-                標籤管理
-              </button>
-              <button
                 onClick={() => setActiveTab('categories')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                   activeTab === 'categories'
@@ -322,6 +311,17 @@ export default function CategoriesPage() {
               >
                 <LayoutGrid className="w-4 h-4" />
                 分類管理
+              </button>
+              <button
+                onClick={() => setActiveTab('tags')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === 'tags'
+                    ? 'border-brand-purple-500 text-brand-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                標籤管理
               </button>
             </nav>
           </div>
