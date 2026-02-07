@@ -48,8 +48,11 @@ def _get_database_url(key: str = 'DATABASE_URL', fallback=None):
     Get database URL and convert to psycopg3 format.
     Converts postgresql:// to postgresql+psycopg://
     """
-    url = os.environ.get(key, fallback)
-    if url and url.startswith('postgresql://'):
+    url = os.environ.get(key)
+    if not url:  # 如果環境變數不存在或為空字串，則使用 fallback
+        return fallback
+        
+    if url.startswith('postgresql://'):
         url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
     return url
 

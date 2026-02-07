@@ -158,8 +158,15 @@ def _init_extensions(app: Flask) -> None:
     """Initialize Flask extensions with the app."""
 
     
-    # 這是最標準的寫法，它會自動讀取 Railway 的環境變數
+        # 這是最標準的寫法，它會自動讀取 Railway 的環境變數
     db.init_app(app)
+    
+    # --- 暫時加入：確保啟動時會自動建立資料表 ---
+    with app.app_context():
+        db.create_all()
+    # ---------------------------------------
+
+
 
     # 註冊 Blueprints
     from core.backend_engine.blueprints.api import auth, users, settings, contents, categories, media
