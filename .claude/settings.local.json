@@ -17,7 +17,19 @@
       "Bash(docker-compose restart:*)",
       "Bash(curl:*)",
       "Bash(unzip:*)",
-      "Bash(./venv/Scripts/python.exe:*)"
+      "Bash(./venv/Scripts/python.exe:*)",
+      "Bash(net stop:*)",
+      "Bash(net start:*)",
+      "Bash(sc query:*)",
+      "Bash(findstr:*)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -h localhost -c \"ALTER USER postgres WITH PASSWORD ''12345678'';\")",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\":*)",
+      "Bash(set PGPASSWORD=1234567:*)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\18\\\\bin\\\\psql.exe\" -U postgres -h localhost -c \"SELECT 1;\")",
+      "Bash(.venvScriptspython.exe -c \"import os; from dotenv import load_dotenv; load_dotenv\\(r''d:\\\\PJ_Projects\\\\OWS_PJs\\\\sites\\\\Polaris_Parent\\\\.env''\\); print\\(''DATABASE_URL ='', os.environ.get\\(''DATABASE_URL''\\)\\); print\\(''DB_URL_OVERRIDE ='', os.environ.get\\(''DB_URL_OVERRIDE''\\)\\); print\\(''DB_PASSWORD ='', os.environ.get\\(''DB_PASSWORD''\\)\\)\")",
+      "Bash(d:\\\\PJ_Projects\\\\OWS_PJs\\\\sites\\\\Polaris_Parent\\\\backend\\\\venv\\\\Scripts\\\\python.exe:*)",
+      "Bash(cmd /c \"d:\\\\PJ_Projects\\\\OWS_PJs\\\\sites\\\\Polaris_Parent\\\\backend\\\\venv\\\\Scripts\\\\python.exe -c \"\"import os; from dotenv import load_dotenv; load_dotenv\\(r''d:\\\\PJ_Projects\\\\OWS_PJs\\\\sites\\\\Polaris_Parent\\\\.env''\\); print\\(''DATABASE_URL ='', os.environ.get\\(''DATABASE_URL''\\)\\); print\\(''DB_URL_OVERRIDE ='', os.environ.get\\(''DB_URL_OVERRIDE''\\)\\)\"\"\")",
+      "Bash(cmd /c \"\"\"d:\\\\PJ_Projects\\\\OWS_PJs\\\\sites\\\\Polaris_Parent\\\\backend\\\\venv\\\\Scripts\\\\python.exe\"\" \"\"C:\\\\Users\\\\jerma\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--PJ-Projects-OWS-PJs\\\\f6645cdf-2150-4d88-a9b6-cb9e8c04f917\\\\scratchpad\\\\debug_db.py\"\"\")"
     ],
     "additionalDirectories": [
       "d:\\PJ_Projects\\OWS_PJs\\packages\\ui\\src"

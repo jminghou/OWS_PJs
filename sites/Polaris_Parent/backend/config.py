@@ -194,7 +194,7 @@ class DevelopmentConfig(Config):
 
     SQLALCHEMY_BINDS = {
         'astrology': _get_database_url('ASTROLOGY_DATABASE_URL',
-            'postgresql+psycopg://postgres:postgres@localhost:5432/db_pcount_v2')
+            'postgresql+psycopg://postgres:1234567@localhost:5432/db_pcount_v2')
     }
 
 
