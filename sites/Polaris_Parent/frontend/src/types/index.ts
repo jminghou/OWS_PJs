@@ -140,6 +140,12 @@ export interface HomepageSlide {
 export interface HomepageSettings {
   slides: HomepageSlide[];
   button_text: Record<string, string>; // {zh-TW: "關於我們", en: "About Us", ...}
+  about_section?: Record<string, {
+    title: string;
+    philosophy: string;
+    quote: string;
+    mission_points: string[];
+  }>;
   updated_at: string;
 }
 

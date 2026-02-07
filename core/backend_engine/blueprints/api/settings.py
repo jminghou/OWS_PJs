@@ -110,18 +110,24 @@ def api_add_language():
 def api_get_homepage_settings():
     """Get homepage slideshow settings (public API, no login required)"""
     slides = HomepageSlide.query.filter_by(is_active=True).order_by(HomepageSlide.sort_order).all()
+    
+    # 改用 Setting 表讀取
+    about_setting = Setting.query.filter_by(key='homepage_about_section').first()
+    try:
+        about_section = json.loads(about_setting.value) if about_setting and about_setting.value else {}
+    except:
+        about_section = {}
+
     homepage_settings = HomepageSettings.query.first()
-    if not homepage_settings:
-        homepage_settings = HomepageSettings(button_text={'zh-TW': 'About Us'})
-        db.session.add(homepage_settings)
-        db.session.commit()
+    button_text = homepage_settings.button_text if homepage_settings else {}
 
     latest_slide = HomepageSlide.query.order_by(HomepageSlide.updated_at.desc()).first()
     updated_at = latest_slide.updated_at.isoformat() if latest_slide else datetime.utcnow().isoformat()
 
     return jsonify({
         'slides': [s.to_dict() for s in slides],
-        'button_text': homepage_settings.button_text or {},
+        'button_text': button_text,
+        'about_section': about_section,
         'updated_at': updated_at
     }), 200
 
@@ -135,20 +141,29 @@ def api_update_homepage_settings():
         return jsonify({'message': 'Editor permission required'}), 403
 
     data = request.get_json()
-    slides_data = data.get('slides', [])
-    if len(slides_data) > 5:
-        return jsonify({'message': 'Maximum 5 slides allowed'}), 400
+    
+    # 1. 處理關於我們 (使用 Setting 表，這是最穩定的做法)
+    if 'about_section' in data:
+        about_data = data.get('about_section')
+        setting = Setting.query.filter_by(key='homepage_about_section').first()
+        if setting:
+            setting.value = json.dumps(about_data, ensure_ascii=False)
+        else:
+            db.session.add(Setting(key='homepage_about_section', value=json.dumps(about_data, ensure_ascii=False)))
 
-    button_text = data.get('button_text')
-    if button_text is not None:
+    # 2. 處理按鈕文字
+    if 'button_text' in data:
         homepage_settings = HomepageSettings.query.first()
         if not homepage_settings:
-            homepage_settings = HomepageSettings(button_text=button_text)
+            homepage_settings = HomepageSettings(button_text=data.get('button_text'))
             db.session.add(homepage_settings)
         else:
-            homepage_settings.button_text = button_text
+            homepage_settings.button_text = data.get('button_text')
             homepage_settings.updated_at = datetime.utcnow()
-
+    
+    # 3. 處理幻燈片
+    slides_data = data.get('slides', [])
+    # ... (保持原本 slides 邏輯) ...
     existing_slide_ids = [slide.slide_id for slide in HomepageSlide.query.all()]
     new_slide_ids = [slide_data.get('id') for slide_data in slides_data if slide_data.get('id')]
     slides_to_delete = set(existing_slide_ids) - set(new_slide_ids)
@@ -157,8 +172,7 @@ def api_update_homepage_settings():
 
     for slide_data in slides_data:
         slide_id = slide_data.get('id')
-        if not slide_id:
-            continue
+        if not slide_id: continue
         slide = HomepageSlide.query.filter_by(slide_id=slide_id).first()
         if slide:
             slide.image_url = slide_data.get('image_url', slide.image_url)
@@ -168,12 +182,14 @@ def api_update_homepage_settings():
             slide.updated_at = datetime.utcnow()
         else:
             db.session.add(HomepageSlide(
-                slide_id=slide_id,
-                image_url=slide_data.get('image_url', ''),
-                alt_text=slide_data.get('alt_text', ''),
-                sort_order=slide_data.get('sort_order', 0),
+                slide_id=slide_id, image_url=slide_data.get('image_url', ''),
+                alt_text=slide_data.get('alt_text', ''), sort_order=slide_data.get('sort_order', 0),
                 subtitles=slide_data.get('subtitles', {})
             ))
 
-    db.session.commit()
-    return jsonify({'message': 'Homepage settings updated'}), 200
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Homepage settings updated'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Database error: {str(e)}'}), 500

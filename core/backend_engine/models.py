@@ -503,6 +503,7 @@ class HomepageSettings(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     button_text = db.Column(JSONB, default={})  # {"zh-TW": "關於我們", "en": "About Us"}
+    about_section = db.Column(JSONB, default={}) # {"zh-TW": {"title": "...", "philosophy": "..."}}
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -510,6 +511,7 @@ class HomepageSettings(db.Model):
         """Convert to frontend format."""
         return {
             'button_text': self.button_text or {},
+            'about_section': self.about_section or {},
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 

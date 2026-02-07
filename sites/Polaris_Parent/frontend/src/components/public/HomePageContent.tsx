@@ -115,10 +115,10 @@ export default function HomePageContent({
 
       {/* 2. About Preview Section */}
       <AboutPreview
-        title={content.aboutTitle}
-        philosophy={content.aboutPhilosophy}
-        quote={content.aboutQuote}
-        missionPoints={content.aboutMissionPoints}
+        title={homepageSettings.about_section?.[locale]?.title || content.aboutTitle}
+        philosophy={homepageSettings.about_section?.[locale]?.philosophy || content.aboutPhilosophy}
+        quote={homepageSettings.about_section?.[locale]?.quote || content.aboutQuote}
+        missionPoints={homepageSettings.about_section?.[locale]?.mission_points || content.aboutMissionPoints}
         learnMoreText={content.learnMoreBtn}
         learnMoreLink={`${basePath}/about`}
       />

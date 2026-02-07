@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import HeroCarousel from './HeroCarousel';
 import { HomepageSlide } from '@/types';
 
@@ -20,6 +21,16 @@ export default function HeroSection({
   backgroundSlides,
   locale,
 }: HeroSectionProps) {
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  // 獲取當前幻燈片的副標題（按 sort_order 排序後的）
+  const sortedSlides = [...backgroundSlides].sort((a, b) => a.sort_order - b.sort_order);
+  const currentSlide = sortedSlides[currentSlideIndex];
+  const slideSubtitle = currentSlide?.subtitles?.[locale] || currentSlide?.subtitles?.['zh-TW'] || '';
+
+  // 決定顯示哪個副標題：如果幻燈片有設定副標題則使用，否則使用預設的 subtitle
+  const displaySubtitle = slideSubtitle || subtitle;
+
   const handleScrollToSection = () => {
     const element = document.getElementById('banner');
     if (element) {
@@ -32,7 +43,11 @@ export default function HeroSection({
       {/* Background - HeroCarousel for slides */}
       {backgroundSlides.length > 0 ? (
         <div className="absolute inset-0">
-          <HeroCarousel slides={backgroundSlides} currentLanguage={locale} />
+          <HeroCarousel
+            slides={backgroundSlides}
+            currentLanguage={locale}
+            onSlideChange={setCurrentSlideIndex}
+          />
         </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-brand-purple-600 to-brand-purple-800" />
@@ -54,10 +69,11 @@ export default function HeroSection({
             <hr className="w-24 border-t-2 border-white/50 mx-auto" />
           </div>
 
-          {/* Subtitle */}
-          <p className="text-lg md:text-xl text-white/90 text-center max-w-2xl mx-auto mb-8">
-            {subtitle}
-          </p>
+          {/* Subtitle - 支援富文本 HTML */}
+          <div
+            className="text-lg md:text-xl text-white/90 text-center max-w-2xl mx-auto mb-8 prose prose-invert prose-p:text-white/90 prose-p:my-1 prose-strong:text-white prose-em:text-purple-200"
+            dangerouslySetInnerHTML={{ __html: displaySubtitle }}
+          />
         </div>
       </div>
 

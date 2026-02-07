@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, EffectFade } from 'swiper/modules';
 import { HomepageSlide } from '@/types';
-import ReactMarkdown from 'react-markdown';
 
 // Import Swiper styles
 import 'swiper/css';
@@ -14,13 +13,18 @@ import 'swiper/css/effect-fade';
 interface HeroCarouselProps {
   slides: HomepageSlide[];
   currentLanguage: string;
+  onSlideChange?: (slideIndex: number) => void;
 }
 
-export default function HeroCarousel({ slides, currentLanguage }: HeroCarouselProps) {
+export default function HeroCarousel({ slides, currentLanguage, onSlideChange }: HeroCarouselProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    // 初始化時通知第一張幻燈片
+    if (onSlideChange) {
+      onSlideChange(0);
+    }
   }, []);
 
   if (!mounted || slides.length === 0) {
@@ -47,6 +51,12 @@ export default function HeroCarousel({ slides, currentLanguage }: HeroCarouselPr
           clickable: true,
         }}
         loop={sortedSlides.length > 1}
+        onSlideChange={(swiper) => {
+          if (onSlideChange) {
+            // 使用 realIndex 來處理 loop 模式下的真實索引
+            onSlideChange(swiper.realIndex);
+          }
+        }}
         className="h-full"
       >
         {sortedSlides.map((slide) => (
@@ -63,46 +73,7 @@ export default function HeroCarousel({ slides, currentLanguage }: HeroCarouselPr
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
               </div>
 
-              {/* 文字內容 */}
-              <div className="relative h-full flex items-center justify-center">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                  <div className="prose prose-lg prose-invert mx-auto">
-                    <ReactMarkdown
-                      components={{
-                        // 自訂 Markdown 元素樣式
-                        p: ({ children }) => (
-                          <p className="text-xl md:text-2xl text-white mb-4 leading-relaxed">
-                            {children}
-                          </p>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className="font-bold text-white">{children}</strong>
-                        ),
-                        em: ({ children }) => (
-                          <em className="italic text-purple-200">{children}</em>
-                        ),
-                        h1: ({ children }) => (
-                          <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                            {children}
-                          </h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4">
-                            {children}
-                          </h2>
-                        ),
-                        h3: ({ children }) => (
-                          <h3 className="text-xl md:text-2xl font-medium text-white mb-3">
-                            {children}
-                          </h3>
-                        ),
-                      }}
-                    >
-                      {slide.subtitles[currentLanguage] || slide.subtitles['zh-TW'] || ''}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              </div>
+              {/* 副標題已移至 HeroSection 顯示 */}
             </div>
           </SwiperSlide>
         ))}

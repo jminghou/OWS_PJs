@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { homepageApi, i18nApi } from '@/lib/api';
 import { HomepageSettings, HomepageSlide } from '@/types';
 import { I18nSettings } from '@/lib/api';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import MarkdownToolbar from '@/components/ui/MarkdownToolbar';
-import { Upload, Trash2, GripVertical, Save, AlertCircle } from 'lucide-react';
+import TiptapEditor from '@/components/admin/TiptapEditor';
+import { Image, Trash2, GripVertical, Save, AlertCircle } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import MediaBrowser from '@/components/admin/MediaBrowser';
+import { type MediaItem } from '@/lib/api/strapi';
+import { getImageUrl } from '@/lib/utils';
 
 // 可排序的幻燈片項目組件
 function SortableSlideItem({
@@ -43,9 +46,7 @@ function SortableSlideItem({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // 為每個語言創建獨立的 textarea ref
   const [activeLanguage, setActiveLanguage] = useState(enabledLanguages[0] || '');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   return (
     <div
@@ -100,7 +101,7 @@ function SortableSlideItem({
           {/* 多語言副標題 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              副標題（多語言 Markdown 編輯器）
+              副標題（多語言富文本編輯器）
             </label>
 
             {/* 語言標籤切換 */}
@@ -121,28 +122,19 @@ function SortableSlideItem({
               ))}
             </div>
 
-            {/* Markdown 工具列 */}
-            <MarkdownToolbar
-              textareaRef={textareaRef}
-              content={slide.subtitles[activeLanguage] || ''}
-              onContentChange={(value) => {
-                const newSubtitles = { ...slide.subtitles, [activeLanguage]: value };
-                onUpdate(slide.id, 'subtitles', newSubtitles);
-              }}
-            />
-
-            {/* Markdown 編輯區 */}
-            <textarea
-              ref={textareaRef}
-              value={slide.subtitles[activeLanguage] || ''}
-              onChange={(e) => {
-                const newSubtitles = { ...slide.subtitles, [activeLanguage]: e.target.value };
-                onUpdate(slide.id, 'subtitles', newSubtitles);
-              }}
-              rows={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              placeholder={`輸入${languageNames[activeLanguage] || activeLanguage}的副標題（支援 Markdown 格式）`}
-            />
+            {/* 富文本編輯器 */}
+            <div className="border border-gray-300 rounded-md overflow-hidden">
+              <TiptapEditor
+                content={slide.subtitles[activeLanguage] || ''}
+                onChange={(value) => {
+                  const newSubtitles = { ...slide.subtitles, [activeLanguage]: value };
+                  onUpdate(slide.id, 'subtitles', newSubtitles);
+                }}
+                placeholder={`輸入${languageNames[activeLanguage] || activeLanguage}的副標題...`}
+                minHeight="120px"
+                className="bg-white"
+              />
+            </div>
           </div>
         </div>
 
@@ -164,11 +156,12 @@ function SortableSlideItem({
 export default function HomepagePage() {
   const [slides, setSlides] = useState<HomepageSlide[]>([]);
   const [buttonText, setButtonText] = useState<Record<string, string>>({});
+  const [aboutSection, setAboutSection] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [i18nSettings, setI18nSettings] = useState<I18nSettings | null>(null);
+  const [isMediaBrowserOpen, setIsMediaBrowserOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -190,6 +183,7 @@ export default function HomepagePage() {
       ]);
       setSlides(homepageData.slides || []);
       setButtonText(homepageData.button_text || {});
+      setAboutSection(homepageData.about_section || {});
       setI18nSettings(i18nData);
     } catch (error: any) {
       console.error('獲取設定失敗:', error);
@@ -199,75 +193,25 @@ export default function HomepagePage() {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleMediaSelect = (media: MediaItem) => {
     // 檢查是否已達上限
     if (slides.length >= 5) {
-      setMessage({ type: 'error', text: '最多只能上傳 5 張圖片' });
+      setMessage({ type: 'error', text: '最多只能添加 5 張圖片' });
       return;
     }
 
-    // 檢查文件類型
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      setMessage({ type: 'error', text: '不支援的圖片格式，僅支援 PNG, JPG, JPEG, GIF, WEBP' });
-      return;
-    }
+    // 創建新的幻燈片
+    const newSlide: HomepageSlide = {
+      id: `slide-${Date.now()}`,
+      image_url: getImageUrl(media.file_path),
+      alt_text: media.alt_text || '',
+      sort_order: slides.length,
+      subtitles: {},
+    };
 
-    // 檢查文件大小（10MB）
-    if (file.size > 10 * 1024 * 1024) {
-      setMessage({ type: 'error', text: '圖片大小不能超過 10MB' });
-      return;
-    }
-
-    try {
-      setUploading(true);
-      setMessage(null); // 清除舊訊息
-      const result = await homepageApi.uploadSlideImage(file);
-
-      // 創建新的幻燈片
-      const newSlide: HomepageSlide = {
-        id: `slide-${Date.now()}`,
-        image_url: result.image_url,
-        alt_text: '',
-        sort_order: slides.length,
-        subtitles: {},
-      };
-
-      setSlides([...slides, newSlide]);
-      setMessage({ type: 'success', text: '圖片上傳成功' });
-
-      // 清空 input，允許重複上傳同一檔案
-      e.target.value = '';
-    } catch (error: any) {
-      console.error('上傳圖片失敗:', error);
-
-      // 檢查是否為認證錯誤
-      if (error.status === 401) {
-        setMessage({
-          type: 'error',
-          text: '您的登入已過期，請重新登入後再試'
-        });
-        // 可選：3秒後自動跳轉到登入頁面
-        setTimeout(() => {
-          window.location.href = '/admin/login';
-        }, 3000);
-      } else if (error.status === 403) {
-        setMessage({
-          type: 'error',
-          text: '您沒有權限執行此操作，需要編輯或管理員權限'
-        });
-      } else {
-        setMessage({
-          type: 'error',
-          text: error.message || '上傳圖片失敗，請稍後再試'
-        });
-      }
-    } finally {
-      setUploading(false);
-    }
+    setSlides([...slides, newSlide]);
+    setMessage({ type: 'success', text: '圖片已添加' });
+    setIsMediaBrowserOpen(false);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -299,7 +243,11 @@ export default function HomepagePage() {
     try {
       setSaving(true);
       setMessage(null); // 清除舊訊息
-      await homepageApi.updateSettings({ slides, button_text: buttonText });
+      await homepageApi.updateSettings({ 
+        slides, 
+        button_text: buttonText,
+        about_section: aboutSection
+      });
       setMessage({ type: 'success', text: '設定儲存成功' });
     } catch (error: any) {
       console.error('儲存失敗:', error);
@@ -370,7 +318,7 @@ export default function HomepagePage() {
           <CardHeader>
             <CardTitle>按鈕文字設定</CardTitle>
             <p className="text-sm text-gray-600 mt-1">
-              設定首頁「關於我們」按鈕的多語言文字
+              設定首頁 Hero Section 進入「關於我們」按鈕的多語言文字
             </p>
           </CardHeader>
           <CardContent>
@@ -399,6 +347,97 @@ export default function HomepagePage() {
           </CardContent>
         </Card>
 
+        {/* 關於我們區塊設定 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>關於我們區塊設定</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              管理首頁「關於我們」區塊的多語言內容
+            </p>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center items-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {enabledLanguages.map((lang) => (
+                  <div key={lang} className="p-4 border border-gray-200 rounded-lg space-y-4">
+                    <h3 className="font-bold text-lg text-blue-600 border-b pb-2">
+                      {languageNames[lang] || lang}
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">標題</label>
+                        <input
+                          type="text"
+                          value={aboutSection[lang]?.title || ''}
+                          onChange={(e) => {
+                            const newSection = { ...aboutSection };
+                            newSection[lang] = { ...newSection[lang], title: e.target.value };
+                            setAboutSection(newSection);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          placeholder="例如：關於我們"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">金句 (Quote)</label>
+                        <input
+                          type="text"
+                          value={aboutSection[lang]?.quote || ''}
+                          onChange={(e) => {
+                            const newSection = { ...aboutSection };
+                            newSection[lang] = { ...newSection[lang], quote: e.target.value };
+                            setAboutSection(newSection);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          placeholder="例如：我們不是算命，是在跑數據"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">品牌理念 (Philosophy)</label>
+                      <textarea
+                        value={aboutSection[lang]?.philosophy || ''}
+                        onChange={(e) => {
+                          const newSection = { ...aboutSection };
+                          newSection[lang] = { ...newSection[lang], philosophy: e.target.value };
+                          setAboutSection(newSection);
+                        }}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="輸入品牌理念描述..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">使命重點 (Mission Points，每行一個)</label>
+                      <textarea
+                        value={(aboutSection[lang]?.mission_points || []).join('\n')}
+                        onChange={(e) => {
+                          const newSection = { ...aboutSection };
+                          newSection[lang] = { 
+                            ...newSection[lang], 
+                            mission_points: e.target.value.split('\n').filter(p => p.trim() !== '') 
+                          };
+                          setAboutSection(newSection);
+                        }}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="看懂天賦&#10;理解差異&#10;精準溝通"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>幻燈片管理</CardTitle>
@@ -413,31 +452,28 @@ export default function HomepagePage() {
               </div>
             ) : (
               <>
-                {/* 上傳按鈕 */}
+                {/* 從媒體庫選擇按鈕 */}
                 {slides.length < 5 && (
                   <div className="mb-6">
-                    <label className="flex items-center justify-center gap-2 px-6 py-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
-                      <Upload className="h-5 w-5 text-gray-600" />
+                    <button
+                      type="button"
+                      onClick={() => setIsMediaBrowserOpen(true)}
+                      className="flex items-center justify-center gap-2 w-full px-6 py-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    >
+                      <Image className="h-5 w-5 text-gray-600" />
                       <span className="text-gray-700">
-                        {uploading ? '上傳中...' : `上傳圖片 (${slides.length}/5)`}
+                        從媒體庫選擇圖片 ({slides.length}/5)
                       </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={uploading}
-                        className="hidden"
-                      />
-                    </label>
+                    </button>
                   </div>
                 )}
 
                 {/* 幻燈片列表 */}
                 {slides.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
-                    <Upload className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                    <p>尚未上傳任何圖片</p>
-                    <p className="text-sm mt-1">點擊上方按鈕開始上傳</p>
+                    <Image className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <p>尚未添加任何圖片</p>
+                    <p className="text-sm mt-1">點擊上方按鈕從媒體庫選擇</p>
                   </div>
                 ) : (
                   <DndContext
@@ -464,6 +500,13 @@ export default function HomepagePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 媒體庫瀏覽器 */}
+      <MediaBrowser
+        isOpen={isMediaBrowserOpen}
+        onClose={() => setIsMediaBrowserOpen(false)}
+        onSelect={handleMediaSelect}
+      />
     </AdminLayout>
   );
 }
