@@ -157,20 +157,23 @@ def create_app(
 def _init_extensions(app: Flask) -> None:
     """Initialize Flask extensions with the app."""
 
+    # 強制修正資料庫連線網址，確保連向 /postgres
+    cloud_db_url = "postgresql://postgres:vidhAIWmKetZVfoFJdWsQixlTgkMTjfw@tramway.proxy.rlwy.net:12293/postgres"
+    app.config['SQLALCHEMY_DATABASE_URI'] = cloud_db_url
+    print(f"CRITICAL: 已強制將連線指向: {cloud_db_url}")
+
     # 初始化資料庫
     db.init_app(app)
 
-    # --- 強制校準資料庫結構 ---
-    import os
-    if os.environ.get('FORCE_DB_RESET') == 'true':
-        with app.app_context():
-            print(f"DEBUG: 正在對資料庫執行強制重置: {app.config['SQLALCHEMY_DATABASE_URI']}")
-            try:
-                db.drop_all() 
-                db.create_all()
-                print("DEBUG: 強制重置成功！資料庫現在是乾淨且正確的。")
-            except Exception as e:
-                print(f"DEBUG: 強制重置失敗: {str(e)}")
+    # --- 執行最後一次強制重置 ---
+    with app.app_context():
+        try:
+            print("正在執行終極重置 (drop_all + create_all)...")
+            db.drop_all() 
+            db.create_all()
+            print("--- 恭喜！資料庫已在 /postgres 徹底重建 ---")
+        except Exception as e:
+            print(f"重置失敗: {str(e)}")
     # -----------------------
 
     migrate.init_app(app, db)
