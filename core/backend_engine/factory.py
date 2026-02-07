@@ -156,21 +156,24 @@ def create_app(
 
 def _init_extensions(app: Flask) -> None:
     """Initialize Flask extensions with the app."""
-    
-        # Initialize extensions
+
+        # 初始化資料庫
     db.init_app(app)
 
-    # --- 暫時加入：強制重置雲端資料庫結構 ---
+    # --- 診斷與強制同步 ---
     with app.app_context():
+        # 1. 打印出 Flask 實際上連線的網址 (會出現在 Railway Logs)
+        print(f"DEBUG: Flask 實際連線的資料庫網址是: {app.config['SQLALCHEMY_DATABASE_URI']}")
+        
         try:
-            print("正在強制清空並重建資料表...")
-            # 如果要徹底清空舊帳號，請取消下面這一行的註解
-            # db.drop_all() 
+            # 2. 強制刪除所有資料表 (如果這行執行了舊帳號還在，代表連錯資料庫)
+            db.drop_all() 
+            # 3. 重新建立最新結構
             db.create_all()
-            print("資料庫結構同步完成！")
+            print("DEBUG: 資料庫已執行 drop_all 和 create_all")
         except Exception as e:
-            print(f"同步失敗: {str(e)}")
-    # ------------------------------------
+            print(f"DEBUG: 同步失敗: {str(e)}")
+    # ------------------
 
     migrate.init_app(app, db)
     jwt.init_app(app)
