@@ -46,17 +46,15 @@ def _bool_env(key: str, default: bool = False) -> bool:
 def _get_database_url(key: str = 'DATABASE_URL', fallback=None):
     """
     Get database URL and convert to psycopg3 format.
-    Converts postgresql:// to postgresql+psycopg://
+    優先讀取 DB_URL_OVERRIDE，避開 Railway 可能的自動覆蓋。
     """
-    # 讀取變數並去除頭尾空白
-    val = os.environ.get(key)
+    # 優先嘗試讀取我們自定義的變數
+    val = os.environ.get('DB_URL_OVERRIDE') or os.environ.get(key)
     url = val.strip() if val else None
 
-    # 如果網址為空，直接使用預設值 (fallback)，防止 SQLAlchemy 報錯
     if not url:
         return fallback
     
-    # 修正生產環境可能需要的協議格式
     if url.startswith('postgresql://'):
         url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
     return url
