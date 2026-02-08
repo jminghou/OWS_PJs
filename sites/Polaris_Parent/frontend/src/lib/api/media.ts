@@ -1,126 +1,72 @@
 /**
- * Media API - Strapi Integration
+ * Media API - 媒體庫 API Client
  *
- * This module provides the same interface as the original Python backend media API,
- * but now uses Strapi as the backend through Next.js API routes.
+ * 對應後端 packages/media_lib 的 Blueprint 端點。
+ * 所有請求經由 client.ts 的 request()，自動帶上 JWT cookie + CSRF。
  */
 
-import {
-  strapiFileToMediaItem,
-  strapiFolderToMediaFolder,
-  type MediaItem,
-  type MediaFolder,
-  type StrapiFile,
-  type StrapiFolder,
-} from './strapi';
-
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+import { request } from './client';
+import type { MediaItem, MediaFolder, MediaTag } from './strapi';
 
 // =============================================================================
-// Internal fetch helper
-// =============================================================================
-
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || `Request failed: ${response.statusText}`);
-  }
-
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  return response.json();
-}
-
-// =============================================================================
-// Media API - Compatible with existing components
+// Media API
 // =============================================================================
 
 export const mediaApi = {
   /**
-   * Get all folders
+   * 取得資料夾列表
    */
-  getFolders: async (): Promise<MediaFolder[]> => {
+  getFolders: async (parentId?: number): Promise<MediaFolder[]> => {
     try {
-      const response = await fetch('/api/strapi-folders');
-      if (!response.ok) {
-        console.warn('Folders API returned:', response.status);
-        return [];
-      }
-      const data = await response.json();
-      const folders = data.data || [];
-      return folders.map(strapiFolderToMediaFolder);
+      const params: Record<string, any> = {};
+      if (parentId) params.parent_id = parentId;
+      return await request<MediaFolder[]>('/media-lib/folders', { params });
     } catch (error) {
       console.error('Failed to fetch folders:', error);
-      return []; // Return empty array if Strapi is unavailable
+      return [];
     }
   },
 
   /**
-   * Create a new folder
+   * 建立資料夾
    */
   createFolder: async (data: {
     name: string;
     parent_id?: number;
-  }): Promise<{ message: string; folder: MediaFolder }> => {
-    const response = await fetchJson<{ data: StrapiFolder }>('/api/strapi-folders', {
+  }): Promise<MediaFolder> => {
+    return request<MediaFolder>('/media-lib/folders', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: data.name,
-        parent: data.parent_id,
-      }),
+      body: JSON.stringify(data),
     });
-
-    return {
-      message: 'Folder created successfully',
-      folder: strapiFolderToMediaFolder(response.data),
-    };
   },
 
   /**
-   * Update folder name
+   * 更新資料夾名稱
    */
-  updateFolder: async (
-    id: number,
-    data: { name: string }
-  ): Promise<{ message: string; folder: MediaFolder }> => {
-    const response = await fetchJson<{ data: StrapiFolder }>(
-      `/api/strapi-folders?folderId=${id}`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: data.name }),
-      }
-    );
-
-    return {
-      message: 'Folder updated successfully',
-      folder: strapiFolderToMediaFolder(response.data),
-    };
+  updateFolder: async (id: number, data: { name: string }): Promise<MediaFolder> => {
+    return request<MediaFolder>(`/media-lib/folders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   /**
-   * Delete a folder (must be empty)
+   * 刪除資料夾（必須為空）
    */
   deleteFolder: async (id: number): Promise<{ message: string }> => {
-    await fetchJson(`/api/strapi-folders?folderId=${id}`, {
+    return request<{ message: string }>(`/media-lib/folders/${id}`, {
       method: 'DELETE',
     });
-
-    return { message: 'Folder deleted successfully' };
   },
 
   /**
-   * Get media list with pagination and filtering
+   * 取得媒體列表（分頁、搜尋、資料夾/標籤篩選）
    */
   getMediaList: async (params?: {
     page?: number;
     per_page?: number;
     folder_id?: number | null;
+    tag_id?: number;
     search?: string;
   }): Promise<{
     media: MediaItem[];
@@ -146,68 +92,33 @@ export const mediaApi = {
     };
 
     try {
-      // Build query params for Strapi
-      const searchParams = new URLSearchParams();
-
-      if (params?.page) {
-        searchParams.set('pagination[page]', params.page.toString());
+      const queryParams: Record<string, any> = {};
+      if (params?.page) queryParams.page = params.page;
+      if (params?.per_page) queryParams.per_page = params.per_page;
+      if (params?.folder_id !== undefined && params?.folder_id !== null) {
+        queryParams.folder_id = params.folder_id;
       }
-      if (params?.per_page) {
-        searchParams.set('pagination[pageSize]', params.per_page.toString());
-      }
-      if (params?.folder_id !== undefined) {
-        if (params.folder_id === null) {
-          searchParams.set('filters[folder][id][$null]', 'true');
-        } else {
-          searchParams.set('filters[folder][id][$eq]', params.folder_id.toString());
-        }
-      }
-      if (params?.search) {
-        searchParams.set('filters[name][$containsi]', params.search);
-      }
+      if (params?.tag_id) queryParams.tag_id = params.tag_id;
+      if (params?.search) queryParams.search = params.search;
 
-      const queryString = searchParams.toString();
-      const endpoint = `/api/strapi-files${queryString ? `?${queryString}` : ''}`;
-
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        console.error('Failed to fetch media list:', response.statusText);
-        return emptyResponse;
-      }
-
-      const data = await response.json();
-
-      // Handle both array and paginated response formats
-      let files: StrapiFile[];
-      let pagination: { page: number; pageSize: number; pageCount: number; total: number };
-
-      if (Array.isArray(data)) {
-        files = data;
-        pagination = {
-          page: 1,
-          pageSize: files.length,
-          pageCount: 1,
-          total: files.length,
+      const data = await request<{
+        files: any[];
+        pagination: {
+          page: number;
+          pages: number;
+          per_page: number;
+          total: number;
         };
-      } else {
-        files = data.results || data;
-        pagination = data.pagination || {
-          page: 1,
-          pageSize: files.length,
-          pageCount: 1,
-          total: files.length,
-        };
-      }
+      }>('/media-lib/files', { params: queryParams });
+
+      const media: MediaItem[] = data.files.map(apiFileToMediaItem);
 
       return {
-        media: files.map(strapiFileToMediaItem),
+        media,
         pagination: {
-          page: pagination.page,
-          pages: pagination.pageCount,
-          per_page: pagination.pageSize,
-          total: pagination.total,
-          has_prev: pagination.page > 1,
-          has_next: pagination.page < pagination.pageCount,
+          ...data.pagination,
+          has_prev: data.pagination.page > 1,
+          has_next: data.pagination.page < data.pagination.pages,
         },
       };
     } catch (error) {
@@ -217,7 +128,7 @@ export const mediaApi = {
   },
 
   /**
-   * Update media metadata
+   * 更新媒體 metadata
    */
   updateMedia: async (
     id: number,
@@ -225,50 +136,41 @@ export const mediaApi = {
       alt_text?: string;
       caption?: string;
       folder_id?: number | null;
+      tag_ids?: number[];
     }
-  ): Promise<{ message: string; media: MediaItem }> => {
-    const response = await fetchJson<StrapiFile>(`/api/strapi-upload?fileId=${id}`, {
+  ): Promise<MediaItem> => {
+    const result = await request<any>(`/media-lib/files/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        alternativeText: data.alt_text,
-        caption: data.caption,
-        folder: data.folder_id,
-      }),
+      body: JSON.stringify(data),
     });
-
-    return {
-      message: 'Media updated successfully',
-      media: strapiFileToMediaItem(response),
-    };
+    return apiFileToMediaItem(result);
   },
 
   /**
-   * Delete a media file
+   * 刪除媒體檔案
    */
   deleteMedia: async (id: number): Promise<{ message: string }> => {
-    await fetchJson(`/api/strapi-upload?fileId=${id}`, {
+    return request<{ message: string }>(`/media-lib/files/${id}`, {
       method: 'DELETE',
     });
-
-    return { message: 'Media deleted successfully' };
   },
 
   /**
-   * Upload a media file with optional progress callback
+   * 上傳媒體檔案（支援進度回調）
    */
   uploadMedia: async (
     file: File,
     folderId?: number,
     onProgress?: (percent: number) => void
-  ): Promise<{ message: string; media: MediaItem }> => {
+  ): Promise<MediaItem> => {
     const formData = new FormData();
-    formData.append('files', file);
+    formData.append('file', file);
     if (folderId) {
-      formData.append('folder', folderId.toString());
+      formData.append('folder_id', folderId.toString());
     }
 
-    // 如果有進度回調，使用 XMLHttpRequest
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api/v1';
+
     if (onProgress) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -283,268 +185,108 @@ export const mediaApi = {
         xhr.addEventListener('load', () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              const files: StrapiFile[] = JSON.parse(xhr.responseText);
-              resolve({
-                message: 'Upload successful',
-                media: strapiFileToMediaItem(files[0]),
-              });
-            } catch (e) {
+              const result = JSON.parse(xhr.responseText);
+              resolve(apiFileToMediaItem(result));
+            } catch {
               reject(new Error('Failed to parse response'));
             }
           } else {
             try {
               const error = JSON.parse(xhr.responseText);
               reject(new Error(error.error || 'Upload failed'));
-            } catch (e) {
+            } catch {
               reject(new Error('Upload failed'));
             }
           }
         });
 
-        xhr.addEventListener('error', () => {
-          reject(new Error('Network error'));
-        });
+        xhr.addEventListener('error', () => reject(new Error('Network error')));
 
-        xhr.open('POST', '/api/strapi-upload');
+        xhr.open('POST', `${API_URL}/media-lib/files`);
+        xhr.withCredentials = true;
+
+        // 附加 CSRF token
+        const csrfMatch = document.cookie.match(/(?:^|;\s*)csrf_access_token=([^;]*)/);
+        if (csrfMatch) {
+          xhr.setRequestHeader('X-CSRF-TOKEN', decodeURIComponent(csrfMatch[1]));
+        }
+
         xhr.send(formData);
       });
     }
 
-    // 沒有進度回調時使用 fetch
-    const response = await fetch('/api/strapi-upload', {
+    // 沒有進度回調時使用 request (fetch)
+    const result = await request<any>('/media-lib/files', {
       method: 'POST',
       body: formData,
     });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Upload failed' }));
-      throw new Error(error.error || 'Upload failed');
-    }
-
-    const files: StrapiFile[] = await response.json();
-
-    return {
-      message: 'Upload successful',
-      media: strapiFileToMediaItem(files[0]),
-    };
+    return apiFileToMediaItem(result);
   },
 
   /**
-   * Move media files to a folder
+   * 批次移動檔案到目標資料夾
    */
   moveMedia: async (
-    mediaIds: number[],
+    fileIds: number[],
     targetFolderId?: number | null
   ): Promise<{ message: string }> => {
-    // Update each file's folder
-    await Promise.all(
-      mediaIds.map((id) =>
-        fetchJson(`/api/strapi-upload?fileId=${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folder: targetFolderId ?? null }),
-        })
-      )
-    );
-
-    return { message: 'Media moved successfully' };
+    return request<{ message: string }>('/media-lib/files/move', {
+      method: 'POST',
+      body: JSON.stringify({
+        file_ids: fileIds,
+        folder_id: targetFolderId ?? null,
+      }),
+    });
   },
 };
 
 // =============================================================================
-// MediaMeta Types
+// Tag API
 // =============================================================================
-
-export interface MediaMeta {
-  id: number;
-  documentId?: string;
-  chartid?: string;
-  place?: string;
-  copyright?: string;
-  isPublic?: boolean;
-  tags?: { id: number; name: string }[];
-  category?: { id: number; name: string }[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface MediaMetaInput {
-  chartid?: string;
-  place?: string;
-  copyright?: string;
-  isPublic?: boolean;
-  tags?: number[];
-  category?: number[];
-}
-
-// =============================================================================
-// MediaMeta API
-// =============================================================================
-
-export const mediaMetaApi = {
-  /**
-   * Get MediaMeta by file ID
-   * Returns null if not found (this is normal for new media files)
-   */
-  getByFileId: async (fileId: number): Promise<MediaMeta | null> => {
-    try {
-      const response = await fetch(`/api/strapi-media-meta?fileId=${fileId}`);
-      if (!response.ok) {
-        // 404 是正常的（媒體可能還沒有 MediaMeta），不需要顯示錯誤
-        if (response.status !== 404) {
-          console.warn('Failed to fetch media meta:', response.statusText);
-        }
-        return null;
-      }
-      const data = await response.json();
-      return data.data || null;
-    } catch (error) {
-      console.error('Error fetching media meta:', error);
-      return null;
-    }
-  },
-
-  /**
-   * Create or update MediaMeta
-   * @param fileId - The Strapi file ID
-   * @param data - The metadata to save
-   * @param existingDocumentId - The documentId if updating an existing record (Strapi 5)
-   */
-  save: async (
-    fileId: number,
-    data: MediaMetaInput,
-    existingDocumentId?: string
-  ): Promise<MediaMeta | null> => {
-    try {
-      const response = await fetch('/api/strapi-media-meta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileId,
-          documentId: existingDocumentId,
-          ...data,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Failed to save media meta');
-      }
-
-      const result = await response.json();
-      return result.data || null;
-    } catch (error) {
-      console.error('Error saving media meta:', error);
-      throw error;
-    }
-  },
-};
-
-// =============================================================================
-// Tag Types and API
-// =============================================================================
-
-export interface Tag {
-  id: number;
-  documentId?: string;
-  name: string;
-}
 
 export const tagApi = {
-  /**
-   * Get all tags
-   */
-  getAll: async (): Promise<Tag[]> => {
+  getAll: async (): Promise<MediaTag[]> => {
     try {
-      const response = await fetch('/api/strapi-tags');
-      if (!response.ok) {
-        console.error('Failed to fetch tags:', response.statusText);
-        return [];
-      }
-      const data = await response.json();
-      return data.data || [];
+      return await request<MediaTag[]>('/media-lib/tags');
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      console.error('Failed to fetch tags:', error);
       return [];
     }
   },
 
-  /**
-   * Create a new tag
-   */
-  create: async (name: string): Promise<Tag | null> => {
-    try {
-      const response = await fetch('/api/strapi-tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
+  create: async (name: string, color?: string): Promise<MediaTag> => {
+    return request<MediaTag>('/media-lib/tags', {
+      method: 'POST',
+      body: JSON.stringify({ name, color }),
+    });
+  },
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Failed to create tag');
-      }
-
-      const result = await response.json();
-      return result.data || null;
-    } catch (error) {
-      console.error('Error creating tag:', error);
-      throw error;
-    }
+  delete: async (id: number): Promise<{ message: string }> => {
+    return request<{ message: string }>(`/media-lib/tags/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 
 // =============================================================================
-// Category Types and API
+// Helper: 將後端 API 回傳轉換為前端 MediaItem
 // =============================================================================
 
-export interface Category {
-  id: number;
-  documentId?: string;
-  name: string;
-  description?: string;
+function apiFileToMediaItem(file: any): MediaItem {
+  return {
+    id: file.id,
+    filename: file.filename,
+    original_filename: file.original_filename,
+    file_path: file.public_url,
+    file_size: file.file_size,
+    mime_type: file.mime_type,
+    alt_text: file.alt_text || undefined,
+    caption: file.caption || undefined,
+    folder_id: file.folder_id || undefined,
+    created_at: file.created_at,
+    formats: file.formats || undefined,
+    width: file.width || undefined,
+    height: file.height || undefined,
+    tags: file.tags || undefined,
+  };
 }
-
-export const categoryApi = {
-  /**
-   * Get all categories
-   */
-  getAll: async (): Promise<Category[]> => {
-    try {
-      const response = await fetch('/api/strapi-categories');
-      if (!response.ok) {
-        console.error('Failed to fetch categories:', response.statusText);
-        return [];
-      }
-      const data = await response.json();
-      return data.data || [];
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Create a new category
-   */
-  create: async (name: string, description?: string): Promise<Category | null> => {
-    try {
-      const response = await fetch('/api/strapi-categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Failed to create category');
-      }
-
-      const result = await response.json();
-      return result.data || null;
-    } catch (error) {
-      console.error('Error creating category:', error);
-      throw error;
-    }
-  },
-};

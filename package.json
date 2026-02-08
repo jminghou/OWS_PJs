@@ -9,8 +9,7 @@
   "scripts": {
     "dev:polaris": "npm run dev --workspace=p-ows-frontend",
     "build:polaris": "npm run build --workspace=p-ows-frontend",
-    "dev:strapi": "cd packages/strapi-media && npm run develop",
-    "docker:backend": "docker-compose up -d db redis polaris_backend strapi",
+    "docker:backend": "docker-compose up -d db redis polaris_backend",
     "docker:stop": "docker-compose down",
     "install:all": "npm install"
   }

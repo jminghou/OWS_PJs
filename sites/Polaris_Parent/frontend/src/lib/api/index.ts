@@ -3,7 +3,7 @@ export type { FetchOptions } from './client';
 
 export { authApi } from './auth';
 export { contentApi, categoryApi, tagApi } from './content';
-export { mediaApi } from './media';
+export { mediaApi, tagApi as mediaTagApi } from './media';
 export {
   getOptimizedImageUrl,
   getThumbnailUrl,
@@ -24,7 +24,7 @@ export { userApi, submissionApi } from './users';
 // Default export for backwards compatibility
 import { authApi } from './auth';
 import { contentApi, categoryApi, tagApi } from './content';
-import { mediaApi } from './media';
+import { mediaApi, tagApi as mediaTagApi } from './media';
 import { productApi } from './products';
 import { orderApi, paymentMethodApi } from './orders';
 import { i18nApi, homepageApi } from './settings';
@@ -38,6 +38,7 @@ const api = {
   submission: submissionApi,
   user: userApi,
   media: mediaApi,
+  mediaTag: mediaTagApi,
   i18n: i18nApi,
   homepage: homepageApi,
   order: orderApi,

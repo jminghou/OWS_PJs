@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { mediaApi } from '@/lib/api';
-import { type MediaItem, type MediaFolder } from '@/lib/api/strapi';
+import { mediaApi } from '@/lib/api/media';
+import type { MediaItem, MediaFolder } from '@/lib/api/strapi';
 import { getThumbnailUrl } from '@/lib/api/imageUtils';
 import Button from '@/components/ui/Button';
 import { getImageUrl } from '@/lib/utils';
@@ -25,7 +25,6 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
   const [pagination, setPagination] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 搜尋防抖 - 避免每次輸入都觸發 API 請求
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
@@ -41,7 +40,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
         mediaApi.getMediaList({
           page: currentPage,
           per_page: 12,
-          folder_id: currentFolder || undefined,
+          folder_id: currentFolder !== null ? currentFolder : undefined,
           search: debouncedSearchQuery || undefined,
         }),
         mediaApi.getFolders(),
@@ -137,7 +136,6 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
         </div>
 
         <div className="p-6 border-b">
-          {/* Navigation */}
           <div className="flex items-center gap-2 mb-4">
             {currentFolder && (
               <Button
@@ -163,7 +161,6 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
             </Button>
           </div>
 
-          {/* Search */}
           <div className="flex gap-4">
             <div className="flex-1">
               <input
@@ -183,7 +180,6 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
         </div>
 
         <div className="flex-1 p-6 overflow-y-auto">
-          {/* Folders */}
           {getCurrentFolderSubfolders().length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-3">資料夾</h3>
@@ -206,7 +202,6 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
             </div>
           )}
 
-          {/* Media Items */}
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {[...Array(12)].map((_, i) => (
@@ -240,7 +235,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => {}} // Handled by onClick
+                              onChange={() => {}}
                               className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
                               onClick={(e) => e.stopPropagation()}
                             />
@@ -261,7 +256,6 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                 })}
               </div>
 
-              {/* Pagination */}
               {pagination && pagination.pages > 1 && (
                 <div className="mt-6 flex justify-center items-center space-x-2">
                   <Button

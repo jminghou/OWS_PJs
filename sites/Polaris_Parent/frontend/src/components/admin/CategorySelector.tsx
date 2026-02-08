@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Category, categoryApi } from '@/lib/api/media';
+import { tagApi } from '@/lib/api/media';
+import type { MediaTag } from '@/lib/api/strapi';
+
+type Category = MediaTag;
 
 interface CategorySelectorProps {
   selectedCategories: Category[];
@@ -19,7 +22,7 @@ export function CategorySelector({ selectedCategories, onChange, disabled }: Cat
 
   // 載入所有分類
   useEffect(() => {
-    categoryApi.getAll().then(setAllCategories).catch(console.error);
+    tagApi.getAll().then(setAllCategories).catch(console.error);
   }, []);
 
   // 點擊外部關閉下拉選單
@@ -57,7 +60,7 @@ export function CategorySelector({ selectedCategories, onChange, disabled }: Cat
     if (!newCategoryName.trim()) return;
 
     try {
-      const newCategory = await categoryApi.create(newCategoryName.trim());
+      const newCategory = await tagApi.create(newCategoryName.trim());
       if (newCategory) {
         setAllCategories([...allCategories, newCategory]);
         onChange([...selectedCategories, newCategory]);
@@ -135,9 +138,6 @@ export function CategorySelector({ selectedCategories, onChange, disabled }: Cat
                       className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
                     >
                       <span>{category.name}</span>
-                      {category.description && (
-                        <span className="ml-2 text-gray-400 text-xs">{category.description}</span>
-                      )}
                     </button>
                   ))
                 ) : (

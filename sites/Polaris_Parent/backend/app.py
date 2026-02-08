@@ -101,6 +101,11 @@ def after_init(app):
     except ImportError:
         pass  # No site-specific models yet
 
+    # 註冊媒體庫
+    from core.backend_engine.factory import db
+    from packages.media_lib import register_media_lib
+    register_media_lib(app, db)
+
     # Log successful initialization
     app.logger.info(f"Site '{app.config.get('SITE_NAME')}' initialized successfully")
 

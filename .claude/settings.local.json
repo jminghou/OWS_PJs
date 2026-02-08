@@ -32,7 +32,8 @@
       "Bash(cmd /c \"\"\"d:\\\\PJ_Projects\\\\OWS_PJs\\\\sites\\\\Polaris_Parent\\\\backend\\\\venv\\\\Scripts\\\\python.exe\"\" \"\"C:\\\\Users\\\\jerma\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--PJ-Projects-OWS-PJs\\\\f6645cdf-2150-4d88-a9b6-cb9e8c04f917\\\\scratchpad\\\\debug_db.py\"\"\")"
     ],
     "additionalDirectories": [
-      "d:\\PJ_Projects\\OWS_PJs\\packages\\ui\\src"
+      "d:\\PJ_Projects\\OWS_PJs\\packages\\ui\\src",
+      "d:\\PJ_Projects\\OWS_PJs\\packages\\strapi-media"
     ]
   }
 }

@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Tag, tagApi } from '@/lib/api/media';
+import { tagApi } from '@/lib/api/media';
+import type { MediaTag } from '@/lib/api/strapi';
+
+type Tag = MediaTag;
 
 interface TagSelectorProps {
   selectedTags: Tag[];

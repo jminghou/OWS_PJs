@@ -53,13 +53,7 @@ export function getImageUrl(imagePath?: string): string {
     return imagePath;
   }
 
-  // Strapi relative URLs (when not using GCS)
-  if (imagePath.startsWith('/uploads/')) {
-    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-    return `${strapiUrl}${imagePath}`;
-  }
-
-  // Legacy: Python backend relative paths
+  // Relative paths - prepend backend URL
   return `${process.env.NEXT_PUBLIC_BACKEND_URL}${imagePath}`;
 }
 
