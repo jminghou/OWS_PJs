@@ -60,7 +60,7 @@ export function CategorySelector({ selectedCategories, onChange, disabled }: Cat
     if (!newCategoryName.trim()) return;
 
     try {
-      const newCategory = await tagApi.create(newCategoryName.trim());
+      const newCategory = await tagApi.create({ name: newCategoryName.trim() });
       if (newCategory) {
         setAllCategories([...allCategories, newCategory]);
         onChange([...selectedCategories, newCategory]);

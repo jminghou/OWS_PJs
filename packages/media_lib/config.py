@@ -9,10 +9,10 @@ SCHEMA_NAME = 'media_lib'
 
 # 圖片變體規格（參考 Strapi）
 IMAGE_VARIANTS = {
-    'thumbnail': {'max_width': 245, 'max_height': 245, 'quality': 80},
-    'small':     {'max_width': 500, 'max_height': 500, 'quality': 85},
-    'medium':    {'max_width': 750, 'max_height': 750, 'quality': 85},
-    'large':     {'max_width': 1000, 'max_height': 1000, 'quality': 90},
+    'thumbnail': {'max_width': 200, 'max_height': 200, 'quality': 80},
+    'small':     {'max_width': 450, 'max_height': 450, 'quality': 85},
+    'medium':    {'max_width': 800, 'max_height': 800, 'quality': 85},
+    'large':     {'max_width': 1920, 'max_height': 1080, 'quality': 90},
 }
 
 # 支援的圖片 MIME types（只有這些會產生變體）

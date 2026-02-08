@@ -106,8 +106,50 @@ class MLFile(db.Model):
         }
         return data
 
+    # Relationships (1:1)
+    file_metadata = db.relationship('MLFileMetadata', uselist=False, backref='file',
+                                     cascade='all, delete-orphan')
+
     def __repr__(self):
         return f'<MLFile {self.original_filename}>'
+
+
+# =============================================================================
+# MLFileMetadata - 圖檔 Metadata（1:1 對應 files）
+# =============================================================================
+
+class MLFileMetadata(db.Model):
+    """圖檔的結構化 metadata，供外部系統查詢引用。"""
+    __tablename__ = 'file_metadata'
+    __table_args__ = (SCHEMA_ARGS,)
+
+    id = db.Column(db.Integer, primary_key=True)
+    file_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.files.id', ondelete='CASCADE'),
+                        nullable=False, unique=True, index=True)
+    chart_id = db.Column(db.String(100), index=True)         # 命盤ID
+    location = db.Column(db.String(255))                       # 地點
+    rating = db.Column(db.SmallInteger)                        # 評級 1-5
+    status = db.Column(db.String(20), default='draft')         # 狀態: draft/published/archived
+    source = db.Column(db.String(255))                         # 來源
+    license = db.Column(db.String(100))                        # 授權
+    notes = db.Column(db.Text)                                 # 備註
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'chart_id': self.chart_id,
+            'location': self.location,
+            'rating': self.rating,
+            'status': self.status or 'draft',
+            'source': self.source,
+            'license': self.license,
+            'notes': self.notes,
+        }
+
+    def __repr__(self):
+        return f'<MLFileMetadata file_id={self.file_id}>'
 
 
 # =============================================================================
@@ -168,4 +210,4 @@ class MLTag(db.Model):
         return f'<MLTag {self.name}>'
 
 
-__all__ = ['MLFolder', 'MLFile', 'MLFileVariant', 'MLTag', 'file_tags']
+__all__ = ['MLFolder', 'MLFile', 'MLFileMetadata', 'MLFileVariant', 'MLTag', 'file_tags']

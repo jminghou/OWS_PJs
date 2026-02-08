@@ -21,6 +21,16 @@ export interface ImageFormats {
   large?: ImageFormat;
 }
 
+export interface FileMetadata {
+  chart_id?: string;   // 命盤ID
+  location?: string;   // 地點
+  rating?: number;     // 評級 1-5
+  status?: string;     // 狀態: draft/published/archived
+  source?: string;     // 來源
+  license?: string;    // 授權
+  notes?: string;      // 備註
+}
+
 export interface MediaItem {
   id: number;
   filename: string;
@@ -36,6 +46,7 @@ export interface MediaItem {
   width?: number;
   height?: number;
   tags?: { id: number; name: string; slug: string; color: string }[];
+  metadata?: FileMetadata;
 }
 
 export interface MediaFolder {

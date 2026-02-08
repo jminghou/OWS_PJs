@@ -21,16 +21,24 @@ Media Library - Flask Blueprint (API Routes)
     GET    /tags           列出標籤
     POST   /tags           建立標籤
     DELETE /tags/<id>      刪除標籤
+
+Metadata:
+    PUT    /files/<id>/metadata     更新 metadata
+
+公開查詢:
+    GET    /public/lookup?chart_id=xxx   透過命盤ID查圖片
+    GET    /public/search?status=...     搜尋
 """
 
 import os
+import mimetypes
 from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from core.backend_engine.factory import db
 from core.backend_engine.models import User
-from packages.media_lib.models import MLFile, MLFileVariant, MLFolder, MLTag
-from packages.media_lib.schemas import MLFileSchema, MLFolderSchema, MLTagSchema
+from packages.media_lib.models import MLFile, MLFileVariant, MLFolder, MLTag, MLFileMetadata
+from packages.media_lib.schemas import MLFileSchema, MLFolderSchema, MLTagSchema, MLFileMetadataSchema
 from packages.media_lib.storage import GCSStorage
 from packages.media_lib.image_processor import is_image, get_image_dimensions, generate_variants
 from packages.media_lib.utils import slugify
@@ -159,6 +167,10 @@ def upload_file():
         )
         db.session.add(ml_file)
         db.session.flush()  # 取得 ml_file.id
+
+        # 自動建立 metadata 記錄
+        metadata = MLFileMetadata(file_id=ml_file.id)
+        db.session.add(metadata)
 
         # 產生圖片變體
         if is_image(mime_type):
@@ -483,3 +495,288 @@ def delete_tag(tag_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Delete failed'}), 500
+
+
+# =============================================================================
+# GCS 掃描匯入
+# =============================================================================
+
+@media_lib_bp.route('/import/scan', methods=['GET'])
+@jwt_required()
+def scan_gcs():
+    """
+    掃描 GCS Bucket，列出尚未匯入資料庫的檔案。
+    回傳未匯入的檔案清單（不做任何寫入）。
+    """
+    user, err = _require_editor()
+    if err:
+        return err
+
+    try:
+        gcs = GCSStorage.get_instance()
+        prefix = request.args.get('prefix', 'media/')
+
+        # 列出 GCS 上的所有檔案
+        blobs = gcs.bucket.list_blobs(prefix=prefix)
+
+        # 取得資料庫中已有的 gcs_path
+        existing_paths = set(
+            row[0] for row in db.session.query(MLFile.gcs_path).all()
+        )
+
+        new_files = []
+        for blob in blobs:
+            # 跳過目錄標記和 0 byte 檔案
+            if blob.name.endswith('/') or blob.size == 0:
+                continue
+
+            if blob.name not in existing_paths:
+                mime = blob.content_type or mimetypes.guess_type(blob.name)[0] or 'application/octet-stream'
+                new_files.append({
+                    'gcs_path': blob.name,
+                    'public_url': f'{gcs.public_url_prefix}/{blob.name}',
+                    'filename': os.path.basename(blob.name),
+                    'file_size': blob.size,
+                    'mime_type': mime,
+                    'updated': blob.updated.isoformat() if blob.updated else None,
+                })
+
+        return jsonify({
+            'total_found': len(new_files),
+            'files': new_files,
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f'GCS scan failed: {e}')
+        return jsonify({'error': f'Scan failed: {str(e)}'}), 500
+
+
+@media_lib_bp.route('/import/execute', methods=['POST'])
+@jwt_required()
+def import_from_gcs():
+    """
+    將指定的 GCS 檔案匯入到媒體庫資料庫。
+    不搬移/複製 GCS 上的檔案，只建立資料庫記錄。
+
+    Body:
+    {
+        "files": [
+            {"gcs_path": "media/2026/01/photo.jpg", "public_url": "https://...", ...}
+        ],
+        "folder_id": null,          // 可選：放入指定資料夾
+        "generate_variants": false   // 可選：是否下載圖片並產生縮圖（較慢）
+    }
+    """
+    user, err = _require_editor()
+    if err:
+        return err
+
+    data = request.get_json()
+    files_to_import = data.get('files', [])
+    folder_id = data.get('folder_id')
+    gen_variants = data.get('generate_variants', False)
+
+    if not files_to_import:
+        return jsonify({'error': 'No files specified'}), 400
+
+    imported = 0
+    skipped = 0
+    errors = []
+
+    for f in files_to_import:
+        gcs_path = f.get('gcs_path', '')
+        if not gcs_path:
+            continue
+
+        # 檢查是否已存在
+        if MLFile.query.filter_by(gcs_path=gcs_path).first():
+            skipped += 1
+            continue
+
+        try:
+            gcs = GCSStorage.get_instance()
+            filename = os.path.basename(gcs_path)
+            public_url = f.get('public_url', f'{gcs.public_url_prefix}/{gcs_path}')
+            mime_type = f.get('mime_type', mimetypes.guess_type(filename)[0] or 'application/octet-stream')
+            file_size = f.get('file_size', 0)
+
+            ml_file = MLFile(
+                filename=filename,
+                original_filename=filename,
+                gcs_path=gcs_path,
+                public_url=public_url,
+                file_size=file_size,
+                mime_type=mime_type,
+                folder_id=folder_id,
+                uploaded_by=user.id,
+            )
+            db.session.add(ml_file)
+            db.session.flush()
+
+            # 自動建立 metadata 記錄
+            metadata = MLFileMetadata(file_id=ml_file.id)
+            db.session.add(metadata)
+
+            # 如果要求產生縮圖且為圖片類型
+            if gen_variants and is_image(mime_type):
+                try:
+                    blob = gcs.bucket.blob(gcs_path)
+                    file_data = blob.download_as_bytes()
+
+                    width, height = get_image_dimensions(file_data)
+                    ml_file.width = width
+                    ml_file.height = height
+
+                    variants = generate_variants(file_data, mime_type)
+                    for v in variants:
+                        base_path = os.path.dirname(gcs_path)
+                        variant_gcs_path = f'{base_path}/{v["variant_type"]}_{filename}'
+                        if v['ext'] != os.path.splitext(filename)[1]:
+                            variant_gcs_path = os.path.splitext(variant_gcs_path)[0] + v['ext']
+
+                        variant_url = gcs.upload_bytes(
+                            v['data'], variant_gcs_path, v['content_type']
+                        )
+
+                        variant_record = MLFileVariant(
+                            file_id=ml_file.id,
+                            variant_type=v['variant_type'],
+                            gcs_path=variant_gcs_path,
+                            public_url=variant_url,
+                            width=v['width'],
+                            height=v['height'],
+                            file_size=v['file_size'],
+                        )
+                        db.session.add(variant_record)
+                except Exception as ve:
+                    current_app.logger.warning(f'Variant generation failed for {gcs_path}: {ve}')
+
+            imported += 1
+        except Exception as e:
+            errors.append({'gcs_path': gcs_path, 'error': str(e)})
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Database commit failed: {str(e)}'}), 500
+
+    return jsonify({
+        'imported': imported,
+        'skipped': skipped,
+        'errors': errors,
+    }), 200
+
+
+# =============================================================================
+# Metadata 管理
+# =============================================================================
+
+@media_lib_bp.route('/files/<int:file_id>/metadata', methods=['PUT'])
+@jwt_required()
+def update_metadata(file_id):
+    """更新檔案的結構化 metadata。"""
+    user, err = _require_editor()
+    if err:
+        return err
+
+    ml_file = MLFile.query.get_or_404(file_id)
+    data = request.get_json()
+
+    # 取得或建立 metadata
+    meta = ml_file.file_metadata
+    if not meta:
+        meta = MLFileMetadata(file_id=ml_file.id)
+        db.session.add(meta)
+
+    ALLOWED_FIELDS = ('chart_id', 'location', 'rating', 'status', 'source', 'license', 'notes')
+    for field in ALLOWED_FIELDS:
+        if field in data:
+            value = data[field]
+            # 驗證 rating 範圍
+            if field == 'rating' and value is not None:
+                value = max(1, min(5, int(value)))
+            # 驗證 status 值
+            if field == 'status' and value not in ('draft', 'published', 'archived'):
+                continue
+            setattr(meta, field, value)
+
+    try:
+        db.session.commit()
+        return jsonify(MLFileMetadataSchema().dump(meta)), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Metadata update failed'}), 500
+
+
+# =============================================================================
+# 公開查詢 API（不需登入）
+# =============================================================================
+
+@media_lib_bp.route('/public/lookup', methods=['GET'])
+def public_lookup():
+    """透過命盤ID 查詢圖片（公開端點）。"""
+    chart_id = request.args.get('chart_id', '').strip()
+    if not chart_id:
+        return jsonify({'error': 'chart_id is required'}), 400
+
+    meta = MLFileMetadata.query.filter_by(chart_id=chart_id).first()
+    if not meta:
+        return jsonify({'error': 'Not found'}), 404
+
+    ml_file = MLFile.query.get(meta.file_id)
+    if not ml_file:
+        return jsonify({'error': 'File not found'}), 404
+
+    result = file_schema.dump(ml_file)
+    return jsonify(result), 200
+
+
+@media_lib_bp.route('/public/search', methods=['GET'])
+def public_search():
+    """
+    公開搜尋 API，支援 metadata 欄位篩選。
+    參數: status, location, source, license, rating, page, per_page
+    """
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 20, type=int), 100)
+
+    query = MLFile.query.join(MLFileMetadata)
+
+    status = request.args.get('status')
+    if status:
+        query = query.filter(MLFileMetadata.status == status)
+
+    location = request.args.get('location')
+    if location:
+        query = query.filter(MLFileMetadata.location.ilike(f'%{location}%'))
+
+    source = request.args.get('source')
+    if source:
+        query = query.filter(MLFileMetadata.source.ilike(f'%{source}%'))
+
+    license_val = request.args.get('license')
+    if license_val:
+        query = query.filter(MLFileMetadata.license.ilike(f'%{license_val}%'))
+
+    rating = request.args.get('rating', type=int)
+    if rating:
+        query = query.filter(MLFileMetadata.rating >= rating)
+
+    chart_id = request.args.get('chart_id')
+    if chart_id:
+        query = query.filter(MLFileMetadata.chart_id.ilike(f'%{chart_id}%'))
+
+    pagination = query.order_by(MLFile.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return jsonify({
+        'files': files_schema.dump(pagination.items),
+        'pagination': {
+            'page': pagination.page,
+            'pages': pagination.pages,
+            'per_page': pagination.per_page,
+            'total': pagination.total,
+        }
+    }), 200

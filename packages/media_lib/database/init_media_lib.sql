@@ -97,10 +97,35 @@ CREATE TABLE IF NOT EXISTS media_lib.file_tags (
 
 
 -- =============================================================================
+-- 6. file_metadata - 圖檔結構化 Metadata（1:1 對應 files）
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS media_lib.file_metadata (
+    id              SERIAL PRIMARY KEY,
+    file_id         INTEGER NOT NULL UNIQUE REFERENCES media_lib.files(id) ON DELETE CASCADE,
+    chart_id        VARCHAR(100),           -- 命盤ID（外部系統引用 key）
+    location        VARCHAR(255),           -- 地點
+    rating          SMALLINT,               -- 評級 1-5
+    status          VARCHAR(20) DEFAULT 'draft',  -- 狀態: draft/published/archived
+    source          VARCHAR(255),           -- 來源
+    license         VARCHAR(100),           -- 授權
+    notes           TEXT,                   -- 備註
+    created_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc'),
+    updated_at      TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc')
+);
+
+CREATE INDEX IF NOT EXISTS ix_ml_file_metadata_file_id
+    ON media_lib.file_metadata (file_id);
+
+CREATE INDEX IF NOT EXISTS ix_ml_file_metadata_chart_id
+    ON media_lib.file_metadata (chart_id);
+
+
+-- =============================================================================
 -- 完整重建用 (危險! 會刪除所有資料)
 -- 如需要先清除再重建，取消下方註解後執行
 -- =============================================================================
 
+-- DROP TABLE IF EXISTS media_lib.file_metadata CASCADE;
 -- DROP TABLE IF EXISTS media_lib.file_tags CASCADE;
 -- DROP TABLE IF EXISTS media_lib.file_variants CASCADE;
 -- DROP TABLE IF EXISTS media_lib.files CASCADE;
@@ -119,6 +144,7 @@ CREATE TABLE IF NOT EXISTS media_lib.file_tags (
 -- media_lib.file_variants  圖片變體 (每張圖自動產生 4 種尺寸)
 -- media_lib.tags           標籤分類
 -- media_lib.file_tags      檔案-標籤 多對多關聯
+-- media_lib.file_metadata  圖檔 Metadata（命盤ID/地點/評級/狀態/來源/授權/備註）
 --
 -- 變體尺寸規格:
 --   thumbnail: 245x245, quality 80

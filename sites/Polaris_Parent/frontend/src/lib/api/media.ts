@@ -6,7 +6,7 @@
  */
 
 import { request } from './client';
-import type { MediaItem, MediaFolder, MediaTag } from './strapi';
+import type { MediaItem, MediaFolder, MediaTag, FileMetadata } from './strapi';
 
 // =============================================================================
 // Media API
@@ -224,6 +224,19 @@ export const mediaApi = {
   },
 
   /**
+   * 更新檔案的結構化 metadata
+   */
+  updateMetadata: async (
+    id: number,
+    data: FileMetadata
+  ): Promise<FileMetadata> => {
+    return request<FileMetadata>(`/media-lib/files/${id}/metadata`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
    * 批次移動檔案到目標資料夾
    */
   moveMedia: async (
@@ -254,16 +267,54 @@ export const tagApi = {
     }
   },
 
-  create: async (name: string, color?: string): Promise<MediaTag> => {
+  create: async (data: { name: string; color?: string }): Promise<MediaTag> => {
     return request<MediaTag>('/media-lib/tags', {
       method: 'POST',
-      body: JSON.stringify({ name, color }),
+      body: JSON.stringify(data),
     });
   },
 
   delete: async (id: number): Promise<{ message: string }> => {
     return request<{ message: string }>(`/media-lib/tags/${id}`, {
       method: 'DELETE',
+    });
+  },
+};
+
+// =============================================================================
+// Import API (GCS 掃描匯入)
+// =============================================================================
+
+export interface GcsScanFile {
+  gcs_path: string;
+  public_url: string;
+  filename: string;
+  file_size: number;
+  mime_type: string;
+  updated: string | null;
+}
+
+export const importApi = {
+  /**
+   * 掃描 GCS，列出尚未匯入的檔案
+   */
+  scan: async (prefix?: string): Promise<{ total_found: number; files: GcsScanFile[] }> => {
+    const params: Record<string, any> = {};
+    if (prefix) params.prefix = prefix;
+    return request('/media-lib/import/scan', { params });
+  },
+
+  /**
+   * 執行匯入
+   */
+  execute: async (data: {
+    files: GcsScanFile[];
+    folder_id?: number | null;
+    generate_variants?: boolean;
+  }): Promise<{ imported: number; skipped: number; errors: any[] }> => {
+    return request('/media-lib/import/execute', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };
@@ -288,5 +339,6 @@ function apiFileToMediaItem(file: any): MediaItem {
     width: file.width || undefined,
     height: file.height || undefined,
     tags: file.tags || undefined,
+    metadata: file.metadata || undefined,
   };
 }

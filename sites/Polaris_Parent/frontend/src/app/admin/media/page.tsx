@@ -4,8 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import { mediaApi, tagApi as mediaTagApi } from '@/lib/api/media';
-import type { MediaItem, MediaFolder, MediaTag } from '@/lib/api/strapi';
+import { mediaApi, tagApi as mediaTagApi, importApi } from '@/lib/api/media';
+import type { GcsScanFile } from '@/lib/api/media';
+import type { MediaItem, MediaFolder, MediaTag, FileMetadata } from '@/lib/api/strapi';
 import { getImageUrl } from '@/lib/utils';
 
 // =============================================================================
@@ -305,24 +306,56 @@ function UploadModal({ isOpen, onClose, onUploadComplete, currentFolderId }: Upl
 
 interface EditModalProps {
   file: MediaItem | null;
+  folders: MediaFolder[];
   tags: MediaTag[];
   onClose: () => void;
-  onSave: (id: number, data: { alt_text?: string; caption?: string; tag_ids?: number[] }) => Promise<void>;
+  onSave: (id: number, data: { alt_text?: string; caption?: string; folder_id?: number | null; tag_ids?: number[] }) => Promise<void>;
+  onTagCreated: () => void;
 }
 
-function EditModal({ file, tags, onClose, onSave }: EditModalProps) {
+function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }: EditModalProps) {
   const [altText, setAltText] = useState('');
   const [caption, setCaption] = useState('');
+  const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [showSizes, setShowSizes] = useState(false);
   const [showCode, setShowCode] = useState(false);
+  const [showMetadata, setShowMetadata] = useState(false);
+
+  // Metadata 欄位
+  const [metaChartId, setMetaChartId] = useState('');
+  const [metaLocation, setMetaLocation] = useState('');
+  const [metaRating, setMetaRating] = useState<number | null>(null);
+  const [metaStatus, setMetaStatus] = useState('draft');
+  const [metaSource, setMetaSource] = useState('');
+  const [metaLicense, setMetaLicense] = useState('');
+  const [metaNotes, setMetaNotes] = useState('');
+
+  // 新增標籤 inline 表單
+  const [showNewTag, setShowNewTag] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#6366f1');
+  const [creatingTag, setCreatingTag] = useState(false);
+  const TAG_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#06b6d4'];
 
   useEffect(() => {
     if (file) {
       setAltText(file.alt_text || '');
       setCaption(file.caption || '');
+      setSelectedFolderId(file.folder_id ?? null);
       setSelectedTagIds(file.tags?.map((t) => t.id) || []);
+      setShowNewTag(false);
+      setNewTagName('');
+      // Metadata
+      const m = file.metadata;
+      setMetaChartId(m?.chart_id || '');
+      setMetaLocation(m?.location || '');
+      setMetaRating(m?.rating ?? null);
+      setMetaStatus(m?.status || 'draft');
+      setMetaSource(m?.source || '');
+      setMetaLicense(m?.license || '');
+      setMetaNotes(m?.notes || '');
     }
   }, [file]);
 
@@ -331,7 +364,22 @@ function EditModal({ file, tags, onClose, onSave }: EditModalProps) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave(file.id, { alt_text: altText, caption, tag_ids: selectedTagIds });
+      await onSave(file.id, {
+        alt_text: altText,
+        caption,
+        folder_id: selectedFolderId,
+        tag_ids: selectedTagIds,
+      });
+      // 儲存 metadata
+      await mediaApi.updateMetadata(file.id, {
+        chart_id: metaChartId || undefined,
+        location: metaLocation || undefined,
+        rating: metaRating ?? undefined,
+        status: metaStatus,
+        source: metaSource || undefined,
+        license: metaLicense || undefined,
+        notes: metaNotes || undefined,
+      });
       onClose();
     } catch (error) {
       alert(`儲存失敗: ${(error as Error).message}`);
@@ -346,6 +394,22 @@ function EditModal({ file, tags, onClose, onSave }: EditModalProps) {
         ? prev.filter((id) => id !== tagId)
         : [...prev, tagId]
     );
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    setCreatingTag(true);
+    try {
+      const created = await mediaTagApi.create({ name: newTagName.trim(), color: newTagColor });
+      setSelectedTagIds((prev) => [...prev, created.id]);
+      setNewTagName('');
+      setShowNewTag(false);
+      onTagCreated();
+    } catch (error) {
+      alert(`建立標籤失敗: ${(error as Error).message}`);
+    } finally {
+      setCreatingTag(false);
+    }
   };
 
   const previewUrl = getImageUrl(
@@ -388,30 +452,94 @@ function EditModal({ file, tags, onClose, onSave }: EditModalProps) {
             </div>
           </div>
 
+          {/* 資料夾選擇 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">資料夾</label>
+            <select
+              value={selectedFolderId ?? ''}
+              onChange={(e) => setSelectedFolderId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">未分類（根目錄）</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          </div>
+
           {/* 標籤選擇 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">標籤</label>
             <div className="flex flex-wrap gap-2">
-              {tags.length > 0 ? (
-                tags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                      selectedTagIds.includes(tag.id)
-                        ? 'text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                    style={selectedTagIds.includes(tag.id) ? { backgroundColor: tag.color } : {}}
-                  >
-                    {tag.name}
-                  </button>
-                ))
-              ) : (
-                <p className="text-sm text-gray-500">尚未建立任何標籤</p>
+              {tags.map((tag) => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => toggleTag(tag.id)}
+                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                    selectedTagIds.includes(tag.id)
+                      ? 'text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  style={selectedTagIds.includes(tag.id) ? { backgroundColor: tag.color } : {}}
+                >
+                  {tag.name}
+                </button>
+              ))}
+
+              {/* 新增標籤按鈕 */}
+              {!showNewTag && (
+                <button
+                  type="button"
+                  onClick={() => setShowNewTag(true)}
+                  className="px-3 py-1.5 rounded-full text-sm border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                >
+                  + 新增標籤
+                </button>
               )}
             </div>
+
+            {/* Inline 新增標籤表單 */}
+            {showNewTag && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="標籤名稱..."
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
+                    className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleCreateTag}
+                    disabled={creatingTag || !newTagName.trim()}
+                    className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                  >
+                    {creatingTag ? '...' : '建立'}
+                  </button>
+                  <button
+                    onClick={() => { setShowNewTag(false); setNewTagName(''); }}
+                    className="px-2 py-1.5 text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    取消
+                  </button>
+                </div>
+                <div className="flex gap-1.5 items-center">
+                  <span className="text-xs text-gray-500 mr-1">顏色:</span>
+                  {TAG_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setNewTagColor(color)}
+                      className={`w-5 h-5 rounded-full transition-transform ${newTagColor === color ? 'ring-2 ring-offset-1 ring-gray-400 scale-110' : 'hover:scale-110'}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 編輯資訊 */}
@@ -481,6 +609,117 @@ function EditModal({ file, tags, onClose, onSave }: EditModalProps) {
                     <div className="text-xs text-gray-500">{file.formats.thumbnail.width} x {file.formats.thumbnail.height} px</div>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Metadata - 可收合 */}
+          <div className="border-t pt-4">
+            <button
+              type="button"
+              onClick={() => setShowMetadata(!showMetadata)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <h4 className="text-md font-medium text-gray-900">Metadata</h4>
+              <svg className={`w-5 h-5 text-gray-500 transition-transform ${showMetadata ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showMetadata && (
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">命盤ID</label>
+                    <input
+                      type="text"
+                      value={metaChartId}
+                      onChange={(e) => setMetaChartId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="紫微命盤 ID..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">地點</label>
+                    <input
+                      type="text"
+                      value={metaLocation}
+                      onChange={(e) => setMetaLocation(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="拍攝/相關地點..."
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">評級</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setMetaRating(metaRating === star ? null : star)}
+                        className="p-0.5"
+                      >
+                        <svg
+                          className={`w-6 h-6 ${(metaRating ?? 0) >= star ? 'text-yellow-400' : 'text-gray-300'} transition-colors`}
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      </button>
+                    ))}
+                    {metaRating && (
+                      <span className="ml-2 text-sm text-gray-500 self-center">{metaRating} 星</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">狀態</label>
+                    <select
+                      value={metaStatus}
+                      onChange={(e) => setMetaStatus(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="draft">草稿</option>
+                      <option value="published">已發布</option>
+                      <option value="archived">已封存</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">來源</label>
+                    <input
+                      type="text"
+                      value={metaSource}
+                      onChange={(e) => setMetaSource(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="攝影師/網站..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">授權</label>
+                    <input
+                      type="text"
+                      value={metaLicense}
+                      onChange={(e) => setMetaLicense(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="授權類型..."
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">備註</label>
+                  <textarea
+                    value={metaNotes}
+                    onChange={(e) => setMetaNotes(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="內部備註..."
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -569,6 +808,246 @@ function EditModal({ file, tags, onClose, onSave }: EditModalProps) {
 }
 
 // =============================================================================
+// Import Modal Component (GCS 掃描匯入)
+// =============================================================================
+
+interface ImportModalProps {
+  isOpen: boolean;
+  folders: MediaFolder[];
+  onClose: () => void;
+  onImportComplete: () => void;
+}
+
+function ImportModal({ isOpen, folders, onClose, onImportComplete }: ImportModalProps) {
+  const [scanning, setScanning] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [scannedFiles, setScannedFiles] = useState<GcsScanFile[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [targetFolderId, setTargetFolderId] = useState<number | null>(null);
+  const [genVariants, setGenVariants] = useState(false);
+  const [prefix, setPrefix] = useState('media/');
+  const [result, setResult] = useState<{ imported: number; skipped: number; errors: any[] } | null>(null);
+
+  const handleScan = async () => {
+    setScanning(true);
+    setResult(null);
+    try {
+      const data = await importApi.scan(prefix);
+      setScannedFiles(data.files);
+      setSelectedFiles(new Set(data.files.map((f) => f.gcs_path)));
+    } catch (error) {
+      alert(`掃描失敗: ${(error as Error).message}`);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const toggleFile = (gcsPath: string) => {
+    setSelectedFiles((prev) => {
+      const next = new Set(prev);
+      if (next.has(gcsPath)) next.delete(gcsPath);
+      else next.add(gcsPath);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedFiles.size === scannedFiles.length) {
+      setSelectedFiles(new Set());
+    } else {
+      setSelectedFiles(new Set(scannedFiles.map((f) => f.gcs_path)));
+    }
+  };
+
+  const handleImport = async () => {
+    const filesToImport = scannedFiles.filter((f) => selectedFiles.has(f.gcs_path));
+    if (filesToImport.length === 0) return;
+
+    setImporting(true);
+    try {
+      const res = await importApi.execute({
+        files: filesToImport,
+        folder_id: targetFolderId,
+        generate_variants: genVariants,
+      });
+      setResult(res);
+      // 移除已匯入的檔案
+      setScannedFiles((prev) => prev.filter((f) => !selectedFiles.has(f.gcs_path)));
+      setSelectedFiles(new Set());
+      onImportComplete();
+    } catch (error) {
+      alert(`匯入失敗: ${(error as Error).message}`);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleClose = () => {
+    setScannedFiles([]);
+    setSelectedFiles(new Set());
+    setResult(null);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="text-lg font-medium">從 GCS 匯入現有圖片</h3>
+          <button onClick={handleClose} className="p-1 hover:bg-gray-100 rounded" disabled={importing}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* 掃描設定 */}
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">GCS 路徑前綴</label>
+              <input
+                type="text"
+                value={prefix}
+                onChange={(e) => setPrefix(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="media/"
+              />
+            </div>
+            <Button onClick={handleScan} disabled={scanning}>
+              {scanning ? '掃描中...' : '掃描 GCS'}
+            </Button>
+          </div>
+
+          {/* 匯入選項 */}
+          {scannedFiles.length > 0 && (
+            <div className="flex gap-4 items-center flex-wrap p-3 bg-blue-50 rounded-lg">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-xs text-gray-600 mb-1">匯入到資料夾</label>
+                <select
+                  value={targetFolderId ?? ''}
+                  onChange={(e) => setTargetFolderId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded"
+                >
+                  <option value="">未分類（根目錄）</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={genVariants}
+                  onChange={(e) => setGenVariants(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                />
+                <span>產生縮圖變體</span>
+                <span className="text-xs text-gray-500">（較慢）</span>
+              </label>
+            </div>
+          )}
+
+          {/* 掃描結果 */}
+          {scannedFiles.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.size === scannedFiles.length}
+                    onChange={toggleAll}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    找到 {scannedFiles.length} 個未匯入的檔案
+                    {selectedFiles.size > 0 && ` (已選 ${selectedFiles.size})`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="max-h-60 overflow-y-auto border rounded-lg divide-y">
+                {scannedFiles.map((f) => (
+                  <label
+                    key={f.gcs_path}
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedFiles.has(f.gcs_path)}
+                      onChange={() => toggleFile(f.gcs_path)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded flex-shrink-0"
+                    />
+                    {f.mime_type.startsWith('image/') ? (
+                      <img
+                        src={f.public_url}
+                        alt={f.filename}
+                        className="w-10 h-10 object-cover rounded flex-shrink-0"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/images/placeholder.svg'; }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{f.filename}</p>
+                      <p className="text-xs text-gray-500">{formatFileSize(f.file_size)} · {f.mime_type}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {scanning && scannedFiles.length === 0 && (
+            <div className="text-center py-8 text-gray-500">掃描 GCS 中...</div>
+          )}
+
+          {!scanning && scannedFiles.length === 0 && result === null && (
+            <div className="text-center py-8 text-gray-500">
+              <p>點擊「掃描 GCS」查找尚未匯入媒體庫的檔案</p>
+              <p className="text-xs mt-1">會掃描指定路徑前綴下所有檔案，比對資料庫中已有記錄</p>
+            </div>
+          )}
+
+          {/* 匯入結果 */}
+          {result && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
+              <p className="font-medium text-green-800">匯入完成</p>
+              <p className="text-green-700">
+                成功匯入 {result.imported} 個檔案
+                {result.skipped > 0 && `，跳過 ${result.skipped} 個已存在`}
+                {result.errors.length > 0 && `，${result.errors.length} 個失敗`}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {scannedFiles.length > 0 && (
+          <div className="flex justify-end gap-2 p-4 border-t bg-gray-50">
+            <Button variant="outline" onClick={handleClose}>取消</Button>
+            <Button
+              onClick={handleImport}
+              disabled={importing || selectedFiles.size === 0}
+            >
+              {importing ? '匯入中...' : `匯入 ${selectedFiles.size} 個檔案`}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // Main Media Page Component
 // =============================================================================
 
@@ -582,6 +1061,7 @@ export default function MediaPage() {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingFile, setEditingFile] = useState<MediaItem | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -671,10 +1151,11 @@ export default function MediaPage() {
   // 更新檔案
   const handleUpdateFile = async (
     id: number,
-    data: { alt_text?: string; caption?: string; tag_ids?: number[] }
+    data: { alt_text?: string; caption?: string; folder_id?: number | null; tag_ids?: number[] }
   ) => {
     await mediaApi.updateMedia(id, data);
     await fetchFiles();
+    await fetchFolders();
   };
 
   // 選擇項目
@@ -719,12 +1200,20 @@ export default function MediaPage() {
                     : `${folders.find((f) => f.id === selectedFolderId)?.name || ''} 中的媒體文件`}
                 </p>
               </div>
-              <Button onClick={() => setShowUploadModal(true)}>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                </svg>
-                上傳媒體
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  匯入 GCS
+                </Button>
+                <Button onClick={() => setShowUploadModal(true)}>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  上傳媒體
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -905,9 +1394,21 @@ export default function MediaPage() {
 
       <EditModal
         file={editingFile}
+        folders={folders}
         tags={tags}
         onClose={() => setEditingFile(null)}
         onSave={handleUpdateFile}
+        onTagCreated={fetchTags}
+      />
+
+      <ImportModal
+        isOpen={showImportModal}
+        folders={folders}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={() => {
+          fetchFiles();
+          fetchFolders();
+        }}
       />
     </AdminLayout>
   );

@@ -60,7 +60,7 @@ export function TagSelector({ selectedTags, onChange, disabled }: TagSelectorPro
     if (!newTagName.trim()) return;
 
     try {
-      const newTag = await tagApi.create(newTagName.trim());
+      const newTag = await tagApi.create({ name: newTagName.trim() });
       if (newTag) {
         setAllTags([...allTags, newTag]);
         onChange([...selectedTags, newTag]);

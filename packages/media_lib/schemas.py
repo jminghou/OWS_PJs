@@ -21,6 +21,16 @@ class MLFileVariantSchema(Schema):
     file_size = fields.Int()
 
 
+class MLFileMetadataSchema(Schema):
+    chart_id = fields.Str()
+    location = fields.Str()
+    rating = fields.Int()
+    status = fields.Str()
+    source = fields.Str()
+    license = fields.Str()
+    notes = fields.Str()
+
+
 class MLFileSchema(Schema):
     id = fields.Int(dump_only=True)
     filename = fields.Str()
@@ -40,6 +50,7 @@ class MLFileSchema(Schema):
     updated_at = fields.DateTime(dump_only=True)
     tags = fields.List(fields.Nested(MLTagSchema))
     formats = fields.Method('get_formats')
+    metadata = fields.Nested(MLFileMetadataSchema, attribute='file_metadata')
 
     def get_formats(self, obj):
         if hasattr(obj, 'variants'):
