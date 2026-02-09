@@ -56,6 +56,10 @@ export interface MediaFolder {
   path: string;
   file_count: number;
   created_at: string;
+  description?: string;
+  thumbnail_id?: number;
+  thumbnail?: { id: number; url: string; formats?: ImageFormats };
+  children?: MediaFolder[];  // 前端建構樹狀結構用
 }
 
 export interface MediaTag {

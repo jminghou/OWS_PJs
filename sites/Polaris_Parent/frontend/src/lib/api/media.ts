@@ -16,10 +16,11 @@ export const mediaApi = {
   /**
    * 取得資料夾列表
    */
-  getFolders: async (parentId?: number): Promise<MediaFolder[]> => {
+  getFolders: async (options?: { parentId?: number; all?: boolean }): Promise<MediaFolder[]> => {
     try {
       const params: Record<string, any> = {};
-      if (parentId) params.parent_id = parentId;
+      if (options?.all) params.all = 'true';
+      else if (options?.parentId) params.parent_id = options.parentId;
       return await request<MediaFolder[]>('/media-lib/folders', { params });
     } catch (error) {
       console.error('Failed to fetch folders:', error);
@@ -33,6 +34,8 @@ export const mediaApi = {
   createFolder: async (data: {
     name: string;
     parent_id?: number;
+    description?: string;
+    thumbnail_id?: number;
   }): Promise<MediaFolder> => {
     return request<MediaFolder>('/media-lib/folders', {
       method: 'POST',
@@ -43,7 +46,7 @@ export const mediaApi = {
   /**
    * 更新資料夾名稱
    */
-  updateFolder: async (id: number, data: { name: string }): Promise<MediaFolder> => {
+  updateFolder: async (id: number, data: { name?: string; description?: string; thumbnail_id?: number | null; parent_id?: number | null }): Promise<MediaFolder> => {
     return request<MediaFolder>(`/media-lib/folders/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

@@ -9,9 +9,9 @@ SCHEMA_NAME = 'media_lib'
 
 # 圖片變體規格（參考 Strapi）
 IMAGE_VARIANTS = {
-    'thumbnail': {'max_width': 200, 'max_height': 200, 'quality': 80},
-    'small':     {'max_width': 450, 'max_height': 450, 'quality': 85},
-    'medium':    {'max_width': 800, 'max_height': 800, 'quality': 85},
+    'thumbnail': {'max_width': 77, 'max_height': 77, 'quality': 75},
+    'small':     {'max_width': 180, 'max_height': 180, 'quality': 85},
+    'medium':    {'max_width': 600, 'max_height': 600, 'quality': 85},
     'large':     {'max_width': 1920, 'max_height': 1080, 'quality': 90},
 }
 

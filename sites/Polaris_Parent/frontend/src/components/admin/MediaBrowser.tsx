@@ -39,11 +39,11 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
       const [mediaResponse, foldersResponse] = await Promise.all([
         mediaApi.getMediaList({
           page: currentPage,
-          per_page: 12,
+          per_page: 24,
           folder_id: currentFolder !== null ? currentFolder : undefined,
           search: debouncedSearchQuery || undefined,
         }),
-        mediaApi.getFolders(),
+        mediaApi.getFolders({ all: true }),
       ]);
 
       setMediaItems(mediaResponse.media);
@@ -203,25 +203,40 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
           )}
 
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
+                <div key={i} className="flex items-center gap-3 p-2 rounded-lg">
+                  <div className="w-10 h-10 flex-shrink-0 bg-gray-200 rounded animate-pulse" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4" />
+                    <div className="h-2.5 bg-gray-200 rounded animate-pulse w-1/3" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : mediaItems.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
                 {mediaItems.map((item) => {
                   const isSelected = multiple && selectedItems.some((selected) => selected.id === item.id);
                   return (
                     <div
                       key={item.id}
-                      className={`relative group border rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer ${
-                        isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
+                      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
+                        isSelected ? 'bg-blue-50 ring-1 ring-blue-300' : ''
                       }`}
                       onClick={() => handleItemClick(item)}
                     >
-                      <div className="aspect-square relative">
+                      {multiple && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {}}
+                          className="w-4 h-4 flex-shrink-0 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
+                      <div className="w-10 h-10 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
                         <img
                           src={getImageUrl(getThumbnailUrl(item))}
                           alt={item.alt_text || item.original_filename}
@@ -230,21 +245,9 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                             (e.target as HTMLImageElement).src = '/images/placeholder.svg';
                           }}
                         />
-                        {multiple && (
-                          <div className="absolute top-2 left-2">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {}}
-                              className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
                       </div>
-                      <div className="p-2">
-                        <p className="text-xs font-medium truncate" title={item.original_filename}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate" title={item.original_filename}>
                           {item.original_filename}
                         </p>
                         <p className="text-xs text-gray-500">

@@ -38,13 +38,16 @@ class MLFolder(db.Model):
     parent_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.folders.id'))
     path = db.Column(db.String(500), nullable=False, index=True)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id', deferrable=True))
+    description = db.Column(db.Text)
+    thumbnail_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.files.id'))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     parent = db.relationship('MLFolder', remote_side=[id], backref=db.backref('subfolders', lazy='dynamic'))
-    files = db.relationship('MLFile', backref='folder', lazy='dynamic')
+    files = db.relationship('MLFile', backref='folder', lazy='dynamic', foreign_keys='MLFile.folder_id')
+    thumbnail = db.relationship('MLFile', foreign_keys=[thumbnail_id])
 
     def __repr__(self):
         return f'<MLFolder {self.name}>'

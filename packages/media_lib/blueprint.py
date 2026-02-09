@@ -313,6 +313,11 @@ def list_folders():
     if err:
         return err
 
+    # ?all=true 回傳所有資料夾（前端建構樹狀結構用）
+    if request.args.get('all') == 'true':
+        folders = MLFolder.query.order_by(MLFolder.path).all()
+        return jsonify(folders_schema.dump(folders)), 200
+
     parent_id = request.args.get('parent_id', type=int)
     if parent_id:
         folders = MLFolder.query.filter_by(parent_id=parent_id).all()
@@ -351,7 +356,11 @@ def create_folder():
     if MLFolder.query.filter_by(name=name, parent_id=parent_id).first():
         return jsonify({'error': 'Folder already exists'}), 409
 
-    folder = MLFolder(name=name, parent_id=parent_id, path=path, created_by=user.id)
+    description = data.get('description', '').strip() or None
+    thumbnail_id = data.get('thumbnail_id')
+
+    folder = MLFolder(name=name, parent_id=parent_id, path=path, created_by=user.id,
+                      description=description, thumbnail_id=thumbnail_id)
 
     try:
         db.session.add(folder)
@@ -372,15 +381,45 @@ def update_folder(folder_id):
 
     folder = MLFolder.query.get_or_404(folder_id)
     data = request.get_json()
-    name = data.get('name', '').strip()
+    name = data.get('name', folder.name).strip()
 
     if not name:
         return jsonify({'error': 'Folder name is required'}), 400
 
-    # 重名檢查
+    # 更新 description 和 thumbnail_id（若有傳入）
+    if 'description' in data:
+        folder.description = data['description'].strip() if data['description'] else None
+    if 'thumbnail_id' in data:
+        folder.thumbnail_id = data['thumbnail_id']
+
+    # 更新 parent_id（移動資料夾）
+    new_parent_id = folder.parent_id
+    if 'parent_id' in data:
+        target_parent_id = data['parent_id']
+        # 不能把自己移到自己底下
+        if target_parent_id == folder_id:
+            return jsonify({'error': 'Cannot move folder into itself'}), 400
+        # 驗證目標父資料夾存在
+        if target_parent_id is not None:
+            target_parent = MLFolder.query.get(target_parent_id)
+            if not target_parent:
+                return jsonify({'error': 'Target parent folder not found'}), 404
+            # 不能移到自己的子孫底下（會形成循環）
+            def is_descendant(ancestor_id, folder_to_check):
+                for child in folder_to_check.subfolders:
+                    if child.id == ancestor_id:
+                        return True
+                    if is_descendant(ancestor_id, child):
+                        return True
+                return False
+            if is_descendant(target_parent_id, folder):
+                return jsonify({'error': 'Cannot move folder into its own subfolder'}), 400
+        new_parent_id = target_parent_id
+
+    # 重名檢查（在目標父資料夾下）
     existing = MLFolder.query.filter(
         MLFolder.name == name,
-        MLFolder.parent_id == folder.parent_id,
+        MLFolder.parent_id == new_parent_id,
         MLFolder.id != folder_id
     ).first()
     if existing:
@@ -388,7 +427,8 @@ def update_folder(folder_id):
 
     try:
         folder.name = name
-        if folder.parent_id:
+        folder.parent_id = new_parent_id
+        if folder.parent_id is not None:
             parent = MLFolder.query.get(folder.parent_id)
             folder.path = f"{parent.path.rstrip('/')}/{name}"
         else:

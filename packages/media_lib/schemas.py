@@ -63,6 +63,9 @@ class MLFolderSchema(Schema):
     name = fields.Str(required=True)
     parent_id = fields.Int()
     path = fields.Str()
+    description = fields.Str()
+    thumbnail_id = fields.Int()
+    thumbnail = fields.Method('get_thumbnail')
     created_by = fields.Int()
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
@@ -73,3 +76,13 @@ class MLFolderSchema(Schema):
         if hasattr(obj, 'files'):
             return obj.files.count()
         return 0
+
+    def get_thumbnail(self, obj):
+        if obj.thumbnail_id and hasattr(obj, 'thumbnail') and obj.thumbnail:
+            thumb = obj.thumbnail
+            return {
+                'id': thumb.id,
+                'url': thumb.public_url,
+                'formats': {v.variant_type: {'url': v.public_url, 'width': v.width, 'height': v.height} for v in thumb.variants} if hasattr(thumb, 'variants') else {}
+            }
+        return None
