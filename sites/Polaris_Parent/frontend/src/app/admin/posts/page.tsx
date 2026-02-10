@@ -9,6 +9,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils';
+import {
+  AdminPagination,
+  AdminEmptyState,
+  AdminLoadingSkeleton,
+} from '@/components/admin/shared';
 
 export default function PostsPage() {
   const [posts, setPosts] = useState<Content[]>([]);
@@ -170,20 +175,7 @@ export default function PostsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="space-y-4">
-                {[...Array(10)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-4 p-4 border border-gray-100 rounded-lg">
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-3 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <div className="w-16 h-8 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="w-16 h-8 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <AdminLoadingSkeleton variant="list" count={10} />
             ) : posts.length > 0 ? (
               <>
                 <div className="space-y-4">
@@ -241,43 +233,30 @@ export default function PostsPage() {
                 </div>
 
                 {/* 分頁 */}
-                {pagination && pagination.pages > 1 && (
-                  <div className="flex justify-center items-center space-x-2 mt-6">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      disabled={!pagination.has_prev}
-                    >
-                      上一頁
-                    </Button>
-                    
-                    <span className="text-sm text-gray-600">
-                      第 {pagination.page} 頁，共 {pagination.pages} 頁
-                    </span>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={!pagination.has_next}
-                    >
-                      下一頁
-                    </Button>
-                  </div>
+                {pagination && (
+                  <AdminPagination
+                    pagination={pagination}
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                    className="mt-6"
+                  />
                 )}
               </>
             ) : (
-              <div className="text-center py-12">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="mt-4 text-sm font-medium text-gray-900">沒有找到內容</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {filters.search || filters.status !== 'all' || filters.type !== 'all' 
-                    ? '請調整搜尋條件或篩選器' 
-                    : '開始創建您的第一篇內容'}
-                </p>
-                {(!filters.search && filters.status === 'all' && filters.type === 'all') && (
-                  <div className="mt-6">
+              <AdminEmptyState
+                icon={
+                  <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                }
+                title="沒有找到內容"
+                description={
+                  filters.search || filters.status !== 'all' || filters.type !== 'all'
+                    ? '請調整搜尋條件或篩選器'
+                    : '開始創建您的第一篇內容'
+                }
+                action={
+                  (!filters.search && filters.status === 'all' && filters.type === 'all') ? (
                     <Link href="/admin/editor">
                       <Button>
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,9 +265,9 @@ export default function PostsPage() {
                         新增內容
                       </Button>
                     </Link>
-                  </div>
-                )}
-              </div>
+                  ) : undefined
+                }
+              />
             )}
           </CardContent>
         </Card>

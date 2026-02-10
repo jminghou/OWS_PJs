@@ -14,11 +14,14 @@ import {
   Plus,
   Power,
   PowerOff,
-  ChevronLeft,
-  ChevronRight,
   Package,
   GripVertical
 } from 'lucide-react';
+import {
+  AdminPagination,
+  AdminEmptyState,
+  AdminLoadingSkeleton,
+} from '@/components/admin/shared';
 import { useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -352,13 +355,9 @@ export default function ProductsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-pulse text-gray-500">載入中...</div>
-              </div>
+              <AdminLoadingSkeleton variant="table" />
             ) : products.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                沒有找到產品
-              </div>
+              <AdminEmptyState title="沒有找到產品" className="py-12" />
             ) : (
               <DndContext
                 sensors={sensors}
@@ -418,31 +417,17 @@ export default function ProductsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
-                <div className="text-sm text-gray-500">
-                  第 {page} / {totalPages} 頁
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                    className="flex items-center gap-1"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    上一頁
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage(page + 1)}
-                    disabled={page === totalPages}
-                    className="flex items-center gap-1"
-                  >
-                    下一頁
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+              <AdminPagination
+                pagination={{
+                  page,
+                  pages: totalPages,
+                  has_prev: page > 1,
+                  has_next: page < totalPages,
+                }}
+                currentPage={page}
+                onPageChange={setPage}
+                className="mt-6 border-t border-gray-200 pt-4"
+              />
             )}
           </CardContent>
         </Card>

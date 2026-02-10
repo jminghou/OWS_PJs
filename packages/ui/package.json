@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./editor": "./src/editor/index.ts"
+    "./editor": "./src/editor/index.ts",
+    "./admin": "./src/admin/index.ts"
   },
   "peerDependencies": {
     "react": "^18.0.0",
