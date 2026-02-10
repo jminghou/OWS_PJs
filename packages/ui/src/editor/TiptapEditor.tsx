@@ -34,8 +34,8 @@ export interface TiptapEditorProps {
   placeholder?: string;
   minHeight?: string;
   className?: string;
-  /** 自訂主題色 class (用於 active 狀態等) */
-  accentColorClass?: string;
+  /** 是否啟用區塊把手 (Plus/Grip) */
+  showBlockHandle?: boolean;
 }
 
 export interface EditorLabels {
@@ -897,6 +897,7 @@ export function TiptapEditor({
   minHeight = '400px',
   className = '',
   accentColorClass = 'text-purple-400',
+  showBlockHandle = true,
 }: TiptapEditorProps) {
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
@@ -962,13 +963,15 @@ export function TiptapEditor({
   }, [content, editor]);
 
   return (
-    <div ref={editorContainerRef} className={`w-full bg-white relative pl-14 ${className}`}>
+    <div ref={editorContainerRef} className={`w-full bg-white relative ${showBlockHandle ? 'pl-14' : 'p-4'} ${className}`}>
       <EditorBubbleMenu editor={editor} accentColorClass={accentColorClass} />
-      <BlockHandle
-        editor={editor}
-        editorRef={editorContainerRef}
-        accentColorClass={accentColorClass.replace('text-', 'bg-')}
-      />
+      {showBlockHandle && (
+        <BlockHandle
+          editor={editor}
+          editorRef={editorContainerRef}
+          accentColorClass={accentColorClass.replace('text-', 'bg-')}
+        />
+      )}
       <EditorContent editor={editor} />
       <TiptapStyles />
     </div>

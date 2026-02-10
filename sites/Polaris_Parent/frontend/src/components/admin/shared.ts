@@ -15,6 +15,8 @@ export {
   AdminListLayout,
   AdminTreeSidebar,
   AdminContentGrid,
+  AdminImagePicker,
+  AdminUploadZone,
   type AdminPaginationProps,
   type PaginationData,
   type AdminEmptyStateProps,
@@ -25,4 +27,6 @@ export {
   type AdminTreeSidebarProps,
   type TreeNode,
   type AdminContentGridProps,
+  type AdminImagePickerProps,
+  type AdminUploadZoneProps,
 } from '../../../../../../packages/ui/src/admin';

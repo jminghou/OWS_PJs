@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import CollapsibleSection from '@/components/ui/CollapsibleSection';
 import Input from '@/components/ui/Input';
 import LanguageManager from '@/components/admin/LanguageManager';
-import { Category } from '@/types';
+import { Category, TranslationInfo } from '@/types';
 
 interface I18nSettings {
   enabled: boolean;
@@ -41,6 +41,11 @@ interface ArticleSettingsPanelProps {
   onPublish?: () => void;
   loading?: boolean;
   onClose?: () => void;
+  // For edit mode
+  mode?: 'create' | 'edit';
+  articleId?: number;
+  translations?: TranslationInfo[];
+  onRefresh?: () => void;
 }
 
 export default function ArticleSettingsPanel({
@@ -52,6 +57,10 @@ export default function ArticleSettingsPanel({
   parseTagInput,
   i18nSettings,
   onClose,
+  mode = 'create',
+  articleId,
+  translations,
+  onRefresh
 }: ArticleSettingsPanelProps) {
   return (
     <div className="w-[380px] max-h-[80vh] overflow-y-auto">
@@ -232,10 +241,14 @@ export default function ArticleSettingsPanel({
         {i18nSettings?.enabled && (
           <CollapsibleSection title="多語言管理" defaultOpen={false}>
             <LanguageManager
-              mode="create"
+              mode={mode}
               currentLanguage={formData.language}
+              articleId={articleId}
+              translations={translations}
               i18nSettings={i18nSettings}
               onLanguageChange={(lang) => setFormData(prev => ({ ...prev, language: lang }))}
+              onRefresh={onRefresh}
+              formData={formData}
             />
           </CollapsibleSection>
         )}

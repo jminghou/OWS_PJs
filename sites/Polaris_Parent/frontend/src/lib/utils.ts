@@ -45,16 +45,30 @@ export function generateMetaDescription(content: string, maxLength: number = 160
   return truncateText(plainText, maxLength);
 }
 
-export function getImageUrl(imagePath?: string): string {
+export function getImageUrl(imagePath?: string, variant?: string): string {
   if (!imagePath) return '/placeholder.jpg';
 
-  // Absolute URLs (GCS, CDN, etc.) - return as-is
+  // Absolute URLs (GCS, CDN, etc.)
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    if (variant) {
+      // Handle GCS variant naming convention: path/to/image.png -> path/to/image_variant.png
+      const lastDotIndex = imagePath.lastIndexOf('.');
+      if (lastDotIndex !== -1) {
+        return `${imagePath.substring(0, lastDotIndex)}_${variant}${imagePath.substring(lastDotIndex)}`;
+      }
+    }
     return imagePath;
   }
 
   // Relative paths - prepend backend URL
-  return `${process.env.NEXT_PUBLIC_BACKEND_URL}${imagePath}`;
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+  if (variant) {
+    const lastDotIndex = imagePath.lastIndexOf('.');
+    if (lastDotIndex !== -1) {
+      return `${baseUrl}${imagePath.substring(0, lastDotIndex)}_${variant}${imagePath.substring(lastDotIndex)}`;
+    }
+  }
+  return `${baseUrl}${imagePath}`;
 }
 
 export function isValidEmail(email: string): boolean {

@@ -25,7 +25,7 @@ export function AdminListLayout({
 
   return (
     <div className={`flex h-[calc(100vh-4rem)] ${className}`}>
-      <div className="flex-shrink-0" style={{ width: sidebarWidth }}>
+      <div className="flex-shrink-0 bg-white border-r" style={{ width: sidebarWidth }}>
         {sidebar}
       </div>
       <div className="flex-1 overflow-y-auto">

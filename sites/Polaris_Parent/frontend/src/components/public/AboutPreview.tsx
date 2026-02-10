@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface AboutPreviewProps {
   title: string;
@@ -7,6 +10,7 @@ interface AboutPreviewProps {
   missionPoints: string[];
   learnMoreText: string;
   learnMoreLink: string;
+  imageUrl?: string;
 }
 
 export default function AboutPreview({
@@ -16,22 +20,57 @@ export default function AboutPreview({
   missionPoints,
   learnMoreText,
   learnMoreLink,
+  imageUrl,
 }: AboutPreviewProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <section id="about" className="py-16 md:py-24 bg-white scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div className="order-2 lg:order-1">
+              <div className="relative bg-gray-50 rounded-2xl aspect-[4/3] animate-pulse" />
+            </div>
+            <div className="order-1 lg:order-2 space-y-6">
+              <div className="h-8 bg-gray-100 rounded w-1/3 animate-pulse" />
+              <div className="h-24 bg-gray-100 rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="about" className="py-16 md:py-24 bg-white scroll-mt-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left: Decorative Quote */}
+          {/* Left: Decorative Quote or Image */}
           <div className="order-2 lg:order-1">
-            <div className="relative bg-gradient-to-br from-brand-purple-50 to-brand-purple-100 rounded-2xl aspect-[4/3] flex items-center justify-center">
-              <div className="p-8 text-center">
-                <div className="text-5xl md:text-6xl text-brand-purple-300 mb-4 font-serif">{'"'}</div>
-                <p className="text-lg md:text-xl lg:text-2xl text-brand-purple-700 italic font-medium leading-relaxed">
-                  {quote}
-                </p>
-                <div className="text-5xl md:text-6xl text-brand-purple-300 mt-4 font-serif">{'"'}</div>
+            {imageUrl ? (
+              <div className="relative aspect-[4/3] overflow-hidden">
+                <img
+                  src={imageUrl}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                />
               </div>
-            </div>
+            ) : (
+              <div className="relative bg-gradient-to-br from-brand-purple-50 to-brand-purple-100 rounded-2xl aspect-[4/3] flex items-center justify-center">
+                <div className="p-8 text-center">
+                  <div className="text-5xl md:text-6xl text-brand-purple-300 mb-4 font-serif">{'"'}</div>
+                  <p className="text-lg md:text-xl lg:text-2xl text-brand-purple-700 italic font-medium leading-relaxed">
+                    {quote}
+                  </p>
+                  <div className="text-5xl md:text-6xl text-brand-purple-300 mt-4 font-serif">{'"'}</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: Content */}

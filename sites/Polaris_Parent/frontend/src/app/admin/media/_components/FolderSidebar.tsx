@@ -43,14 +43,14 @@ export function FolderSidebar({
   };
 
   return (
-    <div className="w-56 flex-shrink-0 border-r bg-white flex flex-col">
+    <div className="w-56 flex-shrink-0 flex flex-col h-full">
       <div className="p-6 pb-2">
         {/* 媒體庫標題 */}
         <h1 className="text-xl font-bold text-gray-900 mb-6">媒體庫</h1>
 
         {/* Add New 區塊 */}
-        <div className="mb-4">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Add New</p>
+        <div className="mb-4 flex flex-col gap-1">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Add New</p>
           <button
             onClick={onAddMedia}
             className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 transition-colors py-1"

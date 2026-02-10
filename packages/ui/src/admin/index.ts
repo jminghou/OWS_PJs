@@ -7,3 +7,5 @@ export { AdminBatchActions, type AdminBatchActionsProps } from './AdminBatchActi
 export { AdminListLayout, type AdminListLayoutProps } from './AdminListLayout';
 export { AdminTreeSidebar, type AdminTreeSidebarProps, type TreeNode } from './AdminTreeSidebar';
 export { AdminContentGrid, type AdminContentGridProps } from './AdminContentGrid';
+export { AdminImagePicker, type AdminImagePickerProps } from './AdminImagePicker';
+export { AdminUploadZone, type AdminUploadZoneProps } from './AdminUploadZone';

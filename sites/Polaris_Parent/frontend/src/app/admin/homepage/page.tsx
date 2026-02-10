@@ -6,7 +6,7 @@ import { HomepageSlide } from '@/types';
 import { I18nSettings } from '@/lib/api';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
-import { AdminListLayout } from '@/components/admin/shared';
+import { AdminListLayout, AdminImagePicker } from '@/components/admin/shared';
 import TiptapEditor from '@/components/admin/TiptapEditor';
 import { Image, Trash2, GripVertical, Save, AlertCircle } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -65,18 +65,23 @@ function SortableSlideItem({
         </div>
 
         {/* 圖片預覽 */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 w-[600px]">
           <div className="space-y-2">
             <img
-              src={slide.image_url.startsWith('http') ? slide.image_url : `http://localhost:5000${slide.image_url}`}
+              src={getImageUrl(slide.image_url, 'medium')}
               alt={slide.alt_text}
-              className="w-48 h-32 object-cover rounded-lg border border-gray-200"
+              className="w-[600px] h-auto max-h-[600px] object-contain rounded-lg border border-gray-200"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="192" height="128"%3E%3Crect fill="%23f3f4f6" width="192" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af"%3E圖片載入失敗%3C/text%3E%3C/svg%3E';
+                // 如果 medium 變體載入失敗，嘗試載入原圖
+                if (target.src.includes('_medium')) {
+                  target.src = getImageUrl(slide.image_url);
+                } else {
+                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="192" height="128"%3E%3Crect fill="%23f3f4f6" width="192" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af"%3E圖片載入失敗%3C/text%3E%3C/svg%3E';
+                }
               }}
             />
-            <div className="text-xs text-gray-500 break-all">
+            <div className="text-xs text-gray-500 break-all w-[600px]">
               {slide.image_url}
             </div>
           </div>
@@ -133,6 +138,7 @@ function SortableSlideItem({
                 placeholder={`輸入${languageNames[activeLanguage] || activeLanguage}的副標題...`}
                 minHeight="120px"
                 className="bg-white"
+                showBlockHandle={false}
               />
             </div>
           </div>
@@ -162,9 +168,22 @@ export default function HomepagePage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [i18nSettings, setI18nSettings] = useState<I18nSettings | null>(null);
   const [isMediaBrowserOpen, setIsMediaBrowserOpen] = useState(false);
+  const [isAboutImageBrowserOpen, setIsAboutImageBrowserOpen] = useState(false);
 
   type SectionKey = 'slides' | 'button_text' | 'about_section';
   const [activeSection, setActiveSection] = useState<SectionKey>('slides');
+
+  const enabledLanguages = i18nSettings?.languages || [];
+  const languageNames = i18nSettings?.language_names || {};
+
+  const [activeLanguage, setActiveLanguage] = useState('');
+
+  // 當 enabledLanguages 載入後，確保 activeLanguage 有值
+  useEffect(() => {
+    if (enabledLanguages.length > 0 && !activeLanguage) {
+      setActiveLanguage(enabledLanguages[0]);
+    }
+  }, [enabledLanguages, activeLanguage]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -280,9 +299,6 @@ export default function HomepagePage() {
     }
   };
 
-  const enabledLanguages = i18nSettings?.languages || [];
-  const languageNames = i18nSettings?.language_names || {};
-
   const sectionItems: { key: SectionKey; label: string }[] = [
     { key: 'slides', label: '幻燈片管理' },
     { key: 'button_text', label: '按鈕文字設定' },
@@ -319,7 +335,7 @@ export default function HomepagePage() {
           {/* 頂部標題 + 儲存 */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl font-bold text-gray-900">
                 {sectionItems.find((s) => s.key === activeSection)?.label}
               </h1>
               <p className="text-gray-600 mt-2">
@@ -444,39 +460,75 @@ export default function HomepagePage() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {enabledLanguages.map((lang) => (
-                    <div key={lang} className="p-4 border border-gray-200 rounded-lg space-y-4">
-                      <h3 className="font-bold text-lg text-blue-600 border-b pb-2">
+                  {/* 語言分頁標籤 */}
+                  <div className="flex gap-2 border-b border-gray-200">
+                    {enabledLanguages.map((lang) => (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => setActiveLanguage(lang)}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${
+                          activeLanguage === lang
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
                         {languageNames[lang] || lang}
-                      </h3>
+                      </button>
+                    ))}
+                  </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">標題</label>
-                          <input
-                            type="text"
-                            value={aboutSection[lang]?.title || ''}
-                            onChange={(e) => {
-                              const newSection = { ...aboutSection };
-                              newSection[lang] = { ...newSection[lang], title: e.target.value };
-                              setAboutSection(newSection);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            placeholder="例如：關於我們"
-                          />
+                  {/* 當前語言的內容 */}
+                  {enabledLanguages.map((lang) => (
+                    <div 
+                      key={lang} 
+                      className={`space-y-4 ${activeLanguage === lang ? 'block' : 'hidden'}`}
+                    >
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* 左欄：標題與金句 */}
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">標題</label>
+                            <input
+                              type="text"
+                              value={aboutSection[lang]?.title || ''}
+                              onChange={(e) => {
+                                const newSection = { ...aboutSection };
+                                newSection[lang] = { ...newSection[lang], title: e.target.value };
+                                setAboutSection(newSection);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              placeholder="例如：關於我們"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">金句 (Quote)</label>
+                            <input
+                              type="text"
+                              value={aboutSection[lang]?.quote || ''}
+                              onChange={(e) => {
+                                const newSection = { ...aboutSection };
+                                newSection[lang] = { ...newSection[lang], quote: e.target.value };
+                                setAboutSection(newSection);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              placeholder="例如：我們不是算命，是在跑數據"
+                            />
+                          </div>
                         </div>
+
+                        {/* 右欄：區塊圖片 */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">金句 (Quote)</label>
-                          <input
-                            type="text"
-                            value={aboutSection[lang]?.quote || ''}
-                            onChange={(e) => {
+                          <AdminImagePicker
+                            label="區塊圖片"
+                            value={aboutSection[lang]?.image_url}
+                            getImageUrl={getImageUrl}
+                            onBrowse={() => setIsAboutImageBrowserOpen(true)}
+                            onRemove={() => {
                               const newSection = { ...aboutSection };
-                              newSection[lang] = { ...newSection[lang], quote: e.target.value };
+                              newSection[lang] = { ...newSection[lang], image_url: '' };
                               setAboutSection(newSection);
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            placeholder="例如：我們不是算命，是在跑數據"
                           />
                         </div>
                       </div>
@@ -490,8 +542,8 @@ export default function HomepagePage() {
                             newSection[lang] = { ...newSection[lang], philosophy: e.target.value };
                             setAboutSection(newSection);
                           }}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          rows={4}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                           placeholder="輸入品牌理念描述..."
                         />
                       </div>
@@ -504,12 +556,20 @@ export default function HomepagePage() {
                             const newSection = { ...aboutSection };
                             newSection[lang] = {
                               ...newSection[lang],
+                              mission_points: e.target.value.split('\n')
+                            };
+                            setAboutSection(newSection);
+                          }}
+                          onBlur={(e) => {
+                            const newSection = { ...aboutSection };
+                            newSection[lang] = {
+                              ...newSection[lang],
                               mission_points: e.target.value.split('\n').filter(p => p.trim() !== '')
                             };
                             setAboutSection(newSection);
                           }}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          rows={4}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
                           placeholder="看懂天賦&#10;理解差異&#10;精準溝通"
                         />
                       </div>
@@ -527,6 +587,21 @@ export default function HomepagePage() {
         isOpen={isMediaBrowserOpen}
         onClose={() => setIsMediaBrowserOpen(false)}
         onSelect={handleMediaSelect}
+      />
+
+      {/* 關於我們圖片瀏覽器 */}
+      <MediaBrowser
+        isOpen={isAboutImageBrowserOpen}
+        onClose={() => setIsAboutImageBrowserOpen(false)}
+        onSelect={(media) => {
+          const newSection = { ...aboutSection };
+          newSection[activeLanguage] = { 
+            ...newSection[activeLanguage], 
+            image_url: media.file_path 
+          };
+          setAboutSection(newSection);
+          setIsAboutImageBrowserOpen(false);
+        }}
       />
     </AdminLayout>
   );

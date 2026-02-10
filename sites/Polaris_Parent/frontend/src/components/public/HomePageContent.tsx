@@ -6,6 +6,7 @@ import ArticleCarousel from '@/components/public/ArticleCarousel';
 import AboutPreview from '@/components/public/AboutPreview';
 import FeaturesGrid from '@/components/public/FeaturesGrid';
 import { Content, HomepageSettings } from '@/types';
+import { getImageUrl } from '@/lib/utils';
 
 interface HomePageContentProps {
   locale: string;
@@ -121,6 +122,7 @@ export default function HomePageContent({
         missionPoints={homepageSettings.about_section?.[locale]?.mission_points || content.aboutMissionPoints}
         learnMoreText={content.learnMoreBtn}
         learnMoreLink={`${basePath}/about`}
+        imageUrl={homepageSettings.about_section?.[locale]?.image_url ? getImageUrl(homepageSettings.about_section[locale].image_url) : undefined}
       />
 
       {/* 3. Carousel Section - Horizontal scroll articles */}

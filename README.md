@@ -59,8 +59,7 @@ cd sites/Polaris_Parent/backend
 .\venv\Scripts\Activate.ps1
 python app.py
 
-# 終端機 3：啟動 Strapi（開發模式，可修改結構）
-npm run dev:strapi
+
 
 # 終端機 4：啟動 Next.js 前端
 npm run dev:polaris
