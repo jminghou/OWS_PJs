@@ -51,6 +51,8 @@ interface ArticleEditorProps {
   articleId?: number;
   translations?: TranslationInfo[];
   onRefresh?: () => void;
+  // When embedded in two-column layout, skip AdminLayout wrapper and back button
+  embedded?: boolean;
 }
 
 export default function ArticleEditor({
@@ -68,7 +70,8 @@ export default function ArticleEditor({
   onSave,
   articleId,
   translations,
-  onRefresh
+  onRefresh,
+  embedded = false
 }: ArticleEditorProps) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -112,21 +115,24 @@ export default function ArticleEditor({
     await onSave('published');
   };
 
-  return (
-    <AdminLayout>
+  const editorContent = (
       <div className="h-full flex flex-col bg-white">
         {/* 頂部工具列 */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-          {/* 左側：返回按鈕 */}
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft size={18} className="mr-1" />
-            返回
-          </Button>
+          {/* 左側：返回按鈕（embedded 模式隱藏） */}
+          {!embedded ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.back()}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft size={18} className="mr-1" />
+              返回
+            </Button>
+          ) : (
+            <div />
+          )}
 
           {/* 右側：字數統計 + Publish 按鈕 + 星星 + 三點選單 */}
           <div className="flex items-center gap-2">
@@ -276,6 +282,15 @@ export default function ArticleEditor({
           </div>
         </div>
       </div>
+  );
+
+  if (embedded) {
+    return editorContent;
+  }
+
+  return (
+    <AdminLayout>
+      {editorContent}
     </AdminLayout>
   );
 }

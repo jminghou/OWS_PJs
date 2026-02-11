@@ -31,17 +31,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       ),
     },
     {
-      name: '新增文章',
-      href: '/admin/articles/new',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-        </svg>
-      ),
-    },
-    {
-      name: '內容管理',
-      href: '/admin/posts',
+      name: '文章管理',
+      href: '/admin/articles',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
@@ -134,7 +125,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <nav className="flex-1 py-4">
             <div className="flex flex-col items-center space-y-1">
               {navigation.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
                   <Link
                     key={item.name}
