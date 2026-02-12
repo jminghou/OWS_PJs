@@ -100,7 +100,9 @@ npm run dev:polaris
 
 ### 5. 資料庫初始化
 
-首次使用時，需初始化資料庫：
+#### 本機開發
+
+首次使用時，需初始化本機資料庫：
 
 ```powershell
 # 1. 建立資料庫（使用 psql）
@@ -111,6 +113,27 @@ python -c "from app import app; from core.backend_engine.factory import db; app.
 
 # 3. 建立管理員帳號
 flask --app app.py create-admin
+```
+
+#### NAS 部署
+
+NAS 的 PostgreSQL 在 Docker 容器中運行，資料庫會由 `docker-compose.yml` 自動建立，只需初始化資料表和管理員帳號：
+
+```bash
+# SSH 進 NAS 後
+cd /volume1/docker/OWS_PJs/deploy
+
+# 1. 建立資料表
+sudo docker compose exec backend python -c "
+from app import app
+from core.backend_engine.factory import db
+app.app_context().push()
+db.create_all()
+print('資料表建立成功！')
+"
+
+# 2. 建立管理員帳號
+sudo docker compose exec backend flask --app app.py create-admin
 ```
 
 > 密碼規則：至少 8 個字元，需包含大寫字母、小寫字母與數字。
@@ -237,9 +260,73 @@ docker compose up -d
 | 內網前端 | `http://192.168.30.65:3000` |
 | 內網 API | `http://192.168.30.65:5055/api/v1` |
 
-### 透過 Synology Container Manager 部署
+### 首次部署（Git Clone）
 
-1. 上傳專案到 NAS（建議路徑 `/volume1/docker/OWS_PJs/`）
+透過 SSH 連線到 NAS，使用 Git 拉取專案：
+
+```bash
+# 1. SSH 連線到 NAS
+ssh Jermaine@192.168.30.65
+
+# 2. 進入 Docker 目錄並 Clone 專案
+cd /volume1/docker
+sudo git clone https://github.com/jminghou/OWS_PJs.git
+cd OWS_PJs/deploy
+
+# 3. 設定環境變數
+sudo cp .env.production.example .env.production
+sudo vi .env.production   # 編輯填入實際值
+
+# 4. 建立 .env symlink（docker compose 預設只讀 .env）
+ln -s .env.production .env
+
+# 5. 建立資料目錄並設定權限
+sudo mkdir -p db_data redis_data uploads logs/backend
+sudo chmod 777 redis_data
+
+# 6. 建置並啟動所有容器
+sudo docker compose build
+sudo docker compose up -d
+```
+
+### 更新部署（Git Pull）
+
+本機開發完成後，透過 Git 同步到 NAS 並重新部署：
+
+```bash
+# === 本機（Windows） ===
+git add .
+git commit -m "更新描述"
+git push origin main
+
+# === NAS（SSH） ===
+ssh Jermaine@192.168.30.65
+cd /volume1/docker/OWS_PJs
+
+# 拉取最新程式碼
+sudo git pull origin main
+
+# 重新建置並啟動容器
+cd deploy
+sudo docker compose down
+sudo docker compose build
+sudo docker compose up -d
+
+# 確認所有容器正常運作
+sudo docker compose ps
+```
+
+> **提示**：如果只修改了前端程式碼，可以只重建前端容器以節省時間：
+> ```bash
+> sudo docker compose build frontend
+> sudo docker compose up -d frontend
+> ```
+
+### 透過 Synology Container Manager 部署（替代方案）
+
+如果不使用 Git，也可以透過 DSM 圖形介面操作：
+
+1. 透過 File Station 上傳專案到 NAS（建議路徑 `/volume1/docker/OWS_PJs/`）
 2. 複製並編輯環境變數：`deploy/.env.production.example` → `.env.production`
 3. DSM → Container Manager → 專案 → 建立 → 路徑選 `deploy/` → 建置 → 啟動
 

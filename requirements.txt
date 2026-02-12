@@ -33,6 +33,9 @@ Flask-Mail==0.9.1
 # Cloud Storage
 google-cloud-storage==2.14.0
 
+# Image Processing (media_lib)
+Pillow>=10.0.0
+
 # Utilities
 python-dotenv==1.0.0
 pytz==2024.1
