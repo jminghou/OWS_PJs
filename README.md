@@ -18,16 +18,25 @@ OWS_PJs/
 │   │   ├── backend/            # Flask 後端 + Extensions
 │   │   └── frontend/           # Next.js 15 前端（App Router）
 │   └── Claire_Project/         # Site B — Claire（規劃中）
-├── docker-compose.yml
+├── deploy/                     # NAS Docker 部署配置
+│   ├── dockerfiles/            # 生產級 Dockerfile
+│   ├── docker-compose.yml      # NAS 部署用 compose
+│   └── .env.production.example # 環境變數範本
+├── docker-compose.yml          # 本機開發用 compose
 ├── package.json                # npm workspaces 根配置
 └── .gitignore
 ```
 
-## 目前開發環境狀態
+## 開發與部署模式
 
-> **重要：目前以本機開發為主。**
-> 先前使用的 Railway、Vercel 及雲端資料庫已全數移除，避免本機與雲端同步造成混亂。
-> Docker 環境可能需要重新整理，目前建議使用原生模式開發。
+本專案支援兩種運作模式：
+
+| 模式 | 用途 | 說明 |
+|------|------|------|
+| **本機開發** | 日常開發 | Windows 原生跑 Python + npm，熱更新 |
+| **NAS 部署** | 生產環境 | Docker 打包部署到 Synology NAS，Cloudflare Tunnel 對外 |
+
+> 先前使用的 Railway、Vercel 及雲端資料庫已全數移除。
 
 ## 技術棧
 
@@ -166,26 +175,75 @@ app = create_app(
 ## npm Scripts
 
 ```bash
-npm run dev:polaris     # 啟動 Polaris 前端開發伺服器
-npm run build:polaris   # 建置 Polaris 前端
-npm run install:all     # 安裝所有 workspace 依賴
+# 本機開發
+npm run dev:polaris       # 啟動 Polaris 前端開發伺服器
+npm run build:polaris     # 建置 Polaris 前端
+npm run install:all       # 安裝所有 workspace 依賴
+
+# NAS 部署
+npm run deploy:build      # 建置 Docker 映像
+npm run deploy:up         # 啟動所有容器
+npm run deploy:down       # 停止所有容器
+npm run deploy:logs       # 查看即時日誌
 ```
 
-## Docker（待整理）
+## NAS 部署（Synology + Cloudflare Tunnel）
 
-> Docker 環境目前可能存在配置混亂的情況，之後將重新整理。
-> 目前僅建議使用 `docker-compose up -d redis` 啟動 Redis。
+部署相關的所有檔案都在 `deploy/` 目錄中，與本機開發完全分離。
 
-`docker-compose.yml` 中定義了以下服務供未來使用：
+```
+deploy/
+├── docker-compose.yml            # 生產環境 compose
+├── dockerfiles/
+│   ├── backend.Dockerfile        # Flask（alpine, multi-stage, gunicorn）
+│   └── frontend.Dockerfile       # Next.js（standalone, multi-stage）
+├── .env.production.example       # 環境變數範本
+└── README.md                     # 完整部署指南
+```
 
-| 服務 | Container | Port |
-|------|-----------|------|
-| PostgreSQL | `ows_postgres` | 5432 |
-| Redis | `ows_redis` | 6379 |
-| Polaris Backend | `ows_polaris_backend` | 5001 |
-| Polaris Frontend | `ows_polaris_frontend` | 3001 |
-| Claire Backend | `ows_claire_backend` | 5002 |
-| Claire Frontend | `ows_claire_frontend` | 3002 |
+### 快速部署
+
+```bash
+cd deploy
+cp .env.production.example .env.production
+# 編輯 .env.production 填入實際值
+
+docker compose build
+docker compose up -d
+```
+
+### 部署後的服務
+
+| 服務 | Container | Port | 說明 |
+|------|-----------|------|------|
+| PostgreSQL 15 | `polaris_db` | 5432 | 資料持久化於 `./db_data` |
+| Redis 7 | `polaris_redis` | — | 快取，maxmemory 128mb |
+| Flask Backend | `polaris_backend` | 5055 | Gunicorn, 2 workers |
+| Next.js Frontend | `polaris_frontend` | 3000 | Standalone 模式 |
+
+### Cloudflare Tunnel 對應
+
+| Public Hostname | 指向 |
+|-----------------|------|
+| `frontend.polaris-parent.com` | `http://192.168.30.65:3000` |
+| `api.polaris-parent.com` | `http://192.168.30.65:5055` |
+
+### 存取方式
+
+| 方式 | URL |
+|------|-----|
+| 外部前端 | `https://frontend.polaris-parent.com` |
+| 外部 API | `https://api.polaris-parent.com/api/v1` |
+| 內網前端 | `http://192.168.30.65:3000` |
+| 內網 API | `http://192.168.30.65:5055/api/v1` |
+
+### 透過 Synology Container Manager 部署
+
+1. 上傳專案到 NAS（建議路徑 `/volume1/docker/OWS_PJs/`）
+2. 複製並編輯環境變數：`deploy/.env.production.example` → `.env.production`
+3. DSM → Container Manager → 專案 → 建立 → 路徑選 `deploy/` → 建置 → 啟動
+
+> 詳細部署步驟請參閱 [deploy/README.md](deploy/README.md)
 
 ## 開發指南
 

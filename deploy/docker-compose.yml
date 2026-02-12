@@ -1,0 +1,120 @@
+# =============================================================================
+# Polaris Parent - NAS Production Docker Compose
+# =============================================================================
+#
+# Cloudflare Tunnel 對應：
+#   frontend.polaris-parent.com → http://192.168.30.65:3000 (frontend)
+#   api.polaris-parent.com      → http://192.168.30.65:5001 (backend)
+#
+# Usage:
+#   docker compose build          # 建置所有映像
+#   docker compose up -d          # 啟動所有服務
+#   docker compose logs -f        # 查看即時日誌
+#   docker compose down           # 停止所有服務
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # 資料庫
+  # ===========================================================================
+
+  db:
+    image: postgres:15-alpine
+    container_name: polaris_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-polaris}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-polaris_db}
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+      - ../core/scripts/init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-polaris}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - polaris_net
+
+  # ===========================================================================
+  # Redis 快取
+  # ===========================================================================
+
+  redis:
+    image: redis:7-alpine
+    container_name: polaris_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - polaris_net
+
+  # ===========================================================================
+  # 後端 (Flask + Gunicorn)
+  # ===========================================================================
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/backend.Dockerfile
+    container_name: polaris_backend
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      FLASK_CONFIG: production
+      DATABASE_URL: postgresql://${DB_USER:-polaris}:${DB_PASSWORD}@db:5432/${DB_NAME:-polaris_db}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs/backend:/app/logs
+      # GCS 憑證檔（如有使用，取消下行註解）
+      # - ./secrets/gcs.json:/app/secrets/gcs.json:ro
+    ports:
+      - "5055:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - polaris_net
+
+  # ===========================================================================
+  # 前端 (Next.js Standalone)
+  # ===========================================================================
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/frontend.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_SITE_NAME: ${NEXT_PUBLIC_SITE_NAME:-Polaris Parent}
+        GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+    container_name: polaris_frontend
+    restart: unless-stopped
+    environment:
+      # 伺服器端 rewrite 用（容器間內部通訊，不走外部網路）
+      NEXT_SERVER_BACKEND_URL: http://backend:5000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - polaris_net
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  polaris_net:
+    driver: bridge

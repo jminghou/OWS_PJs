@@ -46,9 +46,8 @@ def _bool_env(key: str, default: bool = False) -> bool:
 def _get_database_url(key: str = 'DATABASE_URL', fallback=None):
     """
     Get database URL and convert to psycopg3 format.
-    優先讀取 DB_URL_OVERRIDE，避開 Railway 可能的自動覆蓋。
+    支援 DB_URL_OVERRIDE 做為備用覆蓋。
     """
-    # 優先嘗試讀取我們自定義的變數
     val = os.environ.get('DB_URL_OVERRIDE') or os.environ.get(key)
     url = val.strip() if val else None
 
@@ -222,9 +221,10 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
     JWT_COOKIE_SECURE = True
 
-    # Cross-domain cookie settings (frontend on Vercel, backend on Railway)
-    JWT_COOKIE_SAMESITE = 'None'  # Allow cross-origin cookies
-    SESSION_COOKIE_SAMESITE = 'None'
+    # Cookie SameSite 設定（可透過環境變數調整）
+    # 同域名部署（如 Cloudflare Tunnel）使用 Lax；跨域部署才需要 None
+    JWT_COOKIE_SAMESITE = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
+    SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
 
 
 # =============================================================================

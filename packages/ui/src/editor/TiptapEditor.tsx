@@ -34,6 +34,8 @@ export interface TiptapEditorProps {
   placeholder?: string;
   minHeight?: string;
   className?: string;
+  /** Tailwind 色彩 class，用於工具列高亮等 (例如 'text-purple-400') */
+  accentColorClass?: string;
   /** 是否啟用區塊把手 (Plus/Grip) */
   showBlockHandle?: boolean;
 }

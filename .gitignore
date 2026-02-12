@@ -69,6 +69,7 @@ env/
 .env
 .env.*
 .env.local
+.env.production.example
 !.env.example
 *.pem
 *.key
@@ -134,6 +135,15 @@ desktop.ini
 # =============================================================================
 docker-compose.override.yml
 .docker/
+
+# Deploy (NAS production)
+deploy/.env.production
+deploy/db_data/
+deploy/redis_data/
+deploy/uploads/
+deploy/logs/
+deploy/secrets/
+!deploy/.env.production.example
 
 # =============================================================================
 # Coverage & Testing

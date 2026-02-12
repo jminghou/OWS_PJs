@@ -5,6 +5,9 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 生產環境使用 standalone 輸出（Docker 部署用，本機 dev 不受影響）
+  output: 'standalone',
+
   // 轉譯 monorepo 內的套件
   transpilePackages: ['@ows/ui'],
   turbopack: {
@@ -29,7 +32,20 @@ const nextConfig = {
         port: '5000',
         pathname: '/uploads/**',
       },
-      // 生產環境 GCS bucket（部署時替換為實際 bucket 域名）
+      // NAS 內網存取
+      {
+        protocol: 'http',
+        hostname: '192.168.30.65',
+        port: '5001',
+        pathname: '/uploads/**',
+      },
+      // 生產環境 API 域名
+      {
+        protocol: 'https',
+        hostname: 'api.polaris-parent.com',
+        pathname: '/uploads/**',
+      },
+      // 生產環境 GCS bucket
       ...(process.env.GCS_BUCKET_NAME ? [{
         protocol: 'https',
         hostname: 'storage.googleapis.com',
@@ -54,10 +70,12 @@ const nextConfig = {
       },
     ];
   },
-  // API Proxy: 解決跨域第三方 cookie 被瀏覽器阻擋的問題
-  // 前端請求 /api/v1/* → Vercel 代理轉發到 Railway 後端
+  // API Proxy: 前端請求 /api/v1/* 代理轉發到後端
+  // Docker 環境透過 NEXT_SERVER_BACKEND_URL 走容器內部網路
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000';
+    const backendUrl = process.env.NEXT_SERVER_BACKEND_URL
+      || process.env.NEXT_PUBLIC_BACKEND_URL
+      || 'http://127.0.0.1:5000';
     return [
       {
         source: '/api/v1/:path*',

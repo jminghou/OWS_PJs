@@ -145,6 +145,7 @@ export interface HomepageSettings {
     philosophy: string;
     quote: string;
     mission_points: string[];
+    image_url?: string;
   }>;
   updated_at: string;
 }

@@ -11,6 +11,10 @@
     "build:polaris": "npm run build --workspace=p-ows-frontend",
     "docker:backend": "docker-compose up -d db redis polaris_backend",
     "docker:stop": "docker-compose down",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "deploy:build": "docker compose -f deploy/docker-compose.yml build",
+    "deploy:up": "docker compose -f deploy/docker-compose.yml up -d",
+    "deploy:down": "docker compose -f deploy/docker-compose.yml down",
+    "deploy:logs": "docker compose -f deploy/docker-compose.yml logs -f"
   }
 }

@@ -5,7 +5,7 @@ import { Image as ImageIcon, X, Upload, Plus } from 'lucide-react';
 
 export interface AdminImagePickerProps {
   value?: string;
-  onChange: (url: string) => void;
+  onChange?: (url: string) => void;
   onRemove: () => void;
   onBrowse: () => void;
   label?: string;
