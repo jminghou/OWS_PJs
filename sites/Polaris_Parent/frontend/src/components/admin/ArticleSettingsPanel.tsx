@@ -3,7 +3,6 @@
 import { X } from 'lucide-react';
 import CollapsibleSection from '@/components/ui/CollapsibleSection';
 import Input from '@/components/ui/Input';
-import LanguageManager from '@/components/admin/LanguageManager';
 import { Category, TranslationInfo } from '@/types';
 
 interface I18nSettings {
@@ -117,41 +116,6 @@ export default function ArticleSettingsPanel({
           </div>
         </CollapsibleSection>
 
-        {/* 圖片設定 */}
-        <CollapsibleSection title="圖片設定" defaultOpen>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                封面圖片 URL (1:1)
-              </label>
-              <Input
-                value={formData.cover_image}
-                onChange={(e) => setFormData(prev => ({ ...prev, cover_image: e.target.value }))}
-                placeholder="https://example.com/cover.jpg"
-                className="text-sm"
-              />
-              <p className="text-xs text-blue-500 mt-1">
-                用於首頁和列表頁縮圖
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                精選圖片 URL (16:9)
-              </label>
-              <Input
-                value={formData.featured_image}
-                onChange={(e) => setFormData(prev => ({ ...prev, featured_image: e.target.value }))}
-                placeholder="https://example.com/image.jpg"
-                className="text-sm"
-              />
-              <p className="text-xs text-blue-500 mt-1">
-                用於文章內文顯示
-              </p>
-            </div>
-          </div>
-        </CollapsibleSection>
-
         {/* 標籤 */}
         <CollapsibleSection title="標籤" defaultOpen>
           <div className="space-y-3">
@@ -182,21 +146,8 @@ export default function ArticleSettingsPanel({
           </div>
         </CollapsibleSection>
 
-        {/* 摘要 - 預設收合 */}
-        <CollapsibleSection title="摘要" defaultOpen={false}>
-          <div>
-            <textarea
-              value={formData.summary}
-              onChange={(e) => setFormData(prev => ({ ...prev, summary: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent resize-none"
-              rows={3}
-              placeholder="簡短描述文章內容..."
-            />
-          </div>
-        </CollapsibleSection>
-
-        {/* SEO 設定 - 預設收合 */}
-        <CollapsibleSection title="SEO 設定" defaultOpen={false}>
+        {/* SEO 設定 - 預設展開 */}
+        <CollapsibleSection title="SEO 設定" defaultOpen={true}>
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -237,21 +188,6 @@ export default function ArticleSettingsPanel({
           </div>
         </CollapsibleSection>
 
-        {/* 多語言管理 - 預設收合 */}
-        {i18nSettings?.enabled && (
-          <CollapsibleSection title="多語言管理" defaultOpen={false}>
-            <LanguageManager
-              mode={mode}
-              currentLanguage={formData.language}
-              articleId={articleId}
-              translations={translations}
-              i18nSettings={i18nSettings}
-              onLanguageChange={(lang) => setFormData(prev => ({ ...prev, language: lang }))}
-              onRefresh={onRefresh}
-              formData={formData}
-            />
-          </CollapsibleSection>
-        )}
       </div>
 
     </div>

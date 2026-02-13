@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Content } from '@/types';
-import { getImageUrl, truncateText } from '@/lib/utils';
+import { getImageUrl, getGcsImageUrl, truncateText } from '@/lib/utils';
 
 interface ArticleCarouselProps {
   title: string;
@@ -17,12 +17,15 @@ interface ArticleCarouselProps {
 function CarouselArticleCard({ article }: { article: Content }) {
   const displayImage = article.cover_image || article.featured_image;
 
+  // 使用 getGcsImageUrl 處理 GCS 圖片路徑，這能確保在 SSR 和 Client 端產生的 URL 一致
+  const imageUrl = displayImage ? getGcsImageUrl(displayImage, 'medium') : '/placeholder.jpg';
+
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden h-full">
       {displayImage && (
         <div className="aspect-[4/3] relative overflow-hidden">
           <Image
-            src={getImageUrl(displayImage)}
+            src={imageUrl}
             alt={article.title}
             fill
             className="object-cover"

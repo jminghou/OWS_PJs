@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 import { Content } from '@/types';
-import { formatDateTime, truncateText, getImageUrl } from '@/lib/utils';
+import { formatDateTime, truncateText, getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
 interface PostCardProps {
   post: Content;
@@ -10,17 +11,24 @@ interface PostCardProps {
 export default function PostCard({ post }: PostCardProps) {
   // 優先使用封面圖片 (1:1)，沒有的話使用精選圖片 (16:9)
   const displayImage = post.cover_image || post.featured_image;
+  const [imgSrc, setImgSrc] = useState(getGcsImageUrl(displayImage || '', 'medium'));
 
   return (
     <article className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border overflow-hidden">
       {displayImage && (
         <div className="aspect-square relative overflow-hidden">
           <Image
-            src={getImageUrl(displayImage)}
+            src={imgSrc}
             alt={post.title}
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={() => {
+              const original = getImageUrl(displayImage);
+              if (imgSrc !== original) {
+                setImgSrc(original);
+              }
+            }}
           />
         </div>
       )}

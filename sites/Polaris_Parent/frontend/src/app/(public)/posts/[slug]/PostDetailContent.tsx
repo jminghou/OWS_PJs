@@ -2,18 +2,21 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkSupersub from 'remark-supersub';
 import rehypeRaw from 'rehype-raw';
 import { Content } from '@/types';
-import { formatDateTime, getImageUrl } from '@/lib/utils';
+import { formatDateTime, getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
 interface PostDetailContentProps {
   post: Content;
 }
 
 export default function PostDetailContent({ post }: PostDetailContentProps) {
+  const [imgSrc, setImgSrc] = useState(getGcsImageUrl(post.featured_image || '', 'large'));
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       {/* 主要內容區域 - 寬度 1000px (電腦版) */}
@@ -40,24 +43,30 @@ export default function PostDetailContent({ post }: PostDetailContentProps) {
                 )}
               </div>
 
-              {/* 2. 圖片 */}
+              {/* 2. 標題 (已移動到圖片上方並加大字體) */}
+              <h1 className="text-3xl md:text-4xl lg:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                {post.title}
+              </h1>
+
+              {/* 3. 圖片 */}
               {post.featured_image && (
                 <div className="aspect-[16/9] relative overflow-hidden rounded-lg mb-8">
                   <Image
-                    src={getImageUrl(post.featured_image)}
+                    src={imgSrc}
                     alt={post.title}
                     fill
                     className="object-cover"
                     priority
                     sizes="(max-width: 1000px) 100vw, 1000px"
+                    onError={() => {
+                      const original = getImageUrl(post.featured_image);
+                      if (imgSrc !== original) {
+                        setImgSrc(original);
+                      }
+                    }}
                   />
                 </div>
               )}
-
-              {/* 3. 標題 */}
-              <h1 className="text-2xl md:text-2xl lg:text-2xl font-bold text-gray-900 mb-4 leading-tight">
-                {post.title}
-              </h1>
 
               {/* 4. 作者與日期 (取消瀏覽次數) */}
               <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 mb-8">
@@ -127,6 +136,3 @@ export default function PostDetailContent({ post }: PostDetailContentProps) {
     </div>
   );
 }
-
-
-

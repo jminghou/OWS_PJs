@@ -9,6 +9,8 @@ import Popover from '@/components/ui/Popover';
 import TiptapEditor from '@/components/admin/TiptapEditor';
 import NotionTitleInput from '@/components/admin/NotionTitleInput';
 import ArticleSettingsPanel from '@/components/admin/ArticleSettingsPanel';
+import InlineImageSettings from '@/components/admin/InlineImageSettings';
+import LanguageSelector from '@/components/admin/LanguageSelector';
 import { Category, TranslationInfo } from '@/types';
 
 interface I18nSettings {
@@ -141,6 +143,20 @@ export default function ArticleEditor({
               {wordCount.toLocaleString()}
             </span>
 
+            {/* 多語言切換按鈕 */}
+            {i18nSettings?.enabled && (
+              <LanguageSelector
+                mode={mode}
+                currentLanguage={formData.language}
+                articleId={articleId}
+                translations={translations}
+                i18nSettings={i18nSettings}
+                onLanguageChange={(lang) => setFormData(prev => ({ ...prev, language: lang }))}
+                onRefresh={onRefresh}
+                formData={formData}
+              />
+            )}
+
             {/* HTML/Article 模式切換按鈕 */}
             <Button
               type="button"
@@ -259,6 +275,23 @@ export default function ArticleEditor({
               onChange={handleTitleChange}
               placeholder="無標題"
             />
+
+            {/* 圖片設定區塊 */}
+            <InlineImageSettings
+              formData={formData}
+              setFormData={setFormData}
+            />
+
+            {/* 摘要編輯區 */}
+            <div className="mt-6 px-14">
+              <textarea
+                value={formData.summary}
+                onChange={(e) => setFormData(prev => ({ ...prev, summary: e.target.value }))}
+                className="w-full p-4 text-sm text-gray-600 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-purple-500/20 focus:border-brand-purple-300 focus:bg-white transition-all duration-200 resize-none leading-relaxed"
+                rows={2}
+                placeholder="在此輸入文章摘要（選填）..."
+              />
+            </div>
 
             {/* 編輯器 */}
             <div className="mt-4">

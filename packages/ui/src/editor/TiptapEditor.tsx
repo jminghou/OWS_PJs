@@ -23,9 +23,15 @@ import {
   Terminal,
   Type,
   Plus,
+  X,
   GripVertical,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react';
 import { useEffect, useCallback, useState, useRef } from 'react';
+import MediaBrowser from '@/components/admin/MediaBrowser';
+import { getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
 // ============ Types ============
 export interface TiptapEditorProps {
@@ -177,45 +183,76 @@ const EditorBubbleMenu = ({
 
   if (!editor) return null;
 
+  const isImageActive = editor.isActive('image');
+
   const items = [
     {
       icon: <Bold size={16} />,
       title: labels.bold,
       action: () => editor.chain().focus().toggleBold().run(),
       isActive: editor.isActive('bold'),
+      show: !isImageActive,
     },
     {
       icon: <Italic size={16} />,
       title: labels.italic,
       action: () => editor.chain().focus().toggleItalic().run(),
       isActive: editor.isActive('italic'),
+      show: !isImageActive,
     },
     {
       icon: <Strikethrough size={16} />,
       title: labels.strikethrough,
       action: () => editor.chain().focus().toggleStrike().run(),
       isActive: editor.isActive('strike'),
+      show: !isImageActive,
+    },
+    {
+      icon: <AlignLeft size={16} />,
+      title: '靠左文繞圖',
+      action: () => editor.chain().focus().updateAttributes('image', { align: 'left' }).run(),
+      isActive: editor.getAttributes('image').align === 'left',
+      show: isImageActive,
+    },
+    {
+      icon: <AlignCenter size={16} />,
+      title: '置中',
+      action: () => editor.chain().focus().updateAttributes('image', { align: 'center' }).run(),
+      isActive: editor.getAttributes('image').align === 'center' || !editor.getAttributes('image').align,
+      show: isImageActive,
+    },
+    {
+      icon: <AlignRight size={16} />,
+      title: '靠右文繞圖',
+      action: () => editor.chain().focus().updateAttributes('image', { align: 'right' }).run(),
+      isActive: editor.getAttributes('image').align === 'right',
+      show: isImageActive,
     },
     {
       icon: <LinkIcon size={16} />,
       title: labels.link,
       action: setLink,
       isActive: editor.isActive('link'),
+      show: true,
     },
     {
       icon: <Code size={16} />,
       title: labels.code,
       action: () => editor.chain().focus().toggleCode().run(),
       isActive: editor.isActive('code'),
+      show: !isImageActive,
     },
   ];
 
   return (
     <BubbleMenu
       editor={editor}
+      shouldShow={({ state, editor }) => {
+        return editor.isActive('image') || !state.selection.empty;
+      }}
       className="flex items-center gap-1 p-1 bg-slate-900 rounded-lg shadow-xl border border-slate-700 overflow-hidden"
     >
-      {items.map((item, i) => (
+      {items.filter(item => item.show).map((item, i) => (
         <button
           key={i}
           type="button"
@@ -245,23 +282,92 @@ interface BlockMenuProps {
 
 const BlockMenu = ({ editor, position, onClose, labels = defaultLabels }: BlockMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [showMediaBrowser, setShowMediaBrowser] = useState(false);
+  const [showVariantModal, setShowVariantModal] = useState(false);
+  const [pendingImage, setPendingImage] = useState<any>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      // 如果媒體庫開啟中，不處理點擊外部關閉選單
+      if (showMediaBrowser) return;
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
+  }, [onClose, showMediaBrowser]);
+
+  const handleImageSelect = (media: any) => {
+    const imagePath = media.file_path || media.url || media.path;
+    if (imagePath) {
+      // 開啟尺寸選擇對話框，而不是直接插入
+      setPendingImage(media);
+      setShowVariantModal(true);
+    }
+    setShowMediaBrowser(false);
+  };
+
+  const insertImageWithVariant = (variant?: string) => {
+    if (!pendingImage) return;
+    
+    const imagePath = pendingImage.file_path || pendingImage.url || pendingImage.path;
+    
+    console.log('Inserting image:', { imagePath, variant });
+    
+    if (!variant) {
+      const fullUrl = getImageUrl(imagePath);
+      editor.chain().focus().setImage({ src: fullUrl }).run();
+    } else {
+      const isGcs = imagePath.includes('storage.googleapis.com');
+      let fullUrl = '';
+      
+      if (isGcs) {
+        const lastSlashIndex = imagePath.lastIndexOf('/');
+        const baseUrl = imagePath.substring(0, lastSlashIndex + 1);
+        const filename = imagePath.substring(lastSlashIndex + 1);
+        
+        // 1. 移除可能存在的所有變體前綴 (thumbnail_, small_, medium_, large_)
+        let cleanFilename = filename.replace(/^(thumbnail|small|medium|large)_/, '');
+        
+        // 2. 處理副檔名：
+        // 如果檔名包含底線副檔名 (例如 _png)，但沒有點副檔名
+        // 根據截圖，縮圖檔名規律是：variant + "_" + filename + ".png" (或原本的副檔名)
+        // 例如：原圖 f2ed679d_png -> 縮圖 small_f2ed679d_png.png
+        // 例如：原圖 d959857f_purple_universe.png -> 縮圖 medium_d959857f_purple_universe.png
+        
+        // 我們先檢查 cleanFilename 是否包含點
+        const hasDot = cleanFilename.includes('.');
+        
+        if (!hasDot) {
+          // 如果沒有點，假設它是 f2ed679d_png 這種格式，我們需要補上點副檔名
+          const extensionMatch = cleanFilename.match(/_(png|jpg|jpeg|webp|gif)$/i);
+          if (extensionMatch) {
+            const ext = extensionMatch[1];
+            fullUrl = `${baseUrl}${variant}_${cleanFilename}.${ext}`;
+          } else {
+            // 萬一沒匹配到，就直接拼
+            fullUrl = `${baseUrl}${variant}_${cleanFilename}`;
+          }
+        } else {
+          // 如果已經有點 (例如 d959857f_purple_universe.png)，直接拼前綴
+          fullUrl = `${baseUrl}${variant}_${cleanFilename}`;
+        }
+      } else {
+        fullUrl = getImageUrl(imagePath, variant);
+      }
+      
+      console.log('Generated URL:', fullUrl);
+      editor.chain().focus().setImage({ src: fullUrl }).run();
+    }
+    
+    setShowVariantModal(false);
+    setPendingImage(null);
+    onClose();
+  };
 
   const addImage = () => {
-    const url = window.prompt(labels.enterImageUrl || defaultLabels.enterImageUrl);
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-    onClose();
+    setShowMediaBrowser(true);
   };
 
   const menuItems = [
@@ -316,7 +422,7 @@ const BlockMenu = ({ editor, position, onClose, labels = defaultLabels }: BlockM
     {
       icon: <ImageIcon size={18} />,
       title: labels.image,
-      description: '插入圖片網址',
+      description: '從媒體庫選擇圖片',
       action: addImage,
     },
   ];
@@ -347,6 +453,67 @@ const BlockMenu = ({ editor, position, onClose, labels = defaultLabels }: BlockM
           </div>
         </button>
       ))}
+
+      <MediaBrowser
+        isOpen={showMediaBrowser}
+        onClose={() => setShowMediaBrowser(false)}
+        onSelect={handleImageSelect}
+      />
+
+      {/* 圖片尺寸選擇彈窗 */}
+      {showVariantModal && pendingImage && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">選擇插入尺寸</h3>
+              <button 
+                onClick={() => { setShowVariantModal(false); onClose(); }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="aspect-video w-full rounded-lg bg-gray-50 border border-gray-100 overflow-hidden mb-6">
+                <img 
+                  src={getImageUrl(pendingImage.file_path || pendingImage.url || pendingImage.path, 'small')} 
+                  className="w-full h-full object-contain"
+                  alt="Preview"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: undefined, label: '原始圖片', desc: '不壓縮' },
+                  { id: 'large', label: '大型 (Large)', desc: '適合滿版' },
+                  { id: 'medium', label: '中型 (Medium)', desc: '適合內文' },
+                  { id: 'small', label: '小型 (Small)', desc: '適合側欄' },
+                  { id: 'thumbnail', label: '縮圖 (Thumb)', desc: '正方形' },
+                ].map((variant) => (
+                  <button
+                    key={variant.id || 'original'}
+                    onClick={() => insertImageWithVariant(variant.id)}
+                    className="flex flex-col items-start p-3 rounded-xl border border-gray-200 hover:border-brand-purple-500 hover:bg-brand-purple-50 transition-all text-left group"
+                  >
+                    <span className="text-sm font-bold text-gray-900 group-hover:text-brand-purple-700">{variant.label}</span>
+                    <span className="text-[10px] text-gray-500 group-hover:text-brand-purple-500">{variant.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="p-4 bg-gray-50 flex justify-end">
+              <button 
+                onClick={() => { setShowVariantModal(false); onClose(); }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -922,7 +1089,25 @@ export function TiptapEditor({
       }),
       Image.configure({
         HTMLAttributes: {
-          class: 'rounded-xl max-w-full h-auto mx-auto border-4 border-transparent hover:border-purple-200 transition-all shadow-md my-8',
+          class: 'rounded-xl max-w-full h-auto border-4 border-transparent hover:border-purple-200 transition-all shadow-md my-8',
+        },
+      }).extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            align: {
+              default: 'center',
+              renderHTML: attributes => {
+                if (attributes.align === 'left') {
+                  return { class: 'float-left mr-8 ml-0 mx-0' };
+                }
+                if (attributes.align === 'right') {
+                  return { class: 'float-right ml-8 mr-0 mx-0' };
+                }
+                return { class: 'mx-auto block' };
+              },
+            },
+          };
         },
       }),
       Placeholder.configure({

@@ -12,6 +12,7 @@ export interface AdminImagePickerProps {
   placeholder?: string;
   className?: string;
   getImageUrl: (path: string, variant?: string) => string;
+  aspectRatio?: '1/1' | '4/3' | '16/9' | 'auto';
 }
 
 /**
@@ -27,7 +28,15 @@ export function AdminImagePicker({
   placeholder = '尚未選擇圖片',
   className = '',
   getImageUrl,
+  aspectRatio = '4/3',
 }: AdminImagePickerProps) {
+  const aspectClass = {
+    '1/1': 'aspect-square w-40 h-40',
+    '4/3': 'aspect-[4/3] w-40 h-30',
+    '16/9': 'aspect-video w-40 h-22.5',
+    'auto': 'w-40 h-auto min-h-[120px]',
+  }[aspectRatio];
+
   return (
     <div className={`space-y-2 ${className}`}>
       {label && (
@@ -38,7 +47,7 @@ export function AdminImagePicker({
       
       <div className="flex items-start gap-4">
         {/* 圖片預覽區 */}
-        <div className="w-40 h-30 flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden border border-gray-200 relative group aspect-[4/3]">
+        <div className={`flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden border border-gray-200 relative group ${aspectClass}`}>
           {value ? (
             <>
               <img

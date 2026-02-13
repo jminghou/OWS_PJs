@@ -124,7 +124,7 @@ NAS 的 PostgreSQL 在 Docker 容器中運行，資料庫會由 `docker-compose.
 cd /volume1/docker/OWS_PJs/deploy
 
 # 1. 建立資料表
-sudo docker compose exec backend python -c "
+sudo docker compose exec -w /app/sites/Polaris_Parent/backend backend python -c "
 from app import app
 from core.backend_engine.factory import db
 app.app_context().push()
@@ -133,7 +133,7 @@ print('資料表建立成功！')
 "
 
 # 2. 建立管理員帳號
-sudo docker compose exec backend flask --app app.py create-admin
+sudo docker compose exec -w /app/sites/Polaris_Parent/backend backend flask --app app.py create-admin
 ```
 
 > 密碼規則：至少 8 個字元，需包含大寫字母、小寫字母與數字。

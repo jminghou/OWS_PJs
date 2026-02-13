@@ -48,27 +48,52 @@ export function generateMetaDescription(content: string, maxLength: number = 160
 export function getImageUrl(imagePath?: string, variant?: string): string {
   if (!imagePath) return '/placeholder.jpg';
 
-  // Absolute URLs (GCS, CDN, etc.)
+  // 1. 處理絕對路徑 (GCS, CDN 等)
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    if (variant) {
-      // Handle GCS variant naming convention: path/to/image.png -> path/to/image_variant.png
-      const lastDotIndex = imagePath.lastIndexOf('.');
-      if (lastDotIndex !== -1) {
-        return `${imagePath.substring(0, lastDotIndex)}_${variant}${imagePath.substring(lastDotIndex)}`;
-      }
-    }
     return imagePath;
   }
 
-  // Relative paths - prepend backend URL
+  // 2. 處理相對路徑 (後端本地 uploads)
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+  const fullPath = `${baseUrl}${imagePath}`;
+
   if (variant) {
-    const lastDotIndex = imagePath.lastIndexOf('.');
+    const lastDotIndex = fullPath.lastIndexOf('.');
     if (lastDotIndex !== -1) {
-      return `${baseUrl}${imagePath.substring(0, lastDotIndex)}_${variant}${imagePath.substring(lastDotIndex)}`;
+      return `${fullPath.substring(0, lastDotIndex)}_${variant}${fullPath.substring(lastDotIndex)}`;
     }
   }
-  return `${baseUrl}${imagePath}`;
+  return fullPath;
+}
+
+/**
+ * 專門為 GCS 圖片獲取帶前綴的 URL
+ * 邏輯：優先返回帶前綴的 URL (如 medium_, large_)，
+ * 但因為前端無法預知檔案是否存在，建議配合 Image 組件的 onError 使用
+ */
+export function getGcsImageUrl(imagePath: string, variant?: string): string {
+  if (!imagePath) return '/placeholder.jpg';
+  if (!variant) return imagePath;
+
+  // 檢查是否為 GCS 網址
+  if (!imagePath.includes('storage.googleapis.com')) return getImageUrl(imagePath, variant);
+
+  // 移除可能存在的副檔名（如果有的話，例如 .png），因為 GCS 上的縮圖檔名可能是 filename_variant 或 variant_filename
+  // 但從截圖看，您的縮圖檔名是 variant_filename (例如 small_925414e4_png)
+  // 關鍵在於：您的原圖檔名是 925414e4_png (底線而非點)
+  
+  const lastSlashIndex = imagePath.lastIndexOf('/');
+  if (lastSlashIndex !== -1) {
+    const baseUrl = imagePath.substring(0, lastSlashIndex + 1);
+    const filename = imagePath.substring(lastSlashIndex + 1);
+    
+    // 如果檔名中包含變體前綴，先移除它避免重複 (例如避免變成 small_small_...)
+    const cleanFilename = filename.replace(/^(thumbnail|small|medium|large)_/, '');
+    
+    return `${baseUrl}${variant}_${cleanFilename}`;
+  }
+  
+  return imagePath;
 }
 
 export function isValidEmail(email: string): boolean {

@@ -46,11 +46,11 @@ const nextConfig = {
         pathname: '/uploads/**',
       },
       // 生產環境 GCS bucket
-      ...(process.env.GCS_BUCKET_NAME ? [{
+      {
         protocol: 'https',
         hostname: 'storage.googleapis.com',
-        pathname: `/${process.env.GCS_BUCKET_NAME}/**`,
-      }] : []),
+        pathname: '/**',
+      },
     ],
   },
   env: {

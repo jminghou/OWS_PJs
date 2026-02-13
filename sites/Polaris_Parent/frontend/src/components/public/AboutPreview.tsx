@@ -34,7 +34,7 @@ export default function AboutPreview({
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="order-2 lg:order-1">
-              <div className="relative bg-gray-50 rounded-2xl aspect-[4/3] animate-pulse" />
+              <div className="relative bg-gray-50 rounded-2xl aspect-square animate-pulse" />
             </div>
             <div className="order-1 lg:order-2 space-y-6">
               <div className="h-8 bg-gray-100 rounded w-1/3 animate-pulse" />
@@ -53,7 +53,7 @@ export default function AboutPreview({
           {/* Left: Decorative Quote or Image */}
           <div className="order-2 lg:order-1">
             {imageUrl ? (
-              <div className="relative aspect-[4/3] overflow-hidden">
+              <div className="relative aspect-square overflow-hidden rounded-2xl">
                 <img
                   src={imageUrl}
                   alt={title}
@@ -61,7 +61,7 @@ export default function AboutPreview({
                 />
               </div>
             ) : (
-              <div className="relative bg-gradient-to-br from-brand-purple-50 to-brand-purple-100 rounded-2xl aspect-[4/3] flex items-center justify-center">
+              <div className="relative bg-gradient-to-br from-brand-purple-50 to-brand-purple-100 rounded-2xl aspect-square flex items-center justify-center">
                 <div className="p-8 text-center">
                   <div className="text-5xl md:text-6xl text-brand-purple-300 mb-4 font-serif">{'"'}</div>
                   <p className="text-lg md:text-xl lg:text-2xl text-brand-purple-700 italic font-medium leading-relaxed">

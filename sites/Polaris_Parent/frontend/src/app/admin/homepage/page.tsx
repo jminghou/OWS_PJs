@@ -529,6 +529,7 @@ export default function HomepagePage() {
                               newSection[lang] = { ...newSection[lang], image_url: '' };
                               setAboutSection(newSection);
                             }}
+                            aspectRatio="1/1"
                           />
                         </div>
                       </div>
