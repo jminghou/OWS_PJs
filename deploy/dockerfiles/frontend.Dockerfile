@@ -48,7 +48,11 @@ RUN addgroup --system --gid 1001 nodejs && \
 # 複製 standalone 輸出
 COPY --from=builder --chown=nextjs:nodejs /app/sites/Polaris_Parent/frontend/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/sites/Polaris_Parent/frontend/.next/static ./sites/Polaris_Parent/frontend/.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/sites/Polaris_Parent/frontend/public ./sites/Polaris_Parent/frontend/public
+
+# 使用 RUN 指令來安全地複製 public 資料夾，避免因為資料夾不存在而導致建置失敗
+RUN if [ -d /app/sites/Polaris_Parent/frontend/public ]; then \
+    cp -r /app/sites/Polaris_Parent/frontend/public ./sites/Polaris_Parent/frontend/public; \
+    fi
 
 USER nextjs
 
