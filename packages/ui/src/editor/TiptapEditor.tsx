@@ -2,11 +2,18 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
+import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
+import { NodeSelection, TextSelection } from '@tiptap/pm/state';
+import { Extension } from '@tiptap/core';
+import Suggestion from '@tiptap/suggestion';
+import { createRoot } from 'react-dom/client';
 import {
   Bold,
   Italic,
@@ -28,6 +35,10 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Copy,
+  Check,
+  ExternalLink,
+  Unlink,
 } from 'lucide-react';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import MediaBrowser from '@/components/admin/MediaBrowser';
@@ -92,6 +103,301 @@ const defaultLabels: EditorLabels = {
   moveBlock: '移動區塊',
 };
 
+// ============ Lowlight Instance ============
+const lowlight = createLowlight(common);
+
+// ============ Code Block Languages ============
+const CODE_LANGUAGES = [
+  { value: '', label: 'Auto' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'python', label: 'Python' },
+  { value: 'html', label: 'HTML' },
+  { value: 'css', label: 'CSS' },
+  { value: 'json', label: 'JSON' },
+  { value: 'sql', label: 'SQL' },
+  { value: 'bash', label: 'Bash' },
+  { value: 'java', label: 'Java' },
+  { value: 'go', label: 'Go' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'xml', label: 'XML' },
+  { value: 'markdown', label: 'Markdown' },
+  { value: 'yaml', label: 'YAML' },
+];
+
+// ============ Code Block NodeView ============
+const CodeBlockComponent = ({ node, updateAttributes, deleteNode, editor }: any) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyCode = useCallback(() => {
+    const text = node.textContent;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [node]);
+
+  // 將程式碼區塊轉換為一般段落文字
+  const convertToText = useCallback(() => {
+    if (!editor) return;
+    const text = node.textContent;
+    // 刪除程式碼區塊，再插入一般段落
+    deleteNode();
+    editor.chain().focus().insertContent(`<p>${text}</p>`).run();
+  }, [editor, node, deleteNode]);
+
+  return (
+    <NodeViewWrapper className="relative my-4">
+      <div className="flex items-center justify-between bg-slate-800 rounded-t-md px-3 py-1.5 border-b border-slate-700">
+        <select
+          value={node.attrs.language || ''}
+          onChange={(e) => updateAttributes({ language: e.target.value })}
+          contentEditable={false}
+          className="bg-transparent text-xs text-slate-400 outline-none cursor-pointer hover:text-slate-200 transition-colors"
+        >
+          {CODE_LANGUAGES.map(lang => (
+            <option key={lang.value} value={lang.value} className="bg-slate-800 text-slate-200">
+              {lang.label}
+            </option>
+          ))}
+        </select>
+        <div className="flex items-center gap-1" contentEditable={false}>
+          <button
+            type="button"
+            onClick={copyCode}
+            className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors px-2 py-0.5 rounded hover:bg-slate-700"
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? '已複製' : '複製'}
+          </button>
+          <button
+            type="button"
+            onClick={convertToText}
+            className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors px-2 py-0.5 rounded hover:bg-slate-700"
+            title="轉換為一般文字"
+          >
+            <Type size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={deleteNode}
+            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-0.5 rounded hover:bg-slate-700"
+            title="刪除程式碼區塊"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      </div>
+      <pre className="rounded-b-md rounded-t-none !mt-0 bg-slate-900 text-slate-100 p-4 font-mono text-sm">
+        <NodeViewContent as="div" className="hljs" />
+      </pre>
+    </NodeViewWrapper>
+  );
+};
+
+// ============ Slash Command Items ============
+interface SlashCommandItem {
+  title: string;
+  description: string;
+  icon: any;
+  action: (editor: any) => void;
+  aliases?: string[];
+}
+
+const createSlashCommandItems = (onImageRequest?: () => void): SlashCommandItem[] => [
+  { title: '文字', description: '一般段落文字', icon: Type, aliases: ['text', 'paragraph', 'p'],
+    action: (editor) => editor.chain().focus().setParagraph().run() },
+  { title: '標題 1', description: '大標題', icon: Heading1, aliases: ['h1', 'heading1'],
+    action: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run() },
+  { title: '標題 2', description: '中標題', icon: Heading2, aliases: ['h2', 'heading2'],
+    action: (editor) => editor.chain().focus().toggleHeading({ level: 2 }).run() },
+  { title: '標題 3', description: '小標題', icon: Heading3, aliases: ['h3', 'heading3'],
+    action: (editor) => editor.chain().focus().toggleHeading({ level: 3 }).run() },
+  { title: '項目清單', description: '建立項目符號清單', icon: List, aliases: ['bullet', 'list', 'ul'],
+    action: (editor) => editor.chain().focus().toggleBulletList().run() },
+  { title: '編號清單', description: '建立編號清單', icon: ListOrdered, aliases: ['number', 'ordered', 'ol'],
+    action: (editor) => editor.chain().focus().toggleOrderedList().run() },
+  { title: '引用', description: '插入引用區塊', icon: Quote, aliases: ['quote', 'blockquote'],
+    action: (editor) => editor.chain().focus().toggleBlockquote().run() },
+  { title: '程式碼區塊', description: '插入程式碼', icon: Terminal, aliases: ['code', 'codeblock'],
+    action: (editor) => editor.chain().focus().toggleCodeBlock().run() },
+  { title: '圖片', description: '從媒體庫選擇圖片', icon: ImageIcon, aliases: ['image', 'img', 'photo'],
+    action: () => onImageRequest?.() },
+];
+
+// ============ Slash Command Menu Component ============
+const SlashCommandMenuComponent = ({
+  items,
+  selectedIndex,
+  onSelect,
+}: {
+  items: SlashCommandItem[];
+  selectedIndex: number;
+  onSelect: (item: SlashCommandItem) => void;
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const activeEl = menuRef.current?.querySelector(`[data-index="${selectedIndex}"]`);
+    activeEl?.scrollIntoView({ block: 'nearest' });
+  }, [selectedIndex]);
+
+  if (items.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-64">
+        <div className="px-3 py-2 text-sm text-gray-400">找不到相符的區塊類型</div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={menuRef} className="bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-64 max-h-80 overflow-y-auto">
+      <div className="px-3 py-2 text-xs font-medium text-gray-400 uppercase">基本區塊</div>
+      {items.map((item, i) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.title}
+            type="button"
+            data-index={i}
+            onClick={() => onSelect(item)}
+            className={`w-full px-3 py-2 flex items-start gap-3 transition-colors text-left ${
+              i === selectedIndex ? 'bg-gray-50' : 'hover:bg-gray-50'
+            }`}
+          >
+            <div className="p-1.5 bg-gray-100 rounded text-gray-600">
+              <Icon size={18} />
+            </div>
+            <div>
+              <div className="text-sm font-medium text-gray-900">{item.title}</div>
+              <div className="text-xs text-gray-500">{item.description}</div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+// ============ Slash Commands Extension ============
+const createSlashCommandsExtension = (onImageRequest?: () => void) => {
+  const allItems = createSlashCommandItems(onImageRequest);
+
+  return Extension.create({
+    name: 'slashCommands',
+    addProseMirrorPlugins() {
+      return [
+        Suggestion({
+          editor: this.editor,
+          char: '/',
+          allowSpaces: false,
+          startOfLine: false,
+          items: ({ query }) => {
+            const q = query.toLowerCase();
+            if (!q) return allItems;
+            return allItems.filter(item =>
+              item.title.toLowerCase().includes(q) ||
+              item.description.toLowerCase().includes(q) ||
+              item.aliases?.some(a => a.includes(q))
+            );
+          },
+          command: ({ editor, range, props }: { editor: any; range: any; props: any }) => {
+            editor.chain().focus().deleteRange(range).run();
+            props.action(editor);
+          },
+          render: () => {
+            let popup: HTMLDivElement | null = null;
+            let root: any = null;
+            let selectedIndex = 0;
+            let currentItems: SlashCommandItem[] = [];
+            let currentCommand: ((props: any) => void) | null = null;
+
+            const updateMenu = () => {
+              if (!root) return;
+              root.render(
+                <SlashCommandMenuComponent
+                  items={currentItems}
+                  selectedIndex={selectedIndex}
+                  onSelect={(item) => {
+                    if (currentCommand) currentCommand(item);
+                  }}
+                />
+              );
+            };
+
+            return {
+              onStart: (props) => {
+                popup = document.createElement('div');
+                popup.style.position = 'absolute';
+                popup.style.zIndex = '50';
+                document.body.appendChild(popup);
+                root = createRoot(popup);
+
+                currentItems = props.items;
+                currentCommand = props.command;
+                selectedIndex = 0;
+
+                const rect = props.clientRect?.();
+                if (rect && popup) {
+                  popup.style.left = `${rect.left}px`;
+                  popup.style.top = `${rect.bottom + 4}px`;
+                }
+                updateMenu();
+              },
+              onUpdate: (props) => {
+                currentItems = props.items;
+                currentCommand = props.command;
+                selectedIndex = 0;
+
+                const rect = props.clientRect?.();
+                if (rect && popup) {
+                  popup.style.left = `${rect.left}px`;
+                  popup.style.top = `${rect.bottom + 4}px`;
+                }
+                updateMenu();
+              },
+              onKeyDown: ({ event }) => {
+                if (event.key === 'ArrowUp') {
+                  selectedIndex = (selectedIndex - 1 + currentItems.length) % currentItems.length;
+                  updateMenu();
+                  return true;
+                }
+                if (event.key === 'ArrowDown') {
+                  selectedIndex = (selectedIndex + 1) % currentItems.length;
+                  updateMenu();
+                  return true;
+                }
+                if (event.key === 'Enter') {
+                  if (currentItems[selectedIndex] && currentCommand) {
+                    currentCommand(currentItems[selectedIndex]);
+                  }
+                  return true;
+                }
+                if (event.key === 'Escape') {
+                  return true;
+                }
+                return false;
+              },
+              onExit: () => {
+                if (root) {
+                  root.unmount();
+                  root = null;
+                }
+                if (popup) {
+                  popup.remove();
+                  popup = null;
+                }
+                currentItems = [];
+                currentCommand = null;
+                selectedIndex = 0;
+              },
+            };
+          },
+        }),
+      ];
+    },
+  });
+};
+
 // ============ Styles ============
 const tiptapStyles = `
   .tiptap p.is-editor-empty:first-child::before {
@@ -135,6 +441,33 @@ const tiptapStyles = `
     opacity: 0.5;
     background: #f1f5f9;
   }
+  /* Code block syntax highlighting (atom-one-dark) */
+  .tiptap .hljs-keyword,
+  .tiptap .hljs-selector-tag,
+  .tiptap .hljs-type { color: #c678dd; }
+  .tiptap .hljs-string,
+  .tiptap .hljs-attr,
+  .tiptap .hljs-selector-id,
+  .tiptap .hljs-selector-class { color: #98c379; }
+  .tiptap .hljs-number,
+  .tiptap .hljs-literal { color: #d19a66; }
+  .tiptap .hljs-comment,
+  .tiptap .hljs-doctag { color: #5c6370; font-style: italic; }
+  .tiptap .hljs-built_in,
+  .tiptap .hljs-builtin-name { color: #e6c07b; }
+  .tiptap .hljs-function,
+  .tiptap .hljs-title { color: #61afef; }
+  .tiptap .hljs-variable,
+  .tiptap .hljs-template-variable { color: #e06c75; }
+  .tiptap .hljs-tag { color: #e06c75; }
+  .tiptap .hljs-name { color: #e06c75; }
+  .tiptap .hljs-attribute { color: #d19a66; }
+  .tiptap .hljs-regexp { color: #98c379; }
+  .tiptap .hljs-symbol,
+  .tiptap .hljs-bullet { color: #56b6c2; }
+  .tiptap .hljs-meta { color: #61afef; }
+  .tiptap .hljs-deletion { color: #e06c75; background: rgba(224,108,117,0.1); }
+  .tiptap .hljs-addition { color: #98c379; background: rgba(152,195,121,0.1); }
 `;
 
 // 樣式注入組件 - 只在客戶端渲染一次
@@ -158,103 +491,230 @@ const TiptapStyles = () => {
 
 // ============ Sub Components ============
 
-// --- 氣泡選單 (Bubble Menu) ---
+// --- 連結編輯浮動面板 (Inline Link Editor) ---
+const LinkEditor = ({
+  editor,
+  onClose,
+  savedSelection,
+}: {
+  editor: any;
+  onClose: () => void;
+  savedSelection: { from: number; to: number } | null;
+}) => {
+  const [url, setUrl] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+
+  const existingHref = editor?.getAttributes('link').href || '';
+
+  useEffect(() => {
+    setUrl(existingHref);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [existingHref]);
+
+  // 計算浮動位置
+  useEffect(() => {
+    if (!editor || !savedSelection) return;
+    try {
+      const coords = editor.view.coordsAtPos(savedSelection.from);
+      const editorRect = editor.view.dom.closest('.w-full')?.getBoundingClientRect();
+      if (editorRect) {
+        setPosition({
+          top: coords.bottom - editorRect.top + 8,
+          left: coords.left - editorRect.left,
+        });
+      }
+    } catch {
+      // 如果座標計算失敗，居中顯示
+      setPosition({ top: 40, left: 100 });
+    }
+  }, [editor, savedSelection]);
+
+  // 點擊外部關閉
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  const applyLink = useCallback(() => {
+    if (!editor || !savedSelection) return;
+    // 恢復選取範圍
+    editor.chain().focus().setTextSelection(savedSelection).run();
+    if (!url.trim()) {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    } else {
+      const normalizedUrl = url.match(/^https?:\/\//) ? url : `https://${url}`;
+      editor.chain().focus().extendMarkRange('link').setLink({ href: normalizedUrl }).run();
+    }
+    onClose();
+  }, [editor, url, savedSelection, onClose]);
+
+  const removeLink = useCallback(() => {
+    if (!editor || !savedSelection) return;
+    editor.chain().focus().setTextSelection(savedSelection).extendMarkRange('link').unsetLink().run();
+    onClose();
+  }, [editor, savedSelection, onClose]);
+
+  if (!position) return null;
+
+  return (
+    <div
+      ref={panelRef}
+      className="absolute z-50 flex items-center gap-1 p-1.5 bg-slate-900 rounded-lg shadow-xl border border-slate-700"
+      style={{ top: position.top, left: position.left }}
+    >
+      <input
+        ref={inputRef}
+        type="text"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); applyLink(); }
+          if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+        }}
+        placeholder="輸入連結網址..."
+        className="bg-slate-800 text-white text-sm px-3 py-1.5 rounded outline-none border border-slate-600 focus:border-purple-400 w-64 transition-colors"
+      />
+      <button
+        type="button"
+        onClick={applyLink}
+        className="p-1.5 rounded hover:bg-slate-700 text-green-400 transition-colors"
+        title="套用連結"
+      >
+        <Check size={16} />
+      </button>
+      {existingHref && (
+        <>
+          <button
+            type="button"
+            onClick={() => window.open(existingHref, '_blank')}
+            className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+            title="開啟連結"
+          >
+            <ExternalLink size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={removeLink}
+            className="p-1.5 rounded hover:bg-slate-700 text-red-400 transition-colors"
+            title="移除連結"
+          >
+            <Unlink size={16} />
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
+
+// --- 統一氣泡選單 (Unified Bubble Menu) ---
 const EditorBubbleMenu = ({
   editor,
   labels = defaultLabels,
-  accentColorClass = 'text-purple-400'
+  accentColorClass = 'text-purple-400',
+  onLinkEdit,
 }: {
   editor: any;
   labels?: EditorLabels;
   accentColorClass?: string;
+  onLinkEdit?: () => void;
 }) => {
-  const setLink = useCallback(() => {
-    if (!editor) return;
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt(labels.enterLinkUrl || defaultLabels.enterLinkUrl, previousUrl);
+  // 用 state 追蹤是否選取了圖片，透過 onSelectionUpdate 確保同步
+  const [isImageSelected, setIsImageSelected] = useState(false);
 
-    if (url === null) return;
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  }, [editor, labels]);
+  useEffect(() => {
+    if (!editor) return;
+    const onSelectionUpdate = () => {
+      const { selection } = editor.state;
+      setIsImageSelected(
+        selection instanceof NodeSelection && editor.isActive('image')
+      );
+    };
+    editor.on('selectionUpdate', onSelectionUpdate);
+    return () => { editor.off('selectionUpdate', onSelectionUpdate); };
+  }, [editor]);
 
   if (!editor) return null;
 
-  const isImageActive = editor.isActive('image');
+  const align = editor.getAttributes('image').align || 'center';
 
-  const items = [
+  // 文字格式按鈕
+  const textItems = [
     {
       icon: <Bold size={16} />,
       title: labels.bold,
       action: () => editor.chain().focus().toggleBold().run(),
       isActive: editor.isActive('bold'),
-      show: !isImageActive,
     },
     {
       icon: <Italic size={16} />,
       title: labels.italic,
       action: () => editor.chain().focus().toggleItalic().run(),
       isActive: editor.isActive('italic'),
-      show: !isImageActive,
     },
     {
       icon: <Strikethrough size={16} />,
       title: labels.strikethrough,
       action: () => editor.chain().focus().toggleStrike().run(),
       isActive: editor.isActive('strike'),
-      show: !isImageActive,
-    },
-    {
-      icon: <AlignLeft size={16} />,
-      title: '靠左文繞圖',
-      action: () => editor.chain().focus().updateAttributes('image', { align: 'left' }).run(),
-      isActive: editor.getAttributes('image').align === 'left',
-      show: isImageActive,
-    },
-    {
-      icon: <AlignCenter size={16} />,
-      title: '置中',
-      action: () => editor.chain().focus().updateAttributes('image', { align: 'center' }).run(),
-      isActive: editor.getAttributes('image').align === 'center' || !editor.getAttributes('image').align,
-      show: isImageActive,
-    },
-    {
-      icon: <AlignRight size={16} />,
-      title: '靠右文繞圖',
-      action: () => editor.chain().focus().updateAttributes('image', { align: 'right' }).run(),
-      isActive: editor.getAttributes('image').align === 'right',
-      show: isImageActive,
     },
     {
       icon: <LinkIcon size={16} />,
       title: labels.link,
-      action: setLink,
+      action: () => onLinkEdit?.(),
       isActive: editor.isActive('link'),
-      show: true,
     },
     {
       icon: <Code size={16} />,
       title: labels.code,
       action: () => editor.chain().focus().toggleCode().run(),
       isActive: editor.isActive('code'),
-      show: !isImageActive,
     },
   ];
+
+  // 圖片對齊按鈕
+  const imageItems = [
+    {
+      icon: <AlignLeft size={16} />,
+      title: '靠左文繞圖',
+      action: () => editor.chain().focus().updateAttributes('image', { align: 'left' }).run(),
+      isActive: align === 'left',
+    },
+    {
+      icon: <AlignCenter size={16} />,
+      title: '置中',
+      action: () => editor.chain().focus().updateAttributes('image', { align: 'center' }).run(),
+      isActive: align === 'center',
+    },
+    {
+      icon: <AlignRight size={16} />,
+      title: '靠右文繞圖',
+      action: () => editor.chain().focus().updateAttributes('image', { align: 'right' }).run(),
+      isActive: align === 'right',
+    },
+  ];
+
+  const items = isImageSelected ? imageItems : textItems;
 
   return (
     <BubbleMenu
       editor={editor}
       shouldShow={({ state, editor }) => {
-        return editor.isActive('image') || !state.selection.empty;
+        // 圖片 NodeSelection 或文字選取都顯示
+        if (state.selection instanceof NodeSelection && editor.isActive('image')) return true;
+        return !state.selection.empty;
       }}
       className="flex items-center gap-1 p-1 bg-slate-900 rounded-lg shadow-xl border border-slate-700 overflow-hidden"
     >
-      {items.filter(item => item.show).map((item, i) => (
+      {items.map((item, i) => (
         <button
-          key={i}
+          key={`${isImageSelected ? 'img' : 'txt'}-${i}`}
           type="button"
           onClick={(e) => {
             e.preventDefault();
@@ -1069,15 +1529,42 @@ export function TiptapEditor({
   showBlockHandle = true,
 }: TiptapEditorProps) {
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const [linkEditorOpen, setLinkEditorOpen] = useState(false);
+  const [linkEditorSelection, setLinkEditorSelection] = useState<{ from: number; to: number } | null>(null);
+
+  // 斜線命令圖片插入的狀態
+  const [slashMediaOpen, setSlashMediaOpen] = useState(false);
+  const [slashPendingImage, setSlashPendingImage] = useState<any>(null);
+  const [slashVariantModal, setSlashVariantModal] = useState(false);
+
+  const openLinkEditor = useCallback((editorInstance: any) => {
+    if (!editorInstance) return;
+    const { from, to } = editorInstance.state.selection;
+    if (from === to) return; // 沒有選取文字時不開啟
+    setLinkEditorSelection({ from, to });
+    setLinkEditorOpen(true);
+  }, []);
+
+  const closeLinkEditor = useCallback(() => {
+    setLinkEditorOpen(false);
+    setLinkEditorSelection(null);
+  }, []);
+
+  const slashCommandsExtension = useRef(
+    createSlashCommandsExtension(() => setSlashMediaOpen(true))
+  ).current;
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
-        codeBlock: {
-          HTMLAttributes: {
-            class: 'rounded-md bg-slate-900 text-slate-100 p-4 font-mono text-sm my-4',
-          },
+        codeBlock: false,
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+      }).extend({
+        addNodeView() {
+          return ReactNodeViewRenderer(CodeBlockComponent);
         },
       }),
       BubbleMenuExtension,
@@ -1113,6 +1600,7 @@ export function TiptapEditor({
       Placeholder.configure({
         placeholder: placeholder,
       }),
+      slashCommandsExtension,
     ],
     content: content,
     immediatelyRender: false,
@@ -1126,6 +1614,100 @@ export function TiptapEditor({
         if (event.dataTransfer?.types.includes('application/x-block-drag')) {
           return true;
         }
+        return false;
+      },
+      handleKeyDown: (view, event) => {
+        // Ctrl+K / Cmd+K 開啟連結編輯器
+        if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+          event.preventDefault();
+          openLinkEditor(editor);
+          return true;
+        }
+
+        // Ctrl+D / Cmd+D 複製區塊
+        if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+          event.preventDefault();
+          if (!editor) return true;
+          const { state } = view;
+          const { $from } = state.selection;
+          // 找到游標所在的最頂層區塊節點
+          const depth = $from.depth;
+          const blockStart = $from.start(1);
+          const blockEnd = $from.end(1);
+          const blockNode = $from.node(1);
+          if (blockNode) {
+            const tr = state.tr;
+            // 在當前區塊後面插入相同的節點
+            tr.insert(blockEnd + 1, blockNode.copy(blockNode.content));
+            view.dispatch(tr);
+          }
+          return true;
+        }
+
+        // Ctrl+Shift+K / Cmd+Shift+K 刪除區塊
+        if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'K') {
+          event.preventDefault();
+          if (!editor) return true;
+          const { state } = view;
+          const { $from } = state.selection;
+          const blockStart = $from.before(1);
+          const blockEnd = $from.after(1);
+          const tr = state.tr;
+          tr.delete(blockStart, blockEnd);
+          view.dispatch(tr);
+          return true;
+        }
+
+        // Alt+↑ 向上移動區塊
+        if (event.altKey && event.key === 'ArrowUp') {
+          event.preventDefault();
+          if (!editor) return true;
+          const { state } = view;
+          const { $from } = state.selection;
+          const blockStart = $from.before(1);
+          const blockEnd = $from.after(1);
+          if (blockStart === 0) return true;
+          const blockNode = $from.node(1);
+          const $prevEnd = state.doc.resolve(blockStart - 1);
+          const prevStart = $prevEnd.before(1);
+          // 記住游標在區塊內的相對偏移
+          const offsetInBlock = $from.pos - blockStart;
+          const tr = state.tr;
+          tr.delete(blockStart, blockEnd);
+          tr.insert(prevStart, blockNode);
+          // 游標跟著區塊走：新位置 = prevStart + 相對偏移
+          const newPos = Math.min(prevStart + offsetInBlock, tr.doc.content.size);
+          tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
+          view.dispatch(tr.scrollIntoView());
+          return true;
+        }
+
+        // Alt+↓ 向下移動區塊
+        if (event.altKey && event.key === 'ArrowDown') {
+          event.preventDefault();
+          if (!editor) return true;
+          const { state } = view;
+          const { $from } = state.selection;
+          const blockStart = $from.before(1);
+          const blockEnd = $from.after(1);
+          if (blockEnd >= state.doc.content.size) return true;
+          const blockNode = $from.node(1);
+          const $nextStart = state.doc.resolve(blockEnd + 1);
+          const nextEnd = $nextStart.after(1);
+          const nextSize = nextEnd - blockEnd;
+          // 記住游標在區塊內的相對偏移
+          const offsetInBlock = $from.pos - blockStart;
+          const tr = state.tr;
+          // 先在下一個區塊之後插入複本，再刪除原來的
+          tr.insert(nextEnd, blockNode);
+          tr.delete(blockStart, blockEnd);
+          // 游標跟著區塊走：新位置 = 原位置 + 下一個區塊的大小
+          const newPos = Math.min(blockStart + nextSize + offsetInBlock, tr.doc.content.size);
+          tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
+          view.dispatch(tr.scrollIntoView());
+          return true;
+        }
+
         return false;
       },
       handleDOMEvents: {
@@ -1151,7 +1733,14 @@ export function TiptapEditor({
 
   return (
     <div ref={editorContainerRef} className={`w-full bg-white relative ${showBlockHandle ? 'pl-14' : 'p-4'} ${className}`}>
-      <EditorBubbleMenu editor={editor} accentColorClass={accentColorClass} />
+      <EditorBubbleMenu editor={editor} accentColorClass={accentColorClass} onLinkEdit={() => openLinkEditor(editor)} />
+      {linkEditorOpen && editor && (
+        <LinkEditor
+          editor={editor}
+          onClose={closeLinkEditor}
+          savedSelection={linkEditorSelection}
+        />
+      )}
       {showBlockHandle && (
         <BlockHandle
           editor={editor}
@@ -1161,6 +1750,86 @@ export function TiptapEditor({
       )}
       <EditorContent editor={editor} />
       <TiptapStyles />
+
+      {/* 斜線命令的媒體庫 */}
+      <MediaBrowser
+        isOpen={slashMediaOpen}
+        onClose={() => setSlashMediaOpen(false)}
+        onSelect={(media: any) => {
+          const imagePath = media.file_path || media.url || media.path;
+          if (imagePath) {
+            setSlashPendingImage(media);
+            setSlashVariantModal(true);
+          }
+          setSlashMediaOpen(false);
+        }}
+      />
+
+      {/* 斜線命令的圖片尺寸選擇 */}
+      {slashVariantModal && slashPendingImage && editor && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">選擇插入尺寸</h3>
+              <button
+                onClick={() => { setSlashVariantModal(false); setSlashPendingImage(null); }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 grid grid-cols-2 gap-3">
+              {[
+                { label: '原始', variant: undefined },
+                { label: 'Large', variant: 'large' },
+                { label: 'Medium', variant: 'medium' },
+                { label: 'Small', variant: 'small' },
+                { label: 'Thumbnail', variant: 'thumbnail' },
+              ].map(({ label, variant }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    const imagePath = slashPendingImage.file_path || slashPendingImage.url || slashPendingImage.path;
+                    if (!variant) {
+                      const fullUrl = getImageUrl(imagePath);
+                      editor.chain().focus().setImage({ src: fullUrl }).run();
+                    } else {
+                      const isGcs = imagePath.includes('storage.googleapis.com');
+                      let fullUrl = '';
+                      if (isGcs) {
+                        const lastSlashIndex = imagePath.lastIndexOf('/');
+                        const baseUrl = imagePath.substring(0, lastSlashIndex + 1);
+                        const filename = imagePath.substring(lastSlashIndex + 1);
+                        const cleanFilename = filename.replace(/^(thumbnail|small|medium|large)_/, '');
+                        const hasDot = cleanFilename.includes('.');
+                        if (!hasDot) {
+                          const extensionMatch = cleanFilename.match(/_(png|jpg|jpeg|webp|gif)$/i);
+                          if (extensionMatch) {
+                            fullUrl = `${baseUrl}${variant}_${cleanFilename}.${extensionMatch[1]}`;
+                          } else {
+                            fullUrl = `${baseUrl}${variant}_${cleanFilename}`;
+                          }
+                        } else {
+                          fullUrl = `${baseUrl}${variant}_${cleanFilename}`;
+                        }
+                      } else {
+                        fullUrl = getImageUrl(imagePath, variant);
+                      }
+                      editor.chain().focus().setImage({ src: fullUrl }).run();
+                    }
+                    setSlashVariantModal(false);
+                    setSlashPendingImage(null);
+                  }}
+                  className="px-4 py-3 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all text-sm font-medium text-gray-700"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

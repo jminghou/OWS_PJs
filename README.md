@@ -289,38 +289,61 @@ sudo docker compose build
 sudo docker compose up -d
 ```
 
-### 更新部署（Git Pull）
+### 更新部署（Git Pull）標準 SOP
 
-本機開發完成後，透過 Git 同步到 NAS 並重新部署：
+當本機開發完成並推送至 GitHub 後，請按照以下步驟更新 NAS 環境：
 
+#### 1. 同步原始碼
 ```bash
-# === 本機（Windows） ===
-git add .
-git commit -m "更新描述"
-git push origin main
-
-# === NAS（SSH） ===
 ssh Jermaine@192.168.30.65
 cd /volume1/docker/OWS_PJs
-
-# 拉取最新程式碼
 sudo git pull origin main
-
-# 重新建置並啟動容器
-cd deploy
-sudo docker compose down
-sudo docker compose build
-sudo docker compose up -d
-
-# 確認所有容器正常運作
-sudo docker compose ps
 ```
 
-> **提示**：如果只修改了前端程式碼，可以只重建前端容器以節省時間：
-> ```bash
-> sudo docker compose build frontend
-> sudo docker compose up -d frontend
-> ```
+#### 2. 重啟並建置容器 (標準更新)
+```bash
+cd deploy
+# 建議先停止舊容器以釋放記憶體
+sudo docker compose down
+# 重新建置並啟動
+sudo docker compose up -d --build
+```
+
+#### 3. 強制更新 (若網頁沒變，用於破除 Docker 快取)
+如果發現 `git pull` 成功但畫面沒更新，請使用「無快取」重建：
+```bash
+sudo docker compose down --rmi all
+sudo docker compose build --no-cache
+sudo docker compose up -d
+```
+
+#### 4. 資料庫結構同步 (重要)
+若修改了後端 `models.py` (新增/修改欄位)，必須手動補上資料庫欄位，否則會出現 500 錯誤：
+```bash
+# 進入資料庫容器
+sudo docker exec -it polaris_db psql -U polaris -d polaris_db
+
+# 執行 SQL (範例：新增欄位)
+# ALTER TABLE homepage_settings ADD COLUMN IF NOT EXISTS about_section TEXT;
+
+# 退出 SQL
+\q
+
+# 重啟後端以刷新模型快取
+sudo docker compose restart backend
+```
+
+#### 5. 清除快取 (最後步驟)
+部署完成後，請務必執行以下動作以確保看到最新版本：
+1. **Cloudflare**：進入後台點擊 **"Purge Everything"**。
+2. **瀏覽器**：在該網頁按下 **`Ctrl + F5`** (或使用無痕模式測試)。
+
+---
+
+### 常見問題與排查
+- **畫面空白或 JS 抓不到**：通常是 Cloudflare 或瀏覽器還在快取舊的 HTML，請執行「清除快取」步驟。
+- **500 錯誤**：請查看後端日誌 `sudo docker logs -f polaris_backend`，若看到 `UndefinedColumn`，請執行上述「資料庫結構同步」。
+- **容器顯示 unhealthy**：檢查 `.env` 是否缺失 `SECRET_KEY` 或資料庫連線資訊。
 
 ### 透過 Synology Container Manager 部署（替代方案）
 

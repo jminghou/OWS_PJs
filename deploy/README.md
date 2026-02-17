@@ -5,12 +5,12 @@
 ```
 Cloudflare Tunnel
 ├── frontend.polaris-parent.com → http://192.168.30.65:3000 (Next.js)
-└── api.polaris-parent.com      → http://192.168.30.65:5001 (Flask)
+└── api.polaris-parent.com      → http://192.168.30.65:5055 (Flask)
 
 NAS Docker (192.168.30.65)
 ├── polaris_db        (PostgreSQL 15)     :5432
 ├── polaris_redis     (Redis 7)           internal
-├── polaris_backend   (Flask/Gunicorn)    :5001 → container :5000
+├── polaris_backend   (Flask/Gunicorn)    :5055 → container :5000
 └── polaris_frontend  (Next.js)           :3000
 ```
 
@@ -139,35 +139,63 @@ docker compose logs -f
 | 外部前端 | `https://frontend.polaris-parent.com` |
 | 外部 API | `https://api.polaris-parent.com/api/v1` |
 | 內網前端 | `http://192.168.30.65:3000` |
-| 內網 API | `http://192.168.30.65:5001/api/v1` |
+| 內網 API | `http://192.168.30.65:5055/api/v1` |
 
 ---
 
-## 日常維護
+## 日常維護：更新部署 SOP
 
-### 更新部署
-
+### 1. 同步原始碼
 ```bash
+ssh Jermaine@192.168.30.65
 cd /volume1/docker/OWS_PJs
-
-# 拉取最新程式碼
-git pull
-
-# 重新建置並啟動
-cd deploy
-docker compose build
-docker compose up -d
+sudo git pull origin main
 ```
 
-或在 Container Manager 中：專案 → 停止 → 建置 → 啟動
+### 2. 重啟並建置容器 (標準更新)
+```bash
+cd deploy
+# 建議先停止以釋放記憶體
+sudo docker compose down
+# 重新建置並啟動
+sudo docker compose up -d --build
+```
+
+### 3. 強制更新 (若網頁沒變，用於破除 Docker 快取)
+如果發現 `git pull` 成功但畫面沒更新，請使用「無快取」重建：
+```bash
+sudo docker compose down --rmi all
+sudo docker compose build --no-cache
+sudo docker compose up -d
+```
+
+### 4. 資料庫結構同步 (重要)
+若修改了後端 `models.py` (新增/修改欄位)，必須手動補上資料庫欄位：
+```bash
+# 進入資料庫容器
+sudo docker exec -it polaris_db psql -U polaris -d polaris_db
+
+# 執行 SQL (範例：新增欄位)
+# ALTER TABLE homepage_settings ADD COLUMN IF NOT EXISTS about_section TEXT;
+
+# 退出 SQL
+\q
+
+# 重啟後端以刷新模型快取
+sudo docker compose restart backend
+```
+
+### 5. 清除快取 (最後步驟)
+部署完成後，務必執行以下動作：
+1. **Cloudflare**：進入後台點擊 **"Purge Everything"**。
+2. **瀏覽器**：在該網頁按下 **`Ctrl + F5`** (或使用無痕模式)。
+
+---
 
 ### 查看日誌
-
 ```bash
-docker compose logs -f              # 全部
-docker compose logs -f backend      # 只看後端
-docker compose logs -f frontend     # 只看前端
-docker compose logs -f db           # 只看資料庫
+sudo docker logs -f polaris_backend      # 只看後端
+sudo docker logs -f polaris_frontend     # 只看前端
 ```
 
 ### 備份資料庫
@@ -213,7 +241,7 @@ deploy/
 | Public Hostname | Service |
 |-----------------|---------|
 | `frontend.polaris-parent.com` | `http://192.168.30.65:3000` |
-| `api.polaris-parent.com` | `http://192.168.30.65:5001` |
+| `api.polaris-parent.com` | `http://192.168.30.65:5055` |
 
 ---
 
@@ -241,5 +269,5 @@ docker exec -it polaris_db psql -U polaris -d polaris_db
 
 ```bash
 # 檢查 port 使用狀況
-netstat -tlnp | grep -E '3000|5001|5432'
+netstat -tlnp | grep -E '3000|5055|5432'
 ```
