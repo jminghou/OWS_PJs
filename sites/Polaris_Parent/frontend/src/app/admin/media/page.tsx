@@ -53,7 +53,6 @@ export default function MediaPage() {
   const [showMoveDropdown, setShowMoveDropdown] = useState(false);
   const [pagination, setPagination] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showFoldersDropdown, setShowFoldersDropdown] = useState(false);
   const [showThumbnailBrowser, setShowThumbnailBrowser] = useState(false);
   const [thumbnailTargetFolderId, setThumbnailTargetFolderId] = useState<number | null>(null);
   const [renamingFolder, setRenamingFolder] = useState<MediaFolder | null>(null);
@@ -213,9 +212,6 @@ export default function MediaPage() {
 
   const childFolders = selectedFolder ? getChildFolders(selectedFolder.id) : [];
 
-  // 取得第一層資料夾（供 Folders 下拉選單用）
-  const topLevelFolders = folders.filter((f) => !f.parent_id);
-
   // 取得資料夾的縮圖 URL
   const getFolderThumbnailUrl = (folder: MediaFolder): string | null => {
     if (folder.thumbnail) {
@@ -340,49 +336,16 @@ export default function MediaPage() {
           }
         />
 
-        {/* Folders 下拉選單 */}
-        <div className="px-8 pt-4 pb-2">
-          <div className="relative inline-block">
-            <button
-              onClick={() => setShowFoldersDropdown(!showFoldersDropdown)}
-              className="flex items-center gap-2 text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors"
-            >
-              Folders
-              <svg className={`w-4 h-4 transition-transform ${showFoldersDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {showFoldersDropdown && (
-              <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-40 py-1 max-h-64 overflow-y-auto">
-                {topLevelFolders.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => { setSelectedFolderId(f.id); setShowFoldersDropdown(false); }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                      selectedFolderId === f.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                    }`}
-                  >
-                    {f.name}
-                  </button>
-                ))}
-                {topLevelFolders.length === 0 && (
-                  <p className="px-4 py-2 text-sm text-gray-400">尚無資料夾</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* 內容區域 */}
-        <div className="px-8 pb-8">
+        <div className="px-8 pb-8 pt-5">
           {/* ===== 選中特定資料夾時的檢視 ===== */}
           {selectedFolder ? (
             <div>
               {/* 資料夾標頭 */}
-              <div className="flex items-start gap-4 mb-6">
+              <div className="flex items-start gap-4 mb-3">
                 {/* 縮圖 */}
                 <div
-                  className="w-[77px] h-[77px] flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center"
+                  className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center"
                   onClick={() => {
                     setThumbnailTargetFolderId(selectedFolder.id);
                     setShowThumbnailBrowser(true);
@@ -415,31 +378,20 @@ export default function MediaPage() {
                 </div>
               </div>
 
-              {/* 上傳區 + 媒體網格 */}
-              <div className="flex gap-4 mb-3">
-                {/* 上傳拖曳區 */}
-                <div className="w-[372px] flex-shrink-0">
-                  <InlineUploadZone
-                    folderId={selectedFolderId}
-                    onUploadComplete={() => { fetchFiles(); fetchFolders(); }}
-                  />
-                </div>
-
-                {/* 媒體網格 */}
-                <div className="flex-1">
-                  {loading ? (
-                    <AdminLoadingSkeleton variant="grid" count={5} />
-                  ) : (
-                    <AdminContentGrid items={mediaItems} renderItem={renderFolderMediaItem} />
-                  )}
-                </div>
+              {/* 上傳拖曳區 - 緊湊橫排 */}
+              <div className="mb-4">
+                <InlineUploadZone
+                  folderId={selectedFolderId}
+                  onUploadComplete={() => { fetchFiles(); fetchFolders(); }}
+                  compact
+                />
               </div>
 
-              {/* 空狀態 */}
-              {!loading && mediaItems.length === 0 && (
-                <div className="text-center py-8 text-gray-400">
-                  <p>此資料夾中沒有媒體文件，拖曳檔案到上方區域開始上傳</p>
-                </div>
+              {/* 媒體網格 - 全寬對齊 */}
+              {loading ? (
+                <AdminLoadingSkeleton variant="grid" count={10} />
+              ) : (
+                <AdminContentGrid items={mediaItems} renderItem={renderFolderMediaItem} />
               )}
 
               {/* 分頁 */}

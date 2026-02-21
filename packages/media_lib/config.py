@@ -7,7 +7,7 @@ Media Library - Configuration
 # PostgreSQL Schema 名稱
 SCHEMA_NAME = 'media_lib'
 
-# 圖片變體規格（參考 Strapi）
+# 圖片變體規格
 IMAGE_VARIANTS = {
     'thumbnail': {'max_width': 77, 'max_height': 77, 'quality': 80},
     'small':     {'max_width': 180, 'max_height': 180, 'quality': 85},

@@ -11,6 +11,7 @@ export interface AdminUploadZoneProps {
   multiple?: boolean;
   className?: string;
   minHeight?: string;
+  compact?: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ export function AdminUploadZone({
   multiple = true,
   className = '',
   minHeight = '200px',
+  compact = false,
 }: AdminUploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +60,7 @@ export function AdminUploadZone({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      style={{ minHeight }}
+      style={compact ? undefined : { minHeight }}
       className={`border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center transition-all duration-200 ${
         isDragging 
           ? 'border-blue-500 bg-blue-50 scale-[1.01]' 
@@ -88,13 +90,40 @@ export function AdminUploadZone({
             ))}
           </div>
         </div>
+      ) : compact ? (
+        <div className="py-4 px-6 flex flex-row items-center gap-4">
+          <div className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+            <Upload className="w-5 h-5 text-gray-400" />
+          </div>
+          <div className="space-y-0.5 text-left">
+            <p className="text-sm font-medium text-gray-700">
+              拖放檔案到此處，或{' '}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-blue-600 hover:text-blue-700 font-semibold underline underline-offset-2 focus:outline-none"
+              >
+                瀏覽電腦
+              </button>
+            </p>
+            <p className="text-xs text-gray-400">支援圖片、影片、PDF 或文件檔案</p>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple={multiple}
+            accept={accept}
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+        </div>
       ) : (
         <div className="p-8 flex flex-col items-center">
           {/* 上傳圖示 */}
           <div className="w-14 h-14 bg-white border border-gray-200 rounded-xl flex items-center justify-center mb-4 shadow-sm group-hover:shadow-md transition-shadow">
             <Upload className="w-7 h-7 text-gray-400" />
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-700">
               拖放檔案到此處，或{' '}

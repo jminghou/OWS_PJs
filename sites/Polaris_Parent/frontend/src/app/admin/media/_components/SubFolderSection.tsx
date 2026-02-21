@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { mediaApi } from '@/lib/api/media';
 import type { MediaItem, MediaFolder } from '@/lib/api/strapi';
 import { getImageUrl } from '@/lib/utils';
@@ -21,6 +21,24 @@ export function SubFolderSection({
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+
+  // 縮圖：優先使用手動設定的 folder.thumbnail，否則自動 fetch 第一張圖
+  const [previewUrl, setPreviewUrl] = useState<string | null>(() => {
+    if (folder.thumbnail) {
+      return getImageUrl(folder.thumbnail.formats?.thumbnail?.url || folder.thumbnail.url);
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (previewUrl !== null) return;       // 已有縮圖（手動設定），不需 fetch
+    if (folder.file_count === 0) return;   // 空資料夾，不 fetch
+    mediaApi.getMediaList({ folder_id: folder.id, per_page: 1 }).then((result) => {
+      if (result.media.length > 0) {
+        setPreviewUrl(getImageUrl(getSmallUrl(result.media[0])));
+      }
+    }).catch(() => {});
+  }, []);
 
   const handleToggle = async () => {
     if (!isExpanded && !loaded) {
@@ -45,14 +63,27 @@ export function SubFolderSection({
     <div>
       <button
         onClick={handleToggle}
-        className="flex items-center gap-2 py-3 text-left w-full hover:text-blue-600 transition-colors"
+        className="flex items-center gap-3 py-2 text-left w-full hover:text-blue-600 transition-colors"
       >
+        {/* 縮圖 */}
+        <div className="w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+          {previewUrl ? (
+            <img src={previewUrl} alt={folder.name} className="w-full h-full object-cover" />
+          ) : (
+            <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+            </svg>
+          )}
+        </div>
+
+        {/* 展開箭頭 */}
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+          className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
           fill="currentColor" viewBox="0 0 20 20"
         >
           <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
         </svg>
+
         <h3 className="text-lg font-semibold text-gray-900">{folder.name}</h3>
         <span className="text-sm text-gray-400">({folder.file_count})</span>
       </button>

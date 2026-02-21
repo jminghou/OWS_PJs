@@ -11,9 +11,13 @@ import { mediaApi } from '@/lib/api/media';
 export function InlineUploadZone({
   folderId,
   onUploadComplete,
+  minHeight = '200px',
+  compact = false,
 }: {
   folderId: number | null;
   onUploadComplete: () => void;
+  minHeight?: string;
+  compact?: boolean;
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
@@ -44,6 +48,8 @@ export function InlineUploadZone({
       onUpload={handleUpload}
       isUploading={isUploading}
       uploadProgress={uploadProgress}
+      minHeight={minHeight}
+      compact={compact}
     />
   );
 }
