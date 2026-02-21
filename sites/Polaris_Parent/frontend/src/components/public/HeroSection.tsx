@@ -11,6 +11,8 @@ interface HeroSectionProps {
   buttonLink: string;
   backgroundSlides: HomepageSlide[];
   locale: string;
+  pauseOnHover?: boolean;  // Feature 7
+  lazyLoading?: boolean;   // Feature 9
 }
 
 export default function HeroSection({
@@ -20,16 +22,36 @@ export default function HeroSection({
   buttonLink,
   backgroundSlides,
   locale,
+  pauseOnHover = true,
+  lazyLoading = true,
 }: HeroSectionProps) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
-  // 獲取當前幻燈片的副標題（按 sort_order 排序後的）
+  // 獲取當前幻燈片（按 sort_order 排序後）
   const sortedSlides = [...backgroundSlides].sort((a, b) => a.sort_order - b.sort_order);
   const currentSlide = sortedSlides[currentSlideIndex];
-  const slideSubtitle = currentSlide?.subtitles?.[locale] || currentSlide?.subtitles?.['zh-TW'] || '';
 
-  // 決定顯示哪個副標題：如果幻燈片有設定副標題則使用，否則使用預設的 subtitle
+  // Feature 6: per-slide title override (fallback to global title prop)
+  const displayTitle =
+    currentSlide?.titles?.[locale] ||
+    currentSlide?.titles?.['zh-TW'] ||
+    title;
+
+  // Subtitle: per-slide (fallback to global subtitle prop)
+  const slideSubtitle =
+    currentSlide?.subtitles?.[locale] ||
+    currentSlide?.subtitles?.['zh-TW'] ||
+    '';
   const displaySubtitle = slideSubtitle || subtitle;
+
+  // Feature 1: per-slide CTA link (fallback to global scroll behavior)
+  const hasCtaUrl = !!currentSlide?.cta_url;
+  const ctaText =
+    currentSlide?.cta_text?.[locale] ||
+    currentSlide?.cta_text?.['zh-TW'] ||
+    buttonText;
+  const ctaUrl = currentSlide?.cta_url || buttonLink;
+  const ctaNewTab = currentSlide?.cta_new_tab || false;
 
   const handleScrollToSection = () => {
     const element = document.getElementById('banner');
@@ -47,21 +69,23 @@ export default function HeroSection({
             slides={backgroundSlides}
             currentLanguage={locale}
             onSlideChange={setCurrentSlideIndex}
+            pauseOnHover={pauseOnHover}
+            lazyLoading={lazyLoading}
           />
         </div>
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-purple-600 to-brand-purple-800" />
+        <>
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-purple-600 to-brand-purple-800" />
+          <div className="absolute inset-0 bg-black/30 z-[1]" />
+        </>
       )}
-
-      {/* Dark overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/30 z-[1]" />
 
       {/* Content overlay - centered vertically and horizontally */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
         <div className="text-center pointer-events-auto px-4">
-          {/* Title */}
+          {/* Feature 6: per-slide title (or global fallback) */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center drop-shadow-lg mb-4">
-            {title}
+            {displayTitle}
           </h1>
 
           {/* Horizontal rule decoration */}
@@ -77,27 +101,40 @@ export default function HeroSection({
         </div>
       </div>
 
-      {/* Button at bottom - standard rounded button (NOT circular) */}
+      {/* Feature 1: CTA button at bottom */}
       <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-10">
-        <button
-          onClick={handleScrollToSection}
-          className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-        >
-          {buttonText}
-          <svg
-            className="ml-2 h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {hasCtaUrl ? (
+          // Per-slide CTA: navigate to the slide's link
+          <a
+            href={ctaUrl}
+            target={ctaNewTab ? '_blank' : '_self'}
+            rel={ctaNewTab ? 'noopener noreferrer' : undefined}
+            className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
+            {ctaText}
+          </a>
+        ) : (
+          // Global fallback: scroll to #banner section
+          <button
+            onClick={handleScrollToSection}
+            className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            {ctaText}
+            <svg
+              className="ml-2 h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+        )}
       </div>
     </section>
   );

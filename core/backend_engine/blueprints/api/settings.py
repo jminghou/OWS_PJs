@@ -109,8 +109,16 @@ def api_add_language():
 @bp.route('/settings/homepage', methods=['GET'])
 def api_get_homepage_settings():
     """Get homepage slideshow settings (public API, no login required)"""
-    slides = HomepageSlide.query.filter_by(is_active=True).order_by(HomepageSlide.sort_order).all()
-    
+    from sqlalchemy import or_
+    now = datetime.utcnow()
+
+    # Feature 8: Filter by active status AND scheduled date range
+    slides = HomepageSlide.query.filter(
+        HomepageSlide.is_active == True,
+        or_(HomepageSlide.start_date == None, HomepageSlide.start_date <= now),
+        or_(HomepageSlide.end_date == None, HomepageSlide.end_date >= now),
+    ).order_by(HomepageSlide.sort_order).all()
+
     # 改用 Setting 表讀取
     about_setting = Setting.query.filter_by(key='homepage_about_section').first()
     try:
@@ -120,6 +128,13 @@ def api_get_homepage_settings():
 
     homepage_settings = HomepageSettings.query.first()
     button_text = homepage_settings.button_text if homepage_settings else {}
+    # Features 7 & 9: global carousel settings
+    pause_on_hover = (homepage_settings.pause_on_hover
+                      if homepage_settings and homepage_settings.pause_on_hover is not None
+                      else True)
+    lazy_loading = (homepage_settings.lazy_loading
+                    if homepage_settings and homepage_settings.lazy_loading is not None
+                    else True)
 
     latest_slide = HomepageSlide.query.order_by(HomepageSlide.updated_at.desc()).first()
     updated_at = latest_slide.updated_at.isoformat() if latest_slide else datetime.utcnow().isoformat()
@@ -128,8 +143,20 @@ def api_get_homepage_settings():
         'slides': [s.to_dict() for s in slides],
         'button_text': button_text,
         'about_section': about_section,
+        'pause_on_hover': pause_on_hover,
+        'lazy_loading': lazy_loading,
         'updated_at': updated_at
     }), 200
+
+
+def _parse_datetime(value):
+    """Safely parse ISO datetime string or return None."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except (ValueError, AttributeError):
+        return None
 
 
 @bp.route('/settings/homepage', methods=['PUT'])
@@ -141,7 +168,7 @@ def api_update_homepage_settings():
         return jsonify({'message': 'Editor permission required'}), 403
 
     data = request.get_json()
-    
+
     # 1. 處理關於我們 (使用 Setting 表，這是最穩定的做法)
     if 'about_section' in data:
         about_data = data.get('about_section')
@@ -151,19 +178,22 @@ def api_update_homepage_settings():
         else:
             db.session.add(Setting(key='homepage_about_section', value=json.dumps(about_data, ensure_ascii=False)))
 
-    # 2. 處理按鈕文字
+    # 2. 處理全域設定 (按鈕文字 + Features 7 & 9)
+    homepage_settings = HomepageSettings.query.first()
+    if not homepage_settings:
+        homepage_settings = HomepageSettings()
+        db.session.add(homepage_settings)
+
     if 'button_text' in data:
-        homepage_settings = HomepageSettings.query.first()
-        if not homepage_settings:
-            homepage_settings = HomepageSettings(button_text=data.get('button_text'))
-            db.session.add(homepage_settings)
-        else:
-            homepage_settings.button_text = data.get('button_text')
-            homepage_settings.updated_at = datetime.utcnow()
-    
+        homepage_settings.button_text = data.get('button_text')
+    if 'pause_on_hover' in data:
+        homepage_settings.pause_on_hover = data['pause_on_hover']
+    if 'lazy_loading' in data:
+        homepage_settings.lazy_loading = data['lazy_loading']
+    homepage_settings.updated_at = datetime.utcnow()
+
     # 3. 處理幻燈片
     slides_data = data.get('slides', [])
-    # ... (保持原本 slides 邏輯) ...
     existing_slide_ids = [slide.slide_id for slide in HomepageSlide.query.all()]
     new_slide_ids = [slide_data.get('id') for slide_data in slides_data if slide_data.get('id')]
     slides_to_delete = set(existing_slide_ids) - set(new_slide_ids)
@@ -172,19 +202,51 @@ def api_update_homepage_settings():
 
     for slide_data in slides_data:
         slide_id = slide_data.get('id')
-        if not slide_id: continue
+        if not slide_id:
+            continue
         slide = HomepageSlide.query.filter_by(slide_id=slide_id).first()
         if slide:
             slide.image_url = slide_data.get('image_url', slide.image_url)
             slide.alt_text = slide_data.get('alt_text', '')
             slide.sort_order = slide_data.get('sort_order', 0)
             slide.subtitles = slide_data.get('subtitles', {})
+            # Feature 1: CTA
+            slide.cta_url = slide_data.get('cta_url', '')
+            slide.cta_text = slide_data.get('cta_text', {})
+            slide.cta_new_tab = slide_data.get('cta_new_tab', False)
+            # Feature 2: per-slide autoplay delay
+            slide.autoplay_delay = slide_data.get('autoplay_delay')  # None preserved
+            # Feature 3: video
+            slide.video_url = slide_data.get('video_url', '')
+            slide.media_type = slide_data.get('media_type', 'image')
+            # Feature 4: focal point
+            slide.focal_point = slide_data.get('focal_point', 'center center')
+            # Feature 5: overlay opacity
+            slide.overlay_opacity = slide_data.get('overlay_opacity', 40)
+            # Feature 6: per-slide title
+            slide.titles = slide_data.get('titles', {})
+            # Feature 8: scheduling
+            slide.start_date = _parse_datetime(slide_data.get('start_date'))
+            slide.end_date = _parse_datetime(slide_data.get('end_date'))
             slide.updated_at = datetime.utcnow()
         else:
             db.session.add(HomepageSlide(
-                slide_id=slide_id, image_url=slide_data.get('image_url', ''),
-                alt_text=slide_data.get('alt_text', ''), sort_order=slide_data.get('sort_order', 0),
-                subtitles=slide_data.get('subtitles', {})
+                slide_id=slide_id,
+                image_url=slide_data.get('image_url', ''),
+                alt_text=slide_data.get('alt_text', ''),
+                sort_order=slide_data.get('sort_order', 0),
+                subtitles=slide_data.get('subtitles', {}),
+                cta_url=slide_data.get('cta_url', ''),
+                cta_text=slide_data.get('cta_text', {}),
+                cta_new_tab=slide_data.get('cta_new_tab', False),
+                autoplay_delay=slide_data.get('autoplay_delay'),
+                video_url=slide_data.get('video_url', ''),
+                media_type=slide_data.get('media_type', 'image'),
+                focal_point=slide_data.get('focal_point', 'center center'),
+                overlay_opacity=slide_data.get('overlay_opacity', 40),
+                titles=slide_data.get('titles', {}),
+                start_date=_parse_datetime(slide_data.get('start_date')),
+                end_date=_parse_datetime(slide_data.get('end_date')),
             ))
 
     try:

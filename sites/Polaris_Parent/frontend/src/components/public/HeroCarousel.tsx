@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, EffectFade } from 'swiper/modules';
 import { HomepageSlide } from '@/types';
+import { getImageUrl } from '@/lib/utils';
 
 // Import Swiper styles
 import 'swiper/css';
@@ -14,9 +15,114 @@ interface HeroCarouselProps {
   slides: HomepageSlide[];
   currentLanguage: string;
   onSlideChange?: (slideIndex: number) => void;
+  pauseOnHover?: boolean;  // Feature 7
+  lazyLoading?: boolean;   // Feature 9
 }
 
-export default function HeroCarousel({ slides, currentLanguage, onSlideChange }: HeroCarouselProps) {
+// ─── YouTube URL → video ID helper ───────────────────────────────────────────
+function extractYoutubeId(url: string): string {
+  return url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1] || '';
+}
+
+// ─── Per-slide media renderer ─────────────────────────────────────────────────
+function SlideMedia({
+  slide,
+  isFirst,
+  lazyLoading,
+}: {
+  slide: HomepageSlide;
+  isFirst: boolean;
+  lazyLoading: boolean;
+}) {
+  const mediaType = slide.media_type || 'image';
+  const focalPoint = slide.focal_point || 'center center';
+  const overlayOpacity = ((slide.overlay_opacity ?? 40) / 100).toFixed(2);
+  const overlayStyle = { backgroundColor: `rgba(0,0,0,${overlayOpacity})` };
+
+  // Feature 3a: YouTube background video
+  if (mediaType === 'youtube' && slide.video_url) {
+    const vid = extractYoutubeId(slide.video_url);
+    const embedSrc = `https://www.youtube.com/embed/${vid}?autoplay=1&mute=1&loop=1&playlist=${vid}&controls=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1`;
+    return (
+      <div className="absolute inset-0 overflow-hidden">
+        <iframe
+          src={embedSrc}
+          allow="autoplay; encrypted-media"
+          title={slide.alt_text || 'background video'}
+          className="absolute pointer-events-none"
+          style={{
+            width: '300%',
+            height: '300%',
+            top: '-100%',
+            left: '-100%',
+          }}
+        />
+        {/* Feature 5: per-slide overlay */}
+        <div className="absolute inset-0" style={overlayStyle} />
+      </div>
+    );
+  }
+
+  // Feature 3b: MP4 direct video
+  if (mediaType === 'video' && slide.video_url) {
+    const src = slide.video_url.startsWith('http')
+      ? slide.video_url
+      : `${process.env.NEXT_PUBLIC_BACKEND_URL || ''}${slide.video_url}`;
+    return (
+      <div className="absolute inset-0 overflow-hidden">
+        <video
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: focalPoint }}
+          autoPlay
+          muted
+          loop
+          playsInline
+          src={src}
+        />
+        {/* Feature 5: per-slide overlay */}
+        <div className="absolute inset-0" style={overlayStyle} />
+      </div>
+    );
+  }
+
+  // Feature 10: Responsive image with srcset (replaces CSS background-image)
+  // Feature 4: object-position from focal point
+  // Feature 9: lazy loading for non-first slides
+  const rawUrl = getImageUrl(slide.image_url);
+  const mediumUrl = getImageUrl(slide.image_url, 'medium');
+
+  return (
+    <div className="absolute inset-0">
+      <img
+        src={rawUrl}
+        srcSet={`${mediumUrl} 1280w, ${rawUrl} 1920w`}
+        sizes="100vw"
+        alt={slide.alt_text || ''}
+        loading={!isFirst && lazyLoading ? 'lazy' : 'eager'}
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: focalPoint }}
+        onError={(e) => {
+          const t = e.target as HTMLImageElement;
+          // If medium variant fails, fall back to original
+          if (t.src !== rawUrl) {
+            t.src = rawUrl;
+          }
+        }}
+      />
+      {/* Feature 5: per-slide overlay opacity */}
+      <div className="absolute inset-0" style={overlayStyle} />
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+export default function HeroCarousel({
+  slides,
+  currentLanguage,
+  onSlideChange,
+  pauseOnHover = true,
+  lazyLoading = true,
+}: HeroCarouselProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -44,8 +150,9 @@ export default function HeroCarousel({ slides, currentLanguage, onSlideChange }:
         fadeEffect={{ crossFade: true }}
         speed={3000}
         autoplay={{
-          delay: 6000,
+          delay: 6000,                     // global default
           disableOnInteraction: false,
+          pauseOnMouseEnter: pauseOnHover,  // Feature 7: hover pause
         }}
         pagination={{
           clickable: true,
@@ -59,21 +166,18 @@ export default function HeroCarousel({ slides, currentLanguage, onSlideChange }:
         }}
         className="h-full"
       >
-        {sortedSlides.map((slide) => (
-          <SwiperSlide key={slide.id}>
+        {sortedSlides.map((slide, index) => (
+          // Feature 2: per-slide autoplay delay via data-swiper-autoplay attribute
+          <SwiperSlide
+            key={slide.id}
+            {...(slide.autoplay_delay ? { 'data-swiper-autoplay': slide.autoplay_delay } : {})}
+          >
             <div className="relative w-full h-full">
-              {/* 背景圖片 */}
-              <div
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                style={{
-                  backgroundImage: `url(${slide.image_url.startsWith('http') ? slide.image_url : `http://localhost:5000${slide.image_url}`})`,
-                }}
-              >
-                {/* 漸層遮罩 */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
-              </div>
-
-              {/* 副標題已移至 HeroSection 顯示 */}
+              <SlideMedia
+                slide={slide}
+                isFirst={index === 0}
+                lazyLoading={lazyLoading}
+              />
             </div>
           </SwiperSlide>
         ))}

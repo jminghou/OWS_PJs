@@ -112,6 +112,8 @@ export default function HomePageContent({
         buttonLink={`${basePath}/about`}
         backgroundSlides={homepageSettings.slides}
         locale={locale}
+        pauseOnHover={homepageSettings.pause_on_hover ?? true}
+        lazyLoading={homepageSettings.lazy_loading ?? true}
       />
 
       {/* 2. About Preview Section */}

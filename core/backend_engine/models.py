@@ -480,6 +480,32 @@ class HomepageSlide(db.Model):
     sort_order = db.Column(db.Integer, default=0, nullable=False)
     subtitles = db.Column(JSONB, default={})  # {"zh-TW": "文字A", "en": "Text A"}
     is_active = db.Column(db.Boolean, default=True)
+
+    # Feature 1: Per-slide CTA link
+    cta_url = db.Column(db.String(500), nullable=True)
+    cta_text = db.Column(JSONB, default={})           # {"zh-TW": "了解更多", "en": "Learn More"}
+    cta_new_tab = db.Column(db.Boolean, default=False)
+
+    # Feature 2: Per-slide autoplay delay (ms); None = use global default 6000ms
+    autoplay_delay = db.Column(db.Integer, nullable=True)
+
+    # Feature 3: Video support
+    video_url = db.Column(db.String(500), nullable=True)
+    media_type = db.Column(db.String(20), default='image')  # 'image' | 'youtube' | 'video'
+
+    # Feature 4: Image focal point (CSS object-position)
+    focal_point = db.Column(db.String(30), default='center center')
+
+    # Feature 5: Per-slide overlay opacity (0-100, default 40 = ~from-black/40)
+    overlay_opacity = db.Column(db.Integer, default=40)
+
+    # Feature 6: Per-slide title override (multilang, fallback to global title)
+    titles = db.Column(JSONB, default={})
+
+    # Feature 8: Scheduled publish/unpublish
+    start_date = db.Column(db.DateTime, nullable=True)
+    end_date = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -490,7 +516,25 @@ class HomepageSlide(db.Model):
             'image_url': self.image_url,
             'alt_text': self.alt_text or '',
             'sort_order': self.sort_order,
-            'subtitles': self.subtitles or {}
+            'subtitles': self.subtitles or {},
+            # Feature 1
+            'cta_url': self.cta_url or '',
+            'cta_text': self.cta_text or {},
+            'cta_new_tab': self.cta_new_tab or False,
+            # Feature 2
+            'autoplay_delay': self.autoplay_delay,  # None → frontend uses global
+            # Feature 3
+            'video_url': self.video_url or '',
+            'media_type': self.media_type or 'image',
+            # Feature 4
+            'focal_point': self.focal_point or 'center center',
+            # Feature 5
+            'overlay_opacity': self.overlay_opacity if self.overlay_opacity is not None else 40,
+            # Feature 6
+            'titles': self.titles or {},
+            # Feature 8
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
         }
 
     def __repr__(self):
@@ -502,8 +546,15 @@ class HomepageSettings(db.Model):
     __tablename__ = 'homepage_settings'
 
     id = db.Column(db.Integer, primary_key=True)
-    button_text = db.Column(JSONB, default={})  # {"zh-TW": "關於我們", "en": "About Us"}
+    button_text = db.Column(JSONB, default={})   # {"zh-TW": "關於我們", "en": "About Us"}
     about_section = db.Column(JSONB, default={}) # {"zh-TW": {"title": "...", "philosophy": "..."}}
+
+    # Feature 7: Global pause-on-hover toggle
+    pause_on_hover = db.Column(db.Boolean, default=True)
+
+    # Feature 9: Global lazy loading toggle
+    lazy_loading = db.Column(db.Boolean, default=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -512,6 +563,8 @@ class HomepageSettings(db.Model):
         return {
             'button_text': self.button_text or {},
             'about_section': self.about_section or {},
+            'pause_on_hover': self.pause_on_hover if self.pause_on_hover is not None else True,
+            'lazy_loading': self.lazy_loading if self.lazy_loading is not None else True,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 

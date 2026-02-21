@@ -135,6 +135,24 @@ export interface HomepageSlide {
   alt_text: string;
   sort_order: number;
   subtitles: Record<string, string>; // {zh-TW: "文字A", en: "Text A", ...}
+  // Feature 1: Per-slide CTA link
+  cta_url?: string;
+  cta_text?: Record<string, string>;
+  cta_new_tab?: boolean;
+  // Feature 2: Per-slide autoplay delay (ms); null = use global default 6000ms
+  autoplay_delay?: number | null;
+  // Feature 3: Video support
+  video_url?: string;
+  media_type?: 'image' | 'youtube' | 'video';
+  // Feature 4: Image focal point (CSS object-position value)
+  focal_point?: string;
+  // Feature 5: Overlay opacity (0-100)
+  overlay_opacity?: number;
+  // Feature 6: Per-slide title override (multilang)
+  titles?: Record<string, string>;
+  // Feature 8: Scheduled publish/unpublish
+  start_date?: string | null;
+  end_date?: string | null;
 }
 
 export interface HomepageSettings {
@@ -147,6 +165,10 @@ export interface HomepageSettings {
     mission_points: string[];
     image_url?: string;
   }>;
+  // Feature 7: Global hover pause toggle
+  pause_on_hover?: boolean;
+  // Feature 9: Global lazy loading toggle
+  lazy_loading?: boolean;
   updated_at: string;
 }
 
