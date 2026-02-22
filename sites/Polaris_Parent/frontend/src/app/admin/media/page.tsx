@@ -81,7 +81,7 @@ export default function MediaPage() {
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = { page: currentPage, per_page: 20 };
+      const params: any = { page: currentPage, per_page: 50 };
       if (selectedFolderId !== null) {
         params.folder_id = selectedFolderId;
       }

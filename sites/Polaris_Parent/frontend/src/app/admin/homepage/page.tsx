@@ -530,23 +530,24 @@ export default function HomepagePage() {
             : s
         ));
       } else {
-        // 為現有 slide 更換圖片
+        // 為現有 slide 更換圖片（優先使用 hero 尺寸）
+        const imageUrl = media.formats?.hero?.url || media.file_path;
         setSlides(slides.map((s) =>
           s.id === pendingSlideId
-            ? { ...s, image_url: getImageUrl(media.file_path), alt_text: s.alt_text || media.alt_text || '', media_type: 'image' as const }
+            ? { ...s, image_url: imageUrl, alt_text: s.alt_text || media.alt_text || '', media_type: 'image' as const }
             : s
         ));
       }
       setPendingSlideId(null);
     } else {
-      // 新增 slide
+      // 新增 slide（優先使用 hero 尺寸）
       if (slides.length >= 5) {
         setMessage({ type: 'error', text: '最多只能添加 5 張圖片' });
         return;
       }
       const newSlide: HomepageSlide = {
         id: `slide-${Date.now()}`,
-        image_url: getImageUrl(media.file_path),
+        image_url: media.formats?.hero?.url || media.file_path,
         alt_text: media.alt_text || '',
         sort_order: slides.length,
         subtitles: {},

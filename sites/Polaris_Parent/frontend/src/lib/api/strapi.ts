@@ -19,6 +19,7 @@ export interface ImageFormats {
   small?: ImageFormat;
   medium?: ImageFormat;
   large?: ImageFormat;
+  hero?: ImageFormat;
 }
 
 export interface FileMetadata {

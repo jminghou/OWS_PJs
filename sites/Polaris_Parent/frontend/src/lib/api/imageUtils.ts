@@ -6,7 +6,7 @@
 
 import type { MediaItem, ImageFormats } from './strapi';
 
-export type ImageSize = 'thumbnail' | 'small' | 'medium' | 'large' | 'original';
+export type ImageSize = 'thumbnail' | 'small' | 'medium' | 'large' | 'hero' | 'original';
 
 /**
  * 取得優化後的圖片 URL
@@ -21,11 +21,12 @@ export function getOptimizedImageUrl(
   }
 
   const sizePriority: Record<ImageSize, ImageSize[]> = {
-    thumbnail: ['thumbnail', 'small', 'medium', 'large', 'original'],
-    small: ['small', 'thumbnail', 'medium', 'large', 'original'],
-    medium: ['medium', 'small', 'large', 'thumbnail', 'original'],
-    large: ['large', 'medium', 'small', 'thumbnail', 'original'],
-    original: ['original', 'large', 'medium', 'small', 'thumbnail'],
+    thumbnail: ['thumbnail', 'small', 'medium', 'large', 'hero', 'original'],
+    small: ['small', 'thumbnail', 'medium', 'large', 'hero', 'original'],
+    medium: ['medium', 'small', 'large', 'hero', 'thumbnail', 'original'],
+    large: ['large', 'hero', 'medium', 'small', 'thumbnail', 'original'],
+    hero: ['hero', 'large', 'medium', 'small', 'thumbnail', 'original'],
+    original: ['original', 'hero', 'large', 'medium', 'small', 'thumbnail'],
   };
 
   const sizes = sizePriority[preferredSize];
@@ -70,7 +71,8 @@ export function hasResponsiveFormats(media: MediaItem): boolean {
     media.formats.thumbnail ||
     media.formats.small ||
     media.formats.medium ||
-    media.formats.large
+    media.formats.large ||
+    media.formats.hero
   );
 }
 
@@ -87,7 +89,7 @@ export function getAvailableFormats(media: MediaItem): {
     height?: number;
   }[] = [];
 
-  const variantTypes: (keyof ImageFormats)[] = ['thumbnail', 'small', 'medium', 'large'];
+  const variantTypes: (keyof ImageFormats)[] = ['thumbnail', 'small', 'medium', 'large', 'hero'];
 
   for (const type of variantTypes) {
     const format = media.formats?.[type];

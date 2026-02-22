@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { i18nApi } from '@/lib/api';
-import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '@/lib/constants';
+import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, LANGUAGE_REGION_LABELS, LANGUAGE_REGION_ORDER, type LanguageRegion } from '@/lib/constants';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -137,8 +137,8 @@ export default function SettingsPage() {
     <AdminLayout>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">系統設定</h1>
-          <p className="text-gray-600">管理網站的全域設定</p>
+          <h1 className="text-2xl font-bold text-gray-900">語系設定</h1>
+          <p className="text-gray-600">管理網站的多語言顯示設定</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -153,62 +153,80 @@ export default function SettingsPage() {
                 </p>
               </div>
 
-              <div className="space-y-4">
-                {SUPPORTED_LANGUAGES.map((lang) => {
-                  const isActive = activeLanguages.includes(lang.code);
-                  const isDefault = defaultLanguage === lang.code;
-
+              <div className="space-y-6">
+                {LANGUAGE_REGION_ORDER.map((region) => {
+                  const regionLangs = SUPPORTED_LANGUAGES.filter(l => l.region === region);
+                  if (regionLangs.length === 0) return null;
                   return (
-                    <div 
-                      key={lang.code} 
-                      className={`flex items-center justify-between p-3 rounded-lg border ${
-                        isActive ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-60'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        {/* Toggle Switch */}
-                        <button
-                          type="button"
-                          onClick={() => handleToggleLanguage(lang.code)}
-                          disabled={isDefault} // 預設語言不能關閉
-                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                            isActive ? 'bg-blue-600' : 'bg-gray-200'
-                          } ${isDefault ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              isActive ? 'translate-x-5' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
-                        
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">
-                            {lang.name}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {lang.code}
-                          </span>
-                        </div>
+                    <div key={region}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          {LANGUAGE_REGION_LABELS[region]}
+                        </span>
+                        <div className="flex-1 h-px bg-gray-100" />
                       </div>
+                      <div className="space-y-2">
+                        {regionLangs.map((lang) => {
+                          const isActive = activeLanguages.includes(lang.code);
+                          const isDefault = defaultLanguage === lang.code;
+                          return (
+                            <div
+                              key={lang.code}
+                              className={`flex items-center justify-between p-3 rounded-lg border ${
+                                isActive ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-60'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3">
+                                {/* Toggle Switch */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleLanguage(lang.code)}
+                                  disabled={isDefault}
+                                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                    isActive ? 'bg-blue-600' : 'bg-gray-200'
+                                  } ${isDefault ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                  <span
+                                    aria-hidden="true"
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                      isActive ? 'translate-x-5' : 'translate-x-0'
+                                    }`}
+                                  />
+                                </button>
 
-                      <div className="flex items-center">
-                        {isDefault ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            預設語言
-                          </span>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs text-gray-500 hover:text-blue-600"
-                            onClick={() => handleSetDefault(lang.code)}
-                          >
-                            設為預設
-                          </Button>
-                        )}
+                                {/* 國旗圓形徽章 */}
+                                {lang.flag && (
+                                  <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-lg shrink-0 overflow-hidden">
+                                    {lang.flag}
+                                  </span>
+                                )}
+
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium text-gray-900">{lang.name}</span>
+                                  <span className="text-xs text-gray-500">{lang.code}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center">
+                                {isDefault ? (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    預設語言
+                                  </span>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs text-gray-500 hover:text-blue-600"
+                                    onClick={() => handleSetDefault(lang.code)}
+                                  >
+                                    設為預設
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );

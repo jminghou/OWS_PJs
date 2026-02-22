@@ -188,10 +188,10 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                       {file.width && file.height ? `${file.width}×${file.height}` : '—'}
                     </span>
                   </div>
-                  {(['large', 'medium', 'small', 'thumbnail'] as const).map((size) => {
+                  {(['hero', 'large', 'medium', 'small', 'thumbnail'] as const).map((size) => {
                     const fmt = file.formats?.[size];
                     if (!fmt) return null;
-                    const labels: Record<string, string> = { large: 'Large', medium: 'Medium', small: 'Small', thumbnail: 'Thumb' };
+                    const labels: Record<string, string> = { hero: 'Hero', large: 'Large', medium: 'Medium', small: 'Small', thumbnail: 'Thumb' };
                     return (
                       <div key={size} className="flex justify-between text-sm">
                         <span className="text-gray-500">{labels[size]}</span>
