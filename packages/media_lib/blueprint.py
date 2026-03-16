@@ -39,7 +39,7 @@ from core.backend_engine.factory import db
 from core.backend_engine.models import User
 from packages.media_lib.models import MLFile, MLFileVariant, MLFolder, MLTag, MLFileMetadata
 from packages.media_lib.schemas import MLFileSchema, MLFolderSchema, MLTagSchema, MLFileMetadataSchema
-from packages.media_lib.storage import GCSStorage
+from packages.media_lib.storage import MediaStorage
 from packages.media_lib.image_processor import is_image, get_image_dimensions, generate_variants
 from packages.media_lib.utils import slugify
 
@@ -119,7 +119,7 @@ def get_file(file_id):
 @media_lib_bp.route('/files', methods=['POST'])
 @jwt_required()
 def upload_file():
-    """上傳檔案到 GCS，圖片類型自動產生變體。"""
+    """上傳檔案（Local 或 GCS），圖片類型自動產生變體。"""
     user, err = _require_editor()
     if err:
         return err
@@ -134,7 +134,7 @@ def upload_file():
     folder_id = request.form.get('folder_id', type=int)
 
     try:
-        gcs = GCSStorage.get_instance()
+        gcs = MediaStorage.get_instance()
 
         # 讀取檔案內容到記憶體
         file_data = file.read()
@@ -242,7 +242,7 @@ def update_file(file_id):
 @media_lib_bp.route('/files/<int:file_id>', methods=['DELETE'])
 @jwt_required()
 def delete_file(file_id):
-    """刪除檔案及其所有 GCS 上的變體。"""
+    """刪除檔案及其所有變體。"""
     user, err = _require_editor()
     if err:
         return err
@@ -250,7 +250,7 @@ def delete_file(file_id):
     ml_file = MLFile.query.get_or_404(file_id)
 
     try:
-        gcs = GCSStorage.get_instance()
+        gcs = MediaStorage.get_instance()
 
         # 刪除 GCS 上的所有變體
         for variant in ml_file.variants:
@@ -547,13 +547,16 @@ def scan_gcs():
     """
     掃描 GCS Bucket，列出尚未匯入資料庫的檔案。
     回傳未匯入的檔案清單（不做任何寫入）。
+    僅 GCS 模式可用。
     """
     user, err = _require_editor()
     if err:
         return err
 
     try:
-        gcs = GCSStorage.get_instance()
+        gcs = MediaStorage.get_instance()
+        if gcs.is_local:
+            return jsonify({'error': 'GCS scan is not available in local storage mode'}), 400
         prefix = request.args.get('prefix', 'media/')
 
         # 列出 GCS 上的所有檔案
@@ -611,6 +614,10 @@ def import_from_gcs():
     if err:
         return err
 
+    storage = MediaStorage.get_instance()
+    if storage.is_local:
+        return jsonify({'error': 'GCS import is not available in local storage mode'}), 400
+
     data = request.get_json()
     files_to_import = data.get('files', [])
     folder_id = data.get('folder_id')
@@ -634,7 +641,7 @@ def import_from_gcs():
             continue
 
         try:
-            gcs = GCSStorage.get_instance()
+            gcs = MediaStorage.get_instance()
             filename = os.path.basename(gcs_path)
             public_url = f.get('public_url', f'{gcs.public_url_prefix}/{gcs_path}')
             mime_type = f.get('mime_type', mimetypes.guess_type(filename)[0] or 'application/octet-stream')

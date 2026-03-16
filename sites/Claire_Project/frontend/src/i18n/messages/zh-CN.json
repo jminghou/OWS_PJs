@@ -1,0 +1,50 @@
+{
+  "common": {
+    "home": "首页",
+    "articles": "文章",
+    "posts": "帖子",
+    "about": "关于",
+    "contact": "联系我们",
+    "search": "搜索",
+    "readMore": "阅读更多",
+    "loading": "加载中...",
+    "error": "发生错误",
+    "notFound": "找不到页面",
+    "back": "返回",
+    "language": "语言"
+  },
+  "article": {
+    "author": "作者",
+    "publishedAt": "发布于",
+    "updatedAt": "更新于",
+    "views": "浏览",
+    "likes": "赞",
+    "tags": "标签",
+    "category": "分类",
+    "relatedArticles": "相关文章",
+    "noArticles": "暂无文章"
+  },
+  "footer": {
+    "copyright": "版权所有",
+    "allRightsReserved": "保留所有权利"
+  },
+  "meta": {
+    "siteName": "数位炼金室",
+    "description": "专为长期主义者设计的策略顾问服务"
+  },
+  "aboutPage": {
+    "title": "数位炼金室 - 关于我们",
+    "description": "我是数位炼金室的创办人，一位深耕数字营销与MarTech领域的策略架构师。多年来协助企业决策者制定数字化转型蓝图，将复杂的数据与技术转化为可执行的商业策略。",
+    "aboutMe": "关于我",
+    "story": "我是数位炼金室的创办人，一位深耕数字营销与MarTech领域的策略架构师。从流量数据、A/B测试到商业模式设计，我习惯用系统性思维拆解复杂问题。多年的实战经验让我深刻体会到：真正的数字化转型不是导入工具，而是重新架构决策者的思维逻辑。",
+    "siteOriginTitle": "策略的本质是架构",
+    "siteOrigin": "正如波特所言，策略的核心在于取舍。在信息爆炸的时代，决策者最需要的不是更多选项，而是一套清晰的架构来筛选杂讯、聚焦关键。数位炼金室的诞生，正是为了帮助长期主义者建立这套决策框架。",
+    "missionTitle": "我们的使命",
+    "mission": "专为长期主义者设计的私人幕僚服务。结合 MarTech 架构规划、电商增长策略与数字化转型诊断，我们协助决策者看清全局、精准布局。不追逐短期流量红利，而是打造可持续的竞争优势。",
+    "quote": "「策略不是做什么的选择，而是不做什么的纪律。」",
+    "quoteAuthor": "— 迈克尔·波特（Michael Porter）",
+    "exploreTitle": "与我们一起探索",
+    "exploreDescription": "如果您对数位炼金室的理念有兴趣，或想了解更多关于数字化转型策略的应用，欢迎与我们联系。",
+    "contactBtn": "联系我们"
+  }
+}

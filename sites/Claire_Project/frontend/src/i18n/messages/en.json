@@ -1,0 +1,50 @@
+{
+  "common": {
+    "home": "Home",
+    "articles": "Articles",
+    "posts": "Posts",
+    "about": "About",
+    "contact": "Contact",
+    "search": "Search",
+    "readMore": "Read More",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "notFound": "Page not found",
+    "back": "Back",
+    "language": "Language"
+  },
+  "article": {
+    "author": "Author",
+    "publishedAt": "Published on",
+    "updatedAt": "Updated on",
+    "views": "Views",
+    "likes": "Likes",
+    "tags": "Tags",
+    "category": "Category",
+    "relatedArticles": "Related Articles",
+    "noArticles": "No articles available"
+  },
+  "footer": {
+    "copyright": "Copyright",
+    "allRightsReserved": "All rights reserved"
+  },
+  "meta": {
+    "siteName": "Digital Alchemy Lab",
+    "description": "Strategy consulting services designed for long-term thinkers"
+  },
+  "aboutPage": {
+    "title": "About Us - Digital Alchemy Lab",
+    "description": "Learn about the founding story of Digital Alchemy Lab and how we help decision-makers navigate digital transformation, MarTech, and e-commerce growth",
+    "aboutMe": "About Me",
+    "story": "I am the founder of Digital Alchemy Lab. A strategy architect deeply rooted in digital marketing and MarTech. From traffic data and A/B testing to business model design, I use systematic thinking to deconstruct complex problems. Years of hands-on experience have taught me that true digital transformation is not about adopting tools, but about restructuring the decision-maker's mental framework.",
+    "siteOriginTitle": "Strategy Is Architecture",
+    "siteOrigin": "As Porter reminds us, the essence of strategy lies in trade-offs. In an age of information overload, what decision-makers need most is not more options, but a clear framework to filter noise and focus on what matters. Digital Alchemy Lab was born to help long-term thinkers build this decision-making framework.",
+    "missionTitle": "Our Mission",
+    "mission": "A private advisory service designed for long-term thinkers. Combining MarTech architecture planning, e-commerce growth strategy, and digital transformation diagnostics, we help decision-makers see the full picture and plan with precision. We don't chase short-term traffic gains — we build sustainable competitive advantages.",
+    "quote": "\"Strategy is about making choices, trade-offs; it's about deliberately choosing to be different.\"",
+    "quoteAuthor": "— Michael Porter",
+    "exploreTitle": "Explore With Us",
+    "exploreDescription": "If you are interested in the philosophy of Digital Alchemy Lab, or want to learn more about digital transformation strategy, please feel free to contact us.",
+    "contactBtn": "Contact Us"
+  }
+}

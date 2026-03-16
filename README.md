@@ -15,9 +15,11 @@ OWS_PJs/
 │   └── media_lib/              # 自建媒體庫模組
 ├── sites/
 │   ├── Polaris_Parent/         # Site A — 北極星親子
-│   │   ├── backend/            # Flask 後端 + Extensions
+│   │   ├── backend/            # Flask 後端 + Extensions（含 astrology）
 │   │   └── frontend/           # Next.js 15 前端（App Router）
-│   └── Claire_Project/         # Site B — Claire（規劃中）
+│   └── Claire_Project/         # Site B — Claire Project
+│       ├── backend/            # Flask 後端（獨立 DB + 設定）
+│       └── frontend/           # Next.js 15 前端（App Router）
 ├── deploy/                     # NAS Docker 部署配置
 │   ├── dockerfiles/            # 生產級 Dockerfile
 │   ├── docker-compose.yml      # NAS 部署用 compose
@@ -65,57 +67,148 @@ OWS_PJs/
 ```bash
 git clone <repo-url>
 cd OWS_PJs
+npm install          # 安裝所有 workspace 依賴（含 Polaris + Claire 前端）
 ```
 
 ### 3. 設定環境變數
 
+每個 Site 有獨立的 `.env`，啟動前須確認已正確設定：
+
 ```bash
+# Polaris Parent
 cp sites/Polaris_Parent/.env.example sites/Polaris_Parent/.env
-# 編輯 .env 並填入正確的值
+
+# Claire Project
+cp sites/Claire_Project/.env.example sites/Claire_Project/.env
 ```
 
-### 4. 啟動服務（本機開發模式）
+### 4. 資料庫初始化
 
-需要 **3 個終端機**：
+每個 Site 使用獨立的 PostgreSQL 資料庫。首次使用需建立資料庫、跑 migration、建立管理員帳號。
+
+#### Polaris Parent
+
+```powershell
+# 1. 建立資料庫
+psql -U postgres -c "CREATE DATABASE ows_polaris;"
+
+# 2. 執行 migration（在專案根目錄、啟動 venv 後）
+flask --app "sites.Polaris_Parent.backend.app:app" db upgrade
+
+# 3. 初始化站點資料
+flask --app "sites.Polaris_Parent.backend.app:app" init-site
+
+# 4. 建立管理員帳號
+flask --app "sites.Polaris_Parent.backend.app:app" create-admin
+```
+
+#### Claire Project
+
+```powershell
+# 1. 建立資料庫
+psql -U postgres -c "CREATE DATABASE ows_claire;"
+
+# 2. 執行 migration
+flask --app "sites.Claire_Project.backend.app:app" db upgrade
+
+# 3. 初始化站點資料
+flask --app "sites.Claire_Project.backend.app:app" init-site
+
+# 4. 建立管理員帳號
+flask --app "sites.Claire_Project.backend.app:app" create-admin
+```
+
+> 密碼規則：至少 8 個字元，需包含大寫字母、小寫字母與數字。
+
+---
+
+## 啟動服務（本機開發）
+
+### 單獨啟動某一個 Site
+
+每個 Site 需要 **3 個終端機**（Redis + Backend + Frontend）：
+
+#### 啟動 Polaris Parent
 
 ```powershell
 # 終端機 1：啟動 Redis（若無原生 Redis，可用 Docker）
 docker-compose up -d redis
 
-# 終端機 2：啟動 Python 後端
-cd sites/Polaris_Parent/backend
-.\venv\Scripts\Activate.ps1
-python app.py
+# 終端機 2：啟動後端（在專案根目錄、啟動 venv 後）
+flask --app "sites.Polaris_Parent.backend.app:app" run --port 5000
 
-# 終端機 3：啟動 Next.js 前端（回到專案根目錄）
+# 終端機 3：啟動前端（在專案根目錄）
 npm run dev:polaris
 ```
 
 | 服務 | 網址 |
 |------|------|
-| PostgreSQL | `localhost:5432`（原生） |
-| Redis | `localhost:6379` |
 | Python API | `http://localhost:5000/api/v1` |
 | 前端 | `http://localhost:3000` |
+| Admin 後台 | `http://localhost:3000/admin` |
 
-### 5. 資料庫初始化
-
-#### 本機開發
-
-首次使用時，需初始化本機資料庫：
+#### 啟動 Claire Project
 
 ```powershell
-# 1. 建立資料庫（使用 psql）
-psql -U postgres -c "CREATE DATABASE ows_polaris;"
+# 終端機 1：啟動 Redis（若尚未啟動）
+docker-compose up -d redis
 
-# 2. 建立資料表（在 backend 目錄、啟動 venv 後執行）
-python -c "from app import app; from core.backend_engine.factory import db; app.app_context().push(); db.create_all(); print('成功！')"
+# 終端機 2：啟動後端（在專案根目錄、啟動 venv 後）
+flask --app "sites.Claire_Project.backend.app:app" run --port 5002
 
-# 3. 建立管理員帳號
-flask --app app.py create-admin
+# 終端機 3：啟動前端（在專案根目錄）
+npm run dev:claire
 ```
 
-#### NAS 部署
+| 服務 | 網址 |
+|------|------|
+| Python API | `http://localhost:5002/api/v1` |
+| 前端 | `http://localhost:3002` |
+| Admin 後台 | `http://localhost:3002/admin` |
+
+### 同時啟動兩個 Site
+
+兩個 Site 可以同時運作，只要確保 Port 不衝突。需要 **5 個終端機**：
+
+```
+終端機 1：Redis（共用）
+終端機 2：Polaris 後端  → port 5000
+終端機 3：Polaris 前端  → port 3000
+終端機 4：Claire 後端   → port 5002
+終端機 5：Claire 前端   → port 3002
+```
+
+```powershell
+# 終端機 1 — Redis（共用，只需啟動一次）
+docker-compose up -d redis
+
+# 終端機 2 — Polaris 後端
+flask --app "sites.Polaris_Parent.backend.app:app" run --port 5000
+
+# 終端機 3 — Polaris 前端
+npm run dev:polaris
+
+# 終端機 4 — Claire 後端
+flask --app "sites.Claire_Project.backend.app:app" run --port 5002
+
+# 終端機 5 — Claire 前端
+npm run dev:claire
+```
+
+#### Port 分配總覽
+
+| 服務 | Polaris Parent | Claire Project |
+|------|---------------|----------------|
+| Backend API | `5000` | `5002` |
+| Frontend | `3000` | `3002` |
+| 資料庫 | `ows_polaris` | `ows_claire` |
+| Redis DB | `redis://localhost:6379/0` | `redis://localhost:6379/1` |
+
+> **注意**：同時啟動時，每個 Site 的前端 `.env.local` 中 `NEXT_PUBLIC_API_URL` 必須指向對應的後端 Port。
+
+---
+
+### NAS 部署（資料庫初始化）
 
 NAS 的 PostgreSQL 在 Docker 容器中運行，資料庫會由 `docker-compose.yml` 自動建立，只需初始化資料表和管理員帳號：
 
@@ -136,8 +229,6 @@ print('資料表建立成功！')
 sudo docker compose exec -w /app/sites/Polaris_Parent/backend backend flask --app app.py create-admin
 ```
 
-> 密碼規則：至少 8 個字元，需包含大寫字母、小寫字母與數字。
-
 ## 專案結構說明
 
 ### Core（核心引擎） — `core/backend_engine/`
@@ -154,16 +245,17 @@ sudo docker compose exec -w /app/sites/Polaris_Parent/backend backend flask --ap
 - `packages/ui/` — 共用 UI 元件庫（`@ows/ui`），包含 Admin 共用元件
 - `packages/media_lib/` — 自建媒體庫模組，取代原先的 Strapi 媒體管理
 
-### Sites（站點） — `sites/Polaris_Parent/`
+### Sites（站點）
 
-每個站點可以：
+每個站點擁有獨立的資料庫、`.env` 配置、前後端，並可透過 Extensions 擴展 Core 功能。
 
-- 擁有獨立的 `.env` 配置
-- 擴展 Core 功能（透過 Extensions）
-- 自訂前端樣式和頁面
+| Site | 目錄 | 資料庫 | 特色 |
+|------|------|--------|------|
+| Polaris Parent | `sites/Polaris_Parent/` | `ows_polaris` | 含 astrology extension |
+| Claire Project | `sites/Claire_Project/` | `ows_claire` | 乾淨基底，無額外 extension |
 
 ```python
-# sites/Polaris_Parent/backend/app.py
+# 範例：sites/Polaris_Parent/backend/app.py
 from core.backend_engine.factory import create_app, BlueprintConfig
 
 SITE_EXTENSIONS = [
@@ -199,8 +291,10 @@ app = create_app(
 
 ```bash
 # 本機開發
-npm run dev:polaris       # 啟動 Polaris 前端開發伺服器
+npm run dev:polaris       # 啟動 Polaris 前端（port 3000）
+npm run dev:claire        # 啟動 Claire 前端（port 3002）
 npm run build:polaris     # 建置 Polaris 前端
+npm run build:claire      # 建置 Claire 前端
 npm run install:all       # 安裝所有 workspace 依賴
 
 # NAS 部署

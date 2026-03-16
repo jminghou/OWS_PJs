@@ -1,0 +1,141 @@
+'use client';
+
+import { useState } from 'react';
+import HeroCarousel from './HeroCarousel';
+import { HomepageSlide } from '@/types';
+
+interface HeroSectionProps {
+  title: string;
+  subtitle: string;
+  buttonText: string;
+  buttonLink: string;
+  backgroundSlides: HomepageSlide[];
+  locale: string;
+  pauseOnHover?: boolean;  // Feature 7
+  lazyLoading?: boolean;   // Feature 9
+}
+
+export default function HeroSection({
+  title,
+  subtitle,
+  buttonText,
+  buttonLink,
+  backgroundSlides,
+  locale,
+  pauseOnHover = true,
+  lazyLoading = true,
+}: HeroSectionProps) {
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  // 獲取當前幻燈片（按 sort_order 排序後）
+  const sortedSlides = [...backgroundSlides].sort((a, b) => a.sort_order - b.sort_order);
+  const currentSlide = sortedSlides[currentSlideIndex];
+
+  // Feature 6: per-slide title override (fallback to global title prop)
+  const displayTitle =
+    currentSlide?.titles?.[locale] ||
+    currentSlide?.titles?.['zh-TW'] ||
+    title;
+
+  // Subtitle: per-slide (fallback to global subtitle prop)
+  const slideSubtitle =
+    currentSlide?.subtitles?.[locale] ||
+    currentSlide?.subtitles?.['zh-TW'] ||
+    '';
+  const displaySubtitle = slideSubtitle || subtitle;
+
+  // Feature 1: per-slide CTA link (fallback to global scroll behavior)
+  const hasCtaUrl = !!currentSlide?.cta_url;
+  const ctaText =
+    currentSlide?.cta_text?.[locale] ||
+    currentSlide?.cta_text?.['zh-TW'] ||
+    buttonText;
+  const ctaUrl = currentSlide?.cta_url || buttonLink;
+  const ctaNewTab = currentSlide?.cta_new_tab || false;
+
+  const handleScrollToSection = () => {
+    const element = document.getElementById('banner');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <section id="hero" className="relative h-[calc(100vh-64px)] min-h-[500px] md:min-h-[640px] overflow-hidden">
+      {/* Background - HeroCarousel for slides */}
+      {backgroundSlides.length > 0 ? (
+        <div className="absolute inset-0">
+          <HeroCarousel
+            slides={backgroundSlides}
+            currentLanguage={locale}
+            onSlideChange={setCurrentSlideIndex}
+            pauseOnHover={pauseOnHover}
+            lazyLoading={lazyLoading}
+          />
+        </div>
+      ) : (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-purple-600 to-brand-purple-800" />
+          <div className="absolute inset-0 bg-black/30 z-[1]" />
+        </>
+      )}
+
+      {/* Content overlay - centered vertically and horizontally */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+        <div className="text-center pointer-events-auto px-4">
+          {/* Feature 6: per-slide title (or global fallback) */}
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center drop-shadow-lg mb-4">
+            {displayTitle}
+          </h1>
+
+          {/* Horizontal rule decoration */}
+          <div className="relative my-6">
+            <hr className="w-24 border-t-2 border-white/50 mx-auto" />
+          </div>
+
+          {/* Subtitle - 支援富文本 HTML */}
+          <div
+            className="text-lg md:text-xl text-white/90 text-center max-w-2xl mx-auto mb-8 prose prose-invert prose-p:text-white/90 prose-p:my-1 prose-strong:text-white prose-em:text-purple-200"
+            dangerouslySetInnerHTML={{ __html: displaySubtitle }}
+          />
+        </div>
+      </div>
+
+      {/* Feature 1: CTA button at bottom */}
+      <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-10">
+        {hasCtaUrl ? (
+          // Per-slide CTA: navigate to the slide's link
+          <a
+            href={ctaUrl}
+            target={ctaNewTab ? '_blank' : '_self'}
+            rel={ctaNewTab ? 'noopener noreferrer' : undefined}
+            className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            {ctaText}
+          </a>
+        ) : (
+          // Global fallback: scroll to #banner section
+          <button
+            onClick={handleScrollToSection}
+            className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            {ctaText}
+            <svg
+              className="ml-2 h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
