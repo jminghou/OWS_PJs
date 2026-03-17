@@ -9,7 +9,7 @@ const nextConfig = {
   output: 'standalone',
 
   // 轉譯 monorepo 內的套件
-  transpilePackages: ['@ows/ui'],
+  transpilePackages: ['@ows/ui', 'swiper'],
   turbopack: {
     rules: {
       '*.svg': {
