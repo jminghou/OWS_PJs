@@ -1,0 +1,93 @@
+version: '3.8'
+
+# ============================================================
+# Outline 知識庫 - Docker Compose
+# 部署位置：Synology DS420+ NAS
+# 對外網址：https://km.polaris-parent.com
+# 本地埠號：3300 → Cloudflare Tunnel → HTTPS
+# ============================================================
+
+services:
+
+  # ── Outline 主應用 ──────────────────────────────────────────
+  outline:
+    image: outlinewiki/outline:latest
+    container_name: outline
+    restart: unless-stopped
+    ports:
+      - "3300:3000"
+    env_file:
+      - .env
+    depends_on:
+      postgres-outline:
+        condition: service_healthy
+      redis-outline:
+        condition: service_started
+      minio:
+        condition: service_started
+    networks:
+      - outline-net
+
+  # ── PostgreSQL（Outline 專用）──────────────────────────────
+  postgres-outline:
+    image: postgres:15-alpine
+    container_name: postgres-outline
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: outline
+      POSTGRES_USER: outline
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /volume1/docker/outline/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U outline -d outline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - outline-net
+
+  # ── Redis（Session / Queue）────────────────────────────────
+  redis-outline:
+    image: redis:7-alpine
+    container_name: redis-outline
+    restart: unless-stopped
+    networks:
+      - outline-net
+
+  # ── MinIO（S3 相容檔案儲存）───────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: minio-outline
+    restart: unless-stopped
+    ports:
+      - "9900:9000"   # S3 API（供 Outline 容器內部呼叫）
+      - "9901:9001"   # MinIO 管理控制台（http://NAS_IP:9901）
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - /volume1/docker/outline/data/minio:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - outline-net
+
+  # ── Outline MCP Server（Claude 讀寫 Outline 的 MCP 介面）────────
+  outline-mcp:
+    build:
+      context: /volume1/docker/outline-mcp
+    container_name: outline-mcp
+    restart: unless-stopped
+    ports:
+      - "8080:8080"                    # SSE 端點對外開放
+    environment:
+      - OUTLINE_URL=https://km.polaris-parent.com  # 走 Cloudflare Tunnel HTTPS（內部 HTTP 有強制重導向問題）
+      - OUTLINE_TOKEN=${OUTLINE_TOKEN}   # 從 .env 讀取 API Token
+    depends_on:
+      - outline
+    networks:
+      - outline-net
+
+networks:
+  outline-net:
+    driver: bridge

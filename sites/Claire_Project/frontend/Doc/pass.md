@@ -1,3 +1,3 @@
 claire
 test@claire.com
-Admin123
+Admin123!
