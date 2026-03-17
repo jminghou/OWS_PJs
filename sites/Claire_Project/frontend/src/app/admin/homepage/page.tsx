@@ -44,7 +44,7 @@ function FocalPointPicker({ value, onChange }: { value: string; onChange: (v: st
             onClick={() => onChange(fp)}
             className={`h-6 w-full rounded-sm border text-xs transition-colors ${
               current === fp
-                ? 'bg-blue-500 border-blue-600 text-white'
+                ? 'bg-cream-500 border-brand-navy-600 text-white'
                 : 'bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-500'
             }`}
           >
@@ -141,8 +141,8 @@ function SortableSlideItem({
                   onClick={() => onUpdate(slide.id, 'media_type', type)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
                     mediaType === type
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                      ? 'bg-brand-navy-600 text-white border-brand-navy-600'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-brand-navy-400'
                   }`}
                 >
                   {type === 'image' ? '圖片' : type === 'youtube' ? 'YouTube' : 'MP4 直連'}
@@ -176,7 +176,7 @@ function SortableSlideItem({
                   <button
                     type="button"
                     onClick={() => onOpenMediaBrowser(slide.id, 'image_url')}
-                    className="text-xs text-blue-600 hover:text-blue-700 underline"
+                    className="text-xs text-brand-navy-600 hover:text-brand-navy-700 underline"
                   >
                     {slide.image_url ? '更換圖片' : '選擇圖片'}
                   </button>
@@ -189,7 +189,7 @@ function SortableSlideItem({
                       type="text"
                       value={slide.alt_text}
                       onChange={(e) => onUpdate(slide.id, 'alt_text', e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400"
                       placeholder="圖片的無障礙描述"
                     />
                   </div>
@@ -209,7 +209,7 @@ function SortableSlideItem({
                   type="url"
                   value={slide.video_url || ''}
                   onChange={(e) => onUpdate(slide.id, 'video_url', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400"
                   placeholder="https://www.youtube.com/watch?v=..."
                 />
                 <p className="text-xs text-gray-400 mt-1">影片將以靜音背景播放。支援 youtube.com 或 youtu.be 格式。</p>
@@ -223,7 +223,7 @@ function SortableSlideItem({
                 <button
                   type="button"
                   onClick={() => onOpenMediaBrowser(slide.id, 'video_url')}
-                  className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:border-brand-navy-400 hover:bg-cream-50 transition-colors"
                 >
                   <Video className="h-4 w-4 text-gray-500" />
                   {slide.video_url ? '更換影片' : '從媒體庫選取影片'}
@@ -256,7 +256,7 @@ function SortableSlideItem({
                 max="100"
                 value={slide.overlay_opacity ?? 40}
                 onChange={(e) => onUpdate(slide.id, 'overlay_opacity', Number(e.target.value))}
-                className="w-full accent-blue-600"
+                className="w-full accent-brand-navy-600"
               />
               <div className="flex justify-between text-xs text-gray-400 mt-0.5">
                 <span>透明</span><span>不透明</span>
@@ -276,7 +276,7 @@ function SortableSlideItem({
                   'autoplay_delay',
                   e.target.value === '' ? null : Number(e.target.value)
                 )}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400"
                 placeholder="留空使用全域設定（6000ms）"
               />
             </div>
@@ -297,7 +297,7 @@ function SortableSlideItem({
                     onClick={() => setActiveTitleLang(lang)}
                     className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                       activeTitleLang === lang
-                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        ? 'text-brand-navy-600 border-b-2 border-brand-navy-600'
                         : 'text-gray-500 hover:text-gray-800'
                     }`}
                   >
@@ -311,7 +311,7 @@ function SortableSlideItem({
                     type="text"
                     value={slide.titles?.[lang] || ''}
                     onChange={(e) => onUpdate(slide.id, 'titles', { ...slide.titles, [lang]: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400"
                     placeholder={`主標題（${languageNames[lang] || lang}）留空 = 沿用全域設定`}
                   />
                 </div>
@@ -331,7 +331,7 @@ function SortableSlideItem({
                     onClick={() => setActiveSubtitleLang(lang)}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                       activeSubtitleLang === lang
-                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        ? 'text-brand-navy-600 border-b-2 border-brand-navy-600'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
@@ -367,7 +367,7 @@ function SortableSlideItem({
                 type="url"
                 value={slide.cta_url || ''}
                 onChange={(e) => onUpdate(slide.id, 'cta_url', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400"
                 placeholder="https://... 或 /about"
               />
             </div>
@@ -381,7 +381,7 @@ function SortableSlideItem({
                     onClick={() => setActiveCtaLang(lang)}
                     className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                       activeCtaLang === lang
-                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        ? 'text-brand-navy-600 border-b-2 border-brand-navy-600'
                         : 'text-gray-500 hover:text-gray-800'
                     }`}
                   >
@@ -395,7 +395,7 @@ function SortableSlideItem({
                     type="text"
                     value={slide.cta_text?.[lang] || ''}
                     onChange={(e) => onUpdate(slide.id, 'cta_text', { ...slide.cta_text, [lang]: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400"
                     placeholder={`按鈕文字（${languageNames[lang] || lang}）留空 = 沿用全域按鈕文字`}
                   />
                 </div>
@@ -406,7 +406,7 @@ function SortableSlideItem({
                 type="checkbox"
                 checked={slide.cta_new_tab || false}
                 onChange={(e) => onUpdate(slide.id, 'cta_new_tab', e.target.checked)}
-                className="w-4 h-4 rounded accent-blue-600"
+                className="w-4 h-4 rounded accent-brand-navy-600"
               />
               <span className="text-sm text-gray-700">在新分頁開啟連結</span>
             </label>
@@ -420,7 +420,7 @@ function SortableSlideItem({
                 type="datetime-local"
                 value={toDatetimeLocal(slide.start_date)}
                 onChange={(e) => onUpdate(slide.id, 'start_date', fromDatetimeLocal(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400 text-sm"
               />
               <p className="text-xs text-gray-400 mt-0.5">留空 = 立即顯示</p>
             </div>
@@ -430,7 +430,7 @@ function SortableSlideItem({
                 type="datetime-local"
                 value={toDatetimeLocal(slide.end_date)}
                 onChange={(e) => onUpdate(slide.id, 'end_date', fromDatetimeLocal(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400 text-sm"
               />
               <p className="text-xs text-gray-400 mt-0.5">留空 = 永不下架</p>
             </div>
@@ -637,7 +637,7 @@ export default function HomepagePage() {
             onClick={() => setActiveSection(item.key)}
             className={`w-full flex items-center gap-3 px-6 py-2.5 text-left transition-colors ${
               activeSection === item.key
-                ? 'border-l-2 border-blue-500 bg-blue-50 text-blue-700'
+                ? 'border-l-2 border-brand-navy-400 bg-cream-50 text-brand-navy-700'
                 : 'border-l-2 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
@@ -694,7 +694,7 @@ export default function HomepagePage() {
             <>
               {loading ? (
                 <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-navy-600"></div>
                 </div>
               ) : (
                 <>
@@ -705,7 +705,7 @@ export default function HomepagePage() {
                         setPendingSlideId(null);
                         setIsMediaBrowserOpen(true);
                       }}
-                      className="flex items-center justify-center gap-2 w-full px-6 py-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                      className="flex items-center justify-center gap-2 w-full px-6 py-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-brand-navy-400 hover:bg-cream-50 transition-colors"
                     >
                       <Image className="h-5 w-5 text-gray-600" />
                       <span className="text-gray-700">從媒體庫選擇圖片新增幻燈片 ({slides.length}/5)</span>
@@ -759,7 +759,7 @@ export default function HomepagePage() {
                     onChange={(e) => setPauseOnHover(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-navy-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-navy-600"></div>
                 </label>
               </div>
               <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
@@ -774,7 +774,7 @@ export default function HomepagePage() {
                     onChange={(e) => setLazyLoading(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-navy-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-navy-600"></div>
                 </label>
               </div>
             </div>
@@ -785,7 +785,7 @@ export default function HomepagePage() {
             <>
               {loading ? (
                 <div className="flex justify-center items-center py-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-navy-600"></div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -798,7 +798,7 @@ export default function HomepagePage() {
                         type="text"
                         value={buttonText[lang] || ''}
                         onChange={(e) => setButtonText({ ...buttonText, [lang]: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-navy-400"
                         placeholder={`按鈕文字 (${languageNames[lang] || lang})`}
                       />
                     </div>
@@ -813,7 +813,7 @@ export default function HomepagePage() {
             <>
               {loading ? (
                 <div className="flex justify-center items-center py-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-navy-600"></div>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -825,7 +825,7 @@ export default function HomepagePage() {
                         onClick={() => setActiveLanguage(lang)}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${
                           activeLanguage === lang
-                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            ? 'text-brand-navy-600 border-b-2 border-brand-navy-600'
                             : 'text-gray-600 hover:text-gray-900'
                         }`}
                       >
@@ -851,7 +851,7 @@ export default function HomepagePage() {
                                 n[lang] = { ...n[lang], title: e.target.value };
                                 setAboutSection(n);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-navy-400 focus:outline-none"
                               placeholder="例如：關於我們"
                             />
                           </div>
@@ -865,7 +865,7 @@ export default function HomepagePage() {
                                 n[lang] = { ...n[lang], quote: e.target.value };
                                 setAboutSection(n);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-navy-400 focus:outline-none"
                               placeholder="例如：我們不是算命，是在跑數據"
                             />
                           </div>
@@ -896,7 +896,7 @@ export default function HomepagePage() {
                             setAboutSection(n);
                           }}
                           rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-navy-400 focus:outline-none"
                           placeholder="輸入品牌理念描述..."
                         />
                       </div>
@@ -919,7 +919,7 @@ export default function HomepagePage() {
                             setAboutSection(n);
                           }}
                           rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-navy-400 focus:outline-none"
                           placeholder="看懂天賦&#10;理解差異&#10;精準溝通"
                         />
                       </div>

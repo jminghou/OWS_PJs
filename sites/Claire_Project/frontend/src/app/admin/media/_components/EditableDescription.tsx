@@ -71,7 +71,7 @@ export function EditableDescription({
           }}
           disabled={saving}
           rows={2}
-          className="w-full text-sm text-gray-700 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 resize-none"
+          className="w-full text-sm text-gray-700 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-brand-navy-400 resize-none"
           placeholder={placeholder}
         />
         <p className="text-xs text-gray-400 mt-0.5">Enter 儲存，Esc 取消</p>

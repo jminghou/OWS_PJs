@@ -168,7 +168,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                 placeholder="搜尋媒體文件..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
               />
             </div>
             {multiple && selectedItems.length > 0 && (
@@ -190,7 +190,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                     className="flex flex-col items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={() => setCurrentFolder(folder.id)}
                   >
-                    <svg className="w-10 h-10 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-10 h-10 text-brand-navy-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2v0" />
                     </svg>
                     <span className="text-xs font-medium text-center truncate w-full">
@@ -223,7 +223,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                     <div
                       key={item.id}
                       className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-                        isSelected ? 'bg-blue-50 ring-1 ring-blue-300' : ''
+                        isSelected ? 'bg-cream-50 ring-1 ring-brand-navy-200' : ''
                       }`}
                       onClick={() => handleItemClick(item)}
                     >
@@ -232,7 +232,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => {}}
-                          className="w-4 h-4 flex-shrink-0 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+                          className="w-4 h-4 flex-shrink-0 text-brand-navy-600 bg-white border-gray-300 rounded focus:ring-brand-navy-400"
                           onClick={(e) => e.stopPropagation()}
                         />
                       )}

@@ -241,7 +241,7 @@ export default function MediaPage() {
           checked={selectedIds.includes(item.id)}
           onChange={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
           onClick={(e) => e.stopPropagation()}
-          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+          className="w-4 h-4 text-brand-navy-600 bg-white border-gray-300 rounded focus:ring-brand-navy-400"
         />
       </div>
     </div>
@@ -252,7 +252,7 @@ export default function MediaPage() {
     <div
       key={item.id}
       className={`w-[180px] h-[180px] relative group rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow ${
-        selectedIds.includes(item.id) ? 'ring-2 ring-blue-500' : ''
+        selectedIds.includes(item.id) ? 'ring-2 ring-brand-navy-400' : ''
       }`}
       onClick={() => setEditingFile(item)}
     >
@@ -269,7 +269,7 @@ export default function MediaPage() {
           checked={selectedIds.includes(item.id)}
           onChange={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
           onClick={(e) => e.stopPropagation()}
-          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+          className="w-4 h-4 text-brand-navy-600 bg-white border-gray-300 rounded focus:ring-brand-navy-400"
         />
       </div>
       {item.tags && item.tags.length > 0 && (

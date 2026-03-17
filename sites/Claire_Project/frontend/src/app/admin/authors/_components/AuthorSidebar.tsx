@@ -30,7 +30,7 @@ const roleTabs: { key: 'all' | 'admin' | 'editor' | 'user'; label: string }[] = 
 const getRoleBadgeColor = (role: string) => {
   switch (role) {
     case 'admin': return 'bg-red-100 text-red-700';
-    case 'editor': return 'bg-blue-100 text-blue-700';
+    case 'editor': return 'bg-cream-100 text-brand-navy-700';
     default: return 'bg-gray-100 text-gray-600';
   }
 };
@@ -69,7 +69,7 @@ export default function AuthorSidebar({
           onClick={onNewUser}
           className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             isCreateMode
-              ? 'bg-blue-600 text-white'
+              ? 'bg-brand-navy-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -87,7 +87,7 @@ export default function AuthorSidebar({
             placeholder="搜尋用戶名或郵箱..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-brand-navy-400 focus:border-brand-navy-400 outline-none"
           />
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function AuthorSidebar({
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectUser(user.id); }}
                 className={`group w-full text-left px-3 py-2.5 border-l-3 transition-colors cursor-pointer ${
                   selectedId === user.id
-                    ? 'border-l-blue-600 bg-blue-50'
+                    ? 'border-l-brand-navy-600 bg-cream-50'
                     : 'border-l-transparent hover:bg-gray-50'
                 }`}
               >

@@ -72,10 +72,10 @@ export default function InlineImageSettings({
           <button
             type="button"
             onClick={() => setShowMediaBrowser(true)}
-            className="w-full flex flex-col items-center justify-center gap-3 p-10 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-brand-purple-400 transition-all group"
+            className="w-full flex flex-col items-center justify-center gap-3 p-10 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 hover:border-brand-navy-400 transition-all group"
           >
             <div className="p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-              <Plus className="w-6 h-6 text-gray-400 group-hover:text-brand-purple-600" />
+              <Plus className="w-6 h-6 text-gray-400 group-hover:text-brand-navy-600" />
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-gray-700">從媒體庫選擇封面圖片</p>

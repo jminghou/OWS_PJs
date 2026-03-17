@@ -75,15 +75,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </svg>
       ),
     },
-    {
-      name: '產品管理',
-      href: '/admin/products',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-        </svg>
-      ),
-    },
+    // {
+    //   name: '產品管理',
+    //   href: '/admin/products',
+    //   icon: (
+    //     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    //     </svg>
+    //   ),
+    // },
     {
       name: '匿名提問',
       href: '/admin/submissions',
@@ -110,12 +110,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div
         className={`${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } fixed inset-y-0 left-0 z-50 w-[72px] bg-[#212134] transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}
+        } fixed inset-y-0 left-0 z-50 w-[72px] bg-[#0d1630] transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}
       >
         <div className="flex flex-col h-full">
           {/* Logo Area */}
           <div className="flex items-center justify-center h-16">
-            <Link href="/" className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg">
+            <Link href="/" className="flex items-center justify-center w-10 h-10 bg-brand-navy-600 rounded-lg">
               <span className="text-lg font-bold text-white">鍊</span>
             </Link>
           </div>
@@ -131,8 +131,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     href={item.href}
                     className={`group relative flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-200 ${
                       isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-400 hover:bg-[#32324d] hover:text-white'
+                        ? 'bg-brand-navy-600 text-white'
+                        : 'text-gray-400 hover:bg-[#152042] hover:text-white'
                     }`}
                     onClick={() => setSidebarOpen(false)}
                     title={item.name}
@@ -149,7 +149,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </nav>
 
           {/* User Area */}
-          <div className="py-4 border-t border-gray-700">
+          <div className="py-4 border-t border-brand-navy-700">
             <div className="flex flex-col items-center space-y-3">
               {/* User Avatar */}
               <div className="group relative">
@@ -166,7 +166,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="group relative flex items-center justify-center w-10 h-10 text-gray-400 hover:text-white hover:bg-[#32324d] rounded-lg transition-colors"
+                className="group relative flex items-center justify-center w-10 h-10 text-gray-400 hover:text-white hover:bg-[#152042] rounded-lg transition-colors"
                 title="登出"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

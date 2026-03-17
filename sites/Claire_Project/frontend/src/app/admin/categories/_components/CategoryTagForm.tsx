@@ -94,7 +94,7 @@ export default function CategoryTagForm({
               <select
                 value={parentId || ''}
                 onChange={(e) => onParentIdChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
               >
                 <option value="">無（頂層分類）</option>
                 {categories.map((cat) => (

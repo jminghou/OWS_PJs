@@ -216,7 +216,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                   onClick={() => setActiveTab(tab.key)}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
                     activeTab === tab.key
-                      ? 'border-blue-500 text-blue-600'
+                      ? 'border-brand-navy-400 text-brand-navy-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
@@ -238,7 +238,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                     <select
                       value={selectedFolderId ?? ''}
                       onChange={(e) => setSelectedFolderId(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent bg-white"
                     >
                       <option value="">未分類（根目錄）</option>
                       {flattenFolderTree(buildFolderTree(folders)).map(({ folder: f, depth: d }) => (
@@ -272,7 +272,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                         <button
                           type="button"
                           onClick={() => setShowNewTag(true)}
-                          className="px-3 py-1.5 rounded-full text-sm border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                          className="px-3 py-1.5 rounded-full text-sm border-2 border-dashed border-gray-300 text-gray-500 hover:border-brand-navy-400 hover:text-brand-navy-400 transition-colors"
                         >
                           + 新增標籤
                         </button>
@@ -287,13 +287,13 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                             value={newTagName}
                             onChange={(e) => setNewTagName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
-                            className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                             autoFocus
                           />
                           <button
                             onClick={handleCreateTag}
                             disabled={creatingTag || !newTagName.trim()}
-                            className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                            className="px-3 py-1.5 text-sm bg-cream-500 text-white rounded hover:bg-brand-navy-600 disabled:opacity-50"
                           >
                             {creatingTag ? '...' : '建立'}
                           </button>
@@ -327,7 +327,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                       type="text"
                       value={altText}
                       onChange={(e) => setAltText(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                       placeholder="描述圖片內容..."
                     />
                   </div>
@@ -339,7 +339,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                       value={caption}
                       onChange={(e) => setCaption(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                       placeholder="圖片說明..."
                     />
                   </div>
@@ -352,11 +352,11 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">專案ID</label>
-                      <input type="text" value={metaChartId} onChange={(e) => setMetaChartId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="專案編號 ID..." />
+                      <input type="text" value={metaChartId} onChange={(e) => setMetaChartId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent" placeholder="專案編號 ID..." />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">地點</label>
-                      <input type="text" value={metaLocation} onChange={(e) => setMetaLocation(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="拍攝/相關地點..." />
+                      <input type="text" value={metaLocation} onChange={(e) => setMetaLocation(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent" placeholder="拍攝/相關地點..." />
                     </div>
                   </div>
 
@@ -377,7 +377,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">狀態</label>
-                      <select value={metaStatus} onChange={(e) => setMetaStatus(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                      <select value={metaStatus} onChange={(e) => setMetaStatus(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent">
                         <option value="draft">草稿</option>
                         <option value="published">已發布</option>
                         <option value="archived">已封存</option>
@@ -385,17 +385,17 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">來源</label>
-                      <input type="text" value={metaSource} onChange={(e) => setMetaSource(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="攝影師/網站..." />
+                      <input type="text" value={metaSource} onChange={(e) => setMetaSource(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent" placeholder="攝影師/網站..." />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">授權</label>
-                      <input type="text" value={metaLicense} onChange={(e) => setMetaLicense(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="授權類型..." />
+                      <input type="text" value={metaLicense} onChange={(e) => setMetaLicense(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent" placeholder="授權類型..." />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">備註</label>
-                    <textarea value={metaNotes} onChange={(e) => setMetaNotes(e.target.value)} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="內部備註..." />
+                    <textarea value={metaNotes} onChange={(e) => setMetaNotes(e.target.value)} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent" placeholder="內部備註..." />
                   </div>
                 </div>
               )}

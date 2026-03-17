@@ -109,7 +109,7 @@ export default function PostDetailContent({ post }: PostDetailContentProps) {
                     <Link
                       key={tag.id}
                       href={`/posts?tag=${tag.name}`}
-                      className="text-sm text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-full transition-colors"
+                      className="text-sm text-brand-navy-600 hover:text-brand-navy-800 bg-cream-50 hover:bg-cream-100 px-3 py-1 rounded-full transition-colors"
                     >
                       #{tag.slug}
                     </Link>
@@ -121,7 +121,7 @@ export default function PostDetailContent({ post }: PostDetailContentProps) {
             {/* 相關推薦 */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <span className="w-3 h-3 bg-amber-500 rounded-full mr-2"></span>
+                <span className="w-3 h-3 bg-cream-500 rounded-full mr-2"></span>
                 相關推薦
               </h3>
               <div className="space-y-3">

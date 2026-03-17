@@ -148,13 +148,13 @@ export default function PostsContent({ locale }: PostsContentProps) {
             }}
             onCompositionStart={() => setIsComposing(true)}
             onCompositionEnd={() => setIsComposing(false)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
           />
         </div>
 
         <Button
           onClick={handleSearch}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-brand-navy-700 hover:bg-brand-navy-800"
         >
           搜尋
         </Button>

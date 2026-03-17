@@ -63,7 +63,7 @@ export function SubFolderSection({
     <div>
       <button
         onClick={handleToggle}
-        className="flex items-center gap-3 py-2 text-left w-full hover:text-blue-600 transition-colors"
+        className="flex items-center gap-3 py-2 text-left w-full hover:text-brand-navy-600 transition-colors"
       >
         {/* 縮圖 */}
         <div className="w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">

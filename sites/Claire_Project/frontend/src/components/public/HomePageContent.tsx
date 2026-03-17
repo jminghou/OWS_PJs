@@ -5,6 +5,7 @@ import BannerSection from '@/components/public/BannerSection';
 import ArticleCarousel from '@/components/public/ArticleCarousel';
 import AboutPreview from '@/components/public/AboutPreview';
 import FeaturesGrid from '@/components/public/FeaturesGrid';
+import ContactSection from '@/components/public/ContactSection';
 import { Content, HomepageSettings } from '@/types';
 import { getImageUrl } from '@/lib/utils';
 
@@ -83,19 +84,19 @@ export default function HomePageContent({
   // Prepare features data
   const features = [
     {
-      icon: <ReportIcon className="w-7 h-7 text-brand-purple-600" />,
+      icon: <ReportIcon className="w-7 h-7 text-brand-navy-600" />,
       title: content.feature1Title,
       description: content.feature1Desc,
       comingSoon: true,
     },
     {
-      icon: <ConsultIcon className="w-7 h-7 text-brand-purple-600" />,
+      icon: <ConsultIcon className="w-7 h-7 text-brand-navy-600" />,
       title: content.feature2Title,
       description: content.feature2Desc,
       comingSoon: true,
     },
     {
-      icon: <CourseIcon className="w-7 h-7 text-brand-purple-600" />,
+      icon: <CourseIcon className="w-7 h-7 text-brand-navy-600" />,
       title: content.feature3Title,
       description: content.feature3Desc,
       comingSoon: true,
@@ -143,12 +144,15 @@ export default function HomePageContent({
         description={content.bannerDescription}
       />
 
-      {/* 5. Features Section - Product placeholders */}
-      <FeaturesGrid
+      {/* 5. Contact Section - 研究交流 */}
+      <ContactSection />
+
+      {/* 6. Features Section - 暫時隱藏 */}
+      {/* <FeaturesGrid
         title={content.featuresTitle}
         description={content.featuresDescription}
         features={features}
-      />
+      /> */}
     </>
   );
 }

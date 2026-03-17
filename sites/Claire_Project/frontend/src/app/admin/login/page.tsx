@@ -45,7 +45,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="text-3xl font-bold text-gray-900 hover:text-gray-700">
-            Orion Blog
+            數位鍊金室
           </Link>
           <h2 className="mt-6 text-2xl font-semibold text-gray-900">
             管理員登入

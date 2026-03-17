@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -20,7 +19,7 @@ const navContent: Record<string, {
     home: '首頁',
     about: '關於我們',
     articles: '策略專欄',
-    products: '服務與產品',
+    products: '研究交流',
     contact: '聯絡我們',
     openMenu: '打開主選單',
   },
@@ -29,7 +28,7 @@ const navContent: Record<string, {
     home: '首页',
     about: '关于我们',
     articles: '策略专栏',
-    products: '服务与产品',
+    products: '研究交流',
     contact: '联系我们',
     openMenu: '打开主菜单',
   },
@@ -117,7 +116,7 @@ export default function PublicHeader() {
           <div className="flex items-center">
             <button
               onClick={() => scrollToSection('hero')}
-              className="text-2xl font-bold text-brand-purple-700 hover:text-brand-purple-600 transition-colors"
+              className="text-2xl font-bold text-brand-navy-700 hover:text-brand-navy-600 transition-colors"
             >
               {content.siteName}
             </button>
@@ -126,25 +125,25 @@ export default function PublicHeader() {
           <nav className="hidden md:flex items-center space-x-8">
             <button
               onClick={() => scrollToSection('hero')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-gray-900 hover:text-brand-navy-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.home}
             </button>
             <button
               onClick={() => scrollToSection('about')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-gray-900 hover:text-brand-navy-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.about}
             </button>
             <button
               onClick={() => scrollToSection('articles')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-gray-900 hover:text-brand-navy-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.articles}
             </button>
             <button
-              onClick={() => scrollToSection('products')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              onClick={() => scrollToSection('contact')}
+              className="text-gray-900 hover:text-brand-navy-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.products}
             </button>
@@ -155,7 +154,7 @@ export default function PublicHeader() {
             {i18nEnabled && <LanguageSwitcher />}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 p-2 rounded-md"
+              className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-navy-500 p-2 rounded-md"
             >
               <span className="sr-only">{content.openMenu}</span>
               <svg
@@ -180,26 +179,26 @@ export default function PublicHeader() {
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
             <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              className="text-gray-900 hover:bg-cream-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
               onClick={() => scrollToSection('hero')}
             >
               {content.home}
             </button>
             <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              className="text-gray-900 hover:bg-cream-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
               onClick={() => scrollToSection('about')}
             >
               {content.about}
             </button>
             <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              className="text-gray-900 hover:bg-cream-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
               onClick={() => scrollToSection('articles')}
             >
               {content.articles}
             </button>
             <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('products')}
+              className="text-gray-900 hover:bg-cream-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              onClick={() => scrollToSection('contact')}
             >
               {content.products}
             </button>

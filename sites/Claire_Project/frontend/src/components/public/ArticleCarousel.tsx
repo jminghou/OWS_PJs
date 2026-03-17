@@ -38,7 +38,7 @@ function CarouselArticleCard({ article }: { article: Content }) {
         <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
           <Link
             href={`/posts/${article.slug}`}
-            className="hover:text-brand-purple-600 transition-colors"
+            className="hover:text-brand-navy-600 transition-colors"
           >
             {article.title}
           </Link>
@@ -102,7 +102,7 @@ export default function ArticleCarousel({
           <div className="text-center mt-8">
             <Link
               href={viewMoreLink}
-              className="inline-flex items-center px-6 py-3 bg-brand-purple-100 hover:bg-brand-purple-200 text-brand-purple-800 font-medium rounded-lg transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-cream-100 hover:bg-cream-200 text-brand-navy-800 font-medium rounded-lg transition-colors"
             >
               {viewMoreText}
               <svg

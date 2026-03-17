@@ -70,7 +70,7 @@ export function MoveFolderModal({
           {/* 根層級選項 */}
           <button
             className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 flex items-center gap-2 ${
-              selectedParentId === null ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'
+              selectedParentId === null ? 'bg-cream-50 text-brand-navy-700 border border-cream-200' : 'hover:bg-gray-50 text-gray-700'
             }`}
             onClick={() => setSelectedParentId(null)}
           >
@@ -83,7 +83,7 @@ export function MoveFolderModal({
             <button
               key={f.id}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 flex items-center gap-2 ${
-                selectedParentId === f.id ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'
+                selectedParentId === f.id ? 'bg-cream-50 text-brand-navy-700 border border-cream-200' : 'hover:bg-gray-50 text-gray-700'
               }`}
               onClick={() => setSelectedParentId(f.id)}
             >

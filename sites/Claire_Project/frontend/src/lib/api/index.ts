@@ -19,7 +19,7 @@ export { productApi } from './products';
 export { orderApi, paymentMethodApi } from './orders';
 export { i18nApi, homepageApi } from './settings';
 export type { I18nSettings } from './settings';
-export { userApi, submissionApi } from './users';
+export { userApi, contactApi, submissionApi } from './users';
 
 // Default export for backwards compatibility
 import { authApi } from './auth';
@@ -28,13 +28,14 @@ import { mediaApi, tagApi as mediaTagApi } from './media';
 import { productApi } from './products';
 import { orderApi, paymentMethodApi } from './orders';
 import { i18nApi, homepageApi } from './settings';
-import { userApi, submissionApi } from './users';
+import { userApi, contactApi, submissionApi } from './users';
 
 const api = {
   auth: authApi,
   content: contentApi,
   category: categoryApi,
   tag: tagApi,
+  contact: contactApi,
   submission: submissionApi,
   user: userApi,
   media: mediaApi,

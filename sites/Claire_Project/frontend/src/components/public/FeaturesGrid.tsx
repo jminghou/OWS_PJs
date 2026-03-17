@@ -48,13 +48,13 @@ export default function FeaturesGrid({
             >
               {feature.comingSoon && (
                 <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-purple-100 text-brand-purple-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cream-100 text-brand-navy-800">
                     {comingSoonLabel}
                   </span>
                 </div>
               )}
 
-              <div className="w-14 h-14 bg-brand-purple-100 rounded-xl flex items-center justify-center mb-6">
+              <div className="w-14 h-14 bg-cream-100 rounded-xl flex items-center justify-center mb-6">
                 {feature.icon}
               </div>
 

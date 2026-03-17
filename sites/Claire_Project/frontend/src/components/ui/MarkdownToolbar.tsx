@@ -138,7 +138,7 @@ export default function MarkdownToolbar({ textareaRef, content, onContentChange 
               variant="outline"
               size="sm"
               onClick={button.action}
-              className="h-6 px-4 text-xs text-gray-400 hover:bg-blue-50 hover:text-blue-600 active:bg-blue-100 active:text-blue-700"
+              className="h-6 px-4 text-xs text-gray-400 hover:bg-cream-50 hover:text-brand-navy-600 active:bg-cream-100 active:text-brand-navy-700"
             >
               {button.label}
             </Button>
@@ -152,7 +152,7 @@ export default function MarkdownToolbar({ textareaRef, content, onContentChange 
               variant="outline"
               size="sm"
               onClick={button.action}
-              className="h-6 px-4 text-xs text-gray-400 hover:bg-blue-50 hover:text-blue-600 active:bg-blue-100 active:text-blue-700"
+              className="h-6 px-4 text-xs text-gray-400 hover:bg-cream-50 hover:text-brand-navy-600 active:bg-cream-100 active:text-brand-navy-700"
             >
               {button.label}
             </Button>

@@ -49,7 +49,7 @@ export default function ArticleSidebar({
           onClick={onNewArticle}
           className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             isCreateMode
-              ? 'bg-blue-600 text-white'
+              ? 'bg-brand-navy-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -67,7 +67,7 @@ export default function ArticleSidebar({
             placeholder="搜尋文章..."
             value={filters.search}
             onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
-            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-brand-navy-400 focus:border-brand-navy-400 outline-none"
           />
         </div>
       </div>

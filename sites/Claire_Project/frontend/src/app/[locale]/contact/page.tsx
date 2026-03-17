@@ -271,7 +271,7 @@ export default function LocaleContactPage() {
                 required
                 value={contactForm.name}
                 onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                 placeholder={content.namePlaceholder}
               />
             </div>
@@ -286,7 +286,7 @@ export default function LocaleContactPage() {
                 required
                 value={contactForm.email}
                 onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                 placeholder={content.emailPlaceholder}
               />
             </div>
@@ -301,7 +301,7 @@ export default function LocaleContactPage() {
                 rows={5}
                 value={contactForm.message}
                 onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                 placeholder={content.messagePlaceholder}
               />
             </div>
@@ -309,7 +309,7 @@ export default function LocaleContactPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-brand-purple-600 hover:bg-brand-purple-700"
+              className="w-full bg-brand-navy-700 hover:bg-brand-navy-800"
             >
               {isSubmitting ? content.submitting : content.submitBtn}
             </Button>
@@ -317,7 +317,7 @@ export default function LocaleContactPage() {
         </div>
 
         {/* 匿名提問表單 */}
-        <div className="bg-warm-50 rounded-lg shadow-sm border p-8">
+        <div className="bg-cream-50 rounded-lg shadow-sm border p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             {content.anonymousTitle}
           </h2>
@@ -335,7 +335,7 @@ export default function LocaleContactPage() {
                 id="character_name"
                 value={submissionForm.character_name}
                 onChange={(e) => setSubmissionForm(prev => ({ ...prev, character_name: e.target.value }))}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-warm-500 focus:border-transparent ${fieldErrors.character_name ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent ${fieldErrors.character_name ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder={content.characterNamePlaceholder}
               />
               {fieldErrors.character_name && (
@@ -353,7 +353,7 @@ export default function LocaleContactPage() {
                   id="birth_year"
                   value={submissionForm.birth_year}
                   onChange={(e) => setSubmissionForm(prev => ({ ...prev, birth_year: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warm-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent"
                   placeholder="2020"
                 />
               </div>
@@ -368,7 +368,7 @@ export default function LocaleContactPage() {
                   max="12"
                   value={submissionForm.birth_month}
                   onChange={(e) => setSubmissionForm(prev => ({ ...prev, birth_month: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warm-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent"
                   placeholder="6"
                 />
               </div>
@@ -386,7 +386,7 @@ export default function LocaleContactPage() {
                   max="31"
                   value={submissionForm.birth_day}
                   onChange={(e) => setSubmissionForm(prev => ({ ...prev, birth_day: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warm-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent"
                   placeholder="15"
                 />
               </div>
@@ -399,7 +399,7 @@ export default function LocaleContactPage() {
                   id="birth_time"
                   value={submissionForm.birth_time}
                   onChange={(e) => setSubmissionForm(prev => ({ ...prev, birth_time: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warm-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent"
                   placeholder={content.birthTimePlaceholder}
                 />
               </div>
@@ -414,7 +414,7 @@ export default function LocaleContactPage() {
                 id="birth_place"
                 value={submissionForm.birth_place}
                 onChange={(e) => setSubmissionForm(prev => ({ ...prev, birth_place: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warm-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent"
                 placeholder={content.birthPlacePlaceholder}
               />
             </div>
@@ -428,7 +428,7 @@ export default function LocaleContactPage() {
                 rows={5}
                 value={submissionForm.question}
                 onChange={(e) => setSubmissionForm(prev => ({ ...prev, question: e.target.value }))}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-warm-500 focus:border-transparent ${fieldErrors.question ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent ${fieldErrors.question ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder={content.questionPlaceholder}
               />
               {fieldErrors.question && (
@@ -439,7 +439,7 @@ export default function LocaleContactPage() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-warm-600 hover:bg-warm-700"
+              className="w-full bg-cream-700 hover:bg-cream-800"
             >
               {isSubmitting ? content.submitting : content.anonymousSubmitBtn}
             </Button>
@@ -462,7 +462,7 @@ export default function LocaleContactPage() {
         <div className="flex justify-center space-x-6">
           <a
             href="#"
-            className="text-gray-600 hover:text-brand-purple-600 transition-colors"
+            className="text-gray-600 hover:text-brand-navy-700 transition-colors"
           >
             <span className="sr-only">Facebook</span>
             <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
@@ -471,7 +471,7 @@ export default function LocaleContactPage() {
           </a>
           <a
             href="#"
-            className="text-gray-600 hover:text-brand-purple-600 transition-colors"
+            className="text-gray-600 hover:text-brand-navy-700 transition-colors"
           >
             <span className="sr-only">Instagram</span>
             <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
@@ -480,7 +480,7 @@ export default function LocaleContactPage() {
           </a>
           <a
             href="#"
-            className="text-gray-600 hover:text-brand-purple-600 transition-colors"
+            className="text-gray-600 hover:text-brand-navy-700 transition-colors"
           >
             <span className="sr-only">Line</span>
             <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">

@@ -25,7 +25,7 @@ export default function ArticleListItem({
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
       className={`group w-full text-left px-3 py-2.5 border-l-3 transition-colors cursor-pointer ${
         isSelected
-          ? 'border-l-blue-600 bg-blue-50'
+          ? 'border-l-brand-navy-600 bg-cream-50'
           : 'border-l-transparent hover:bg-gray-50'
       }`}
     >

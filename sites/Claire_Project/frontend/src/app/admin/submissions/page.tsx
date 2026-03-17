@@ -113,7 +113,7 @@ export default function SubmissionsPage() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: '待處理' },
-      reviewed: { bg: 'bg-blue-100', text: 'text-blue-800', label: '已查看' },
+      reviewed: { bg: 'bg-cream-100', text: 'text-brand-navy-800', label: '已查看' },
       answered: { bg: 'bg-green-100', text: 'text-green-800', label: '已回覆' }
     };
 
@@ -154,7 +154,7 @@ export default function SubmissionsPage() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent"
             >
               <option value="all">所有狀態</option>
               <option value="pending">待處理</option>
@@ -232,7 +232,7 @@ export default function SubmissionsPage() {
                               <p className="text-sm text-gray-600 mb-1">
                                 <span className="font-medium">管理員備註：</span>
                               </p>
-                              <p className="text-sm text-blue-800 bg-blue-50 p-2 rounded">
+                              <p className="text-sm text-brand-navy-800 bg-cream-50 p-2 rounded">
                                 {submission.admin_notes}
                               </p>
                             </div>
@@ -252,7 +252,7 @@ export default function SubmissionsPage() {
                             value={submission.status}
                             onChange={(e) => handleStatusChange(submission.id, e.target.value)}
                             disabled={updating}
-                            className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-brand-purple-500"
+                            className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-cream-500"
                           >
                             <option value="pending">待處理</option>
                             <option value="reviewed">已查看</option>
@@ -360,7 +360,7 @@ export default function SubmissionsPage() {
                       value={adminNotes}
                       onChange={(e) => setAdminNotes(e.target.value)}
                       rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent"
                       placeholder="添加管理員備註..."
                     />
                   </div>

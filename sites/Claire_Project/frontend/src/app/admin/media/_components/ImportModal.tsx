@@ -113,7 +113,7 @@ export function ImportModal({ isOpen, folders, onClose, onImportComplete }: Impo
           </div>
 
           {scannedFiles.length > 0 && (
-            <div className="flex gap-4 items-center flex-wrap p-3 bg-blue-50 rounded-lg">
+            <div className="flex gap-4 items-center flex-wrap p-3 bg-cream-50 rounded-lg">
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-xs text-gray-600 mb-1">匯入到資料夾</label>
                 <select value={targetFolderId ?? ''} onChange={(e) => setTargetFolderId(e.target.value ? Number(e.target.value) : null)} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded">
@@ -122,7 +122,7 @@ export function ImportModal({ isOpen, folders, onClose, onImportComplete }: Impo
                 </select>
               </div>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={genVariants} onChange={(e) => setGenVariants(e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded" />
+                <input type="checkbox" checked={genVariants} onChange={(e) => setGenVariants(e.target.checked)} className="w-4 h-4 text-brand-navy-600 border-gray-300 rounded" />
                 <span>產生縮圖變體</span>
                 <span className="text-xs text-gray-500">（較慢）</span>
               </label>
@@ -133,7 +133,7 @@ export function ImportModal({ isOpen, folders, onClose, onImportComplete }: Impo
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" checked={selectedFiles.size === scannedFiles.length} onChange={toggleAll} className="w-4 h-4 text-blue-600 border-gray-300 rounded" />
+                  <input type="checkbox" checked={selectedFiles.size === scannedFiles.length} onChange={toggleAll} className="w-4 h-4 text-brand-navy-600 border-gray-300 rounded" />
                   <span className="text-sm font-medium text-gray-700">
                     找到 {scannedFiles.length} 個未匯入的檔案
                     {selectedFiles.size > 0 && ` (已選 ${selectedFiles.size})`}
@@ -143,7 +143,7 @@ export function ImportModal({ isOpen, folders, onClose, onImportComplete }: Impo
               <div className="max-h-60 overflow-y-auto border rounded-lg divide-y">
                 {scannedFiles.map((f) => (
                   <label key={f.gcs_path} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" checked={selectedFiles.has(f.gcs_path)} onChange={() => toggleFile(f.gcs_path)} className="w-4 h-4 text-blue-600 border-gray-300 rounded flex-shrink-0" />
+                    <input type="checkbox" checked={selectedFiles.has(f.gcs_path)} onChange={() => toggleFile(f.gcs_path)} className="w-4 h-4 text-brand-navy-600 border-gray-300 rounded flex-shrink-0" />
                     {f.mime_type.startsWith('image/') ? (
                       <img src={f.public_url} alt={f.filename} className="w-10 h-10 object-cover rounded flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).src = '/images/placeholder.svg'; }} />
                     ) : (

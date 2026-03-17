@@ -83,14 +83,14 @@ export function TagSelector({ selectedTags, onChange, disabled }: TagSelectorPro
         {selectedTags.map((tag) => (
           <span
             key={tag.id}
-            className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+            className="inline-flex items-center gap-1 px-2 py-1 bg-cream-100 text-brand-navy-800 text-sm rounded-full"
           >
             {tag.name}
             {!disabled && (
               <button
                 type="button"
                 onClick={() => handleRemoveTag(tag.id)}
-                className="hover:text-blue-600"
+                className="hover:text-brand-navy-600"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -107,7 +107,7 @@ export function TagSelector({ selectedTags, onChange, disabled }: TagSelectorPro
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="w-full px-3 py-2 text-left text-sm border border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-left text-sm border border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-navy-400"
           >
             + 新增標籤
           </button>
@@ -122,7 +122,7 @@ export function TagSelector({ selectedTags, onChange, disabled }: TagSelectorPro
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="搜尋標籤..."
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-navy-400"
                   autoFocus
                 />
               </div>
@@ -157,13 +157,13 @@ export function TagSelector({ selectedTags, onChange, disabled }: TagSelectorPro
                       onChange={(e) => setNewTagName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
                       placeholder="輸入新標籤名稱"
-                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-navy-400"
                       autoFocus
                     />
                     <button
                       type="button"
                       onClick={handleCreateTag}
-                      className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      className="px-2 py-1 text-sm bg-brand-navy-600 text-white rounded hover:bg-brand-navy-700"
                     >
                       建立
                     </button>
@@ -182,7 +182,7 @@ export function TagSelector({ selectedTags, onChange, disabled }: TagSelectorPro
                   <button
                     type="button"
                     onClick={() => setIsCreating(true)}
-                    className="w-full text-left text-sm text-blue-600 hover:text-blue-800"
+                    className="w-full text-left text-sm text-brand-navy-600 hover:text-brand-navy-800"
                   >
                     + 建立新標籤
                   </button>

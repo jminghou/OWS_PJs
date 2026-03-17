@@ -142,7 +142,7 @@ export default function AuthorForm({
             <select
               value={role}
               onChange={(e) => onRoleChange(e.target.value as 'admin' | 'editor' | 'user')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
             >
               <option value="editor">編輯者</option>
               <option value="admin">管理員</option>

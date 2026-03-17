@@ -41,7 +41,7 @@ export default async function LocaleAboutPage({ params }: PageProps) {
           <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">
             {t.aboutMe}
           </h1>
-          <div className="bg-warm-50 rounded-lg p-8 mb-8">
+          <div className="bg-cream-50 rounded-lg p-8 mb-8">
             <p className="text-lg leading-relaxed text-gray-700">
               {t.story}
             </p>
@@ -53,8 +53,8 @@ export default async function LocaleAboutPage({ params }: PageProps) {
           <h2 className="text-3xl font-bold text-gray-900 mb-6">
             {t.siteOriginTitle}
           </h2>
-          <div className="bg-brand-purple-50 rounded-lg p-8 mb-6">
-            <div className="border-l-4 border-brand-purple-500 pl-6 italic text-brand-purple-700 text-xl mb-6">
+          <div className="bg-cream-50 rounded-lg p-8 mb-6">
+            <div className="border-l-4 border-cream-500 pl-6 italic text-brand-navy-700 text-xl mb-6">
               <p className="mb-2">
                 {t.quote}
               </p>
@@ -91,7 +91,7 @@ export default async function LocaleAboutPage({ params }: PageProps) {
           <div className="flex justify-center">
             <Link
               href={`${basePath}/contact`}
-              className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-colors"
+              className="inline-flex items-center px-8 py-4 bg-brand-navy-700 hover:bg-brand-navy-800 text-white font-medium rounded-lg transition-colors"
             >
               {t.contactBtn}
               <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

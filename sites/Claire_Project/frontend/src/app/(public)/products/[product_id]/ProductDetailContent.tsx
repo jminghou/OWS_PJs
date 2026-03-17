@@ -81,7 +81,7 @@ export default function ProductDetailContent({ product, language = 'zh-TW' }: Pr
                   language={language}
                 />
               </div>
-              <div className="text-3xl font-bold text-indigo-600">
+              <div className="text-3xl font-bold text-brand-navy-600">
                 {formatPrice(product.price, currentCurrency, language)}
               </div>
               {product.original_price && product.original_price > product.price && (
@@ -127,7 +127,7 @@ export default function ProductDetailContent({ product, language = 'zh-TW' }: Pr
                       {product.tags.map((tag) => (
                         <span
                           key={tag.id}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cream-100 text-brand-navy-800"
                         >
                           {tag.slug}
                         </span>
@@ -198,7 +198,7 @@ export default function ProductDetailContent({ product, language = 'zh-TW' }: Pr
               )}
 
               {/* Purchase CTA */}
-              <div className="mt-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-8 text-center">
+              <div className="mt-12 bg-gradient-to-r from-brand-navy-700 to-brand-navy-900 rounded-lg p-8 text-center">
                 <h3 className="text-2xl font-bold text-white mb-4">
                   準備好開始您的數位轉型之旅了嗎?
                 </h3>
@@ -207,7 +207,7 @@ export default function ProductDetailContent({ product, language = 'zh-TW' }: Pr
                     {formatPrice(product.price, currentCurrency, language)}
                   </span>
                   {product.original_price && product.original_price > product.price && (
-                    <span className="text-xl text-indigo-200 line-through">
+                    <span className="text-xl text-cream-200 line-through">
                       {formatPrice(product.original_price, currentCurrency, language)}
                     </span>
                   )}
@@ -215,7 +215,7 @@ export default function ProductDetailContent({ product, language = 'zh-TW' }: Pr
                 <button
                   onClick={handleBuyNow}
                   disabled={checkoutLoading || product.stock_status === 'out_of_stock'}
-                  className="inline-flex items-center px-8 py-4 text-lg font-medium rounded-lg shadow-lg text-indigo-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-white focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
+                  className="inline-flex items-center px-8 py-4 text-lg font-medium rounded-lg shadow-lg text-brand-navy-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-white focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
                 >
                   {checkoutLoading
                     ? '處理中...'

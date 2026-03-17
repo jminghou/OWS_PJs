@@ -75,7 +75,7 @@ export default function HeroSection({
         </div>
       ) : (
         <>
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-purple-600 to-brand-purple-800" />
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-navy-700 to-brand-navy-900" />
           <div className="absolute inset-0 bg-black/30 z-[1]" />
         </>
       )}
@@ -95,7 +95,7 @@ export default function HeroSection({
 
           {/* Subtitle - 支援富文本 HTML */}
           <div
-            className="text-lg md:text-xl text-white/90 text-center max-w-2xl mx-auto mb-8 prose prose-invert prose-p:text-white/90 prose-p:my-1 prose-strong:text-white prose-em:text-purple-200"
+            className="text-lg md:text-xl text-white/90 text-center max-w-2xl mx-auto mb-8 prose prose-invert prose-p:text-white/90 prose-p:my-1 prose-strong:text-white prose-em:text-cream-200"
             dangerouslySetInnerHTML={{ __html: displaySubtitle }}
           />
         </div>
@@ -109,7 +109,7 @@ export default function HeroSection({
             href={ctaUrl}
             target={ctaNewTab ? '_blank' : '_self'}
             rel={ctaNewTab ? 'noopener noreferrer' : undefined}
-            className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="inline-flex items-center px-8 py-4 bg-brand-navy-700 hover:bg-brand-navy-800 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             {ctaText}
           </a>
@@ -117,7 +117,7 @@ export default function HeroSection({
           // Global fallback: scroll to #banner section
           <button
             onClick={handleScrollToSection}
-            className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="inline-flex items-center px-8 py-4 bg-brand-navy-700 hover:bg-brand-navy-800 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             {ctaText}
             <svg

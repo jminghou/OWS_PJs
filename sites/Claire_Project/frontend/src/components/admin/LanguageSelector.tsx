@@ -142,14 +142,14 @@ export default function LanguageSelector({
                 disabled={isCurrent || (mode === 'edit' && !exists)}
                 className={`flex-1 flex items-center gap-2 px-2 py-1.5 text-sm text-left rounded-md transition-colors ${
                   isCurrent 
-                    ? 'text-brand-purple-600 font-medium bg-brand-purple-50' 
+                    ? 'text-brand-navy-600 font-medium bg-cream-50' 
                     : (mode === 'edit' && !exists)
                       ? 'text-gray-400 cursor-not-allowed'
                       : 'text-gray-700 hover:text-gray-900'
                 }`}
               >
                 <span className="flex-1">{langName}</span>
-                {isCurrent && <Check size={14} className="text-brand-purple-500" />}
+                {isCurrent && <Check size={14} className="text-cream-500" />}
                 {exists && !isCurrent && <ExternalLink size={12} className="text-gray-400" />}
               </button>
 

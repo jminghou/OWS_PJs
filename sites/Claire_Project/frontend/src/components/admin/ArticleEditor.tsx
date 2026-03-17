@@ -287,7 +287,7 @@ export default function ArticleEditor({
               <textarea
                 value={formData.summary}
                 onChange={(e) => setFormData(prev => ({ ...prev, summary: e.target.value }))}
-                className="w-full p-4 text-sm text-gray-600 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-purple-500/20 focus:border-brand-purple-300 focus:bg-white transition-all duration-200 resize-none leading-relaxed"
+                className="w-full p-4 text-sm text-gray-600 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-cream-500/20 focus:border-brand-navy-200 focus:bg-white transition-all duration-200 resize-none leading-relaxed"
                 rows={2}
                 placeholder="在此輸入文章摘要（選填）..."
               />
@@ -305,7 +305,7 @@ export default function ArticleEditor({
                   <textarea
                     value={formData.content}
                     onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                    className="w-full min-h-[400px] p-4 font-mono text-sm text-gray-800 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent resize-y"
+                    className="w-full min-h-[400px] p-4 font-mono text-sm text-gray-800 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent resize-y"
                     placeholder="在此輸入 HTML 原始碼..."
                     spellCheck={false}
                   />

@@ -134,7 +134,7 @@ export default function PriceManager({ productId, language = 'zh-TW' }: PriceMan
         <button
           type="button"
           onClick={() => setShowAddForm(!showAddForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-4 py-2 bg-brand-navy-600 text-white rounded hover:bg-brand-navy-700"
         >
           {showAddForm ? '取消新增' : '新增價格'}
         </button>
@@ -310,7 +310,7 @@ export default function PriceManager({ productId, language = 'zh-TW' }: PriceMan
                     <button
                       type="button"
                       onClick={() => startEdit(price)}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      className="px-3 py-1 bg-brand-navy-600 text-white rounded hover:bg-brand-navy-700"
                     >
                       編輯
                     </button>

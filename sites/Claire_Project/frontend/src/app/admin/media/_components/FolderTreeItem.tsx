@@ -60,7 +60,7 @@ export function FolderTreeItem({
       <div
         className={`flex items-center gap-2 py-2 cursor-pointer transition-colors ${
           isSelected
-            ? 'border-l-2 border-blue-500 bg-blue-50 text-blue-700'
+            ? 'border-l-2 border-brand-navy-400 bg-cream-50 text-brand-navy-700'
             : 'border-l-2 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
         }`}
         style={{ paddingLeft: `${16 + depth * 20}px`, paddingRight: '12px' }}

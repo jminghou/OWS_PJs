@@ -92,7 +92,7 @@ export default function ProductLanguageManager({
           <button
             type="button"
             onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-brand-navy-600 text-white rounded hover:bg-brand-navy-700"
           >
             {showAddForm ? '取消新增' : '新增語言版本'}
           </button>
@@ -100,15 +100,15 @@ export default function ProductLanguageManager({
       </div>
 
       {/* 當前語言 */}
-      <div className="mb-4 p-4 border-2 border-blue-500 rounded bg-blue-50">
+      <div className="mb-4 p-4 border-2 border-brand-navy-400 rounded bg-cream-50">
         <div className="flex justify-between items-center">
           <div>
-            <div className="font-semibold text-blue-700">
+            <div className="font-semibold text-brand-navy-700">
               當前編輯語言: {SUPPORTED_LANGUAGES[currentLanguage]}
             </div>
             <div className="text-sm text-gray-600">產品 ID: {productId}</div>
           </div>
-          <div className="px-3 py-1 bg-blue-600 text-white rounded text-sm">當前</div>
+          <div className="px-3 py-1 bg-brand-navy-600 text-white rounded text-sm">當前</div>
         </div>
       </div>
 
@@ -169,7 +169,7 @@ export default function ProductLanguageManager({
                   <button
                     type="button"
                     onClick={() => handleSwitchToTranslation(translation.id)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="px-4 py-2 bg-brand-navy-600 text-white rounded hover:bg-brand-navy-700"
                   >
                     編輯此版本
                   </button>

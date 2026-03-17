@@ -53,13 +53,13 @@ export function FolderSidebar({
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Add New</p>
           <button
             onClick={onAddMedia}
-            className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 transition-colors py-1"
+            className="flex items-center gap-1 text-sm text-gray-600 hover:text-brand-navy-600 transition-colors py-1"
           >
             <span className="text-lg leading-none">+</span> Media
           </button>
           <button
             onClick={onAddFolder}
-            className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 transition-colors py-1"
+            className="flex items-center gap-1 text-sm text-gray-600 hover:text-brand-navy-600 transition-colors py-1"
           >
             <span className="text-lg leading-none">+</span> Folder
           </button>
@@ -73,7 +73,7 @@ export function FolderSidebar({
           onClick={() => onSelectFolder(null)}
           className={`w-full flex items-center gap-3 px-6 py-2.5 text-left transition-colors ${
             selectedFolderId === null
-              ? 'border-l-2 border-blue-500 bg-blue-50 text-blue-700'
+              ? 'border-l-2 border-brand-navy-400 bg-cream-50 text-brand-navy-700'
               : 'border-l-2 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
@@ -88,7 +88,7 @@ export function FolderSidebar({
           onClick={() => onSelectFolder(0)}
           className={`w-full flex items-center gap-3 px-6 py-2.5 text-left transition-colors ${
             selectedFolderId === 0
-              ? 'border-l-2 border-blue-500 bg-blue-50 text-blue-700'
+              ? 'border-l-2 border-brand-navy-400 bg-cream-50 text-brand-navy-700'
               : 'border-l-2 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >

@@ -61,13 +61,13 @@ export default function AboutPreview({
                 />
               </div>
             ) : (
-              <div className="relative bg-gradient-to-br from-brand-purple-50 to-brand-purple-100 rounded-2xl aspect-square flex items-center justify-center">
+              <div className="relative bg-gradient-to-br from-cream-50 to-cream-100 rounded-2xl aspect-square flex items-center justify-center">
                 <div className="p-8 text-center">
-                  <div className="text-5xl md:text-6xl text-brand-purple-300 mb-4 font-serif">{'"'}</div>
-                  <p className="text-lg md:text-xl lg:text-2xl text-brand-purple-700 italic font-medium leading-relaxed">
+                  <div className="text-5xl md:text-6xl text-cream-400 mb-4 font-serif">{'"'}</div>
+                  <p className="text-lg md:text-xl lg:text-2xl text-brand-navy-700 italic font-medium leading-relaxed">
                     {quote}
                   </p>
-                  <div className="text-5xl md:text-6xl text-brand-purple-300 mt-4 font-serif">{'"'}</div>
+                  <div className="text-5xl md:text-6xl text-cream-400 mt-4 font-serif">{'"'}</div>
                 </div>
               </div>
             )}
@@ -87,9 +87,9 @@ export default function AboutPreview({
             <div className="space-y-4 pt-4">
               {missionPoints.map((point, index) => (
                 <div key={index} className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-brand-purple-100 rounded-full flex items-center justify-center mt-1">
+                  <div className="flex-shrink-0 w-6 h-6 bg-cream-100 rounded-full flex items-center justify-center mt-1">
                     <svg
-                      className="w-4 h-4 text-brand-purple-600"
+                      className="w-4 h-4 text-brand-navy-600"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -109,7 +109,7 @@ export default function AboutPreview({
             <div className="pt-6">
               <Link
                 href={learnMoreLink}
-                className="inline-flex items-center px-6 py-3 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-colors"
+                className="inline-flex items-center px-6 py-3 bg-brand-navy-600 hover:bg-brand-navy-700 text-white font-medium rounded-lg transition-colors"
               >
                 {learnMoreText}
                 <svg

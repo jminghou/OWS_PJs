@@ -182,8 +182,8 @@ export default function SettingsPage() {
                                   type="button"
                                   onClick={() => handleToggleLanguage(lang.code)}
                                   disabled={isDefault}
-                                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                    isActive ? 'bg-blue-600' : 'bg-gray-200'
+                                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-navy-400 focus:ring-offset-2 ${
+                                    isActive ? 'bg-brand-navy-600' : 'bg-gray-200'
                                   } ${isDefault ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                   <span
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="text-xs text-gray-500 hover:text-blue-600"
+                                    className="text-xs text-gray-500 hover:text-brand-navy-600"
                                     onClick={() => handleSetDefault(lang.code)}
                                   >
                                     設為預設

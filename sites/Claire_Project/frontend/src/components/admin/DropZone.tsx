@@ -96,10 +96,10 @@ export default function DropZone({
 
       {/* 拖放覆蓋層 */}
       {isDragOver && !disabled && (
-        <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-dashed border-blue-500 rounded-lg flex items-center justify-center z-40 pointer-events-none">
+        <div className="absolute inset-0 bg-cream-500 bg-opacity-20 border-2 border-dashed border-brand-navy-400 rounded-lg flex items-center justify-center z-40 pointer-events-none">
           <div className="bg-white px-6 py-4 rounded-lg shadow-lg text-center">
             <svg
-              className="w-12 h-12 mx-auto text-blue-500 mb-2"
+              className="w-12 h-12 mx-auto text-brand-navy-400 mb-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

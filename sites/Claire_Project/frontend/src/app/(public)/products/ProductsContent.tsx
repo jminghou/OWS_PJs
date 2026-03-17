@@ -32,7 +32,7 @@ export default function ProductsContent({ products }: ProductsContentProps) {
               {/* 1. 產品名稱與標籤區域 (最上方) */}
               <div className="px-4 pt-5 pb-3">
                 <h3
-                  className="text-lg font-bold text-gray-900 cursor-pointer hover:text-indigo-600 transition-colors"
+                  className="text-lg font-bold text-gray-900 cursor-pointer hover:text-brand-navy-600 transition-colors"
                   onClick={() => router.push(`/products/${product.product_id}`)}
                 >
                   {product.name}
@@ -99,7 +99,7 @@ export default function ProductsContent({ products }: ProductsContentProps) {
                     <Heart size={20} />
                   </button>
                   <button
-                    className="p-2 rounded-full text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                    className="p-2 rounded-full text-gray-400 hover:bg-cream-50 hover:text-brand-navy-600 transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
                     disabled={product.stock_status === 'out_of_stock'}
                     aria-label="加入購物車"
                   >

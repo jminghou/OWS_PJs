@@ -129,12 +129,12 @@ export default function LanguageManager({
               <div 
                 key={langCode} 
                 className={`flex items-center justify-between p-3 rounded-lg border ${
-                  isCurrent ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
+                  isCurrent ? 'bg-cream-50 border-cream-200' : 'bg-white border-gray-200'
                 }`}
               >
                 <div className="flex items-center gap-2">
                     <span className="font-medium text-sm text-gray-700">{langName}</span>
-                    {isCurrent && <span className="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">當前編輯</span>}
+                    {isCurrent && <span className="text-xs text-brand-navy-600 bg-cream-100 px-2 py-0.5 rounded">當前編輯</span>}
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -177,7 +177,7 @@ export default function LanguageManager({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                          className="h-7 w-7 p-0 rounded-full text-gray-500 hover:text-brand-navy-600 hover:bg-cream-50"
                           onClick={() => exists ? navigateToEdit(translation!.id) : null}
                           disabled={isCurrent || isLoading}
                           title={isCurrent ? "正在編輯" : "編輯此版本"}

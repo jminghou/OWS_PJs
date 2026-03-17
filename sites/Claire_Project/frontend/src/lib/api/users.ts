@@ -56,6 +56,19 @@ export const userApi = {
   },
 };
 
+export const contactApi = {
+  create: async (data: {
+    name: string;
+    email: string;
+    message: string;
+  }): Promise<{ message: string; id: number }> => {
+    return request<{ message: string; id: number }>('/submissions/contact', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
 export const submissionApi = {
   create: async (data: {
     character_name?: string;

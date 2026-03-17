@@ -3,6 +3,7 @@ Submissions API Routes
 
 Provides endpoints for anonymous submission forms:
 - POST /submissions - Create anonymous submission
+- POST /submissions/contact - Create contact form submission
 - GET /admin/submissions - List submissions (admin)
 - PUT /admin/submissions/<id> - Update submission status (admin)
 """
@@ -57,6 +58,45 @@ def api_create_submission():
         return jsonify({'message': 'Submission failed, please try again later'}), 500
 
 
+@bp.route('/submissions/contact', methods=['POST'])
+@limiter.limit("5/minute")
+def api_create_contact():
+    """Receive contact form submission"""
+    data = request.get_json()
+    client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', ''))
+
+    name = (data.get('name') or '').strip()
+    email = (data.get('email') or '').strip()
+    message = (data.get('message') or '').strip()
+
+    errors = {}
+    if not name:
+        errors['name'] = '請輸入姓名'
+    if not email:
+        errors['email'] = '請輸入電子郵件'
+    if not message:
+        errors['message'] = '請輸入訊息'
+
+    if errors:
+        return jsonify({'message': '請填寫所有必填欄位', 'errors': errors}), 400
+
+    submission = Submission(
+        submission_type='contact',
+        character_name=name[:100],
+        question=message,
+        attributes={'email': email[:200]},
+        ip_address=client_ip[:45]
+    )
+
+    try:
+        db.session.add(submission)
+        db.session.commit()
+        return jsonify({'message': '感謝您的聯絡，我們會盡快回覆！', 'id': submission.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': '送出失敗，請稍後再試'}), 500
+
+
 @bp.route('/admin/submissions', methods=['GET'])
 @jwt_required()
 def api_admin_submissions():
@@ -68,10 +108,13 @@ def api_admin_submissions():
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 20, type=int), 100)
     status = request.args.get('status')
+    submission_type = request.args.get('type')
 
     query = Submission.query
     if status:
         query = query.filter_by(status=status)
+    if submission_type:
+        query = query.filter_by(submission_type=submission_type)
 
     pagination = query.order_by(Submission.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 

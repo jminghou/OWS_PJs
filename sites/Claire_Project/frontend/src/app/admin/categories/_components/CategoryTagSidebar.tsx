@@ -50,7 +50,7 @@ export default function CategoryTagSidebar({
           onClick={() => onTabChange('categories')}
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors ${
             activeTab === 'categories'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+              ? 'text-brand-navy-600 border-b-2 border-brand-navy-600 bg-cream-50/50'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
           }`}
         >
@@ -62,7 +62,7 @@ export default function CategoryTagSidebar({
           onClick={() => onTabChange('tags')}
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors ${
             activeTab === 'tags'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+              ? 'text-brand-navy-600 border-b-2 border-brand-navy-600 bg-cream-50/50'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
           }`}
         >
@@ -78,7 +78,7 @@ export default function CategoryTagSidebar({
           onClick={onCreate}
           className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
             isCreateMode
-              ? 'bg-blue-600 text-white'
+              ? 'bg-brand-navy-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -97,7 +97,7 @@ export default function CategoryTagSidebar({
               placeholder="搜尋標籤..."
               value={tagSearch}
               onChange={(e) => onTagSearchChange(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-brand-navy-400 focus:border-brand-navy-400 outline-none"
             />
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function CategoryTagSidebar({
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(item.id); }}
                   className={`group w-full text-left px-3 py-2.5 border-l-3 transition-colors cursor-pointer ${
                     selectedId === item.id
-                      ? 'border-l-blue-600 bg-blue-50'
+                      ? 'border-l-brand-navy-600 bg-cream-50'
                       : 'border-l-transparent hover:bg-gray-50'
                   }`}
                 >

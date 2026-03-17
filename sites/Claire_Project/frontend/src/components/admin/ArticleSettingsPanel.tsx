@@ -88,7 +88,7 @@ export default function ArticleSettingsPanel({
               <select
                 value={formData.category_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent"
               >
                 <option value="">選擇分類</option>
                 {categories.map((category) => (
@@ -180,7 +180,7 @@ export default function ArticleSettingsPanel({
               <textarea
                 value={formData.meta_description}
                 onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cream-500 focus:border-transparent resize-none"
                 rows={3}
                 placeholder="搜尋引擎顯示的描述..."
               />

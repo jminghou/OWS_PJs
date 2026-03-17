@@ -31,7 +31,7 @@ const editorStyles = `
     margin-bottom: 0.25rem;
   }
   .simple-editor a {
-    color: #2563eb;
+    color: #2a3a6b;
     text-decoration: underline;
   }
 `;
@@ -109,7 +109,7 @@ const EditorBubbleMenu = ({ editor }: { editor: any }) => {
             item.action();
           }}
           className={`p-2 rounded hover:bg-slate-700 transition-colors ${
-            item.isActive ? 'text-blue-400' : 'text-white'
+            item.isActive ? 'text-brand-navy-400' : 'text-white'
           }`}
           title={item.title}
         >
@@ -142,7 +142,7 @@ export default function SimpleTextEditor({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 underline cursor-pointer hover:text-blue-800 transition-colors',
+          class: 'text-brand-navy-600 underline cursor-pointer hover:text-brand-navy-800 transition-colors',
         },
       }),
       Placeholder.configure({
@@ -169,7 +169,7 @@ export default function SimpleTextEditor({
   }, [content, editor]);
 
   return (
-    <div className={`w-full bg-white border border-gray-300 rounded-lg p-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 ${className}`}>
+    <div className={`w-full bg-white border border-gray-300 rounded-lg p-3 focus-within:ring-2 focus-within:ring-brand-navy-400 focus-within:border-brand-navy-400 ${className}`}>
       <EditorBubbleMenu editor={editor} />
       <EditorContent editor={editor} />
       <EditorStyles />

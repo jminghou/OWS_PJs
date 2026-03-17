@@ -14,6 +14,7 @@ export {
   i18nApi,
   homepageApi,
   userApi,
+  contactApi,
   submissionApi,
 } from './api/index';
 

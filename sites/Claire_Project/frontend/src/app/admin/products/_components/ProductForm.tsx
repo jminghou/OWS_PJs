@@ -363,7 +363,7 @@ export default function ProductForm(props: ProductFormProps) {
                     name="stock_status"
                     value={formData.stock_status}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                   >
                     <option value="in_stock">有貨</option>
                     <option value="out_of_stock">缺貨</option>
@@ -405,7 +405,7 @@ export default function ProductForm(props: ProductFormProps) {
                   name="category_id"
                   value={formData.category_id}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                 >
                   <option value="">無分類</option>
                   {categories.map(category => (
@@ -509,7 +509,7 @@ export default function ProductForm(props: ProductFormProps) {
                   value={formData.meta_description}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-navy-400 focus:border-transparent"
                   placeholder="產品的 SEO 描述"
                 />
               </div>
@@ -534,14 +534,14 @@ export default function ProductForm(props: ProductFormProps) {
                   </p>
                 </div>
                 {(formData as EditFormData).detail_content_id && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                    <p className="text-sm text-blue-800">
+                  <div className="bg-cream-50 border border-cream-200 rounded-md p-3">
+                    <p className="text-sm text-brand-navy-800">
                       詳情頁預覽：
                       <a
                         href={`/products/${formData.product_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="underline hover:text-blue-600 ml-1"
+                        className="underline hover:text-brand-navy-600 ml-1"
                       >
                         /products/{formData.product_id}
                       </a>
