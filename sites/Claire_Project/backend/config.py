@@ -213,10 +213,14 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
     JWT_COOKIE_SECURE = True
 
+    # Cookie Domain 設定（跨子域名共享 cookie）
+    # 例如 .clairelab.tw 讓 clairelab.tw 和 api.clairelab.tw 共享 cookie
+    JWT_COOKIE_DOMAIN = os.environ.get('JWT_COOKIE_DOMAIN') or None
+
     # Cookie SameSite 設定（可透過環境變數調整）
     # 同域名部署（如 Cloudflare Tunnel）使用 Lax；跨域部署才需要 None
-    JWT_COOKIE_SAMESITE = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
-    SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+    JWT_COOKIE_SAMESITE = os.environ.get('JWT_COOKIE_SAMESITE', 'None')
+    SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'None')
 
 
 # =============================================================================
