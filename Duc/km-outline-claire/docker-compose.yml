@@ -1,0 +1,77 @@
+version: '3.8'
+
+# ============================================================
+# Claire Outline 知識庫 - Docker Compose
+# 部署位置：Synology DS420+ NAS
+# 對外網址：https://km.clairelab.tw
+# 本地埠號：3301 → Cloudflare Tunnel → HTTPS
+# ============================================================
+
+services:
+
+  # ── Outline 主應用 ──────────────────────────────────────────
+  outline:
+    image: outlinewiki/outline:latest
+    container_name: outline-claire
+    restart: unless-stopped
+    ports:
+      - "3301:3000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+    networks:
+      - claire-outline-net
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-outline-claire
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: outline_claire
+      POSTGRES_USER: outline_claire
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /volume1/docker/outline-claire/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U outline_claire -d outline_claire"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - claire-outline-net
+
+  # ── Redis（Session / Queue）────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis-outline-claire
+    restart: unless-stopped
+    networks:
+      - claire-outline-net
+
+  # ── MinIO（S3 相容檔案儲存）───────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: minio-outline-claire
+    restart: unless-stopped
+    ports:
+      - "9902:9000"   # S3 API
+      - "9903:9001"   # MinIO 管理控制台（http://NAS_IP:9903）
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - /volume1/docker/outline-claire/data/minio:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - claire-outline-net
+
+networks:
+  claire-outline-net:
+    driver: bridge
