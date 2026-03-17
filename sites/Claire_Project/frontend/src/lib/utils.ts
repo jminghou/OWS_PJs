@@ -58,9 +58,11 @@ export function getImageUrl(imagePath?: string, variant?: string): string {
   const fullPath = `${baseUrl}${imagePath}`;
 
   if (variant) {
-    const lastDotIndex = fullPath.lastIndexOf('.');
-    if (lastDotIndex !== -1) {
-      return `${fullPath.substring(0, lastDotIndex)}_${variant}${fullPath.substring(lastDotIndex)}`;
+    const lastSlashIndex = fullPath.lastIndexOf('/');
+    if (lastSlashIndex !== -1) {
+      const dir = fullPath.substring(0, lastSlashIndex + 1);
+      const filename = fullPath.substring(lastSlashIndex + 1);
+      return `${dir}${variant}_${filename}`;
     }
   }
   return fullPath;
