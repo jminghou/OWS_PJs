@@ -1,0 +1,22 @@
+# =============================================================================
+# Polaris Parent Backend - Railway 部署設定
+# =============================================================================
+# Railway 會使用專案根目錄的 Dockerfile 來建置
+# 設定方式：Railway Dashboard > Service Settings > Root Directory: /
+#           Dockerfile Path: sites/Polaris_Parent/backend/Dockerfile
+
+[build]
+# 使用自訂 Dockerfile（build context 為專案根目錄）
+dockerfilePath = "sites/Polaris_Parent/backend/Dockerfile"
+
+[deploy]
+# Health check
+healthcheckPath = "/api/v1/health"
+healthcheckTimeout = 10
+
+# 啟動命令（Railway 會自動注入 PORT 環境變數）
+startCommand = "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers ${GUNICORN_WORKERS:-2} --threads 2 --timeout 120 --access-logfile - --error-logfile - sites.Polaris_Parent.backend.app:app"
+
+# 自動重啟
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

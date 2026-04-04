@@ -1,0 +1,22 @@
+# =============================================================================
+# Claire Project Backend - Railway 部署設定
+# =============================================================================
+# Railway 會使用專案根目錄的 Dockerfile 來建置
+# 設定方式：Railway Dashboard > Service Settings > Root Directory: /
+#           Dockerfile Path: sites/Claire_Project/backend/Dockerfile
+
+[build]
+# 使用自訂 Dockerfile（build context 為專案根目錄）
+dockerfilePath = "sites/Claire_Project/backend/Dockerfile"
+
+[deploy]
+# Health check
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+
+# 啟動延遲（等待資料庫連線）
+startCommand = "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers ${GUNICORN_WORKERS:-2} --threads 2 --timeout 120 --access-logfile - --error-logfile - sites.Claire_Project.backend.app:app"
+
+# 自動重啟
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

@@ -5,8 +5,8 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 生產環境使用 standalone 輸出（Docker 部署用，本機 dev 不受影響）
-  output: 'standalone',
+  // standalone 用於 Docker/Railway 部署；Vercel 不需要
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
 
   // 轉譯 monorepo 內的套件
   transpilePackages: ['@ows/ui'],
@@ -43,6 +43,12 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'api.polaris-parent.com',
+        pathname: '/uploads/**',
+      },
+      // Railway 部署域名
+      {
+        protocol: 'https',
+        hostname: '*.up.railway.app',
         pathname: '/uploads/**',
       },
       // 生產環境 GCS bucket

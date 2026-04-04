@@ -48,18 +48,18 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser \
 USER appuser
 
 # Expose port
-EXPOSE 5000
+EXPOSE ${PORT:-5000}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/api/v1/health || exit 1
+    CMD curl -f http://localhost:${PORT:-5000}/api/v1/health || exit 1
 
-# Run with gunicorn
-CMD ["gunicorn", \
-     "--bind", "0.0.0.0:5000", \
-     "--workers", "4", \
-     "--threads", "2", \
-     "--timeout", "120", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "sites.Polaris_Parent.backend.app:app"]
+# Gunicorn：Railway 會注入 PORT 環境變數；Docker 部署預設 5000
+CMD ["sh", "-c", "gunicorn \
+    --bind 0.0.0.0:${PORT:-5000} \
+    --workers ${GUNICORN_WORKERS:-2} \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    sites.Polaris_Parent.backend.app:app"]
