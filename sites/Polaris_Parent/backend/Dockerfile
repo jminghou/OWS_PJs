@@ -36,7 +36,12 @@ RUN if [ -f /app/site_requirements.txt ]; then \
 # Copy core engine
 COPY core /app/core
 
+# Copy shared packages
+COPY packages/media_lib /app/packages/media_lib
+
 # Copy site backend
+COPY sites/__init__.py /app/sites/__init__.py
+COPY sites/Polaris_Parent/__init__.py /app/sites/Polaris_Parent/__init__.py
 COPY sites/Polaris_Parent/backend /app/sites/Polaris_Parent/backend
 
 # Create uploads directory
