@@ -43,6 +43,34 @@ def _bool_env(key: str, default: bool = False) -> bool:
     return value in ['true', 'on', '1', 'yes']
 
 
+def _validate_production_cors_origins():
+    """
+    Validate and return CORS allowed origins for production.
+
+    Raises RuntimeError if CORS_ORIGINS is unset, empty, or contains '*'.
+    Wildcard origins combined with credentialed requests is unsafe; in
+    production we require an explicit allow-list.
+    """
+    raw = os.environ.get('CORS_ORIGINS', '').strip()
+    if not raw:
+        raise RuntimeError(
+            "CORS_ORIGINS environment variable is required in production. "
+            "Set it to a comma-separated list of allowed origins, "
+            "e.g. 'https://www.example.com,https://api.example.com'."
+        )
+    origins = [o.strip() for o in raw.split(',') if o.strip()]
+    if not origins:
+        raise RuntimeError(
+            "CORS_ORIGINS must contain at least one non-empty origin in production."
+        )
+    if '*' in origins:
+        raise RuntimeError(
+            "CORS_ORIGINS cannot include '*' in production "
+            "(unsafe when combined with credentialed requests)."
+        )
+    return origins
+
+
 def _get_database_url(key: str = 'DATABASE_URL', fallback=None):
     """
     Get database URL and convert to psycopg3 format.
@@ -220,6 +248,11 @@ class ProductionConfig(Config):
     # Production-specific settings
     SESSION_COOKIE_SECURE = True
     JWT_COOKIE_SECURE = True
+
+    # CORS allow-list: required in production, '*' is rejected.
+    # 只在 FLASK_CONFIG=production 時觸發驗證，避免 dev 啟動 import config 時誤觸。
+    if os.environ.get('FLASK_CONFIG') == 'production':
+        CORS_ORIGINS = _validate_production_cors_origins()
 
     # Cookie Domain 設定（跨子域名共享 cookie）
     # 例如 .polaris-parent.com 讓前端和 api.polaris-parent.com 共享 cookie
