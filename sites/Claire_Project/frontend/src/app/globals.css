@@ -24,6 +24,16 @@
     --input: 38 30% 87%;
     --ring: 222 50% 17%;
     --radius: 0.5rem;
+
+    /* Admin UI accent palette (shared with packages/ui admin components)
+       Claire values: light shades use cream-*, mid/dark shades use brand-navy-*. */
+    --admin-accent-50: 48 100% 98%;
+    --admin-accent-100: 43 89% 96%;
+    --admin-accent-200: 42 89% 91%;
+    --admin-accent-500: 222 21% 50%;
+    --admin-accent-600: 226 43% 29%;
+    --admin-accent-700: 226 49% 23%;
+    --admin-accent-800: 226 52% 17%;
   }
 
   .dark {

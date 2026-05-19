@@ -44,6 +44,15 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        'admin-accent': {
+          50: 'hsl(var(--admin-accent-50))',
+          100: 'hsl(var(--admin-accent-100))',
+          200: 'hsl(var(--admin-accent-200))',
+          500: 'hsl(var(--admin-accent-500))',
+          600: 'hsl(var(--admin-accent-600))',
+          700: 'hsl(var(--admin-accent-700))',
+          800: 'hsl(var(--admin-accent-800))',
+        },
         'brand-navy': {
           50: '#f0f2f7',
           100: '#d9dfe9',

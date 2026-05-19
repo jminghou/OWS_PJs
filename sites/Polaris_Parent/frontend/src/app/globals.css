@@ -24,6 +24,16 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+
+    /* Admin UI accent palette (shared with packages/ui admin components)
+       Polaris values approximate Tailwind blue-*. */
+    --admin-accent-50: 213.8 100% 96.9%;
+    --admin-accent-100: 214.3 94.6% 92.7%;
+    --admin-accent-200: 213.3 96.9% 87.3%;
+    --admin-accent-500: 217.2 91.2% 59.8%;
+    --admin-accent-600: 221.2 83.2% 53.3%;
+    --admin-accent-700: 224.3 76.3% 48%;
+    --admin-accent-800: 225.9 70.7% 40.2%;
   }
 
   .dark {
