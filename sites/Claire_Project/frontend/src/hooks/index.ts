@@ -1,1 +1,1 @@
-export { useDebounce } from './useDebounce';
+export { useDebounce } from '../../../../../packages/ui/src/hooks';
