@@ -32,20 +32,13 @@ const nextConfig = {
         port: '5002',
         pathname: '/uploads/**',
       },
-      // NAS 內網存取
-      {
-        protocol: 'http',
-        hostname: '192.168.30.65',
-        port: '5056',
-        pathname: '/uploads/**',
-      },
-      // 生產環境 API 域名
+      // 生產環境 API 域名（Railway custom domain）
       {
         protocol: 'https',
         hostname: 'api.clairelab.tw',
         pathname: '/uploads/**',
       },
-      // Railway 部署域名
+      // Railway 預設域名
       {
         protocol: 'https',
         hostname: '*.up.railway.app',

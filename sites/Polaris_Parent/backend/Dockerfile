@@ -57,7 +57,7 @@ EXPOSE ${PORT:-5000}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-5000}/api/v1/health || exit 1
+    CMD curl -f http://localhost:${PORT:-5000}/health || exit 1
 
 # Gunicorn：Railway 會注入 PORT 環境變數；Docker 部署預設 5000
 CMD ["sh", "-c", "gunicorn \

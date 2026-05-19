@@ -1,44 +1,93 @@
 # OWS Multi-Site Platform
 
-多站點核心分離架構，採用類似 WordPress 的「核心 (Core) 與 內容 (Sites) 分離」模式。
+多站點核心分離架構，採用類似 WordPress 的「核心 (Core) 與 內容 (Sites) 分離」模式，目前包含 **Polaris Parent**（北極星親子）與 **Claire Project** 兩個站點。
 
-## 架構概覽
+部署方式：**Backend → Railway**，**Frontend → Vercel**，push 到 GitHub `main` 分支即自動部署。
+
+---
+
+## 🚀 本機啟動
+
+啟動任一個 Site 需要 **3 個終端機**（Redis + Backend + Frontend）。
+
+### Polaris Parent
+
+```powershell
+# 終端機 1：Redis
+docker-compose up -d redis
+
+# 終端機 2：後端（先啟動 venv）
+flask --app "sites.Polaris_Parent.backend.app:app" run --port 5000
+
+# 終端機 3：前端
+npm run dev:polaris
+```
+
+→ 前端 `http://localhost:3000`、API `http://localhost:5000/api/v1`
+
+### Claire Project
+
+```powershell
+# 終端機 1：Redis（若尚未啟動）
+docker-compose up -d redis
+
+# 終端機 2：後端
+flask --app "sites.Claire_Project.backend.app:app" run --port 5002
+
+# 終端機 3：前端
+npm run dev:claire
+```
+
+→ 前端 `http://localhost:3002`、API `http://localhost:5002/api/v1`
+
+> 兩個 Site 可同時運作，Port 不會衝突。首次使用請先參考下方「[初次設定](#初次設定)」。
+
+---
+
+## 🌐 部署網址
+
+| Site | Frontend (Vercel) | Backend (Railway) |
+|------|-------------------|-------------------|
+| Polaris Parent | https://polaris-parent.com | https://api.polaris-parent.com |
+| Claire Project | https://clairelab.tw | https://api.clairelab.tw |
+
+**Push 到 GitHub `main` 分支會自動觸發部署。**
+
+---
+
+## 🏗️ 架構概覽
 
 ```
 OWS_PJs/
-├── core/                       # 核心引擎
-│   ├── backend_engine/         # Flask 後端（工廠模式、ORM、服務）
-│   ├── frontend_ui/            # 前端共用元件（已停用，改用 packages/ui）
+├── core/                       # 核心引擎（共用，不為特定站點修改）
+│   ├── backend_engine/         # Flask 工廠模式、ORM、共用服務
 │   └── scripts/                # 資料庫初始化腳本
 ├── packages/
 │   ├── ui/                     # 共用 UI 元件庫（@ows/ui）
 │   └── media_lib/              # 自建媒體庫模組
 ├── sites/
-│   ├── Polaris_Parent/         # Site A — 北極星親子
-│   │   ├── backend/            # Flask 後端 + Extensions（含 astrology）
-│   │   └── frontend/           # Next.js 15 前端（App Router）
-│   └── Claire_Project/         # Site B — Claire Project
-│       ├── backend/            # Flask 後端（獨立 DB + 設定）
-│       └── frontend/           # Next.js 15 前端（App Router）
-├── deploy/                     # NAS Docker 部署配置
-│   ├── dockerfiles/            # 生產級 Dockerfile
-│   ├── docker-compose.yml      # NAS 部署用 compose
-│   └── .env.production.example # 環境變數範本
-├── docker-compose.yml          # 本機開發用 compose
-├── package.json                # npm workspaces 根配置
-└── .gitignore
+│   ├── Polaris_Parent/         # Site A — 北極星親子（含 astrology extension）
+│   │   ├── backend/            # Flask + Dockerfile（部署 Railway）
+│   │   └── frontend/           # Next.js 15（部署 Vercel）
+│   └── Claire_Project/         # Site B — Claire Project（乾淨基底）
+│       ├── backend/            # Flask + Dockerfile（部署 Railway）
+│       └── frontend/           # Next.js 15（部署 Vercel）
+└── docker-compose.yml          # 本機開發用 compose（僅 Redis）
 ```
 
-## 開發與部署模式
+| Site | 資料庫 | 本機 Backend Port | 本機 Frontend Port |
+|------|--------|--------------------|---------------------|
+| Polaris Parent | `ows_polaris` | 5000 | 3000 |
+| Claire Project | `ows_claire` | 5002 | 3002 |
 
-本專案支援兩種運作模式：
+每個 Site 擁有獨立的資料庫、`.env` 配置與前後端，可透過 Extensions 擴展 Core 功能。
 
-| 模式 | 用途 | 說明 |
-|------|------|------|
-| **本機開發** | 日常開發 | Windows 原生跑 Python + npm，熱更新 |
-| **NAS 部署** | 生產環境 | Docker 打包部署到 Synology NAS，Cloudflare Tunnel 對外 |
+---
+---
 
-> 先前使用的 Railway、Vercel 及雲端資料庫已全數移除。
+# 📚 技術文件
+
+以下為詳細的技術細節、初次設定、部署流程與開發指南。
 
 ## 技術棧
 
@@ -52,8 +101,11 @@ OWS_PJs/
 | 富文本編輯 | TipTap |
 | 狀態管理 | Zustand |
 | 套件管理 | npm workspaces (monorepo) |
+| 部署 | Railway (Backend) + Vercel (Frontend) |
 
-## 快速開始
+---
+
+## 初次設定
 
 ### 1. 環境需求
 
@@ -62,59 +114,38 @@ OWS_PJs/
 - PostgreSQL 14+（原生安裝）
 - Redis 7+（可用 Docker 或原生）
 
-### 2. 克隆專案
+### 2. 克隆專案與安裝依賴
 
 ```bash
 git clone <repo-url>
 cd OWS_PJs
-npm install          # 安裝所有 workspace 依賴（含 Polaris + Claire 前端）
+npm install          # 安裝所有 workspace 依賴
 ```
 
 ### 3. 設定環境變數
 
-每個 Site 有獨立的 `.env`，啟動前須確認已正確設定：
-
 ```bash
-# Polaris Parent
 cp sites/Polaris_Parent/.env.example sites/Polaris_Parent/.env
-
-# Claire Project
 cp sites/Claire_Project/.env.example sites/Claire_Project/.env
 ```
 
-### 4. 資料庫初始化
-
-每個 Site 使用獨立的 PostgreSQL 資料庫。首次使用需建立資料庫、跑 migration、建立管理員帳號。
+### 4. 資料庫初始化（本機）
 
 #### Polaris Parent
 
 ```powershell
-# 1. 建立資料庫
 psql -U postgres -c "CREATE DATABASE ows_polaris;"
-
-# 2. 執行 migration（在專案根目錄、啟動 venv 後）
 flask --app "sites.Polaris_Parent.backend.app:app" db upgrade
-
-# 3. 初始化站點資料
 flask --app "sites.Polaris_Parent.backend.app:app" init-site
-
-# 4. 建立管理員帳號
 flask --app "sites.Polaris_Parent.backend.app:app" create-admin
 ```
 
 #### Claire Project
 
 ```powershell
-# 1. 建立資料庫
 psql -U postgres -c "CREATE DATABASE ows_claire;"
-
-# 2. 執行 migration
 flask --app "sites.Claire_Project.backend.app:app" db upgrade
-
-# 3. 初始化站點資料
 flask --app "sites.Claire_Project.backend.app:app" init-site
-
-# 4. 建立管理員帳號
 flask --app "sites.Claire_Project.backend.app:app" create-admin
 ```
 
@@ -122,53 +153,9 @@ flask --app "sites.Claire_Project.backend.app:app" create-admin
 
 ---
 
-## 啟動服務（本機開發）
+## 同時啟動兩個 Site
 
-### 單獨啟動某一個 Site
-
-每個 Site 需要 **3 個終端機**（Redis + Backend + Frontend）：
-
-#### 啟動 Polaris Parent
-
-```powershell
-# 終端機 1：啟動 Redis（若無原生 Redis，可用 Docker）
-docker-compose up -d redis
-
-# 終端機 2：啟動後端（在專案根目錄、啟動 venv 後）
-flask --app "sites.Polaris_Parent.backend.app:app" run --port 5000
-
-# 終端機 3：啟動前端（在專案根目錄）
-npm run dev:polaris
-```
-
-| 服務 | 網址 |
-|------|------|
-| Python API | `http://localhost:5000/api/v1` |
-| 前端 | `http://localhost:3000` |
-| Admin 後台 | `http://localhost:3000/admin` |
-
-#### 啟動 Claire Project
-
-```powershell
-# 終端機 1：啟動 Redis（若尚未啟動）
-docker-compose up -d redis
-
-# 終端機 2：啟動後端（在專案根目錄、啟動 venv 後）
-flask --app "sites.Claire_Project.backend.app:app" run --port 5002
-
-# 終端機 3：啟動前端（在專案根目錄）
-npm run dev:claire
-```
-
-| 服務 | 網址 |
-|------|------|
-| Python API | `http://localhost:5002/api/v1` |
-| 前端 | `http://localhost:3002` |
-| Admin 後台 | `http://localhost:3002/admin` |
-
-### 同時啟動兩個 Site
-
-兩個 Site 可以同時運作，只要確保 Port 不衝突。需要 **5 個終端機**：
+兩個 Site 可同時運作，需要 **5 個終端機**：
 
 ```
 終端機 1：Redis（共用）
@@ -178,24 +165,7 @@ npm run dev:claire
 終端機 5：Claire 前端   → port 3002
 ```
 
-```powershell
-# 終端機 1 — Redis（共用，只需啟動一次）
-docker-compose up -d redis
-
-# 終端機 2 — Polaris 後端
-flask --app "sites.Polaris_Parent.backend.app:app" run --port 5000
-
-# 終端機 3 — Polaris 前端
-npm run dev:polaris
-
-# 終端機 4 — Claire 後端
-flask --app "sites.Claire_Project.backend.app:app" run --port 5002
-
-# 終端機 5 — Claire 前端
-npm run dev:claire
-```
-
-#### Port 分配總覽
+### Port 與 Redis 分配總覽
 
 | 服務 | Polaris Parent | Claire Project |
 |------|---------------|----------------|
@@ -204,30 +174,21 @@ npm run dev:claire
 | 資料庫 | `ows_polaris` | `ows_claire` |
 | Redis DB | `redis://localhost:6379/0` | `redis://localhost:6379/1` |
 
-> **注意**：同時啟動時，每個 Site 的前端 `.env.local` 中 `NEXT_PUBLIC_API_URL` 必須指向對應的後端 Port。
+> **注意**：每個 Site 的前端 `.env.local` 中 `NEXT_PUBLIC_API_URL` 必須指向對應的後端 Port。
 
 ---
 
-### NAS 部署（資料庫初始化）
-
-NAS 的 PostgreSQL 在 Docker 容器中運行，資料庫會由 `docker-compose.yml` 自動建立，只需初始化資料表和管理員帳號：
+## npm Scripts
 
 ```bash
-# SSH 進 NAS 後
-cd /volume1/docker/OWS_PJs/deploy
-
-# 1. 建立資料表
-sudo docker compose exec -w /app/sites/Polaris_Parent/backend backend python -c "
-from app import app
-from core.backend_engine.factory import db
-app.app_context().push()
-db.create_all()
-print('資料表建立成功！')
-"
-
-# 2. 建立管理員帳號
-sudo docker compose exec -w /app/sites/Polaris_Parent/backend backend flask --app app.py create-admin
+npm run dev:polaris       # 啟動 Polaris 前端（port 3000）
+npm run dev:claire        # 啟動 Claire 前端（port 3002）
+npm run build:polaris     # 建置 Polaris 前端
+npm run build:claire      # 建置 Claire 前端
+npm run install:all       # 安裝所有 workspace 依賴
 ```
+
+---
 
 ## 專案結構說明
 
@@ -239,6 +200,7 @@ sudo docker compose exec -w /app/sites/Polaris_Parent/backend backend flask --ap
 - `models.py` — 通用 ORM 模型（User, Content, Product 等）
 - `services/storage.py` — 檔案存儲服務（LOCAL / GCS）
 - `services/rbac.py` — 角色權限控制服務
+- `blueprints/main/` — 共用 `/health` 健康檢查端點
 
 ### Packages（共用套件）
 
@@ -246,13 +208,6 @@ sudo docker compose exec -w /app/sites/Polaris_Parent/backend backend flask --ap
 - `packages/media_lib/` — 自建媒體庫模組，取代原先的 Strapi 媒體管理
 
 ### Sites（站點）
-
-每個站點擁有獨立的資料庫、`.env` 配置、前後端，並可透過 Extensions 擴展 Core 功能。
-
-| Site | 目錄 | 資料庫 | 特色 |
-|------|------|--------|------|
-| Polaris Parent | `sites/Polaris_Parent/` | `ows_polaris` | 含 astrology extension |
-| Claire Project | `sites/Claire_Project/` | `ows_claire` | 乾淨基底，無額外 extension |
 
 ```python
 # 範例：sites/Polaris_Parent/backend/app.py
@@ -268,6 +223,8 @@ app = create_app(
 )
 ```
 
+---
+
 ## 資料庫表結構
 
 - **RBAC**：`roles`, `permissions`, `role_permissions`, `user_roles`
@@ -279,175 +236,148 @@ app = create_app(
 
 ## API 端點
 
-所有 API 端點都有 `/api/v1` 前綴：
+所有 API 端點都有 `/api/v1` 前綴（健康檢查除外）：
 
+- `GET  /health` — 健康檢查（無前綴，給 Docker/Railway 用）
 - `POST /api/v1/auth/login` — 登入
 - `POST /api/v1/auth/logout` — 登出
-- `GET /api/v1/contents` — 內容列表
-- `GET /api/v1/products` — 產品列表
+- `GET  /api/v1/contents` — 內容列表
+- `GET  /api/v1/products` — 產品列表
 - `POST /api/v1/orders` — 建立訂單
-
-## npm Scripts
-
-```bash
-# 本機開發
-npm run dev:polaris       # 啟動 Polaris 前端（port 3000）
-npm run dev:claire        # 啟動 Claire 前端（port 3002）
-npm run build:polaris     # 建置 Polaris 前端
-npm run build:claire      # 建置 Claire 前端
-npm run install:all       # 安裝所有 workspace 依賴
-
-# NAS 部署
-npm run deploy:build      # 建置 Docker 映像
-npm run deploy:up         # 啟動所有容器
-npm run deploy:down       # 停止所有容器
-npm run deploy:logs       # 查看即時日誌
-```
-
-## NAS 部署（Synology + Cloudflare Tunnel）
-
-部署相關的所有檔案都在 `deploy/` 目錄中，與本機開發完全分離。
-
-```
-deploy/
-├── docker-compose.yml            # 生產環境 compose
-├── dockerfiles/
-│   ├── backend.Dockerfile        # Flask（alpine, multi-stage, gunicorn）
-│   └── frontend.Dockerfile       # Next.js（standalone, multi-stage）
-├── .env.production.example       # 環境變數範本
-└── README.md                     # 完整部署指南
-```
-
-### 快速部署
-
-```bash
-cd deploy
-cp .env.production.example .env.production
-# 編輯 .env.production 填入實際值
-
-docker compose build
-docker compose up -d
-```
-
-### 部署後的服務
-
-| 服務 | Container | Port | 說明 |
-|------|-----------|------|------|
-| PostgreSQL 15 | `polaris_db` | 5432 | 資料持久化於 `./db_data` |
-| Redis 7 | `polaris_redis` | — | 快取，maxmemory 128mb |
-| Flask Backend | `polaris_backend` | 5055 | Gunicorn, 2 workers |
-| Next.js Frontend | `polaris_frontend` | 3000 | Standalone 模式 |
-
-### Cloudflare Tunnel 對應
-
-| Public Hostname | 指向 |
-|-----------------|------|
-| `frontend.polaris-parent.com` | `http://192.168.30.65:3000` |
-| `api.polaris-parent.com` | `http://192.168.30.65:5055` |
-
-### 存取方式
-
-| 方式 | URL |
-|------|-----|
-| 外部前端 | `https://frontend.polaris-parent.com` |
-| 外部 API | `https://api.polaris-parent.com/api/v1` |
-| 內網前端 | `http://192.168.30.65:3000` |
-| 內網 API | `http://192.168.30.65:5055/api/v1` |
-
-### 首次部署（Git Clone）
-
-透過 SSH 連線到 NAS，使用 Git 拉取專案：
-
-```bash
-# 1. SSH 連線到 NAS
-ssh Jermaine@192.168.30.65
-
-# 2. 進入 Docker 目錄並 Clone 專案
-cd /volume1/docker
-sudo git clone https://github.com/jminghou/OWS_PJs.git
-cd OWS_PJs/deploy
-
-# 3. 設定環境變數
-sudo cp .env.production.example .env.production
-sudo vi .env.production   # 編輯填入實際值
-
-# 4. 建立 .env symlink（docker compose 預設只讀 .env）
-ln -s .env.production .env
-
-# 5. 建立資料目錄並設定權限
-sudo mkdir -p db_data redis_data uploads logs/backend
-sudo chmod 777 redis_data
-
-# 6. 建置並啟動所有容器
-sudo docker compose build
-sudo docker compose up -d
-```
-
-### 更新部署（Git Pull）標準 SOP
-
-當本機開發完成並推送至 GitHub 後，請按照以下步驟更新 NAS 環境：
-
-#### 1. 同步原始碼
-```bash
-ssh Jermaine@192.168.30.65
-cd /volume1/docker/OWS_PJs
-sudo git pull origin main
-```
-
-#### 2. 重啟並建置容器 (標準更新)
-```bash
-cd deploy
-# 建議先停止舊容器以釋放記憶體
-sudo docker compose down
-# 重新建置並啟動
-sudo docker compose up -d --build
-```
-
-#### 3. 強制更新 (若網頁沒變，用於破除 Docker 快取)
-如果發現 `git pull` 成功但畫面沒更新，請使用「無快取」重建：
-```bash
-sudo docker compose down --rmi all
-sudo docker compose build --no-cache
-sudo docker compose up -d
-```
-
-#### 4. 資料庫結構同步 (重要)
-若修改了後端 `models.py` (新增/修改欄位)，必須手動補上資料庫欄位，否則會出現 500 錯誤：
-```bash
-# 進入資料庫容器
-sudo docker exec -it polaris_db psql -U polaris -d polaris_db
-
-# 執行 SQL (範例：新增欄位)
-# ALTER TABLE homepage_settings ADD COLUMN IF NOT EXISTS about_section TEXT;
-
-# 退出 SQL
-\q
-
-# 重啟後端以刷新模型快取
-sudo docker compose restart backend
-```
-
-#### 5. 清除快取 (最後步驟)
-部署完成後，請務必執行以下動作以確保看到最新版本：
-1. **Cloudflare**：進入後台點擊 **"Purge Everything"**。
-2. **瀏覽器**：在該網頁按下 **`Ctrl + F5`** (或使用無痕模式測試)。
 
 ---
 
-### 常見問題與排查
-- **畫面空白或 JS 抓不到**：通常是 Cloudflare 或瀏覽器還在快取舊的 HTML，請執行「清除快取」步驟。
-- **500 錯誤**：請查看後端日誌 `sudo docker logs -f polaris_backend`，若看到 `UndefinedColumn`，請執行上述「資料庫結構同步」。
-- **容器顯示 unhealthy**：檢查 `.env` 是否缺失 `SECRET_KEY` 或資料庫連線資訊。
+## 雲端部署：Railway + Vercel
 
-### 透過 Synology Container Manager 部署（替代方案）
+### 自動部署流程
 
-如果不使用 Git，也可以透過 DSM 圖形介面操作：
+```
+本地修改 → git push main
+              ↓
+        ┌─────┴─────┐
+        ↓           ↓
+    Railway     Vercel
+    (Backend)   (Frontend)
+        ↓           ↓
+    自動 build → 自動上線
+```
 
-1. 透過 File Station 上傳專案到 NAS（建議路徑 `/volume1/docker/OWS_PJs/`）
-2. 複製並編輯環境變數：`deploy/.env.production.example` → `.env.production`
-3. DSM → Container Manager → 專案 → 建立 → 路徑選 `deploy/` → 建置 → 啟動
+### Railway（Backend × 2）
 
-> 詳細部署步驟請參閱 [deploy/README.md](deploy/README.md)
+兩個 service 連到同一個 GitHub repo（`jminghou/OWS_PJs`），分別用不同的 Dockerfile：
+
+| Service | Dockerfile Path | Custom Domain |
+|---------|-----------------|---------------|
+| polaris-backend | `/sites/Polaris_Parent/backend/Dockerfile` | `api.polaris-parent.com` |
+| claire-backend | `/sites/Claire_Project/backend/Dockerfile` | `api.clairelab.tw` |
+
+**設定要點**：
+- Source → Branch: `main`，Auto deploys: **ON**
+- Build → Builder: **Dockerfile**
+- Build context 為專案根目錄（`/`），Dockerfile 內以 `COPY` 取得 `core/`、`packages/`、對應 `sites/`
+- Container `CMD` 啟動 Gunicorn（`${PORT}` 由 Railway 注入）
+- 健康檢查端點：`GET /health`（在 `core/backend_engine/blueprints/main/` 內實作）
+
+**必要環境變數**（在 Railway Dashboard → Variables 設定）：
+
+```
+DATABASE_URL          # Railway 內建 Postgres（用 ${{Postgres.DATABASE_URL}} 引用）
+REDIS_URL             # Redis 連線（若用 Railway 內建 Redis 同上引用方式）
+SECRET_KEY            # Flask session key
+JWT_SECRET_KEY        # JWT 簽章 key
+JWT_COOKIE_DOMAIN     # 跨域 cookie 設定（例如 .polaris-parent.com）
+ADMIN_EMAIL           # 初次建立 admin 用
+ADMIN_PASSWORD
+ADMIN_USERNAME        # 預設 admin
+```
+
+### Vercel（Frontend × 2）
+
+兩個 Vercel project 各自連到 GitHub repo，根目錄分別指到對應的 frontend 資料夾。
+
+| Project | Root Directory | Custom Domain |
+|---------|---------------|---------------|
+| polaris-frontend | `sites/Polaris_Parent/frontend` | `polaris-parent.com` |
+| claire-frontend | `sites/Claire_Project/frontend` | `clairelab.tw` |
+
+**設定要點**：
+- Framework Preset: **Next.js**
+- `vercel.json` 已存在於各 frontend，會自動套用
+- `next.config.js` 透過 `process.env.VERCEL` 判斷，**Vercel 時不啟用 `standalone` 輸出**
+
+**必要環境變數**：
+
+```
+NEXT_PUBLIC_API_URL       # 對應後端 API（如 https://api.polaris-parent.com/api/v1）
+NEXT_PUBLIC_BACKEND_URL   # 後端 base URL（給 SSR rewrites 用）
+```
+
+### 避免雙重部署（可選優化）
+
+兩個 Railway service 共享同一個 repo，預設情況下**任何 commit 都會觸發兩邊重新部署**。可在 Railway Service → Settings → Build → **Watch Paths** 設定觸發條件：
+
+```
+# polaris-backend Watch Paths
+sites/Polaris_Parent/**
+core/**
+packages/**
+
+# claire-backend Watch Paths
+sites/Claire_Project/**
+core/**
+packages/**
+```
+
+Vercel 同樣可在 Project → Settings → Git → **Ignored Build Step** 用 `git diff` 判斷是否需要 build。
+
+### 部署後操作
+
+#### 首次部署 — 初始化資料庫
+
+Railway 容器內執行（Dashboard → 該 service → 右上角 `⋯` → **Open Shell**）：
+
+```bash
+# 建立資料表
+python -c "
+from sites.Polaris_Parent.backend.app import app
+from core.backend_engine.factory import db
+with app.app_context():
+    db.create_all()
+    print('Tables created')
+"
+
+# 建立 admin
+flask --app sites.Polaris_Parent.backend.app:app create-admin
+```
+
+#### Schema 變更時
+
+修改後端 `models.py` 後（新增/修改欄位），需要在 Railway shell 內補資料庫欄位：
+
+```bash
+# 連到資料庫
+railway connect Postgres   # 或在 Dashboard 直接打開 SQL Editor
+
+# 在 SQL Editor 執行
+# ALTER TABLE homepage_settings ADD COLUMN IF NOT EXISTS about_section TEXT;
+```
+
+或在本地連到 Railway Postgres 跑 migration：
+
+```powershell
+# 取得 DATABASE_URL 後
+$env:DATABASE_URL="postgresql://..."
+flask --app "sites.Polaris_Parent.backend.app:app" db upgrade
+```
+
+### 常見問題
+
+- **Build 失敗**：先查看 Railway / Vercel 的 build log，常見是缺環境變數或 `requirements.txt` 沒鎖版本。
+- **500 錯誤**：到 Railway 該 service 的 Logs，若看到 `UndefinedColumn`，代表 `models.py` 跟資料庫 schema 不一致，需手動 ALTER TABLE。
+- **CORS 錯誤**：確認 backend `config.py` 的 `CORS_ORIGINS` 有包含對應的 Vercel domain；以及 `JWT_COOKIE_DOMAIN` 設成兩邊共用的根域。
+- **健康檢查失敗**：兩個 Dockerfile 都打 `/health`，由 `core/backend_engine/blueprints/main/` 提供。
+
+---
 
 ## 開發指南
 
@@ -487,6 +417,8 @@ from core.backend_engine.services.rbac import require_permission
 def create_content():
     pass
 ```
+
+---
 
 ## 授權
 
