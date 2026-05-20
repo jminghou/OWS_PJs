@@ -20,7 +20,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push('/admin/login');
   };
 
-  const navigation = [
+  const allNavigation = [
     {
       name: '儀表板',
       href: '/admin/dashboard',
@@ -33,6 +33,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       name: '文章管理',
       href: '/admin/articles',
+      permission: 'contents.read',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
@@ -42,6 +43,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       name: '分類標籤',
       href: '/admin/categories',
+      permission: 'contents.read',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -51,6 +53,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       name: '媒體庫',
       href: '/admin/media',
+      permission: 'media.read',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -60,6 +63,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       name: '首頁設定',
       href: '/admin/homepage',
+      permission: 'contents.update',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -69,6 +73,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       name: '作者管理',
       href: '/admin/authors',
+      permission: 'users.read',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
@@ -78,6 +83,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       name: '產品管理',
       href: '/admin/products',
+      permission: 'products.read',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -87,6 +93,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       name: '匿名提問',
       href: '/admin/submissions',
+      permission: 'submissions.read',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -96,13 +103,31 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       name: '語系設定',
       href: '/admin/settings',
+      permission: 'settings.read',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
         </svg>
       ),
     },
+    {
+      name: '權限管理',
+      href: '/admin/roles',
+      permission: 'users.update',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      ),
+    },
   ];
+
+  // 依使用者權限過濾選單：無 permission 的項目永遠顯示；
+  // 有 permission 的，需使用者具備該權限才顯示。
+  const userPermissions = user?.permissions ?? [];
+  const navigation = allNavigation.filter(
+    (item) => !item.permission || userPermissions.includes(item.permission)
+  );
 
   return (
     <div className="flex h-screen bg-gray-100">

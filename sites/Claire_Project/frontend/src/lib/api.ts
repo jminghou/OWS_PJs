@@ -16,6 +16,7 @@ export {
   userApi,
   contactApi,
   submissionApi,
+  rbacApi,
 } from './api/index';
 
 export type { FetchOptions, I18nSettings } from './api/index';

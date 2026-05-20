@@ -20,6 +20,7 @@ export { orderApi, paymentMethodApi } from './orders';
 export { i18nApi, homepageApi } from './settings';
 export type { I18nSettings } from './settings';
 export { userApi, submissionApi } from './users';
+export { rbacApi } from './rbac';
 
 // Default export for backwards compatibility
 import { authApi } from './auth';
@@ -29,6 +30,7 @@ import { productApi } from './products';
 import { orderApi, paymentMethodApi } from './orders';
 import { i18nApi, homepageApi } from './settings';
 import { userApi, submissionApi } from './users';
+import { rbacApi } from './rbac';
 
 const api = {
   auth: authApi,
@@ -44,6 +46,7 @@ const api = {
   order: orderApi,
   product: productApi,
   paymentMethod: paymentMethodApi,
+  rbac: rbacApi,
 };
 
 export default api;

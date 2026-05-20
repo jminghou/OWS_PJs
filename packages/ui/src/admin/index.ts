@@ -13,3 +13,4 @@ export { NotionTitleInput, type NotionTitleInputProps } from './NotionTitleInput
 export { DropZone, type DropZoneProps } from './DropZone';
 export { UploadProgress, type UploadProgressProps, type UploadItem } from './UploadProgress';
 export { SimpleTextEditor, type SimpleTextEditorProps } from './SimpleTextEditor';
+export { RolesManager, type RolesManagerProps, type RolesManagerApi } from './RolesManager';

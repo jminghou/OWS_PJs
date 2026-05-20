@@ -3,11 +3,30 @@ export interface User {
   username: string;
   email: string;
   role: 'admin' | 'editor' | 'user';
+  permissions?: string[]; // RBAC effective permission codes
   is_active: boolean;
   created_at: string;
   updated_at?: string;
   last_login?: string;
   content_count?: number;
+}
+
+// RBAC types
+export interface RbacPermission {
+  id: number;
+  code: string;
+  action: string;
+  name: Record<string, string>;
+}
+
+export interface RbacRole {
+  id: number;
+  code: string;
+  name: Record<string, string>;
+  description: Record<string, string>;
+  is_system: boolean;
+  is_active: boolean;
+  permissions: string[];
 }
 
 export interface Category {

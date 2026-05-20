@@ -17,6 +17,7 @@ export {
   AdminContentGrid,
   AdminImagePicker,
   AdminUploadZone,
+  RolesManager,
   type AdminPaginationProps,
   type PaginationData,
   type AdminEmptyStateProps,
@@ -29,4 +30,6 @@ export {
   type AdminContentGridProps,
   type AdminImagePickerProps,
   type AdminUploadZoneProps,
+  type RolesManagerProps,
+  type RolesManagerApi,
 } from '../../../../../../packages/ui/src/admin';
