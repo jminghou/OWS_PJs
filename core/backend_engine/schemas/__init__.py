@@ -7,8 +7,6 @@ Provides Marshmallow schemas for serialization/deserialization:
 - ContentSchema: Content model serialization
 - CategorySchema: Category model serialization
 - TagSchema: Tag model serialization
-- MediaSchema: Media model serialization
-- MediaFolderSchema: MediaFolder model serialization
 - ProductSchema: Product model serialization
 - OrderSchema: Order model serialization
 - PaymentMethodSchema: PaymentMethod model serialization
@@ -19,7 +17,6 @@ from core.backend_engine.schemas.user import UserSchema
 from core.backend_engine.schemas.content import ContentSchema
 from core.backend_engine.schemas.category import CategorySchema
 from core.backend_engine.schemas.tag import TagSchema
-from core.backend_engine.schemas.media import MediaSchema, MediaFolderSchema
 from core.backend_engine.schemas.ecommerce import (
     ProductSchema,
     ProductPriceSchema,
@@ -33,8 +30,6 @@ __all__ = [
     'ContentSchema',
     'CategorySchema',
     'TagSchema',
-    'MediaSchema',
-    'MediaFolderSchema',
     'ProductSchema',
     'ProductPriceSchema',
     'OrderSchema',

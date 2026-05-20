@@ -22,7 +22,7 @@ from sqlalchemy import or_, func
 
 from core.backend_engine.factory import db
 from core.backend_engine.blueprints.api import bp
-from core.backend_engine.models import Product, User, Category, Tag, Media, ProductPrice
+from core.backend_engine.models import Product, User, Category, Tag, ProductPrice
 from core.backend_engine.schemas.ecommerce import ProductSchema
 
 product_schema = ProductSchema()
@@ -45,7 +45,6 @@ def get_products():
     # Optimized query: Eager load all related objects
     query = Product.query.options(
         joinedload(Product.category),
-        joinedload(Product.featured_image),
         joinedload(Product.original),
         subqueryload(Product.tags),
         subqueryload(Product.prices),
@@ -273,7 +272,7 @@ def admin_create_product():
             original_price=data.get('original_price'),
             stock_quantity=data.get('stock_quantity', -1),
             stock_status=data.get('stock_status', 'in_stock'),
-            featured_image_id=data.get('featured_image_id'),
+            featured_image=data.get('featured_image'),
             gallery_images=data.get('gallery_images', []),
             category_id=data.get('category_id'),
             is_active=data.get('is_active', True),
@@ -356,8 +355,8 @@ def admin_update_product(id):
             product.stock_quantity = data['stock_quantity']
         if 'stock_status' in data:
             product.stock_status = data['stock_status']
-        if 'featured_image_id' in data:
-            product.featured_image_id = data['featured_image_id']
+        if 'featured_image' in data:
+            product.featured_image = data['featured_image']
         if 'gallery_images' in data:
             product.gallery_images = data['gallery_images']
         if 'category_id' in data:
@@ -660,7 +659,7 @@ def admin_create_product_translation(product_id):
             original_price=product.original_price,
             stock_quantity=product.stock_quantity,
             stock_status=product.stock_status,
-            featured_image_id=product.featured_image_id,
+            featured_image=product.featured_image,
             gallery_images=product.gallery_images,
             category_id=product.category_id,
             is_active=product.is_active,

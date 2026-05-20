@@ -161,7 +161,7 @@ def _init_extensions(app: Flask) -> None:
     db.init_app(app)
 
     # 註冊 Blueprints (必須在 db.create_all() 之前，讓 SQLAlchemy 認識所有 Model)
-    from core.backend_engine.blueprints.api import auth, users, settings, contents, media
+    from core.backend_engine.blueprints.api import auth, users, settings, contents
 
     # 確保啟動時會自動建立資料表結構
     with app.app_context():

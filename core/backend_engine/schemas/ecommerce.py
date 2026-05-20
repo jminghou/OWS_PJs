@@ -10,8 +10,6 @@ Provides serialization for e-commerce related models:
 
 from marshmallow import Schema, fields
 
-from core.backend_engine.schemas.media import MediaSchema
-
 
 class ProductPriceSchema(Schema):
     """Schema for ProductPrice model serialization.
@@ -75,7 +73,7 @@ class ProductSchema(Schema):
     original_price = fields.Int()
     stock_quantity = fields.Int()
     stock_status = fields.Str()
-    featured_image_id = fields.Int()
+    featured_image = fields.Str(allow_none=True)  # MLFile public_url
     gallery_images = fields.List(fields.Int())
     category_id = fields.Int()
     is_active = fields.Bool()
@@ -93,7 +91,6 @@ class ProductSchema(Schema):
     attributes = fields.Dict()  # JSONB field
 
     # Nested relationships
-    featured_image = fields.Nested(MediaSchema, only=("id", "file_path"))
     prices = fields.List(fields.Nested(ProductPriceSchema))
 
 

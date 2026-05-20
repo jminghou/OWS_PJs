@@ -275,11 +275,7 @@ export interface ProductAdmin {
   original_price?: number;
   stock_quantity: number;
   stock_status: string;
-  featured_image_id?: number;
-  featured_image?: {
-    id: number;
-    file_path: string;
-  };
+  featured_image?: string; // MLFile public_url
   gallery_images: number[];
   category_id?: number;
   tag_ids: number[];
@@ -324,7 +320,7 @@ export interface CreateProductData {
   original_price?: number;
   stock_quantity?: number;
   stock_status?: string;
-  featured_image_id?: number;
+  featured_image?: string; // MLFile public_url
   gallery_images?: number[];
   category_id?: number;
   tag_ids?: number[];

@@ -155,7 +155,6 @@ class User(UserMixin, db.Model):
     # Relationships
     contents = db.relationship('Content', backref='author', lazy='dynamic')
     comments = db.relationship('Comment', backref='user', lazy='dynamic')
-    media_uploads = db.relationship('Media', backref='uploader', lazy='dynamic')
     activity_logs = db.relationship('ActivityLog', backref='user', lazy='dynamic')
     user_roles = db.relationship('UserRole', backref='user', lazy='dynamic', cascade='all, delete-orphan')
 
@@ -268,7 +267,6 @@ class Content(db.Model):
     # Relationships
     comments = db.relationship('Comment', backref='content', lazy='dynamic', cascade='all, delete-orphan')
     tags = db.relationship('Tag', secondary='content_tags', back_populates='contents')
-    media = db.relationship('Media', secondary='content_media', back_populates='contents')
     translations = db.relationship('Content', backref=db.backref('original', remote_side=[id]), lazy='dynamic')
 
     def is_published(self) -> bool:
@@ -348,61 +346,9 @@ class Comment(db.Model):
 
 
 # =============================================================================
-# Media Models
+# Media — 已遷移至 packages/media_lib (MLFile/MLFolder)。
+# 舊的 Media/MediaFolder/content_media 已移除，圖片以 public_url 字串儲存。
 # =============================================================================
-
-class MediaFolder(db.Model):
-    """Media folder model for organizing uploads."""
-    __tablename__ = 'media_folders'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey('media_folders.id'), nullable=True)
-    path = db.Column(db.String(500), nullable=False)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relationships
-    parent = db.relationship('MediaFolder', remote_side=[id], backref='subfolders')
-    media_items = db.relationship('Media', backref='folder', lazy='dynamic')
-
-    def __repr__(self):
-        return f'<MediaFolder {self.name}>'
-
-
-class Media(db.Model):
-    """Media file model."""
-    __tablename__ = 'media'
-
-    id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(255), nullable=False)
-    original_filename = db.Column(db.String(255), nullable=False)
-    file_path = db.Column(db.String(500), nullable=False)  # Supports GCS long URLs
-    file_size = db.Column(db.Integer)
-    mime_type = db.Column(db.String(100))
-    alt_text = db.Column(db.String(255))
-    caption = db.Column(db.Text)
-    folder_id = db.Column(db.Integer, db.ForeignKey('media_folders.id'), nullable=True)
-    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-
-    # NEW: JSONB extension field
-    attributes = db.Column(JSONB, default={})  # metadata like dimensions, etc.
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relationships
-    contents = db.relationship('Content', secondary='content_media', back_populates='media')
-
-    def __repr__(self):
-        return f'<Media {self.filename}>'
-
-
-# Content-Media association table
-content_media = db.Table('content_media',
-    db.Column('content_id', db.Integer, db.ForeignKey('contents.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('media_id', db.Integer, db.ForeignKey('media.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('display_order', db.Integer, default=0)
-)
 
 
 # =============================================================================
@@ -648,8 +594,8 @@ class Product(db.Model):
     stock_quantity = db.Column(db.Integer, default=-1)  # -1 = unlimited
     stock_status = db.Column(db.String(20), default='in_stock')
 
-    # Media
-    featured_image_id = db.Column(db.Integer, db.ForeignKey('media.id'))
+    # Media — featured_image 直接存 MLFile public_url（與 Content.featured_image 一致）
+    featured_image = db.Column(db.String(500))
     gallery_images = db.Column(JSONB, default=[])
 
     # Classification
@@ -687,7 +633,6 @@ class Product(db.Model):
     )
 
     # Relationships
-    featured_image = db.relationship('Media', foreign_keys=[featured_image_id])
     tags = db.relationship('Tag', secondary='product_tags', back_populates='products')
     detail_content = db.relationship('Content', foreign_keys=[detail_content_id], backref='product_detail')
     original = db.relationship('Product', remote_side=[id], foreign_keys=[original_id], backref='translations')
@@ -705,7 +650,7 @@ class Product(db.Model):
             'original_price': self.original_price,
             'stock_quantity': self.stock_quantity,
             'stock_status': self.stock_status,
-            'image': self.featured_image.file_path if self.featured_image else None,
+            'image': self.featured_image,
             'category': {
                 'id': self.category.id,
                 'code': self.category.code,
@@ -736,11 +681,7 @@ class Product(db.Model):
             'original_price': self.original_price,
             'stock_quantity': self.stock_quantity,
             'stock_status': self.stock_status,
-            'featured_image_id': self.featured_image_id,
-            'featured_image': {
-                'id': self.featured_image.id,
-                'file_path': self.featured_image.file_path
-            } if self.featured_image else None,
+            'featured_image': self.featured_image,
             'gallery_images': self.gallery_images,
             'category_id': self.category.id if self.category else None,
             'tag_ids': [tag.id for tag in self.tags],
@@ -961,10 +902,6 @@ __all__ = [
     'Tag',
     'content_tags',
     'Comment',
-    # Media
-    'MediaFolder',
-    'Media',
-    'content_media',
     # Menu
     'Menu',
     'MenuItem',

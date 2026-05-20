@@ -12,7 +12,7 @@ This blueprint provides RESTful API endpoints for:
 - Settings
 - E-commerce
 
-Note: Media API has been moved to Strapi (see packages/strapi-media)
+Note: Media API has been moved to packages/media_lib (mounted at /api/v1/media-lib)
 """
 
 from flask import Blueprint
