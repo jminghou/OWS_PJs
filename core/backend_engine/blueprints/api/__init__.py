@@ -23,11 +23,12 @@ bp = Blueprint('api', __name__)
 from core.backend_engine.blueprints.api import (
     auth,
     contents,
-    # media,  # Removed: Now handled by Strapi Media Hub
+    # media,  # Removed: Now handled by packages/media_lib
     settings,
     submissions,
     users,
     ecommerce,
     orders,
     products,
+    rbac_admin,
 )
