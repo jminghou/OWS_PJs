@@ -14,6 +14,7 @@ from core.backend_engine.factory import db
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.models import PaymentMethod, User
 from core.backend_engine.schemas.ecommerce import PaymentMethodSchema
+from core.backend_engine.services.rbac import require_permission
 
 pm_schema = PaymentMethodSchema()
 pms_schema = PaymentMethodSchema(many=True)
@@ -36,24 +37,18 @@ def get_payment_methods():
 
 @bp.route('/admin/payment-methods', methods=['GET'])
 @jwt_required()
+@require_permission('payment_methods.read')
 def admin_get_payment_methods():
-    """Admin: Get all payment methods"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
+    """Admin: Get all payment methods (requires payment_methods.read)"""
     payment_methods = PaymentMethod.query.order_by(PaymentMethod.sort_order).all()
     return jsonify({'payment_methods': [pm.to_admin_dict() for pm in payment_methods]}), 200
 
 
 @bp.route('/admin/payment-methods', methods=['POST'])
 @jwt_required()
+@require_permission('payment_methods.update')
 def admin_create_payment_method():
-    """Admin: Create payment method"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
+    """Admin: Create payment method (requires payment_methods.update)"""
     data = request.get_json()
     if PaymentMethod.query.filter_by(code=data.get('code')).first():
         return jsonify({'message': 'Code already exists'}), 400

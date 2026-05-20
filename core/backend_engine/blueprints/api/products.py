@@ -24,6 +24,7 @@ from core.backend_engine.factory import db
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.models import Product, User, Category, Tag, ProductPrice
 from core.backend_engine.schemas.ecommerce import ProductSchema
+from core.backend_engine.services.rbac import require_permission
 
 product_schema = ProductSchema()
 products_schema = ProductSchema(many=True)
@@ -176,14 +177,9 @@ def get_product(product_id):
 
 @bp.route('/admin/products', methods=['GET'])
 @jwt_required()
+@require_permission('products.read')
 def admin_get_products():
     """Admin: Get all product list"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     is_active = request.args.get('is_active', type=str)
@@ -222,14 +218,9 @@ def admin_get_products():
 
 @bp.route('/admin/products/<int:id>', methods=['GET'])
 @jwt_required()
+@require_permission('products.read')
 def admin_get_product(id):
     """Admin: Get single product detail"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     product = Product.query.get(id)
     if not product:
         return jsonify({'message': 'Product not found'}), 404
@@ -239,14 +230,9 @@ def admin_get_product(id):
 
 @bp.route('/admin/products', methods=['POST'])
 @jwt_required()
+@require_permission('products.create')
 def admin_create_product():
     """Admin: Create new product"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     data = request.get_json()
 
     if not data.get('product_id') or not data.get('names') or not data.get('price'):
@@ -304,14 +290,9 @@ def admin_create_product():
 
 @bp.route('/admin/products/<int:id>', methods=['PUT'])
 @jwt_required()
+@require_permission('products.update')
 def admin_update_product(id):
     """Admin: Update product"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     product = Product.query.get(id)
     if not product:
         return jsonify({'message': 'Product not found'}), 404
@@ -396,14 +377,9 @@ def admin_update_product(id):
 
 @bp.route('/admin/products/<int:id>', methods=['DELETE'])
 @jwt_required()
+@require_permission('products.delete')
 def admin_delete_product(id):
     """Admin: Delete product"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     product = Product.query.get(id)
     if not product:
         return jsonify({'message': 'Product not found'}), 404
@@ -420,14 +396,9 @@ def admin_delete_product(id):
 
 @bp.route('/admin/products/<int:id>/toggle-status', methods=['POST'])
 @jwt_required()
+@require_permission('products.update')
 def admin_toggle_product_status(id):
     """Admin: Toggle product active status"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     product = Product.query.get(id)
     if not product:
         return jsonify({'message': 'Product not found'}), 404
@@ -447,14 +418,9 @@ def admin_toggle_product_status(id):
 
 @bp.route('/admin/products/<int:product_id>/prices', methods=['GET'])
 @jwt_required()
+@require_permission('products.read')
 def admin_get_product_prices(product_id):
     """Admin: Get all prices for a product"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'message': 'Product not found'}), 404
@@ -468,14 +434,9 @@ def admin_get_product_prices(product_id):
 
 @bp.route('/admin/products/<int:product_id>/prices', methods=['POST'])
 @jwt_required()
+@require_permission('products.update')
 def admin_create_product_price(product_id):
     """Admin: Create product price"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'message': 'Product not found'}), 404
@@ -517,14 +478,9 @@ def admin_create_product_price(product_id):
 
 @bp.route('/admin/products/<int:product_id>/prices/<int:price_id>', methods=['PUT'])
 @jwt_required()
+@require_permission('products.update')
 def admin_update_product_price(product_id, price_id):
     """Admin: Update product price"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     price = ProductPrice.query.filter_by(id=price_id, product_id=product_id).first()
     if not price:
         return jsonify({'message': 'Price not found'}), 404
@@ -553,14 +509,9 @@ def admin_update_product_price(product_id, price_id):
 
 @bp.route('/admin/products/<int:product_id>/prices/<int:price_id>', methods=['DELETE'])
 @jwt_required()
+@require_permission('products.update')
 def admin_delete_product_price(product_id, price_id):
     """Admin: Delete product price"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     price = ProductPrice.query.filter_by(id=price_id, product_id=product_id).first()
     if not price:
         return jsonify({'message': 'Price not found'}), 404
@@ -580,14 +531,9 @@ def admin_delete_product_price(product_id, price_id):
 
 @bp.route('/admin/products/<int:product_id>/translations', methods=['GET'])
 @jwt_required()
+@require_permission('products.read')
 def admin_get_product_translations(product_id):
     """Admin: Get all translation versions of a product"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'message': 'Product not found'}), 404
@@ -623,14 +569,9 @@ def admin_get_product_translations(product_id):
 
 @bp.route('/admin/products/<int:product_id>/translations', methods=['POST'])
 @jwt_required()
+@require_permission('products.update')
 def admin_create_product_translation(product_id):
     """Admin: Create product translation version"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     product = Product.query.get(product_id)
     if not product:
         return jsonify({'message': 'Product not found'}), 404
@@ -698,14 +639,9 @@ def admin_create_product_translation(product_id):
 
 @bp.route('/admin/products/sort-order', methods=['PUT'])
 @jwt_required()
+@require_permission('products.update')
 def admin_update_product_sort_order():
     """Admin: Batch update product sort order"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user or not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     data = request.get_json()
 
     if 'sort_orders' not in data:

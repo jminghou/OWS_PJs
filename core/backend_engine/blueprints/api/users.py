@@ -16,6 +16,7 @@ from core.backend_engine.factory import db
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.models import User
 from core.backend_engine.schemas.user import UserSchema
+from core.backend_engine.services.rbac import require_permission
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
@@ -23,12 +24,9 @@ users_schema = UserSchema(many=True)
 
 @bp.route('/users', methods=['GET'])
 @jwt_required()
+@require_permission('users.read')
 def api_users():
-    """Get user list (admin only)"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
+    """Get user list (requires users.read)"""
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 20, type=int), 100)
     role = request.args.get('role')
@@ -58,12 +56,9 @@ def api_users():
 
 @bp.route('/users', methods=['POST'])
 @jwt_required()
+@require_permission('users.create')
 def api_create_user():
-    """Create new user (admin only)"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
+    """Create new user (requires users.create)"""
     data = request.get_json()
     if User.query.filter_by(username=data.get('username')).first() or User.query.filter_by(email=data.get('email')).first():
         return jsonify({'message': 'Username or email already exists'}), 400
@@ -88,12 +83,9 @@ def api_create_user():
 
 @bp.route('/users/<int:user_id>', methods=['PUT'])
 @jwt_required()
+@require_permission('users.update')
 def api_update_user(user_id):
-    """Update user (admin only)"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
+    """Update user (requires users.update)"""
     target_user = User.query.get_or_404(user_id)
     data = request.get_json()
 
@@ -125,8 +117,9 @@ def api_update_user(user_id):
 
 @bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
 @jwt_required()
+@require_permission('users.update')
 def api_toggle_user_status(user_id):
-    """Toggle user active status"""
+    """Toggle user active status (requires users.update)"""
     if int(get_jwt_identity()) == user_id:
         return jsonify({'message': 'Cannot disable your own account'}), 400
     user = User.query.get_or_404(user_id)

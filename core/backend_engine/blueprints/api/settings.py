@@ -18,6 +18,7 @@ from core.backend_engine.factory import db
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.blueprints.api.utils import get_i18n_setting
 from core.backend_engine.models import Setting, User, HomepageSlide, HomepageSettings
+from core.backend_engine.services.rbac import require_permission
 
 
 # ==================== i18n Settings ====================
@@ -46,12 +47,9 @@ def api_get_i18n_settings():
 
 @bp.route('/settings/i18n', methods=['PUT'])
 @jwt_required()
+@require_permission('settings.update')
 def api_update_i18n_settings():
-    """Update i18n multi-language settings (admin only)"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user or user.role != 'admin':
-        return jsonify({'message': 'Admin permission required'}), 403
-
+    """Update i18n multi-language settings (requires settings.update)"""
     data = request.get_json()
     settings_to_update = {
         'i18n_enabled': str(data.get('enabled', False)).lower(),
@@ -73,12 +71,9 @@ def api_update_i18n_settings():
 
 @bp.route('/settings/i18n/languages', methods=['POST'])
 @jwt_required()
+@require_permission('settings.update')
 def api_add_language():
-    """Add language (admin only)"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user or user.role != 'admin':
-        return jsonify({'message': 'Admin permission required'}), 403
-
+    """Add language (requires settings.update)"""
     data = request.get_json()
     code = data.get('code')
     name = data.get('name')
@@ -161,12 +156,9 @@ def _parse_datetime(value):
 
 @bp.route('/settings/homepage', methods=['PUT'])
 @jwt_required()
+@require_permission('contents.update')
 def api_update_homepage_settings():
-    """Update homepage slideshow settings (editor permission required)"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user or not user.is_editor():
-        return jsonify({'message': 'Editor permission required'}), 403
-
+    """Update homepage slideshow settings (requires contents.update)"""
     data = request.get_json()
 
     # 1. 處理關於我們 (使用 Setting 表，這是最穩定的做法)

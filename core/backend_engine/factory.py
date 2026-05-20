@@ -142,6 +142,9 @@ def create_app(
     # Configure static file serving
     _configure_static_serving(app)
 
+    # Register shared core CLI commands (seed-rbac, assign-role, ...)
+    _register_core_cli(app)
+
     # Run after-init hooks
     if after_init_hooks:
         for hook in after_init_hooks:
@@ -350,6 +353,44 @@ def _configure_error_handlers(app: Flask) -> None:
     def internal_error(error):
         app.logger.error(f"Internal Server Error: {error}")
         return jsonify({'error': 'Internal Server Error', 'message': 'An unexpected error occurred'}), 500
+
+
+# =============================================================================
+# Core CLI Commands (shared by all sites)
+# =============================================================================
+
+def _register_core_cli(app: Flask) -> None:
+    """Register RBAC-related CLI commands available to every site."""
+    import click
+
+    @app.cli.command('seed-rbac')
+    def seed_rbac_command():
+        """Seed / sync RBAC permissions, roles and role-permission mappings (idempotent)."""
+        from core.backend_engine.services.rbac_seed import seed_rbac
+        stats = seed_rbac(db)
+        click.echo(
+            f"RBAC seeded: +{stats['permissions_added']} permissions, "
+            f"+{stats['roles_added']} roles, +{stats['role_perms_added']} role-perms, "
+            f"+{stats['user_roles_added']} user-roles."
+        )
+
+    @app.cli.command('assign-role')
+    @click.argument('username')
+    @click.argument('role_code')
+    def assign_role_command(username, role_code):
+        """Assign a role to a user. Usage: flask assign-role <username> <role_code>"""
+        from core.backend_engine.models import User
+        from core.backend_engine.services.rbac import RBACService
+
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            click.echo(f"User '{username}' not found.")
+            return
+        try:
+            RBACService.assign_role(user.id, role_code)
+            click.echo(f"Assigned role '{role_code}' to user '{username}'.")
+        except ValueError as e:
+            click.echo(f"Error: {e}")
 
 
 # =============================================================================

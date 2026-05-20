@@ -142,6 +142,7 @@ psql -U postgres -c "CREATE DATABASE ows_polaris;"
 flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d sites/Polaris_Parent/backend/migrations
 flask --app "sites.Polaris_Parent.backend.app:app" init-site
 flask --app "sites.Polaris_Parent.backend.app:app" create-admin
+flask --app "sites.Polaris_Parent.backend.app:app" seed-rbac   # 建立權限/角色並同步管理員
 ```
 
 #### Claire Project
@@ -151,7 +152,14 @@ psql -U postgres -c "CREATE DATABASE ows_claire;"
 flask --app "sites.Claire_Project.backend.app:app" db upgrade -d sites/Claire_Project/backend/migrations
 flask --app "sites.Claire_Project.backend.app:app" init-site
 flask --app "sites.Claire_Project.backend.app:app" create-admin
+flask --app "sites.Claire_Project.backend.app:app" seed-rbac
 ```
+
+> **RBAC（權限）指令**：
+> - `flask --app <site> seed-rbac` — 冪等地建立 / 補齊權限、角色與對應，並把既有使用者的
+>   legacy `role` 同步到 user_roles。新增權限後重跑即可補上，不會覆蓋自訂。
+> - `flask --app <site> assign-role <username> <role_code>` — 指派角色給使用者
+>   （role_code：`admin` / `editor` / `user`，或日後自訂的角色）。
 
 > 密碼規則：至少 8 個字元，需包含大寫字母、小寫字母與數字。
 

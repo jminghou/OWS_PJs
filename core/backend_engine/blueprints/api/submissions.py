@@ -16,6 +16,7 @@ from core.backend_engine.factory import db, limiter
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.models import User, Submission
 from core.backend_engine.schemas.base import BaseSchema
+from core.backend_engine.services.rbac import require_permission
 
 
 class SubmissionSchema(BaseSchema):
@@ -99,12 +100,9 @@ def api_create_contact():
 
 @bp.route('/admin/submissions', methods=['GET'])
 @jwt_required()
+@require_permission('submissions.read')
 def api_admin_submissions():
-    """Admin view submission list"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
+    """Admin view submission list (requires submissions.read)"""
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 20, type=int), 100)
     status = request.args.get('status')
@@ -130,12 +128,9 @@ def api_admin_submissions():
 
 @bp.route('/admin/submissions/<int:submission_id>', methods=['PUT'])
 @jwt_required()
+@require_permission('submissions.update')
 def api_admin_update_submission(submission_id):
-    """Admin update submission status and notes"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_admin():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
+    """Admin update submission status and notes (requires submissions.update)"""
     submission = Submission.query.get_or_404(submission_id)
     data = request.get_json()
     submission.status = data.get('status', submission.status)

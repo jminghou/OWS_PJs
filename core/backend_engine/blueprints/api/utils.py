@@ -142,30 +142,3 @@ def validate_json(schema_class, partial=False):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
-
-
-def require_role(*roles):
-    """Role-based access control decorator
-
-    Checks if current JWT user has one of the specified roles.
-    Must be used with @jwt_required().
-
-    Usage:
-        @bp.route('/admin/example', methods=['GET'])
-        @jwt_required()
-        @require_role('admin', 'editor')
-        def admin_example():
-            ...
-    """
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            from core.backend_engine.models import User
-            user_id = get_jwt_identity()
-            user = User.query.get(int(user_id))
-            if not user or user.role not in roles:
-                return jsonify({'message': 'Insufficient permissions'}), 403
-            flask_request.current_user = user
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator

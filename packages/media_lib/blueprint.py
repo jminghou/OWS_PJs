@@ -37,6 +37,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from core.backend_engine.factory import db
 from core.backend_engine.models import User
+from core.backend_engine.services.rbac import RBACService
 from packages.media_lib.models import MLFile, MLFileVariant, MLFolder, MLTag, MLFileMetadata
 from packages.media_lib.schemas import MLFileSchema, MLFolderSchema, MLTagSchema, MLFileMetadataSchema
 from packages.media_lib.storage import MediaStorage
@@ -58,13 +59,28 @@ tag_schema = MLTagSchema()
 tags_schema = MLTagSchema(many=True)
 
 
-def _require_editor():
-    """檢查是否為 editor 以上權限，回傳 user 或 abort。"""
+def _require_media(permission_code):
+    """檢查指定的媒體權限，回傳 (user, None) 或 (None, error_response)。"""
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
-    if not user or not user.is_editor():
+    if not user or not RBACService.has_permission(user_id, permission_code):
         return None, (jsonify({'error': 'Insufficient permissions'}), 403)
     return user, None
+
+
+def _require_editor():
+    """寫入類媒體操作：需要 media.upload。"""
+    return _require_media('media.upload')
+
+
+def _require_media_read():
+    """讀取類媒體操作：需要 media.read。"""
+    return _require_media('media.read')
+
+
+def _require_media_delete():
+    """刪除類媒體操作：需要 media.delete。"""
+    return _require_media('media.delete')
 
 
 def _validate_upload(filename: str, mime_type: str, file_size: int):
@@ -115,7 +131,7 @@ def _validate_upload(filename: str, mime_type: str, file_size: int):
 @jwt_required()
 def list_files():
     """列出檔案，支援分頁、搜尋、資料夾篩選、標籤篩選。"""
-    user, err = _require_editor()
+    user, err = _require_media_read()
     if err:
         return err
 
@@ -153,7 +169,7 @@ def list_files():
 @jwt_required()
 def get_file(file_id):
     """取得單一檔案詳情。"""
-    user, err = _require_editor()
+    user, err = _require_media_read()
     if err:
         return err
 
@@ -293,7 +309,7 @@ def update_file(file_id):
 @jwt_required()
 def delete_file(file_id):
     """刪除檔案及其所有變體。"""
-    user, err = _require_editor()
+    user, err = _require_media_delete()
     if err:
         return err
 
@@ -359,7 +375,7 @@ def move_files():
 @jwt_required()
 def list_folders():
     """列出資料夾。"""
-    user, err = _require_editor()
+    user, err = _require_media_read()
     if err:
         return err
 
@@ -502,7 +518,7 @@ def update_folder(folder_id):
 @jwt_required()
 def delete_folder(folder_id):
     """刪除空資料夾。"""
-    user, err = _require_editor()
+    user, err = _require_media_delete()
     if err:
         return err
 
@@ -530,7 +546,7 @@ def delete_folder(folder_id):
 @jwt_required()
 def list_tags():
     """列出所有標籤。"""
-    user, err = _require_editor()
+    user, err = _require_media_read()
     if err:
         return err
 
@@ -572,7 +588,7 @@ def create_tag():
 @jwt_required()
 def delete_tag(tag_id):
     """刪除標籤。"""
-    user, err = _require_editor()
+    user, err = _require_media_delete()
     if err:
         return err
 
@@ -599,7 +615,7 @@ def scan_gcs():
     回傳未匯入的檔案清單（不做任何寫入）。
     僅 GCS 模式可用。
     """
-    user, err = _require_editor()
+    user, err = _require_media_read()
     if err:
         return err
 

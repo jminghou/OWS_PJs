@@ -37,6 +37,7 @@ from core.backend_engine.schemas.content import ContentSchema
 from core.backend_engine.schemas.category import CategorySchema
 from core.backend_engine.schemas.tag import TagSchema
 from core.backend_engine.schemas.user import UserSchema
+from core.backend_engine.services.rbac import require_permission, RBACService
 
 content_schema = ContentSchema()
 contents_schema = ContentSchema(many=True)
@@ -238,13 +239,10 @@ def api_content_by_slug(slug):
 
 @bp.route('/contents', methods=['POST'])
 @jwt_required()
+@require_permission('contents.create')
 def api_create_content():
-    """Create new content"""
+    """Create new content (requires contents.create)"""
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
-
-    if not user or not user.is_editor():
-        return jsonify({'message': 'Insufficient permissions'}), 403
 
     data = request.get_json()
     if not data or not data.get('title'):
@@ -311,10 +309,10 @@ def api_create_content():
 def api_update_content(content_id):
     """Update content"""
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
     content = Content.query.get_or_404(content_id)
 
-    if not user or (not user.is_editor() and content.author_id != user_id):
+    # contents.update 權限，或文章作者本人，方可更新
+    if not RBACService.has_permission(user_id, 'contents.update') and content.author_id != user_id:
         return jsonify({'message': 'Insufficient permissions'}), 403
 
     data = request.get_json()
@@ -358,10 +356,10 @@ def api_update_content(content_id):
 def api_delete_content(content_id):
     """Delete content"""
     user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
     content = Content.query.get_or_404(content_id)
 
-    if not user or (not user.is_editor() and content.author_id != user_id):
+    # contents.delete 權限，或文章作者本人，方可刪除
+    if not RBACService.has_permission(user_id, 'contents.delete') and content.author_id != user_id:
         return jsonify({'message': 'Insufficient permissions'}), 403
 
     db.session.delete(content)
@@ -380,12 +378,9 @@ def api_categories():
 
 @bp.route('/categories', methods=['POST'])
 @jwt_required()
+@require_permission('contents.update')
 def api_create_category():
     """Create new category"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_editor():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     data = request.get_json()
     if not data.get('code'):
         return jsonify({'message': 'Category code cannot be empty'}), 400
@@ -411,12 +406,9 @@ def api_create_category():
 
 @bp.route('/categories/<int:category_id>', methods=['PUT'])
 @jwt_required()
+@require_permission('contents.update')
 def api_update_category(category_id):
     """Update category"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_editor():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     category = Category.query.get_or_404(category_id)
     data = request.get_json()
 
@@ -440,12 +432,9 @@ def api_update_category(category_id):
 
 @bp.route('/categories/<int:category_id>', methods=['DELETE'])
 @jwt_required()
+@require_permission('contents.update')
 def api_delete_category(category_id):
     """Delete category"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_editor():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     category = Category.query.get_or_404(category_id)
     if Content.query.filter_by(category_id=category_id).count() > 0:
         return jsonify({'message': 'Cannot delete this category, still has contents using it'}), 400
@@ -470,12 +459,9 @@ def api_tags():
 
 @bp.route('/tags', methods=['POST'])
 @jwt_required()
+@require_permission('contents.update')
 def api_create_tag():
     """Create new tag"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_editor():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     data = request.get_json()
     if not data.get('code'):
         return jsonify({'message': 'Tag code cannot be empty'}), 400
@@ -495,12 +481,9 @@ def api_create_tag():
 
 @bp.route('/tags/<int:tag_id>', methods=['PUT'])
 @jwt_required()
+@require_permission('contents.update')
 def api_update_tag(tag_id):
     """Update tag"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_editor():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     tag = Tag.query.get_or_404(tag_id)
     data = request.get_json()
 
@@ -522,12 +505,9 @@ def api_update_tag(tag_id):
 
 @bp.route('/tags/<int:tag_id>', methods=['DELETE'])
 @jwt_required()
+@require_permission('contents.update')
 def api_delete_tag(tag_id):
     """Delete tag"""
-    user = User.query.get(int(get_jwt_identity()))
-    if not user.is_editor():
-        return jsonify({'message': 'Insufficient permissions'}), 403
-
     tag = Tag.query.get_or_404(tag_id)
     try:
         tag.contents.clear()
