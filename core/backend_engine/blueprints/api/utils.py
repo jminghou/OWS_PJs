@@ -15,6 +15,8 @@ from datetime import datetime
 from flask import request as flask_request, jsonify
 from marshmallow import ValidationError
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from flask_jwt_extended.exceptions import JWTExtendedException
+from jwt.exceptions import PyJWTError
 
 # Taiwan timezone setting
 TAIWAN_TZ = pytz.timezone('Asia/Taipei')
@@ -72,7 +74,7 @@ def is_authenticated():
     try:
         verify_jwt_in_request(optional=True)
         return get_jwt_identity() is not None
-    except:
+    except (JWTExtendedException, PyJWTError):
         return False
 
 

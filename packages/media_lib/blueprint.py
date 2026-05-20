@@ -42,6 +42,11 @@ from packages.media_lib.schemas import MLFileSchema, MLFolderSchema, MLTagSchema
 from packages.media_lib.storage import MediaStorage
 from packages.media_lib.image_processor import is_image, get_image_dimensions, generate_variants
 from packages.media_lib.utils import slugify
+from packages.media_lib.config import (
+    ALLOWED_EXTENSIONS,
+    ALLOWED_MIME_TYPES,
+    MAX_FILE_SIZE,
+)
 
 media_lib_bp = Blueprint('media_lib', __name__)
 
@@ -60,6 +65,46 @@ def _require_editor():
     if not user or not user.is_editor():
         return None, (jsonify({'error': 'Insufficient permissions'}), 403)
     return user, None
+
+
+def _validate_upload(filename: str, mime_type: str, file_size: int):
+    """
+    驗證上傳檔案的副檔名、MIME 與大小（雙重防線：副檔名 allowlist + MIME 對照）。
+
+    Returns:
+        (None, None) if valid.
+        (response, status_code) tuple if invalid.
+    """
+    # 大小
+    if file_size > MAX_FILE_SIZE:
+        return jsonify({
+            'error': f'File too large: {file_size} bytes (max {MAX_FILE_SIZE}).'
+        }), 413
+
+    # 副檔名 allowlist
+    ext = os.path.splitext(filename)[1].lstrip('.').lower()
+    if not ext:
+        return jsonify({'error': 'File must have an extension.'}), 400
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify({
+            'error': (
+                f"File extension '.{ext}' is not allowed. "
+                f"Allowed: {sorted(ALLOWED_EXTENSIONS)}."
+            )
+        }), 400
+
+    # MIME 第二道防線：剝掉 charset 等參數後比對
+    expected_mimes = ALLOWED_MIME_TYPES.get(ext, set())
+    actual_mime = (mime_type or '').lower().split(';')[0].strip()
+    if expected_mimes and actual_mime not in expected_mimes:
+        return jsonify({
+            'error': (
+                f"MIME type '{actual_mime}' does not match extension '.{ext}'. "
+                f"Expected one of {sorted(expected_mimes)}."
+            )
+        }), 400
+
+    return None, None
 
 
 # =============================================================================
@@ -133,13 +178,18 @@ def upload_file():
 
     folder_id = request.form.get('folder_id', type=int)
 
+    # 先讀進 buffer 才能驗大小
+    file_data = file.read()
+    file_size = len(file_data)
+    mime_type = file.content_type or 'application/octet-stream'
+
+    # 驗證副檔名、MIME 與大小（在上傳到 GCS 之前擋下）
+    err_resp = _validate_upload(file.filename, mime_type, file_size)
+    if err_resp[0] is not None:
+        return err_resp
+
     try:
         gcs = MediaStorage.get_instance()
-
-        # 讀取檔案內容到記憶體
-        file_data = file.read()
-        file_size = len(file_data)
-        mime_type = file.content_type or 'application/octet-stream'
 
         # 上傳原圖到 GCS
         file.seek(0)

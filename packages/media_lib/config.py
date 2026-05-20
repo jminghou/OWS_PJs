@@ -26,8 +26,28 @@ GCS_BASE_PATH = 'media'
 
 # 上傳限制
 MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
+
+# 副檔名 allowlist。注意：
+# - 不包含 svg（XSS 風險：SVG 可內嵌 <script>。日後若要支援需 server-side sanitize）
+# - 不包含 html/htm/js/exe 等可執行型副檔名
 ALLOWED_EXTENSIONS = {
-    'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',
+    'png', 'jpg', 'jpeg', 'gif', 'webp',
     'pdf', 'doc', 'docx', 'txt',
     'mp4', 'mov', 'avi',
+}
+
+# 副檔名 → 允許的 MIME types 對照表（雙重防線：擋掉副檔名與 MIME 不一致的偽裝檔案）
+ALLOWED_MIME_TYPES = {
+    'png':  {'image/png'},
+    'jpg':  {'image/jpeg'},
+    'jpeg': {'image/jpeg'},
+    'gif':  {'image/gif'},
+    'webp': {'image/webp'},
+    'pdf':  {'application/pdf'},
+    'doc':  {'application/msword'},
+    'docx': {'application/vnd.openxmlformats-officedocument.wordprocessingml.document'},
+    'txt':  {'text/plain'},
+    'mp4':  {'video/mp4'},
+    'mov':  {'video/quicktime'},
+    'avi':  {'video/x-msvideo', 'video/avi'},
 }

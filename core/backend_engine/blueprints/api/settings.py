@@ -123,7 +123,7 @@ def api_get_homepage_settings():
     about_setting = Setting.query.filter_by(key='homepage_about_section').first()
     try:
         about_section = json.loads(about_setting.value) if about_setting and about_setting.value else {}
-    except:
+    except (json.JSONDecodeError, TypeError, ValueError):
         about_section = {}
 
     homepage_settings = HomepageSettings.query.first()

@@ -23,16 +23,26 @@ SITE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(SITE_DIR, '.env'), override=True)
 
 
-def _require_env(key: str, fallback=None):
+def _require_env(key: str, fallback=None, strict: bool = False):
     """
     Get environment variable.
-    Logs warning if not set.
+
+    Args:
+        key: Environment variable name.
+        fallback: Value to return if env var is missing (takes priority over strict).
+        strict: If True (and no fallback), raise RuntimeError when missing instead
+                of returning None with a warning. Use in production where missing
+                values would silently break security (e.g. SECRET_KEY).
     """
     value = os.environ.get(key)
     if value:
         return value
     if fallback is not None:
         return fallback
+    if strict:
+        raise RuntimeError(
+            f"Environment variable '{key}' is required but not set."
+        )
     print(f"WARNING: Environment variable '{key}' is not set!")
     return None
 
@@ -230,9 +240,6 @@ class ProductionConfig(Config):
     DEBUG = False
     IS_DEV_MODE = False
 
-    # Required in production - no fallbacks
-    SECRET_KEY = _require_env('SECRET_KEY')
-    JWT_SECRET_KEY = _require_env('JWT_SECRET_KEY')
     SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL')
 
     SQLALCHEMY_BINDS = {}
@@ -241,10 +248,16 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
     JWT_COOKIE_SECURE = True
 
-    # CORS allow-list: required in production, '*' is rejected.
+    # Required secrets + CORS allow-list: strict in production, '*' is rejected.
     # 只在 FLASK_CONFIG=production 時觸發驗證，避免 dev 啟動 import config 時誤觸。
     if os.environ.get('FLASK_CONFIG') == 'production':
+        SECRET_KEY = _require_env('SECRET_KEY', strict=True)
+        JWT_SECRET_KEY = _require_env('JWT_SECRET_KEY', strict=True)
         CORS_ORIGINS = _validate_production_cors_origins()
+    else:
+        # Legacy non-strict fallback for non-production import paths
+        SECRET_KEY = _require_env('SECRET_KEY')
+        JWT_SECRET_KEY = _require_env('JWT_SECRET_KEY')
 
     # Cookie Domain 設定（跨子域名共享 cookie）
     # 例如 .clairelab.tw 讓 clairelab.tw 和 api.clairelab.tw 共享 cookie
