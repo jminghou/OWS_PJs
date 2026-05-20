@@ -157,15 +157,13 @@ def create_app(
 def _init_extensions(app: Flask) -> None:
     """Initialize Flask extensions with the app."""
 
-    # 這是最標準的寫法，它會自動讀取 Railway 的環境變數
     db.init_app(app)
 
-    # 註冊 Blueprints (必須在 db.create_all() 之前，讓 SQLAlchemy 認識所有 Model)
-    from core.backend_engine.blueprints.api import auth, users, settings, contents
-
-    # 確保啟動時會自動建立資料表結構
-    with app.app_context():
-        db.create_all()
+    # Import route modules so SQLAlchemy registers all models on db.metadata
+    # (model 定義在 models.py，這些 route module 會連帶 import 它們)。
+    # 注意：schema 由 migration 管理 (flask db upgrade)，啟動時不再 db.create_all()，
+    # 以避免與 migration 產生 schema drift。
+    from core.backend_engine.blueprints.api import auth, users, settings, contents  # noqa: F401
 
     migrate.init_app(app, db)
     jwt.init_app(app)

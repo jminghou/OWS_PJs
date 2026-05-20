@@ -25,16 +25,9 @@ def register_media_lib(app, db):
         app: Flask application instance
         db: SQLAlchemy instance
     """
-    # 建立 media_lib schema（如果不存在）
-    with app.app_context():
-        from sqlalchemy import text
-        with db.engine.connect() as conn:
-            conn.execute(text('CREATE SCHEMA IF NOT EXISTS media_lib'))
-            conn.commit()
-
-        # 匯入 models 讓 SQLAlchemy 認識，然後建表
-        import packages.media_lib.models  # noqa: F401
-        db.create_all()
+    # 匯入 models 讓 SQLAlchemy 在 db.metadata 註冊媒體庫資料表
+    # （schema 與資料表由 migration 建立，啟動時不再 CREATE SCHEMA / create_all）。
+    import packages.media_lib.models  # noqa: F401
 
     # 註冊 Blueprint
     app.register_blueprint(media_lib_bp, url_prefix='/api/v1/media-lib')

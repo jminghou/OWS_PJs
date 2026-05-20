@@ -131,11 +131,15 @@ cp sites/Claire_Project/.env.example sites/Claire_Project/.env
 
 ### 4. 資料庫初始化（本機）
 
+> **資料表由 migration 建立**（啟動時不再自動 `db.create_all()`），首次安裝
+> 務必先跑 `flask db upgrade`。指令需帶 `-d <site>/backend/migrations` 指定該
+> Site 的 migrations 目錄（根目錄的 `migrations/versions` 為空）。
+
 #### Polaris Parent
 
 ```powershell
 psql -U postgres -c "CREATE DATABASE ows_polaris;"
-flask --app "sites.Polaris_Parent.backend.app:app" db upgrade
+flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d sites/Polaris_Parent/backend/migrations
 flask --app "sites.Polaris_Parent.backend.app:app" init-site
 flask --app "sites.Polaris_Parent.backend.app:app" create-admin
 ```
@@ -144,12 +148,24 @@ flask --app "sites.Polaris_Parent.backend.app:app" create-admin
 
 ```powershell
 psql -U postgres -c "CREATE DATABASE ows_claire;"
-flask --app "sites.Claire_Project.backend.app:app" db upgrade
+flask --app "sites.Claire_Project.backend.app:app" db upgrade -d sites/Claire_Project/backend/migrations
 flask --app "sites.Claire_Project.backend.app:app" init-site
 flask --app "sites.Claire_Project.backend.app:app" create-admin
 ```
 
 > 密碼規則：至少 8 個字元，需包含大寫字母、小寫字母與數字。
+
+#### 既有資料庫升級（schema 原本由 db.create_all() 建立者）
+
+若資料庫已有資料表但 `alembic_version` 不存在或指向舊版本，先對齊到 baseline
+再升級，避免重跑建表 migration：
+
+```powershell
+# 將現有 schema 標記為 baseline（不執行 DDL，僅記錄版本）
+flask --app "sites.Polaris_Parent.backend.app:app" db stamp 0001_baseline_schema --purge -d sites/Polaris_Parent/backend/migrations
+# 之後的增量 migration 照常 upgrade
+flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d sites/Polaris_Parent/backend/migrations
+```
 
 ---
 
@@ -337,38 +353,32 @@ Vercel 同樣可在 Project → Settings → Git → **Ignored Build Step** 用 
 Railway 容器內執行（Dashboard → 該 service → 右上角 `⋯` → **Open Shell**）：
 
 ```bash
-# 建立資料表
-python -c "
-from sites.Polaris_Parent.backend.app import app
-from core.backend_engine.factory import db
-with app.app_context():
-    db.create_all()
-    print('Tables created')
-"
+# 由 migration 建立全部資料表（baseline + 後續增量）
+flask --app sites.Polaris_Parent.backend.app:app db upgrade -d sites/Polaris_Parent/backend/migrations
 
 # 建立 admin
 flask --app sites.Polaris_Parent.backend.app:app create-admin
 ```
 
+> 若該資料庫先前是用舊版 `db.create_all()` 建出來的（表已存在但 `alembic_version`
+> 缺失或為舊值），先 stamp 對齊 baseline 再 upgrade：
+> ```bash
+> flask --app sites.Polaris_Parent.backend.app:app db stamp 0001_baseline_schema --purge -d sites/Polaris_Parent/backend/migrations
+> ```
+
 #### Schema 變更時
 
-修改後端 `models.py` 後（新增/修改欄位），需要在 Railway shell 內補資料庫欄位：
-
-```bash
-# 連到資料庫
-railway connect Postgres   # 或在 Dashboard 直接打開 SQL Editor
-
-# 在 SQL Editor 執行
-# ALTER TABLE homepage_settings ADD COLUMN IF NOT EXISTS about_section TEXT;
-```
-
-或在本地連到 Railway Postgres 跑 migration：
+修改後端 `models.py` 後（新增/修改欄位），**用 migration 處理，不要手動 ALTER**：
 
 ```powershell
-# 取得 DATABASE_URL 後
-$env:DATABASE_URL="postgresql://..."
-flask --app "sites.Polaris_Parent.backend.app:app" db upgrade
+# 1. 自動產生增量 migration（會比對 model 與目前 DB 差異）
+flask --app "sites.Polaris_Parent.backend.app:app" db migrate -m "describe change" -d sites/Polaris_Parent/backend/migrations
+
+# 2. 檢視產生的 migration 檔內容無誤後，套用
+flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d sites/Polaris_Parent/backend/migrations
 ```
+
+> 兩個 Site 各有獨立的 migrations 目錄與資料庫，需分別產生/套用。
 
 ### 常見問題
 
