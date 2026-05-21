@@ -4,7 +4,7 @@ import { contentApi } from '@/lib/api';
 import { Content } from '@/types';
 import PostDetailContent from '@/app/(public)/posts/[slug]/PostDetailContent';
 import JsonLd from '@/components/seo/JsonLd';
-import { buildArticleJsonLd, buildContentAlternates, buildFaqJsonLd } from '@/lib/seo';
+import { buildArticleJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@/lib/seo';
 import { getRelatedPosts } from '@/lib/relatedPosts';
 
 // 設定 ISR：每小時重新驗證一次 (3600 秒)
@@ -137,11 +137,12 @@ export default async function LocalePostDetailPage({ params, searchParams }: Pos
   }
 
   const faq = buildFaqJsonLd(post);
+  const howTo = buildHowToJsonLd(post);
   const relatedPosts = await getRelatedPosts(post);
 
   return (
     <>
-      <JsonLd data={[buildArticleJsonLd(post, resolvedParams.locale), ...(faq ? [faq] : [])]} />
+      <JsonLd data={[buildArticleJsonLd(post, resolvedParams.locale), ...(faq ? [faq] : []), ...(howTo ? [howTo] : [])]} />
       {isPreview && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
           <div className="flex">

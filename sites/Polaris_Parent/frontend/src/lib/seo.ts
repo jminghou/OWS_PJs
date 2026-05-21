@@ -7,6 +7,7 @@
  */
 import type { Content, Product, Author } from '@/types';
 import { getImageUrl } from '@/lib/utils';
+import { parseContentBlocks, findSection } from '@/lib/contentBlocks';
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
 export const SITE_NAME = '親紫之間';
@@ -278,68 +279,31 @@ export function buildProductJsonLd(product: Product, locale: string = DEFAULT_LO
 const FAQ_SECTION_KEYWORDS =
   /(常見問題|常見問答|常见问题|常见问答|FAQ|Q\s*&\s*A|Q＆A|よくある(ご)?質問|자주\s*묻는\s*질문)/i;
 
-/** 把一段 Markdown 轉成乾淨純文字（給 FAQ 答案用，schema 的 answer 以純文字最穩定）。 */
-function markdownToPlainText(md: string): string {
-  return md
-    .replace(/```[\s\S]*?```/g, ' ') // code block
-    .replace(/`([^`]+)`/g, '$1') // inline code
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ') // images
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // links -> 文字
-    .replace(/^\s{0,3}>\s?/gm, '') // blockquote
-    .replace(/^\s*[-*+]\s+/gm, '') // 無序清單符號
-    .replace(/^\s*\d+\.\s+/gm, '') // 有序清單符號
-    .replace(/[*_~]/g, '') // 粗體/斜體/刪除線符號
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+/** 從文章內容（HTML 或 Markdown）抽取「常見問題」區塊的問答對。找不到則回空陣列。 */
+export function extractFaqFromMarkdown(content?: string): Array<{ question: string; answer: string }> {
+  if (!content) return [];
+  const blocks = parseContentBlocks(content);
+  const section = findSection(blocks, FAQ_SECTION_KEYWORDS, content.length);
+  if (!section) return [];
 
-/** 從文章 Markdown 抽取「常見問題」區塊的問答對。找不到則回空陣列。 */
-export function extractFaqFromMarkdown(markdown?: string): Array<{ question: string; answer: string }> {
-  if (!markdown) return [];
-  const lines = markdown.split(/\r?\n/);
-
-  // 1. 找 FAQ 區塊標題（標題文字含 FAQ 關鍵字）
-  let start = -1;
-  let sectionLevel = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const hm = lines[i].match(/^(#{1,6})\s+(.*\S)\s*$/);
-    if (hm && FAQ_SECTION_KEYWORDS.test(hm[2])) {
-      start = i;
-      sectionLevel = hm[1].length;
-      break;
-    }
-  }
-  if (start === -1) return [];
-
-  // 2. 區塊結束於下一個「同級或更高層」的標題
-  let end = lines.length;
-  for (let i = start + 1; i < lines.length; i++) {
-    const hm = lines[i].match(/^(#{1,6})\s+/);
-    if (hm && hm[1].length <= sectionLevel) {
-      end = i;
-      break;
-    }
-  }
-
-  // 3. 區塊內，比 sectionLevel 更深的標題即為問題
+  // 區塊內：比 FAQ 標題更深一層的標題＝問題；其後的段落/清單＝答案
   const faqs: Array<{ question: string; answer: string }> = [];
   let question: string | null = null;
   let buffer: string[] = [];
   const flush = () => {
     if (question) {
-      const answer = markdownToPlainText(buffer.join('\n'));
+      const answer = buffer.join(' ').replace(/\s+/g, ' ').trim();
       if (answer) faqs.push({ question, answer });
     }
     question = null;
     buffer = [];
   };
-  for (let i = start + 1; i < end; i++) {
-    const hm = lines[i].match(/^(#{1,6})\s+(.*)$/);
-    if (hm && hm[1].length > sectionLevel) {
+  for (const b of section.inner) {
+    if (b.kind === 'heading' && b.level > section.level) {
       flush();
-      question = markdownToPlainText(hm[2]);
-    } else if (question) {
-      buffer.push(lines[i]);
+      question = b.text;
+    } else if (question && (b.kind === 'p' || b.kind === 'li')) {
+      buffer.push(b.text);
     }
   }
   flush();
@@ -358,6 +322,44 @@ export function buildFaqJsonLd(post: Content): object | null {
       '@type': 'Question',
       name: f.question,
       acceptedAnswer: { '@type': 'Answer', text: f.answer },
+    })),
+  };
+}
+
+/**
+ * 「步驟」區塊的標題關鍵字。區塊內的「有序清單項目」(1. 2. 3.) 即為步驟。
+ */
+const HOWTO_SECTION_KEYWORDS =
+  /(操作步驟|步驟教學|教學步驟|操作方式|做法步驟|步驟|做法|怎麼做|如何操作|How\s*-?\s*To|手順|방법)/i;
+
+/** 從文章內容（HTML 或 Markdown）抽取「步驟」區塊的有序清單作為步驟。 */
+export function extractHowToSteps(content?: string): { name?: string; steps: string[] } {
+  if (!content) return { steps: [] };
+  const blocks = parseContentBlocks(content);
+  const section = findSection(blocks, HOWTO_SECTION_KEYWORDS, content.length);
+  if (!section) return { steps: [] };
+
+  const steps = section.inner
+    .filter((b) => b.kind === 'li' && b.ordered)
+    .map((b) => b.text)
+    .filter(Boolean);
+
+  return { name: section.heading.text, steps };
+}
+
+/** HowTo 結構化資料。需至少 2 個步驟才輸出（否則回 null）。 */
+export function buildHowToJsonLd(post: Content): object | null {
+  const { name, steps } = extractHowToSteps(post.content);
+  if (steps.length < 2) return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: name || post.title,
+    step: steps.map((text, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      name: text.length > 70 ? `${text.slice(0, 70)}…` : text,
+      text,
     })),
   };
 }

@@ -4,7 +4,7 @@ import { contentApi } from '@/lib/api';
 import { Content } from '@/types';
 import PostDetailContent from './PostDetailContent';
 import JsonLd from '@/components/seo/JsonLd';
-import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildContentAlternates, buildFaqJsonLd } from '@/lib/seo';
+import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@/lib/seo';
 import { getRelatedPosts } from '@/lib/relatedPosts';
 
 // ISR: 每小時重新驗證
@@ -96,11 +96,12 @@ export default async function PostDetailPage({ params, searchParams }: PostDetai
     { name: post.title, path: `/posts/${post.slug}` },
   ]);
   const faq = buildFaqJsonLd(post);
+  const howTo = buildHowToJsonLd(post);
   const relatedPosts = await getRelatedPosts(post);
 
   return (
     <>
-      <JsonLd data={[buildArticleJsonLd(post), breadcrumb, ...(faq ? [faq] : [])]} />
+      <JsonLd data={[buildArticleJsonLd(post), breadcrumb, ...(faq ? [faq] : []), ...(howTo ? [howTo] : [])]} />
       {isPreview && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
           <div className="flex">

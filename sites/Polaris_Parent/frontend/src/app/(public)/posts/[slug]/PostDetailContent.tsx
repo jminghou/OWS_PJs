@@ -7,8 +7,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkSupersub from 'remark-supersub';
 import rehypeRaw from 'rehype-raw';
+import rehypeSlug from 'rehype-slug';
 import { Content } from '@/types';
 import { formatDateTime, getImageUrl, getGcsImageUrl } from '@/lib/utils';
+import { extractToc, extractKeyTakeaways } from '@/lib/articleContent';
 
 interface PostDetailContentProps {
   post: Content;
@@ -17,6 +19,10 @@ interface PostDetailContentProps {
 
 export default function PostDetailContent({ post, relatedPosts = [] }: PostDetailContentProps) {
   const [imgSrc, setImgSrc] = useState(getGcsImageUrl(post.featured_image || '', 'large'));
+
+  // 抽出「重點整理」並從內文移除；目錄由移除後的內文產生（與 rehype-slug 的 id 對齊）
+  const { takeaways, body } = extractKeyTakeaways(post.content);
+  const toc = extractToc(body);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -97,15 +103,46 @@ export default function PostDetailContent({ post, relatedPosts = [] }: PostDetai
                 </div>
               )}
 
-              {/* 6. 內文 */}
-              <div className="prose prose-lg max-w-none">
-                {post.content && (
+              {/* 重點整理 (TL;DR)：AI 最易整段抽取的格式 */}
+              {takeaways.length > 0 && (
+                <aside className="bg-amber-50 border border-amber-200 rounded-lg p-5 mb-8">
+                  <h2 className="text-base font-bold text-amber-900 mb-3 flex items-center">
+                    <span className="w-2.5 h-2.5 bg-amber-500 rounded-full mr-2"></span>
+                    重點整理
+                  </h2>
+                  <ul className="list-disc pl-5 space-y-1.5 text-sm text-gray-800 leading-relaxed">
+                    {takeaways.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </aside>
+              )}
+
+              {/* 目錄 (錨點對齊 rehype-slug 的標題 id)；長文才顯示 */}
+              {toc.length >= 3 && (
+                <nav aria-label="目錄" className="bg-white border border-gray-200 rounded-lg p-5 mb-8">
+                  <h2 className="text-sm font-bold text-gray-900 mb-3">目錄</h2>
+                  <ul className="space-y-1.5 text-sm">
+                    {toc.map((item) => (
+                      <li key={item.id} className={item.level === 3 ? 'pl-4' : ''}>
+                        <a href={`#${item.id}`} className="text-gray-600 hover:text-blue-700 transition-colors">
+                          {item.text}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              )}
+
+              {/* 6. 內文 (scroll-mt 讓錨點不被固定頁首遮住) */}
+              <div className="prose prose-lg max-w-none [&_h2]:scroll-mt-24 [&_h3]:scroll-mt-24 [&_h4]:scroll-mt-24">
+                {body && (
                   <ReactMarkdown
                     className="prose-content"
                     remarkPlugins={[remarkGfm, remarkSupersub]}
-                    rehypePlugins={[rehypeRaw]}
+                    rehypePlugins={[rehypeRaw, rehypeSlug]}
                   >
-                    {post.content}
+                    {body}
                   </ReactMarkdown>
                 )}
               </div>

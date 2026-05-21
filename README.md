@@ -332,9 +332,41 @@ ADMIN_USERNAME        # 預設 admin
 **必要環境變數**：
 
 ```
+NEXT_PUBLIC_SITE_URL      # ⚠️ 網站正式網址（如 https://www.polaris-parent.com）— SEO 命脈，務必設
 NEXT_PUBLIC_API_URL       # 對應後端 API（如 https://api.polaris-parent.com/api/v1）
 NEXT_PUBLIC_BACKEND_URL   # 後端 base URL（給 SSR rewrites 用）
+NEXT_PUBLIC_SITE_NAME     # 站名（如 Polaris Parent）
 ```
+
+> ⚠️ **漏設 `NEXT_PUBLIC_SITE_URL` 會讓全站 SEO 壞掉**：robots.txt 的 `Sitemap:`、所有 JSON-LD
+> 的 `url`、canonical、hreflang、OG 圖片都會 fallback 成 `http://localhost:3000`。值要跟實際服務的
+> 網域一致（目前 apex `polaris-parent.com` 會 307 轉址到 `www`，故用 `https://www.polaris-parent.com`）。
+
+### 前端環境變數的關鍵注意事項
+
+`NEXT_PUBLIC_*` 變數是在 **build 當下被內嵌進前端程式碼**的，不是 runtime 讀取。因此：
+
+- 在 Vercel 新增 / 修改任何 `NEXT_PUBLIC_*` 變數後，**必須重新部署**才會生效
+  （Vercel → Deployments → 最新一筆 → `⋯` → **Redeploy**）。只是按 Save 不會自動套用到既有部署。
+- Vercel 新版的環境變數在 **Settings → Environments**（不是左側獨立的「Environment Variables」選單，
+  該選單已併入 Environments）。注意別點到「Create Environment」——那是 Pro 的自訂環境（staging），與此無關。
+
+### 前端上線驗證
+
+部署完成後確認 SEO 網址不是 localhost：
+
+```bash
+# Linux / Mac / Git Bash
+curl -sL https://www.polaris-parent.com/robots.txt | grep -iE "host:|sitemap:"
+```
+
+```powershell
+# Windows PowerShell：curl 要加 .exe（否則被攔成 Invoke-WebRequest），並用 Select-String 取代 grep
+curl.exe -sL https://www.polaris-parent.com/robots.txt | Select-String "host:|sitemap:"
+```
+
+預期看到 `https://www.polaris-parent.com/...`；若仍是 `http://localhost:3000`，代表
+`NEXT_PUBLIC_SITE_URL` 沒設或改完沒重新部署。也可直接用瀏覽器開 `/robots.txt` 與 `/sitemap.xml` 檢視。
 
 ### 避免雙重部署（可選優化）
 
