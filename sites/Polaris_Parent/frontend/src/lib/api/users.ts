@@ -1,4 +1,4 @@
-import type { User } from '@/types';
+import type { User, AuthorProfileAttributes } from '@/types';
 import { request } from './client';
 
 export const userApi = {
@@ -23,6 +23,8 @@ export const userApi = {
     password: string;
     role?: string;
     is_active?: boolean;
+    avatar?: string;
+    attributes?: AuthorProfileAttributes & Record<string, any>;
   }): Promise<{ message: string; id: number; user: User }> => {
     return request<{ message: string; id: number; user: User }>('/users', {
       method: 'POST',
@@ -36,6 +38,8 @@ export const userApi = {
     password?: string;
     role?: string;
     is_active?: boolean;
+    avatar?: string;
+    attributes?: AuthorProfileAttributes & Record<string, any>;
   }): Promise<{ message: string; user: User }> => {
     return request<{ message: string; user: User }>(`/users/${id}`, {
       method: 'PUT',

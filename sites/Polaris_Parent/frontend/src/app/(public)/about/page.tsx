@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import JsonLd from '@/components/seo/JsonLd';
+import { buildAboutPageJsonLd, buildStaticPageAlternates } from '@/lib/seo';
 
 // 從 i18n 訊息檔案載入翻譯（預設使用繁體中文）
 import zhTW from '@/i18n/messages/zh-TW.json';
@@ -9,11 +11,13 @@ const t = zhTW.aboutPage;
 export const metadata: Metadata = {
   title: t.title,
   description: t.description,
+  alternates: buildStaticPageAlternates('/about'),
 };
 
 export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <JsonLd data={buildAboutPageJsonLd({ title: t.title, description: t.description })} />
       <div className="prose prose-lg max-w-none">
         {/* 個人故事區塊 */}
         <section className="mb-16">

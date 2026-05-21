@@ -15,7 +15,8 @@ export {
   homepageApi,
   userApi,
   submissionApi,
+  authorApi,
   rbacApi,
 } from './api/index';
 
-export type { FetchOptions, I18nSettings } from './api/index';
+export type { FetchOptions, I18nSettings, AuthorContentCard, AuthorDetailResponse } from './api/index';

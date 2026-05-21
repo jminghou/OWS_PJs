@@ -5,10 +5,50 @@ export interface User {
   role: 'admin' | 'editor' | 'user';
   permissions?: string[]; // RBAC effective permission codes
   is_active: boolean;
+  avatar?: string;
+  attributes?: AuthorProfileAttributes & Record<string, any>; // JSONB；含作者檔案欄位
   created_at: string;
   updated_at?: string;
   last_login?: string;
   content_count?: number;
+}
+
+// 作者社群連結 → schema.org Person.sameAs（AI 用來驗證作者身分）
+export interface SocialLinks {
+  website?: string;
+  facebook?: string;
+  instagram?: string;
+  youtube?: string;
+  twitter?: string;
+  threads?: string;
+  linkedin?: string;
+  line?: string;
+  [key: string]: string | undefined;
+}
+
+// 作者檔案欄位，存於 User.attributes JSONB（後端無 migration）
+export interface AuthorProfileAttributes {
+  display_name?: string;
+  slug?: string;
+  title?: string;        // 頭銜／職稱，如「紫微斗數研究者」
+  bio?: string;          // 作者簡介
+  expertise?: string[];  // 專長領域
+  social_links?: SocialLinks;
+  credentials?: string;  // 資歷／認證
+}
+
+// 公開作者檔案（後端 PublicAuthorSchema 的扁平輸出），用於文章 byline、作者頁、Person schema
+export interface Author {
+  id: number;
+  username: string;
+  slug: string;
+  name: string;
+  avatar?: string;
+  title?: string;
+  bio?: string;
+  expertise?: string[];
+  social_links?: SocialLinks;
+  credentials?: string;
 }
 
 // RBAC types
@@ -70,7 +110,7 @@ export interface Content {
   post_type?: 'article' | 'page' | 'report' | 'analysis';
   content_type?: 'article' | 'page' | 'report' | 'analysis';
   category?: Category;
-  author?: User;
+  author?: Author;
   tags?: Tag[];
   featured_image?: string; // 16:9 精選圖片，用於文章內文
   cover_image?: string; // 1:1 封面圖片，用於列表封面

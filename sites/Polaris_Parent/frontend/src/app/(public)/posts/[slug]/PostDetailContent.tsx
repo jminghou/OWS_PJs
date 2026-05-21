@@ -12,9 +12,10 @@ import { formatDateTime, getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
 interface PostDetailContentProps {
   post: Content;
+  relatedPosts?: Content[];
 }
 
-export default function PostDetailContent({ post }: PostDetailContentProps) {
+export default function PostDetailContent({ post, relatedPosts = [] }: PostDetailContentProps) {
   const [imgSrc, setImgSrc] = useState(getGcsImageUrl(post.featured_image || '', 'large'));
 
   return (
@@ -71,7 +72,15 @@ export default function PostDetailContent({ post }: PostDetailContentProps) {
               {/* 4. 作者與日期 (取消瀏覽次數) */}
               <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 mb-8">
                 {post.author && (
-                  <span>作者：{post.author.username}</span>
+                  <span>
+                    作者：
+                    <Link
+                      href={`/authors/${post.author.slug || post.author.username}`}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      {post.author.name || post.author.username}
+                    </Link>
+                  </span>
                 )}
                 <span>發布於：{formatDateTime(post.published_at || post.created_at)}</span>
                 {/* 取消瀏覽次數 */}
@@ -118,18 +127,50 @@ export default function PostDetailContent({ post }: PostDetailContentProps) {
               )}
             </article>
 
-            {/* 相關推薦 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                <span className="w-3 h-3 bg-amber-500 rounded-full mr-2"></span>
-                相關推薦
-              </h3>
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  正在載入相關文章...
-                </p>
-              </div>
-            </div>
+            {/* 相關推薦（伺服器端渲染，進入初始 HTML 利於 AI/搜尋抓取與站內連結） */}
+            {relatedPosts.length > 0 && (
+              <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                  <span className="w-3 h-3 bg-amber-500 rounded-full mr-2"></span>
+                  相關推薦
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {relatedPosts.map((related) => {
+                    const img = related.cover_image || related.featured_image;
+                    return (
+                      <Link
+                        key={related.id}
+                        href={`/posts/${related.slug}`}
+                        className="group flex gap-3 items-start rounded-lg hover:bg-gray-50 p-2 -m-2 transition-colors"
+                      >
+                        {img && (
+                          <div className="relative w-20 h-20 flex-shrink-0 overflow-hidden rounded-md">
+                            <Image
+                              src={getGcsImageUrl(img, 'small')}
+                              alt={related.title}
+                              fill
+                              sizes="80px"
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          {related.category?.name && (
+                            <span className="text-xs text-amber-700">{related.category.name}</span>
+                          )}
+                          <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-blue-700">
+                            {related.title}
+                          </h3>
+                          {related.summary && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{related.summary}</p>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
         </main>
       </div>

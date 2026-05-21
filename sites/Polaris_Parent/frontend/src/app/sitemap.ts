@@ -1,7 +1,6 @@
 import { MetadataRoute } from 'next';
-import { contentApi, productApi } from '@/lib/api';
-
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+import { contentApi, productApi, authorApi } from '@/lib/api';
+import { SITE_URL as BASE_URL } from '@/lib/seo';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 靜態頁面
@@ -71,5 +70,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: Failed to fetch products:', error);
   }
 
-  return [...staticPages, ...postPages, ...productPages];
+  // 作者頁面（E-E-A-T：讓 AI 能發現並歸屬作者實體）
+  let authorPages: MetadataRoute.Sitemap = [];
+  try {
+    const { authors } = await authorApi.getList();
+    authorPages = authors.map((author) => ({
+      url: `${BASE_URL}/authors/${author.slug || author.username}`,
+      changeFrequency: 'weekly' as const,
+      priority: 0.5,
+    }));
+  } catch (error) {
+    console.error('Sitemap: Failed to fetch authors:', error);
+  }
+
+  return [...staticPages, ...postPages, ...productPages, ...authorPages];
 }

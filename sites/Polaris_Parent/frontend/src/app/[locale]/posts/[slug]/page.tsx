@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation';
 import { contentApi } from '@/lib/api';
 import { Content } from '@/types';
 import PostDetailContent from '@/app/(public)/posts/[slug]/PostDetailContent';
+import JsonLd from '@/components/seo/JsonLd';
+import { buildArticleJsonLd, buildContentAlternates, buildFaqJsonLd } from '@/lib/seo';
+import { getRelatedPosts } from '@/lib/relatedPosts';
 
 // 設定 ISR：每小時重新驗證一次 (3600 秒)
 export const revalidate = 3600;
@@ -102,6 +105,8 @@ export async function generateMetadata({ params, searchParams }: PostDetailPageP
     title: post.meta_title || post.title,
     description: post.meta_description || post.summary,
     keywords: post.tags?.map(tag => tag.name).join(', '),
+    // 以當前語言為自我 canonical，並由翻譯群組組出 hreflang
+    alternates: buildContentAlternates(post, resolvedParams.locale),
     openGraph: {
       type: 'article',
       title: post.title,
@@ -131,8 +136,12 @@ export default async function LocalePostDetailPage({ params, searchParams }: Pos
     notFound();
   }
 
+  const faq = buildFaqJsonLd(post);
+  const relatedPosts = await getRelatedPosts(post);
+
   return (
     <>
+      <JsonLd data={[buildArticleJsonLd(post, resolvedParams.locale), ...(faq ? [faq] : [])]} />
       {isPreview && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
           <div className="flex">
@@ -149,7 +158,7 @@ export default async function LocalePostDetailPage({ params, searchParams }: Pos
           </div>
         </div>
       )}
-      <PostDetailContent post={post} />
+      <PostDetailContent post={post} relatedPosts={relatedPosts} />
     </>
   );
 }

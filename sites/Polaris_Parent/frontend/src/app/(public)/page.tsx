@@ -10,6 +10,7 @@ export const revalidate = 600;
 export const metadata: Metadata = {
   title: '親紫之間 - 首頁',
   description: '透過紫微斗數與數據分析，幫助家長理解孩子，成為孩子穩定的弓，讓孩子如箭般飛向遠方',
+  alternates: { canonical: '/' },
 };
 
 async function getFeaturedPosts(): Promise<Content[]> {

@@ -63,8 +63,8 @@ class ContentSchema(Schema):
     attributes = fields.Dict()  # JSONB field
     meta_data = fields.Dict()  # JSONB field
 
-    # Nested relationships
-    author = fields.Nested("UserSchema", only=("id", "username"))
+    # Nested relationships — public author profile (E-E-A-T), public-safe fields only
+    author = fields.Nested("PublicAuthorSchema")
     category = fields.Nested("CategorySchema", only=("id", "code", "slugs"))
     tags = fields.Nested("TagSchema", many=True, only=("id", "code", "slugs"))
 

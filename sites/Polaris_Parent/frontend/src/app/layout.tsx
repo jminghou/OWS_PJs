@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { SITE_URL } from '@/lib/seo';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  // 讓 OG / Twitter / canonical 的相對網址能解析成絕對網址
+  metadataBase: new URL(SITE_URL),
   title: {
     default: '親紫之間 - 紫微斗數育兒分析',
     template: '%s | 親紫之間',

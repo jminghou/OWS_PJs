@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { productApi } from '@/lib/api';
 import { Product } from '@/types';
 import ProductDetailContent from './ProductDetailContent';
+import JsonLd from '@/components/seo/JsonLd';
+import { buildProductJsonLd, absoluteUrl } from '@/lib/seo';
 
 interface ProductDetailPageProps {
   params: Promise<{
@@ -46,6 +48,7 @@ export async function generateMetadata({ params, searchParams }: ProductDetailPa
   return {
     title: content?.title || product.name,
     description: content?.summary || product.description,
+    alternates: { canonical: absoluteUrl(`/products/${product.product_id}`) },
     openGraph: {
       type: 'article',
       title: content?.title || product.name,
@@ -72,31 +75,9 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
     notFound();
   }
 
-  const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
-
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.description,
-    image: product.image || product.detail_content?.featured_image,
-    url: `${BASE_URL}/products/${product.product_id}`,
-    offers: {
-      '@type': 'Offer',
-      price: product.price,
-      priceCurrency: 'TWD',
-      availability: product.stock_status === 'out_of_stock'
-        ? 'https://schema.org/OutOfStock'
-        : 'https://schema.org/InStock',
-    },
-  };
-
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={buildProductJsonLd(product, language)} />
       <ProductDetailContent product={product} language={language} />
     </>
   );

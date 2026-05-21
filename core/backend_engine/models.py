@@ -190,6 +190,28 @@ class User(UserMixin, db.Model):
             self.attributes = {}
         self.attributes[key] = value
 
+    def public_author_profile(self) -> Dict[str, Any]:
+        """Public author profile for E-E-A-T / author pages.
+
+        Author bio fields live in the `attributes` JSONB (no migration needed):
+        display_name, slug, title, bio, expertise (list), social_links (dict),
+        credentials. `social_links` values become schema.org Person.sameAs.
+        """
+        attrs = self.attributes if isinstance(self.attributes, dict) else {}
+        social = attrs.get('social_links') if isinstance(attrs.get('social_links'), dict) else {}
+        return {
+            'id': self.id,
+            'username': self.username,
+            'slug': attrs.get('slug') or self.username,
+            'name': attrs.get('display_name') or self.username,
+            'avatar': self.avatar,
+            'title': attrs.get('title'),
+            'bio': attrs.get('bio'),
+            'expertise': attrs.get('expertise') or [],
+            'social_links': {k: v for k, v in social.items() if v},
+            'credentials': attrs.get('credentials'),
+        }
+
     def __repr__(self):
         return f'<User {self.username}>'
 

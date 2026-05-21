@@ -20,6 +20,8 @@ export { orderApi, paymentMethodApi } from './orders';
 export { i18nApi, homepageApi } from './settings';
 export type { I18nSettings } from './settings';
 export { userApi, submissionApi } from './users';
+export { authorApi } from './authors';
+export type { AuthorContentCard, AuthorDetailResponse } from './authors';
 export { rbacApi } from './rbac';
 
 // Default export for backwards compatibility
@@ -30,6 +32,7 @@ import { productApi } from './products';
 import { orderApi, paymentMethodApi } from './orders';
 import { i18nApi, homepageApi } from './settings';
 import { userApi, submissionApi } from './users';
+import { authorApi } from './authors';
 import { rbacApi } from './rbac';
 
 const api = {
@@ -39,6 +42,7 @@ const api = {
   tag: tagApi,
   submission: submissionApi,
   user: userApi,
+  author: authorApi,
   media: mediaApi,
   mediaTag: mediaTagApi,
   i18n: i18nApi,

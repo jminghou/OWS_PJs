@@ -28,10 +28,11 @@ class UserSchema(Schema):
     role = fields.Str()
     permissions = fields.Method('get_permissions', dump_only=True)
     is_active = fields.Bool()
+    avatar = fields.Str(allow_none=True)
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
     last_login = fields.DateTime(dump_only=True)
-    attributes = fields.Dict()  # JSONB field
+    attributes = fields.Dict()  # JSONB field (holds author profile: display_name/title/bio/...)
 
     def get_permissions(self, user):
         """Compute the user's effective permission codes (sorted)."""
@@ -40,3 +41,29 @@ class UserSchema(Schema):
             return sorted(RBACService.get_user_permissions(user.id))
         except Exception:
             return []
+
+
+class PublicAuthorSchema(Schema):
+    """Public author profile (E-E-A-T). Curated, public-safe subset derived from
+    User.attributes — never exposes email/role/permissions. Used as the nested
+    `author` on Content and by the public /authors endpoints."""
+
+    def get_attribute(self, obj, key, default):
+        # Pull every field from the model's curated public profile dict.
+        # Stateless (no instance cache) — the schema singleton is shared across requests.
+        if hasattr(obj, 'public_author_profile'):
+            return obj.public_author_profile().get(key, default)
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        return default
+
+    id = fields.Int(dump_only=True)
+    username = fields.Str()
+    slug = fields.Str()
+    name = fields.Str()
+    avatar = fields.Str(allow_none=True)
+    title = fields.Str(allow_none=True)
+    bio = fields.Str(allow_none=True)
+    expertise = fields.List(fields.Str())
+    social_links = fields.Dict()
+    credentials = fields.Str(allow_none=True)

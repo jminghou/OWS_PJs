@@ -5,8 +5,21 @@ import { userApi } from '@/lib/api';
 import { User } from '@/types';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { AdminListLayout, AdminEmptyState } from '@/components/admin/shared';
-import { AuthorSidebar, AuthorForm } from './_components';
+import { AuthorSidebar, AuthorForm, type AuthorProfileForm } from './_components';
 import { Users } from 'lucide-react';
+
+const EMPTY_PROFILE: AuthorProfileForm = {
+  avatar: '',
+  display_name: '',
+  title: '',
+  bio: '',
+  credentials: '',
+  expertise: '',
+  website: '',
+  facebook: '',
+  instagram: '',
+  youtube: '',
+};
 
 export default function AuthorsPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -28,7 +41,29 @@ export default function AuthorsPage() {
     role: 'editor' as 'admin' | 'editor' | 'user',
     is_active: true,
   });
+  const [profileForm, setProfileForm] = useState<AuthorProfileForm>(EMPTY_PROFILE);
   const [userEditing, setUserEditing] = useState<number | null>(null);
+
+  // 把表單的作者檔案欄位組成要送往後端的 attributes / avatar
+  const buildProfilePayload = () => ({
+    avatar: profileForm.avatar,
+    attributes: {
+      display_name: profileForm.display_name,
+      title: profileForm.title,
+      bio: profileForm.bio,
+      credentials: profileForm.credentials,
+      expertise: profileForm.expertise
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      social_links: {
+        website: profileForm.website,
+        facebook: profileForm.facebook,
+        instagram: profileForm.instagram,
+        youtube: profileForm.youtube,
+      },
+    },
+  });
 
   // The original user object for display in edit mode
   const selectedUser = selectedId ? users.find(u => u.id === selectedId) : undefined;
@@ -56,6 +91,7 @@ export default function AuthorsPage() {
 
   const resetForm = () => {
     setUserForm({ username: '', email: '', password: '', role: 'editor', is_active: true });
+    setProfileForm(EMPTY_PROFILE);
     setUserEditing(null);
   };
 
@@ -72,6 +108,20 @@ export default function AuthorsPage() {
         password: '',
         role: user.role,
         is_active: user.is_active,
+      });
+      const attrs = (user.attributes || {}) as Record<string, any>;
+      const social = (attrs.social_links || {}) as Record<string, string>;
+      setProfileForm({
+        avatar: user.avatar || '',
+        display_name: attrs.display_name || '',
+        title: attrs.title || '',
+        bio: attrs.bio || '',
+        credentials: attrs.credentials || '',
+        expertise: Array.isArray(attrs.expertise) ? attrs.expertise.join(', ') : '',
+        website: social.website || '',
+        facebook: social.facebook || '',
+        instagram: social.instagram || '',
+        youtube: social.youtube || '',
       });
       setUserEditing(user.id);
     }
@@ -108,6 +158,7 @@ export default function AuthorsPage() {
           email: userForm.email,
           role: userForm.role,
           is_active: userForm.is_active,
+          ...buildProfilePayload(),
         };
         if (userForm.password.trim()) {
           updateData.password = userForm.password;
@@ -115,7 +166,7 @@ export default function AuthorsPage() {
         await userApi.update(userEditing, updateData);
         alert('用戶更新成功');
       } else {
-        const result = await userApi.create(userForm);
+        const result = await userApi.create({ ...userForm, ...buildProfilePayload() });
         alert('用戶創建成功');
         if (result.id) {
           setSelectedId(result.id);
@@ -202,6 +253,8 @@ export default function AuthorsPage() {
             role={userForm.role}
             isActive={userForm.is_active}
             user={selectedUser}
+            profile={profileForm}
+            onProfileChange={(patch) => setProfileForm(prev => ({ ...prev, ...patch }))}
             onUsernameChange={(v) => setUserForm(prev => ({ ...prev, username: v }))}
             onEmailChange={(v) => setUserForm(prev => ({ ...prev, email: v }))}
             onPasswordChange={(v) => setUserForm(prev => ({ ...prev, password: v }))}

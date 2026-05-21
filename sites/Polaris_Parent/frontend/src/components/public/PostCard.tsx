@@ -60,7 +60,7 @@ export default function PostCard({ post }: PostCardProps) {
         <div className="flex items-center justify-between text-sm text-gray-500">
           <div className="flex items-center gap-4">
             {post.author && (
-              <span>作者：{post.author.username}</span>
+              <span>作者：{post.author.name || post.author.username}</span>
             )}
             <span>閱讀：{post.views_count}</span>
           </div>

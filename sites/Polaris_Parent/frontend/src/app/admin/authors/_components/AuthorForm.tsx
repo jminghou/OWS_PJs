@@ -3,7 +3,21 @@
 import { User } from '@/types';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Shield, Power } from 'lucide-react';
+import { Shield, Power, BadgeCheck } from 'lucide-react';
+
+// 作者公開檔案（E-E-A-T）。社群連結對應 schema.org Person.sameAs。
+export interface AuthorProfileForm {
+  avatar: string;
+  display_name: string;
+  title: string;
+  bio: string;
+  credentials: string;
+  expertise: string; // UI 以逗號分隔，送出時轉陣列
+  website: string;
+  facebook: string;
+  instagram: string;
+  youtube: string;
+}
 
 interface AuthorFormProps {
   isEditing: boolean;
@@ -13,6 +27,8 @@ interface AuthorFormProps {
   role: 'admin' | 'editor' | 'user';
   isActive: boolean;
   user?: User; // original user data for display
+  profile: AuthorProfileForm;
+  onProfileChange: (patch: Partial<AuthorProfileForm>) => void;
   onUsernameChange: (value: string) => void;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
@@ -40,6 +56,8 @@ export default function AuthorForm({
   role,
   isActive,
   user,
+  profile,
+  onProfileChange,
   onUsernameChange,
   onEmailChange,
   onPasswordChange,
@@ -160,6 +178,114 @@ export default function AuthorForm({
             <label htmlFor="is_active" className="text-sm text-gray-700">
               啟用帳戶
             </label>
+          </div>
+
+          {/* 作者公開檔案 (E-E-A-T) */}
+          <div className="pt-5 border-t">
+            <div className="flex items-center gap-1.5 mb-1">
+              <BadgeCheck size={15} className="text-amber-600" />
+              <h3 className="text-sm font-semibold text-gray-900">作者公開檔案 (E-E-A-T)</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              這些資訊會顯示在公開作者頁，並輸出為 schema.org Person 結構化資料，幫助 AI／搜尋引擎信任並引用內容。
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">顯示名稱</label>
+                <Input
+                  value={profile.display_name}
+                  onChange={(e) => onProfileChange({ display_name: e.target.value })}
+                  placeholder="文章署名與作者頁標題（留空則用用戶名）"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">頭銜／職稱</label>
+                <Input
+                  value={profile.title}
+                  onChange={(e) => onProfileChange({ title: e.target.value })}
+                  placeholder="例：紫微斗數研究者、親子教育講師"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">簡介</label>
+                <textarea
+                  value={profile.bio}
+                  onChange={(e) => onProfileChange({ bio: e.target.value })}
+                  placeholder="一段作者介紹，說明專業背景與經歷"
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">資歷／認證</label>
+                <Input
+                  value={profile.credentials}
+                  onChange={(e) => onProfileChange({ credentials: e.target.value })}
+                  placeholder="例：執業 10 年、相關證照"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">專長領域</label>
+                <Input
+                  value={profile.expertise}
+                  onChange={(e) => onProfileChange({ expertise: e.target.value })}
+                  placeholder="以逗號分隔，例：紫微斗數, 親子教育, 性格分析"
+                />
+                <p className="text-xs text-gray-500 mt-1">以逗號分隔，會輸出為 Person.knowsAbout</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">頭像圖片網址</label>
+                <Input
+                  value={profile.avatar}
+                  onChange={(e) => onProfileChange({ avatar: e.target.value })}
+                  placeholder="頭像圖片的完整網址"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">官方網站</label>
+                  <Input
+                    value={profile.website}
+                    onChange={(e) => onProfileChange({ website: e.target.value })}
+                    placeholder="https://"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Facebook</label>
+                  <Input
+                    value={profile.facebook}
+                    onChange={(e) => onProfileChange({ facebook: e.target.value })}
+                    placeholder="https://facebook.com/..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Instagram</label>
+                  <Input
+                    value={profile.instagram}
+                    onChange={(e) => onProfileChange({ instagram: e.target.value })}
+                    placeholder="https://instagram.com/..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">YouTube</label>
+                  <Input
+                    value={profile.youtube}
+                    onChange={(e) => onProfileChange({ youtube: e.target.value })}
+                    placeholder="https://youtube.com/@..."
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                社群連結會輸出為 Person.sameAs，是 AI 驗證作者身分的重要訊號。
+              </p>
+            </div>
           </div>
 
           {/* Actions */}

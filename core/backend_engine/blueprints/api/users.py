@@ -68,7 +68,9 @@ def api_create_user():
             username=data['username'],
             email=data['email'],
             role=data.get('role', 'user'),
-            is_active=data.get('is_active', True)
+            is_active=data.get('is_active', True),
+            avatar=data.get('avatar'),
+            attributes=data.get('attributes') if isinstance(data.get('attributes'), dict) else {}
         )
         new_user.set_password(data['password'])
         db.session.add(new_user)
@@ -105,6 +107,13 @@ def api_update_user(user_id):
             target_user.is_active = data['is_active']
         if 'password' in data and data['password']:
             target_user.set_password(data['password'])
+        if 'avatar' in data:
+            target_user.avatar = data['avatar']
+        # 作者檔案存於 attributes JSONB；合併而非覆蓋，避免清掉其他屬性
+        if 'attributes' in data and isinstance(data['attributes'], dict):
+            merged = dict(target_user.attributes or {})
+            merged.update(data['attributes'])
+            target_user.attributes = merged  # 重新賦值新 dict 讓 SQLAlchemy 偵測到變更
         target_user.updated_at = datetime.utcnow()
         db.session.commit()
         return jsonify({'message': 'User updated successfully', 'user': user_schema.dump(target_user)}), 200

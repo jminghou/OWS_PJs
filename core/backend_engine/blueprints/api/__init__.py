@@ -27,6 +27,7 @@ from core.backend_engine.blueprints.api import (
     settings,
     submissions,
     users,
+    authors,
     ecommerce,
     orders,
     products,

@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation';
 import { contentApi } from '@/lib/api';
 import { Content } from '@/types';
 import PostDetailContent from './PostDetailContent';
+import JsonLd from '@/components/seo/JsonLd';
+import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildContentAlternates, buildFaqJsonLd } from '@/lib/seo';
+import { getRelatedPosts } from '@/lib/relatedPosts';
 
 // ISR: 每小時重新驗證
 export const revalidate = 3600;
@@ -56,6 +59,8 @@ export async function generateMetadata({ params, searchParams }: PostDetailPageP
     title: post.meta_title || post.title,
     description: post.meta_description || post.summary,
     keywords: post.tags?.map(tag => tag.name).join(', '),
+    // 自我 canonical + 由翻譯群組組出的 hreflang（沒有翻譯時僅輸出自身）
+    alternates: buildContentAlternates(post),
     openGraph: {
       type: 'article',
       title: post.title,
@@ -84,33 +89,18 @@ export default async function PostDetailPage({ params, searchParams }: PostDetai
     notFound();
   }
 
-  const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
-
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: post.title,
-    description: post.summary,
-    image: post.featured_image,
-    url: `${BASE_URL}/posts/${post.slug}`,
-    datePublished: post.published_at,
-    dateModified: post.updated_at,
-    author: post.author ? {
-      '@type': 'Person',
-      name: post.author.username,
-    } : undefined,
-    publisher: {
-      '@type': 'Organization',
-      name: '紫微斗數諮詢',
-    },
-  };
+  const breadcrumb = buildBreadcrumbJsonLd([
+    { name: '首頁', path: '/' },
+    { name: '親紫專欄', path: '/posts' },
+    ...(post.category?.name ? [{ name: post.category.name, path: `/posts?category=${post.category.slug ?? ''}` }] : []),
+    { name: post.title, path: `/posts/${post.slug}` },
+  ]);
+  const faq = buildFaqJsonLd(post);
+  const relatedPosts = await getRelatedPosts(post);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={[buildArticleJsonLd(post), breadcrumb, ...(faq ? [faq] : [])]} />
       {isPreview && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
           <div className="flex">
@@ -127,7 +117,7 @@ export default async function PostDetailPage({ params, searchParams }: PostDetai
           </div>
         </div>
       )}
-      <PostDetailContent post={post} />
+      <PostDetailContent post={post} relatedPosts={relatedPosts} />
     </>
   );
 }
