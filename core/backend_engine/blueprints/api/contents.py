@@ -30,8 +30,10 @@ from core.backend_engine.factory import db, cache
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.blueprints.api.utils import (
     is_authenticated, is_i18n_enabled, get_i18n_setting,
-    get_localized_slug, parse_tw_datetime, now_tw, utc_to_tw
+    get_localized_slug, parse_tw_datetime, now_tw, utc_to_tw,
+    skip_public_cache, invalidate_public_cache
 )
+from core.backend_engine.services.view_counter import record_view
 from core.backend_engine.models import Content, Category, Tag, User, Comment
 from core.backend_engine.schemas.content import ContentSchema
 from core.backend_engine.schemas.category import CategorySchema
@@ -45,6 +47,21 @@ category_schema = CategorySchema()
 categories_schema = CategorySchema(many=True)
 tag_schema = TagSchema()
 tags_schema = TagSchema(many=True)
+
+
+@bp.after_request
+def _clear_public_cache_on_write(response):
+    """任何寫入成功（2xx 的非 GET）後清公開讀取快取，確保內容/作者/商品編輯後立即反映。
+
+    這是 blueprint 層級 hook，涵蓋整個 /api/v1（contents/categories/tags/products/users…）的寫入，
+    不需在每個端點各別呼叫。cache 已設 KEY_PREFIX，clear() 只影響我們的回應快取。
+    """
+    try:
+        if request.method in ('POST', 'PUT', 'PATCH', 'DELETE') and 200 <= response.status_code < 300:
+            invalidate_public_cache()
+    except Exception:
+        pass
+    return response
 
 
 def _decorate_content(content, data):
@@ -70,30 +87,21 @@ def _decorate_content(content, data):
                 data['tags'][t_idx]['slug'] = localized_tag_name
                 data['tags'][t_idx]['display_name'] = localized_tag_name
 
-    # Handle available languages list
+    # 翻譯群組：原本會重複 query original 兩次、並多次存取 lazy='dynamic' 的 translations（N+1）。
+    # 這裡只查一次：找出群組「原文」，把它的 translations 一次性 list() 出來，再從同一份資料
+    # 同時推導 available_languages 與 translations_info。
     if is_i18n_enabled():
-        available_langs = [content.language]
         if content.original_id:
-            original = Content.query.get(content.original_id)
-            if original:
-                available_langs = list(set([original.language] + [t.language for t in original.translations]))
+            group_root = Content.query.get(content.original_id) or content
         else:
-            available_langs = list(set([content.language] + [t.language for t in content.translations]))
-        data['available_languages'] = available_langs
+            group_root = content
+        group = [group_root] + list(group_root.translations)  # 一次查詢
 
-        # Build translation details (for detail page)
-        translations_info = []
-        if content.original_id:
-            original = Content.query.get(content.original_id)
-            if original:
-                translations_info.append({'language': original.language, 'id': original.id, 'slug': original.slug})
-                for t in original.translations:
-                    if t.id != content.id:
-                        translations_info.append({'language': t.language, 'id': t.id, 'slug': t.slug})
-        else:
-            for t in content.translations:
-                translations_info.append({'language': t.language, 'id': t.id, 'slug': t.slug})
-        data['translations_info'] = translations_info
+        data['available_languages'] = list({c.language for c in group})
+        data['translations_info'] = [
+            {'language': c.language, 'id': c.id, 'slug': c.slug}
+            for c in group if c.id != content.id
+        ]
 
     return data
 
@@ -101,6 +109,7 @@ def _decorate_content(content, data):
 # ==================== Contents ====================
 
 @bp.route('/contents', methods=['GET'])
+@cache.cached(timeout=120, query_string=True, unless=skip_public_cache)
 def api_contents():
     """Get content list with pagination and filters"""
     page = request.args.get('page', 1, type=int)
@@ -186,6 +195,7 @@ def api_contents():
 
 
 @bp.route('/contents/<int:content_id>', methods=['GET'])
+@cache.cached(timeout=120, query_string=True, unless=skip_public_cache)
 def api_content_detail(content_id):
     """Get content details by ID"""
     content = Content.query.options(
@@ -199,7 +209,7 @@ def api_content_detail(content_id):
     if not is_preview and not is_logged_in:
         if content.status != 'published' or (content.published_at and content.published_at > datetime.utcnow()):
             return jsonify({'error': 'Not found'}), 404
-        content.increment_views()
+        record_view(content.id)  # 記到 Redis（best-effort），不在讀取路徑寫 DB
 
     data = content_schema.dump(content)
     data = _decorate_content(content, data)
@@ -208,6 +218,7 @@ def api_content_detail(content_id):
 
 
 @bp.route('/contents/slug/<string:slug>', methods=['GET'])
+@cache.cached(timeout=120, query_string=True, unless=skip_public_cache)
 def api_content_by_slug(slug):
     """Get content details by slug"""
     language = request.args.get('language')
@@ -229,7 +240,7 @@ def api_content_by_slug(slug):
     if not is_preview and not is_logged_in:
         if content.status != 'published' or (content.published_at and content.published_at > datetime.utcnow()):
             return jsonify({'error': 'Not found'}), 404
-        content.increment_views()
+        record_view(content.id)  # 記到 Redis（best-effort），不在讀取路徑寫 DB
 
     data = content_schema.dump(content)
     data = _decorate_content(content, data)
@@ -370,6 +381,7 @@ def api_delete_content(content_id):
 # ==================== Categories ====================
 
 @bp.route('/categories', methods=['GET'])
+@cache.cached(timeout=300, unless=skip_public_cache)
 def api_categories():
     """Get category list"""
     categories = Category.query.filter_by(is_active=True).all()
@@ -451,6 +463,7 @@ def api_delete_category(category_id):
 # ==================== Tags ====================
 
 @bp.route('/tags', methods=['GET'])
+@cache.cached(timeout=300, unless=skip_public_cache)
 def api_tags():
     """Get tag list"""
     tags = Tag.query.all()

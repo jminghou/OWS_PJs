@@ -286,6 +286,11 @@ class Content(db.Model):
     attributes = db.Column(JSONB, default={})  # Custom fields per site
     meta_data = db.Column(JSONB, default={})  # SEO, schema.org data, etc.
 
+    # 複合索引：加速公開列表查詢（filter status+content_type+language、order by published_at）
+    __table_args__ = (
+        db.Index('ix_contents_list', 'status', 'content_type', 'language', 'published_at'),
+    )
+
     # Relationships
     comments = db.relationship('Comment', backref='content', lazy='dynamic', cascade='all, delete-orphan')
     tags = db.relationship('Tag', secondary='content_tags', back_populates='contents')

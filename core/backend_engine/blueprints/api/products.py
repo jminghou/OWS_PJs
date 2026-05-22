@@ -20,8 +20,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, subqueryload
 from sqlalchemy import or_, func
 
-from core.backend_engine.factory import db
+from core.backend_engine.factory import db, cache
 from core.backend_engine.blueprints.api import bp
+from core.backend_engine.blueprints.api.utils import skip_public_cache
 from core.backend_engine.models import Product, User, Category, Tag, ProductPrice
 from core.backend_engine.schemas.ecommerce import ProductSchema
 from core.backend_engine.services.rbac import require_permission
@@ -33,6 +34,7 @@ products_schema = ProductSchema(many=True)
 # ==================== Public Products API ====================
 
 @bp.route('/products', methods=['GET'])
+@cache.cached(timeout=120, query_string=True, unless=skip_public_cache)
 def get_products():
     """Get product list (only active products)"""
     page = request.args.get('page', 1, type=int)
@@ -108,6 +110,7 @@ def get_products():
 
 
 @bp.route('/products/<product_id>', methods=['GET'])
+@cache.cached(timeout=120, query_string=True, unless=skip_public_cache)
 def get_product(product_id):
     """Get single product detail"""
     language = request.args.get('language', 'zh-TW')

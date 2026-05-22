@@ -78,6 +78,24 @@ def is_authenticated():
         return False
 
 
+def skip_public_cache():
+    """@cache.cached 的 unless：已登入或預覽模式時跳過快取（需要即時/草稿資料）。"""
+    return is_authenticated() or flask_request.args.get('preview') == 'true'
+
+
+def invalidate_public_cache():
+    """清除公開讀取的回應快取（內容/作者/商品有寫入時呼叫）。
+
+    cache 已設定 CACHE_KEY_PREFIX，clear() 只會刪我們的快取，不影響同一 Redis 的其他資料。
+    """
+    from core.backend_engine.factory import cache
+    from flask import current_app
+    try:
+        cache.clear()
+    except Exception as e:
+        current_app.logger.warning(f'invalidate_public_cache failed: {e}')
+
+
 def get_i18n_setting(key, default=None):
     """Get i18n setting value"""
     from core.backend_engine.models import Setting

@@ -18,8 +18,9 @@ from datetime import datetime
 from flask import jsonify, request
 from sqlalchemy.orm import joinedload
 
+from core.backend_engine.factory import cache
 from core.backend_engine.blueprints.api import bp
-from core.backend_engine.blueprints.api.utils import is_i18n_enabled, get_localized_slug
+from core.backend_engine.blueprints.api.utils import is_i18n_enabled, get_localized_slug, skip_public_cache
 from core.backend_engine.models import User, Content
 from core.backend_engine.schemas.user import PublicAuthorSchema
 
@@ -56,6 +57,7 @@ def _content_card(content):
 
 
 @bp.route('/authors', methods=['GET'])
+@cache.cached(timeout=300, unless=skip_public_cache)
 def api_authors():
     """List authors that have at least one published content."""
     rows = _published(Content.query).with_entities(Content.author_id).distinct().all()
@@ -67,6 +69,7 @@ def api_authors():
 
 
 @bp.route('/authors/<identifier>', methods=['GET'])
+@cache.cached(timeout=120, query_string=True, unless=skip_public_cache)
 def api_author_detail(identifier):
     """Public author profile + published contents. Identifier = username."""
     user = User.query.filter_by(username=identifier).first()

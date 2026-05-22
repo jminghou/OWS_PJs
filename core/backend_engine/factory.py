@@ -189,19 +189,22 @@ def _configure_cors(app: Flask) -> None:
 def _configure_cache(app: Flask) -> None:
     """Configure caching (Redis if available, else SimpleCache)."""
     redis_url = app.config.get('REDIS_URL')
+    # KEY_PREFIX 讓 cache.clear() 只刪我們的回應快取，不會誤清同一個 Redis 上的
+    # rate-limiter / 其他資料（否則 RedisCache.clear() 會 flushdb 整顆 DB）。
     if redis_url:
         try:
             cache.init_app(app, config={
                 'CACHE_TYPE': 'RedisCache',
                 'CACHE_REDIS_URL': redis_url,
-                'CACHE_DEFAULT_TIMEOUT': 300
+                'CACHE_DEFAULT_TIMEOUT': 300,
+                'CACHE_KEY_PREFIX': 'ows_cache:',
             })
             app.logger.info("Cache initialized with Redis backend")
         except Exception as e:
             app.logger.warning(f"Redis cache failed, falling back to SimpleCache: {e}")
-            cache.init_app(app, config={'CACHE_TYPE': 'SimpleCache'})
+            cache.init_app(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_KEY_PREFIX': 'ows_cache:'})
     else:
-        cache.init_app(app, config={'CACHE_TYPE': 'SimpleCache'})
+        cache.init_app(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_KEY_PREFIX': 'ows_cache:'})
         app.logger.info("Cache initialized with SimpleCache backend")
 
 
@@ -373,6 +376,13 @@ def _register_core_cli(app: Flask) -> None:
             f"+{stats['roles_added']} roles, +{stats['role_perms_added']} role-perms, "
             f"+{stats['user_roles_added']} user-roles."
         )
+
+    @app.cli.command('flush-views')
+    def flush_views_command():
+        """Flush pending view counts from Redis into the DB (cron 友善)。"""
+        from core.backend_engine.services.view_counter import flush_views
+        updated, total = flush_views(db)
+        click.echo(f"Flushed views: {updated} contents, +{total} total views.")
 
     @app.cli.command('assign-role')
     @click.argument('username')
