@@ -7,6 +7,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
 import Popover from '@/components/ui/Popover';
 import TiptapEditor from '@/components/admin/TiptapEditor';
+import AeoAssistant, { AEO_TEMPLATE } from '@/components/admin/AeoAssistant';
 import NotionTitleInput from '@/components/admin/NotionTitleInput';
 import ArticleSettingsPanel from '@/components/admin/ArticleSettingsPanel';
 import InlineImageSettings from '@/components/admin/InlineImageSettings';
@@ -105,6 +106,18 @@ export default function ArticleEditor({
       }
       return newData;
     });
+  };
+
+  // 插入 AEO 結構骨架：內文為空時直接帶入，已有內容則附加在最後（先確認）
+  const handleInsertTemplate = () => {
+    const hasContent = formData.content.replace(/<[^>]*>/g, '').trim().length > 0;
+    if (hasContent && !window.confirm('內文已有內容，將把 AEO 範本附加在最後。要繼續嗎？')) {
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      content: hasContent ? `${prev.content}\n${AEO_TEMPLATE}` : AEO_TEMPLATE,
+    }));
   };
 
   const handleSaveDraft = async () => {
@@ -290,6 +303,15 @@ export default function ArticleEditor({
                 className="w-full p-4 text-sm text-gray-600 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-brand-purple-500/20 focus:border-brand-purple-300 focus:bg-white transition-all duration-200 resize-none leading-relaxed"
                 rows={2}
                 placeholder="在此輸入文章摘要（選填）..."
+              />
+            </div>
+
+            {/* AEO 結構助手：即時檢查 + 插入範本 */}
+            <div className="mt-4 px-14">
+              <AeoAssistant
+                content={formData.content}
+                summary={formData.summary}
+                onInsertTemplate={handleInsertTemplate}
               />
             </div>
 
