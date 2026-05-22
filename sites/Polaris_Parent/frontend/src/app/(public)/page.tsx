@@ -4,8 +4,8 @@ import { Content } from '@/types';
 import HomePageContent from '@/components/public/HomePageContent';
 import { localeContent } from '@/i18n/homePageData';
 
-// ISR: 每 10 分鐘重新驗證
-export const revalidate = 600;
+// ISR: 每 60 秒重新驗證（新文章發佈後最多 60 秒內出現在首頁，不需手動 redeploy）
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: '親紫之間 - 首頁',
@@ -13,16 +13,16 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
 };
 
-async function getFeaturedPosts(): Promise<Content[]> {
+async function getLatestPosts(): Promise<Content[]> {
   try {
     const response = await contentApi.getList({
       status: 'published',
       type: 'article',
-      per_page: 3,
+      per_page: 12, // 首頁文章牆上限 12 篇
     });
     return response.contents;
   } catch (error: any) {
-    console.error('Error fetching featured posts:', error.message || error);
+    console.error('Error fetching latest posts:', error.message || error);
     return [];
   }
 }
@@ -38,7 +38,7 @@ async function getHomepageSettings() {
 }
 
 export default async function HomePage() {
-  const featuredPosts = await getFeaturedPosts();
+  const latestPosts = await getLatestPosts();
   const homepageSettings = await getHomepageSettings();
   const content = localeContent['zh-TW'];
 
@@ -46,7 +46,7 @@ export default async function HomePage() {
     <HomePageContent
       locale="zh-TW"
       content={content}
-      featuredPosts={featuredPosts}
+      latestPosts={latestPosts}
       homepageSettings={homepageSettings}
     />
   );

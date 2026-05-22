@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, MoreVertical, Star, ChevronDown, Code, FileText } from 'lucide-react';
+import { ArrowLeft, MoreVertical, ChevronDown, Code, FileText } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/ui/Button';
 import Popover from '@/components/ui/Popover';
@@ -46,8 +46,6 @@ interface ArticleEditorProps {
   setTagInput: (value: string) => void;
   parseTagInput: (input: string) => string[];
   i18nSettings: I18nSettings | null;
-  isFeatured: boolean;
-  setIsFeatured: (value: boolean) => void;
   loading: boolean;
   onSave: (status?: 'draft' | 'published') => Promise<void>;
   // For edit mode
@@ -67,8 +65,6 @@ export default function ArticleEditor({
   setTagInput,
   parseTagInput,
   i18nSettings,
-  isFeatured,
-  setIsFeatured,
   loading,
   onSave,
   articleId,
@@ -229,20 +225,6 @@ export default function ArticleEditor({
                 </div>
               }
             />
-
-            {/* 星星 Icon（首頁文章） */}
-            <button
-              type="button"
-              onClick={() => setIsFeatured(!isFeatured)}
-              className={`p-2 rounded-md transition-colors ${
-                isFeatured
-                  ? 'text-yellow-500 hover:text-yellow-600'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-              title={isFeatured ? '取消首頁推薦' : '設為首頁推薦'}
-            >
-              <Star size={20} fill={isFeatured ? 'currentColor' : 'none'} />
-            </button>
 
             {/* 三點選單 */}
             <Popover

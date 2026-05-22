@@ -172,6 +172,24 @@ export function buildAboutPageJsonLd(opts: { title: string; description?: string
   };
 }
 
+/** 文章清單 (ItemList) 結構化資料，用於首頁文章牆等內容集合。空清單回 null。 */
+export function buildItemListJsonLd(
+  posts: Array<Pick<Content, 'slug' | 'title'>>,
+  locale: string = DEFAULT_LOCALE,
+) {
+  if (!posts.length) return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: posts.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: absoluteUrl(localizedPath(locale, `/posts/${p.slug}`)),
+      name: p.title,
+    })),
+  };
+}
+
 /** 作者頁路徑（slug 優先，否則 username）。 */
 export function authorPath(author: Pick<Author, 'slug' | 'username'>): string {
   return `/authors/${author.slug || author.username}`;

@@ -55,7 +55,6 @@ function ArticlesPageContent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [i18nSettings, setI18nSettings] = useState<I18nSettings | null>(null);
-  const [isFeatured, setIsFeatured] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [editorLoading, setEditorLoading] = useState(false);
 
@@ -189,7 +188,6 @@ function ArticlesPageContent() {
       setIsDirty(false);
       setOriginalId(post.original_id || null);
       setTranslations(post.translations || []);
-      setIsFeatured(false);
 
       if (post.tags && post.tags.length > 0) {
         setTagInput(post.tags.map((t: Tag) => `#${t.name}`).join(' '));
@@ -213,7 +211,6 @@ function ArticlesPageContent() {
     cleanSnapshotRef.current = JSON.stringify(fresh);
     setIsDirty(false);
     setTagInput('');
-    setIsFeatured(false);
     setOriginalId(null);
     setTranslations([]);
   };
@@ -378,8 +375,6 @@ function ArticlesPageContent() {
             setTagInput={setTagInput}
             parseTagInput={parseTagInput}
             i18nSettings={i18nSettings}
-            isFeatured={isFeatured}
-            setIsFeatured={setIsFeatured}
             loading={saveLoading}
             onSave={handleSave}
             articleId={selectedArticleId || undefined}

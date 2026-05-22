@@ -1,16 +1,14 @@
 'use client';
 
 import HeroSection from '@/components/public/HeroSection';
-import BannerSection from '@/components/public/BannerSection';
-import ArticleCarousel from '@/components/public/ArticleCarousel';
-import AboutPreview from '@/components/public/AboutPreview';
+import LatestArticlesSection from '@/components/public/LatestArticlesSection';
 import FeaturesGrid from '@/components/public/FeaturesGrid';
 import { Content, HomepageSettings } from '@/types';
-import { getImageUrl } from '@/lib/utils';
 
 interface HomePageContentProps {
   locale: string;
   content: {
+    heroBrand: string;
     heroTitle: string;
     heroSubtitle: string;
     aboutBtn: string;
@@ -34,7 +32,7 @@ interface HomePageContentProps {
     feature3Title: string;
     feature3Desc: string;
   };
-  featuredPosts: Content[];
+  latestPosts: Content[];
   homepageSettings: HomepageSettings;
 }
 
@@ -75,7 +73,7 @@ const CourseIcon = ({ className }: { className?: string }) => (
 export default function HomePageContent({
   locale,
   content,
-  featuredPosts,
+  latestPosts,
   homepageSettings,
 }: HomePageContentProps) {
   const basePath = locale === 'zh-TW' ? '' : `/${locale}`;
@@ -104,8 +102,9 @@ export default function HomePageContent({
 
   return (
     <>
-      {/* 1. Hero Section - Full viewport */}
+      {/* 1. Hero Section - Full viewport（品牌眉標 + 描述性 H1） */}
       <HeroSection
+        eyebrow={content.heroBrand}
         title={content.heroTitle}
         subtitle={content.heroSubtitle}
         buttonText={homepageSettings.button_text?.[locale] || content.aboutBtn}
@@ -116,34 +115,17 @@ export default function HomePageContent({
         lazyLoading={homepageSettings.lazy_loading ?? true}
       />
 
-      {/* 2. About Preview Section */}
-      <AboutPreview
-        title={homepageSettings.about_section?.[locale]?.title || content.aboutTitle}
-        philosophy={homepageSettings.about_section?.[locale]?.philosophy || content.aboutPhilosophy}
-        quote={homepageSettings.about_section?.[locale]?.quote || content.aboutQuote}
-        missionPoints={homepageSettings.about_section?.[locale]?.mission_points || content.aboutMissionPoints}
-        learnMoreText={content.learnMoreBtn}
-        learnMoreLink={`${basePath}/about`}
-        imageUrl={homepageSettings.about_section?.[locale]?.image_url ? getImageUrl(homepageSettings.about_section[locale].image_url) : undefined}
-      />
-
-      {/* 3. Carousel Section - Horizontal scroll articles */}
-      <ArticleCarousel
+      {/* 2. 最新文章牆 - 最多 12 篇 + 查看更多 */}
+      <LatestArticlesSection
         title={content.featuredTitle}
         description={content.featuredDescription}
-        articles={featuredPosts}
+        articles={latestPosts}
         viewMoreLink={`${basePath}/articles`}
         viewMoreText={content.viewMore}
         emptyMessage={content.noContent}
       />
 
-      {/* 4. Banner Section - Text only */}
-      <BannerSection
-        heading={content.bannerHeading}
-        description={content.bannerDescription}
-      />
-
-      {/* 5. Features Section - Product placeholders */}
+      {/* 3. 商品 Section */}
       <FeaturesGrid
         title={content.featuresTitle}
         description={content.featuresDescription}

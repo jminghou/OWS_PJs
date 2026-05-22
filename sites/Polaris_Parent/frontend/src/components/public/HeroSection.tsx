@@ -5,6 +5,7 @@ import HeroCarousel from './HeroCarousel';
 import { HomepageSlide } from '@/types';
 
 interface HeroSectionProps {
+  eyebrow?: string; // 品牌小字眉標（顯示在描述性 H1 上方）
   title: string;
   subtitle: string;
   buttonText: string;
@@ -16,6 +17,7 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({
+  eyebrow,
   title,
   subtitle,
   buttonText,
@@ -54,7 +56,7 @@ export default function HeroSection({
   const ctaNewTab = currentSlide?.cta_new_tab || false;
 
   const handleScrollToSection = () => {
-    const element = document.getElementById('banner');
+    const element = document.getElementById('articles');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
@@ -83,7 +85,13 @@ export default function HeroSection({
       {/* Content overlay - centered vertically and horizontally */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
         <div className="text-center pointer-events-auto px-4">
-          {/* Feature 6: per-slide title (or global fallback) */}
+          {/* 品牌眉標（小字，在描述性 H1 上方） */}
+          {eyebrow && (
+            <p className="text-base md:text-lg font-medium tracking-widest text-white/80 mb-3 drop-shadow">
+              {eyebrow}
+            </p>
+          )}
+          {/* 描述性主標 H1（Feature 6: 可被 per-slide title 覆寫） */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center drop-shadow-lg mb-4">
             {displayTitle}
           </h1>

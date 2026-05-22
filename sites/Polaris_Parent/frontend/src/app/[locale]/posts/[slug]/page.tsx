@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { contentApi } from '@/lib/api';
@@ -7,80 +8,43 @@ import JsonLd from '@/components/seo/JsonLd';
 import { buildArticleJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@/lib/seo';
 import { getRelatedPosts } from '@/lib/relatedPosts';
 
-// 設定 ISR：每小時重新驗證一次 (3600 秒)
+// ISR：靜態產生 + 背景重新驗證（從邊緣快取直接送出，慢後端不卡使用者）
 export const revalidate = 3600;
 
-// 多語言內容
-const localeContent: Record<string, { notFound: string; previewWarning: string }> = {
-  'zh-TW': {
-    notFound: '文章不存在',
-    previewWarning: '您正在預覽模式中檢視此文章。這個頁面只有管理員可以存取。',
-  },
-  'zh-CN': {
-    notFound: '文章不存在',
-    previewWarning: '您正在预览模式中查看此文章。这个页面只有管理员可以访问。',
-  },
-  'en': {
-    notFound: 'Article not found',
-    previewWarning: 'You are viewing this article in preview mode. This page is only accessible to administrators.',
-  },
-  'ja': {
-    notFound: '記事が見つかりません',
-    previewWarning: 'プレビューモードでこの記事を表示しています。このページは管理者のみがアクセスできます。',
-  },
+const notFoundLabel: Record<string, string> = {
+  'zh-TW': '文章不存在',
+  'zh-CN': '文章不存在',
+  'en': 'Article not found',
+  'ja': '記事が見つかりません',
 };
 
 interface PostDetailPageProps {
-  params: Promise<{
-    locale: string;
-    slug: string;
-  }>;
-  searchParams: Promise<{
-    preview?: string;
-  }>;
+  params: Promise<{ locale: string; slug: string }>;
 }
 
-async function getPost(slug: string, isPreview: boolean = false): Promise<Content | null> {
+// React cache 去重：generateMetadata 與頁面共用同一次抓取
+const getPost = cache(async (slug: string): Promise<Content | null> => {
   try {
-    console.log('Fetching post with slug:', slug, 'Preview mode:', isPreview);
-    
-    // 如果是預覽模式，我們不使用快取
-    const options = isPreview ? { cache: 'no-store' as RequestCache } : {};
-    
-    const response = await contentApi.getBySlug(slug, undefined, options);
-    console.log('API response:', response);
-
-    // 如果不是預覽模式，只允許已發佈的文章
-    if (!isPreview && response.status !== 'published') {
-      console.log('Post not published and not preview mode');
-      return null;
-    }
-
+    const response = await contentApi.getBySlug(slug);
+    if (response.status !== 'published') return null;
     return response;
   } catch (error: any) {
-    console.error('Error fetching post:', error);
+    console.error('Error fetching post:', error.message || error);
     return null;
   }
-}
+});
 
 // 生成靜態路徑以利於 ISR
 export async function generateStaticParams() {
   try {
     const response = await contentApi.getList({ per_page: 100, status: 'published' });
-    
-    // 為每個支援的語言生成路徑
     const locales = ['zh-TW', 'zh-CN', 'en', 'ja'];
     const params = [];
-
     for (const post of response.contents) {
       for (const locale of locales) {
-        params.push({
-          locale,
-          slug: post.slug,
-        });
+        params.push({ locale, slug: post.slug });
       }
     }
-
     return params;
   } catch (error) {
     console.error('Error generating static params:', error);
@@ -88,17 +52,12 @@ export async function generateStaticParams() {
   }
 }
 
-export async function generateMetadata({ params, searchParams }: PostDetailPageProps): Promise<Metadata> {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
-  const isPreview = resolvedSearchParams.preview === 'true';
-  const post = await getPost(resolvedParams.slug, isPreview);
-  const content = localeContent[resolvedParams.locale] || localeContent['zh-TW'];
+export async function generateMetadata({ params }: PostDetailPageProps): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const post = await getPost(slug);
 
   if (!post) {
-    return {
-      title: content.notFound,
-    };
+    return { title: notFoundLabel[locale] || notFoundLabel['zh-TW'] };
   }
 
   return {
@@ -106,7 +65,7 @@ export async function generateMetadata({ params, searchParams }: PostDetailPageP
     description: post.meta_description || post.summary,
     keywords: post.tags?.map(tag => tag.name).join(', '),
     // 以當前語言為自我 canonical，並由翻譯群組組出 hreflang
-    alternates: buildContentAlternates(post, resolvedParams.locale),
+    alternates: buildContentAlternates(post, locale),
     openGraph: {
       type: 'article',
       title: post.title,
@@ -125,12 +84,9 @@ export async function generateMetadata({ params, searchParams }: PostDetailPageP
   };
 }
 
-export default async function LocalePostDetailPage({ params, searchParams }: PostDetailPageProps) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
-  const isPreview = resolvedSearchParams.preview === 'true';
-  const post = await getPost(resolvedParams.slug, isPreview);
-  const content = localeContent[resolvedParams.locale] || localeContent['zh-TW'];
+export default async function LocalePostDetailPage({ params }: PostDetailPageProps) {
+  const { locale, slug } = await params;
+  const post = await getPost(slug);
 
   if (!post) {
     notFound();
@@ -142,23 +98,7 @@ export default async function LocalePostDetailPage({ params, searchParams }: Pos
 
   return (
     <>
-      <JsonLd data={[buildArticleJsonLd(post, resolvedParams.locale), ...(faq ? [faq] : []), ...(howTo ? [howTo] : [])]} />
-      {isPreview && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm">
-                {content.previewWarning}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <JsonLd data={[buildArticleJsonLd(post, locale), ...(faq ? [faq] : []), ...(howTo ? [howTo] : [])]} />
       <PostDetailContent post={post} relatedPosts={relatedPosts} />
     </>
   );

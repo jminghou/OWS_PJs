@@ -1,7 +1,8 @@
 export const localeContent: Record<string, {
   title: string;
   description: string;
-  heroTitle: string;
+  heroBrand: string;   // 品牌名（Hero 小字眉標）
+  heroTitle: string;   // 描述性主標（H1）
   heroSubtitle: string;
   aboutBtn: string;
   bannerHeading: string;
@@ -27,7 +28,8 @@ export const localeContent: Record<string, {
   'zh-TW': {
     title: '親紫之間 - 首頁',
     description: '透過紫微斗數與數據分析，幫助家長理解孩子，成為孩子穩定的弓，讓孩子如箭般飛向遠方',
-    heroTitle: '親紫之間',
+    heroBrand: '親紫之間',
+    heroTitle: '用紫微斗數與數據，讀懂孩子的天賦',
     heroSubtitle: '透過紫微斗數與數據分析，幫助家長理解孩子',
     aboutBtn: '開始探索',
     bannerHeading: '協助家長拿到孩子的「原廠命運規格書」',
@@ -57,7 +59,8 @@ export const localeContent: Record<string, {
   'zh-CN': {
     title: '亲紫之间 - 首页',
     description: '通过紫微斗数与数据分析，帮助家长理解孩子，成为孩子稳定的弓，让孩子如箭般飞向远方',
-    heroTitle: '亲紫之间',
+    heroBrand: '亲紫之间',
+    heroTitle: '用紫微斗数与数据，读懂孩子的天赋',
     heroSubtitle: '通过紫微斗数与数据分析，帮助家长理解孩子',
     aboutBtn: '开始探索',
     bannerHeading: '协助家长拿到孩子的「原厂命运规格书」',
@@ -87,7 +90,8 @@ export const localeContent: Record<string, {
   'en': {
     title: 'Qin Zi Blog - Home',
     description: 'Through Zi Wei Dou Shu and data analysis, help parents understand their children',
-    heroTitle: 'Qin Zi Blog',
+    heroBrand: 'Qin Zi Blog',
+    heroTitle: "Understand Your Child's Nature Through Zi Wei Dou Shu & Data",
     heroSubtitle: 'Helping parents understand their children through Zi Wei Dou Shu and data analysis',
     aboutBtn: 'Start Exploring',
     bannerHeading: 'Get Your Child\'s "Original Destiny Specification"',
@@ -117,7 +121,8 @@ export const localeContent: Record<string, {
   'ja': {
     title: '親紫の間 - ホーム',
     description: '紫微斗数とデータ分析を通じて、親が子供を理解するのを助けます',
-    heroTitle: '親紫の間',
+    heroBrand: '親紫の間',
+    heroTitle: '紫微斗数とデータで、子どもの個性を読み解く',
     heroSubtitle: '紫微斗数とデータ分析を通じて、親が子供を理解するのを助けます',
     aboutBtn: '探索を始める',
     bannerHeading: 'お子様の「オリジナル運命仕様書」を手に入れる',
