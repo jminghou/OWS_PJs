@@ -11,6 +11,8 @@ import rehypeSlug from 'rehype-slug';
 import { Content } from '@/types';
 import { formatDateTime, getImageUrl, getGcsImageUrl } from '@/lib/utils';
 import { extractToc, extractKeyTakeaways } from '@/lib/articleContent';
+import { absoluteUrl } from '@/lib/seo';
+import ShareButtons from '@/components/public/ShareButtons';
 
 interface PostDetailContentProps {
   post: Content;
@@ -23,6 +25,8 @@ export default function PostDetailContent({ post, relatedPosts = [] }: PostDetai
   // 抽出「重點整理」並從內文移除；目錄由移除後的內文產生（與 rehype-slug 的 id 對齊）
   const { takeaways, body } = extractKeyTakeaways(post.content);
   const toc = extractToc(body);
+  // 分享用的是 canonical 網址（不含語言前綴/查詢字串）
+  const shareUrl = absoluteUrl(`/posts/${post.slug}`);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -162,6 +166,9 @@ export default function PostDetailContent({ post, relatedPosts = [] }: PostDetai
                   ))}
                 </div>
               )}
+
+              {/* 社群分享 */}
+              <ShareButtons url={shareUrl} title={post.title} />
             </article>
 
             {/* 相關推薦（伺服器端渲染，進入初始 HTML 利於 AI/搜尋抓取與站內連結） */}

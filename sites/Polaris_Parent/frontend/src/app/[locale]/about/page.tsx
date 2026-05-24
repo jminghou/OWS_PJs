@@ -1,7 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import JsonLd from '@/components/seo/JsonLd';
+import AuthorsSection from '@/components/public/AuthorsSection';
 import { buildAboutPageJsonLd, buildStaticPageAlternates } from '@/lib/seo';
+import { authorApi } from '@/lib/api';
+import type { Author } from '@/types';
 
 // 從 i18n 訊息檔案載入翻譯
 import zhTW from '@/i18n/messages/zh-TW.json';
@@ -17,8 +20,20 @@ const messages: Record<string, typeof zhTW> = {
   'ja': ja,
 };
 
+// ISR：關於頁很少變動，但作者資料需偶爾刷新
+export const revalidate = 3600;
+
 interface PageProps {
   params: Promise<{ locale: string }>;
+}
+
+async function getAuthors(): Promise<Author[]> {
+  try {
+    const { authors } = await authorApi.getList();
+    return authors;
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -35,6 +50,7 @@ export default async function LocaleAboutPage({ params }: PageProps) {
   const { locale } = await params;
   const t = messages[locale]?.aboutPage || messages['zh-TW'].aboutPage;
   const basePath = locale === 'zh-TW' ? '' : `/${locale}`;
+  const authors = await getAuthors();
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -83,6 +99,9 @@ export default async function LocaleAboutPage({ params }: PageProps) {
             </p>
           </div>
         </section>
+
+        {/* 作者區塊（E-E-A-T） */}
+        <AuthorsSection authors={authors} locale={locale} />
 
         {/* 品牌使命區塊 */}
         <section className="text-center">

@@ -1,12 +1,18 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import JsonLd from '@/components/seo/JsonLd';
+import AuthorsSection from '@/components/public/AuthorsSection';
 import { buildAboutPageJsonLd, buildStaticPageAlternates } from '@/lib/seo';
+import { authorApi } from '@/lib/api';
+import type { Author } from '@/types';
 
 // 從 i18n 訊息檔案載入翻譯（預設使用繁體中文）
 import zhTW from '@/i18n/messages/zh-TW.json';
 
 const t = zhTW.aboutPage;
+
+// ISR：關於頁很少變動，但作者資料需偶爾刷新
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: t.title,
@@ -14,7 +20,18 @@ export const metadata: Metadata = {
   alternates: buildStaticPageAlternates('/about'),
 };
 
-export default function AboutPage() {
+async function getAuthors(): Promise<Author[]> {
+  try {
+    const { authors } = await authorApi.getList();
+    return authors;
+  } catch {
+    return [];
+  }
+}
+
+export default async function AboutPage() {
+  const authors = await getAuthors();
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <JsonLd data={buildAboutPageJsonLd({ title: t.title, description: t.description })} />
@@ -62,6 +79,9 @@ export default function AboutPage() {
             </p>
           </div>
         </section>
+
+        {/* 作者區塊（E-E-A-T：把品牌與真實作者連結起來） */}
+        <AuthorsSection authors={authors} locale="zh-TW" />
 
         {/* 品牌使命區塊 */}
         <section className="text-center">
