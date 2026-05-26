@@ -1,0 +1,142 @@
+{
+  "encoding_version": "2.2",
+  "description": "本命盤編碼配置（嚴謹版：宮位+星曜+地支+四化+性別+星曜亮度）",
+  "encoding_type": "natal_chart",
+  "last_updated": "2025-10-30",
+
+  "encoding_format": {
+    "gender_format": {
+      "structure": "G{gender_code}",
+      "example": "GM",
+      "length": 2,
+      "description": "性別編碼（GM=男性, GF=女性）",
+      "note": "v2.2 新增"
+    },
+    "star_brightness_format": {
+      "structure": "I{star_code}{sign}{brightness_value}{earthly_branch_code}",
+      "example": "ISUNP205",
+      "length": 7,
+      "description": "星曜亮度編碼（I=Intensity, P=正數, N=負數）",
+      "examples": {
+        "positive": "ISUNP205 (太陽 +2 在辰位)",
+        "negative": "IMAGN312 (廉貞 -3 在亥位)"
+      },
+      "note": "v2.2 新增"
+    },
+    "basic_format": {
+      "structure": "{palace_code}{star_code}{earthly_branch_code}",
+      "example": "1POL08",
+      "length": 6,
+      "description": "無四化的基本編碼"
+    },
+    "sihua_format": {
+      "structure": "{palace_code}{star_code}{sihua_code}{earthly_branch_code}",
+      "example": "1POLPW08",
+      "length": 8,
+      "description": "有四化的編碼（基本編碼也會保留）"
+    },
+    "components": {
+      "gender_code": {
+        "position": 1,
+        "length": 1,
+        "description": "性別代碼（M=男性, F=女性）",
+        "note": "v2.2 新增，固定在 G 前綴之後"
+      },
+      "brightness_sign": {
+        "position": 4,
+        "length": 1,
+        "description": "亮度正負號（P=正數, N=負數）",
+        "note": "v2.2 新增，用於星曜亮度編碼"
+      },
+      "brightness_value": {
+        "position": 5,
+        "length": 1,
+        "description": "亮度數值（1-3 或更高）",
+        "note": "v2.2 新增，星曜的廟旺陷落程度"
+      },
+      "palace_code": {
+        "position": 0,
+        "length": 1,
+        "description": "宮位代碼（命宮=1, 兄弟=2, 夫妻=3, ..., 父母=C）",
+        "note": "宮位功能區域，會隨大限變動"
+      },
+      "star_code": {
+        "position": 1,
+        "length": 3,
+        "description": "星曜編碼（紫微=POL, 破軍=BRE, 天機=HPI, ...）",
+        "note": "85顆星曜的唯一識別碼"
+      },
+      "sihua_code": {
+        "position": 4,
+        "length": 2,
+        "description": "四化編碼（祿=FO, 權=PW, 科=HO, 忌=BI）",
+        "note": "僅在有四化時出現"
+      },
+      "earthly_branch_code": {
+        "position_basic": 4,
+        "position_sihua": 6,
+        "length": 2,
+        "description": "地支編碼（子=01, 丑=02, ..., 亥=12）",
+        "note": "星曜的絕對位置，永不變動"
+      }
+    }
+  },
+
+  "data_sources": {
+    "palace_data_path": "宮位資料",
+    "star_data_path": "星曜資料",
+    "sihua_data_path": "四化資料",
+    "gender_data_path": "基本資料.性別",
+    "brightness_data_path": "星曜亮度",
+    "note": "從命盤 JSON 中提取的數據路徑（v2.2 新增性別與星曜亮度路徑）"
+  },
+
+  "mapping_files": {
+    "palace_mapping_csv": "docs/map/map_宮位代碼.csv",
+    "star_mapping_csv": "docs/map/map_星曜代碼_2.0.csv",
+    "earthly_branch_sihua_csv": "docs/map/map_地支+四化代碼.csv"
+  },
+
+  "star_categories": [
+    "主星",
+    "輔星",
+    "煞星空劫",
+    "人際星",
+    "貴人星",
+    "是非星",
+    "靈性星",
+    "才華星",
+    "吉星",
+    "兇星",
+    "將星",
+    "歲星"
+  ],
+
+  "output_format": {
+    "include_flat_array": true,
+    "include_structured_map": true,
+    "sort_by": "palace_order",
+    "palace_order": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C"]
+  },
+
+  "error_handling": {
+    "skip_unknown_stars": true,
+    "skip_unknown_palaces": false,
+    "skip_unknown_earthly_branches": false,
+    "log_warnings": true
+  },
+
+  "encoding_logic": {
+    "sihua_encoding_rule": "如果星曜有四化，同時輸出基本編碼和四化編碼",
+    "example": {
+      "star": "紫微",
+      "palace": "命宮",
+      "earthly_branch": "未",
+      "sihua": "權",
+      "output": [
+        "1POL08 (基本編碼)",
+        "1POLPW08 (四化編碼)"
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+# =============================================================================
+# Polaris Parent — site-specific dependencies
+# =============================================================================
+# 排盤引擎（vendored 於 extensions/astrology/engine）所需：
+
+# 天文曆法計算（calculate_chart 用）
+sxtwl>=2.0.7
+
+# 日期時間工具
+python-dateutil>=2.8.2
+
+# 地理編碼 fallback（geo_manager 的 Nominatim 線上查詢；production 以離線座標表為主）
+requests>=2.31.0

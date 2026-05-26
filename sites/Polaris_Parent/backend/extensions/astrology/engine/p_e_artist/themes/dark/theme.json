@@ -1,0 +1,22 @@
+{
+    "name": "暗夜星空 (Dark Mode)",
+    "description": "高對比的暗色主題，適合在低光源環境下觀看。",
+    "author": "System",
+    "version": "1.0",
+    "config": {
+        "font_family": "Georgia, serif",
+        "colors": {
+            "bg": "#1A1A2E",
+            "branch_ink": "rgba(255, 255, 255, 0.45)",
+            "grid_stroke": "#E94560",
+            "center_bg": "#FFFFFF",
+            "chart_id_ink": "rgba(0, 0, 0, 0.3)",
+            "center_text": "#EAEAEA",
+            "palace_name": "#E94560",
+            "branch": "#0F3460",
+            "star_main": "#EAEAEA",
+            "star_minor": "#A8A8A8",
+            "brightness": "#0F3460"
+        }
+    }
+}

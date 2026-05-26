@@ -1,0 +1,355 @@
+﻿dim,name,name_zh,group,group_name,source_type,description
+0,major_pol,排序力,A,基本空間權重,star_law,紫微・尊・秩序與位階的能量
+1,major_hpi,運算力,A,基本空間權重,star_law,天機・善・計算與推演的能量
+2,major_sun,作用力,A,基本空間權重,star_law,太陽・貴・照耀與施予的能量
+3,major_mar,兌換力,A,基本空間權重,star_law,武曲・財・交換與果斷的能量
+4,major_har,分享力,A,基本空間權重,star_law,天同・福・和諧與共享的能量
+5,major_mag,掌控力,A,基本空間權重,star_law,廉貞・囚・掌握與治理的能量
+6,major_tre,承載力,A,基本空間權重,star_law,天府・令・容納、調度的能量
+7,major_moo,涵養力,A,基本空間權重,star_law,太陰・富・滋養與積累的能量
+8,major_awo,擴張力,A,基本空間權重,star_law,貪狼・桃花・吸引與交際的能量
+9,major_gga,分界力,A,基本空間權重,star_law,巨門・暗・試煉與質疑的能量
+10,major_min,授權力,A,基本空間權重,star_law,天相・印・認證與委託的能量
+11,major_ble,接續力,A,基本空間權重,star_law,天梁・蔭・保護與成全的能量
+12,major_van,行動力,A,基本空間權重,star_law,七殺・權・執行與突破的能量
+13,major_bre,重生力,A,基本空間權重,star_law,破軍・破・重塑與開拓的能量
+14,support_lha,左輔輔佐,A,基本空間權重,support_star,左輔會照命宮強度
+15,support_rha,右弼輔佐,A,基本空間權重,support_star,右弼會照命宮強度
+16,support_cpa,天魁貴人,A,基本空間權重,support_star,天魁會照命宮強度
+17,support_cai,天鉞貴人,A,基本空間權重,support_star,天鉞會照命宮強度
+18,support_aac,文昌才華,A,基本空間權重,support_star,文昌會照命宮強度
+19,support_aar,文曲才華,A,基本空間權重,support_star,文曲會照命宮強度
+20,support_div,祿存財庫,A,基本空間權重,support_star,祿存位置與強度
+21,support_hho,天馬行走,A,基本空間權重,support_star,天馬位置與強度
+22,brake_gla,擎羊刑剋,A,基本空間權重,brake_star,擎羊在關鍵宮位的強度
+23,brake_sto,陀羅糾結,A,基本空間權重,brake_star,陀羅在關鍵宮位的強度
+24,brake_fsp,火星爆發,A,基本空間權重,brake_star,火星在關鍵宮位的強度
+25,brake_chi,鈴星深沉,A,基本空間權重,brake_star,鈴星在關鍵宮位的強度
+26,void_evo,地空,A,基本空間權重,void_star,地空在關鍵宮位的強度
+27,void_mae,地劫,A,基本空間權重,void_star,地劫在關鍵宮位的強度
+28,void_int,截空,A,基本空間權重,void_star,截空在關鍵宮位的強度
+29,e_interpersonal_glm,小星人際_天姚,A,基本空間權重,minor_star,人際星 天姚 空間加權
+30,e_interpersonal_hjo,小星人際_天喜,A,基本空間權重,minor_star,人際星 天喜 空間加權
+31,e_interpersonal_rph,小星人際_紅鸞,A,基本空間權重,minor_star,人際星 紅鸞 空間加權
+32,e_noble_pod,小星貴人_台輔,A,基本空間權重,minor_star,貴人星 台輔 空間加權
+33,e_noble_ofc,小星貴人_天官,A,基本空間權重,minor_star,貴人星 天官 空間加權
+34,e_noble_nob,小星貴人_天貴,A,基本空間權重,minor_star,貴人星 天貴 空間加權
+35,e_noble_prv,小星貴人_天德,A,基本空間權重,minor_star,貴人星 天德 空間加權
+36,e_conflict_ppo,小星是非_咸池,A,基本空間權重,minor_star,是非星 咸池 空間加權
+37,e_conflict_gos,小星是非_蜚廉,A,基本空間權重,minor_star,是非星 蜚廉 空間加權
+38,e_spiritual_shm,小星靈性_天巫,A,基本空間權重,minor_star,靈性星 天巫 空間加權
+39,e_spiritual_eca,小星靈性_華蓋,A,基本空間權重,minor_star,靈性星 華蓋 空間加權
+40,e_spiritual_voi,小星靈性_天虛,A,基本空間權重,minor_star,靈性星 天虛 空間加權
+41,e_spiritual_wee,小星靈性_天哭,A,基本空間權重,minor_star,靈性星 天哭 空間加權
+42,e_spiritual_wid,小星靈性_寡宿,A,基本空間權重,minor_star,靈性星 寡宿 空間加權
+43,e_talent_dra,小星才華_龍池,A,基本空間權重,minor_star,才華星 龍池 空間加權
+44,e_talent_pho,小星才華_鳳閣,A,基本空間權重,minor_star,才華星 鳳閣 空間加權
+45,e_talent_gen,小星才華_天才,A,基本空間權重,minor_star,才華星 天才 空間加權
+46,e_auspicious_edi,小星吉_封誥,A,基本空間權重,minor_star,吉星 封誥 空間加權
+47,e_auspicious_fea,小星吉_天福,A,基本空間權重,minor_star,吉星 天福 空間加權
+48,e_auspicious_res,小星吉_解神,A,基本空間權重,minor_star,吉星 解神 空間加權
+49,e_auspicious_lon,小星吉_天壽,A,基本空間權重,minor_star,吉星 天壽 空間加權
+50,e_auspicious_3pl,小星吉_三台,A,基本空間權重,minor_star,吉星 三台 空間加權
+51,e_auspicious_8st,小星吉_八座,A,基本空間權重,minor_star,吉星 八座 空間加權
+52,e_auspicious_gra,小星吉_恩光,A,基本空間權重,minor_star,吉星 恩光 空間加權
+53,e_inauspicious_sha,小星兇_陰煞,A,基本空間權重,minor_star,兇星 陰煞 空間加權
+54,e_inauspicious_dis,小星兇_天刑,A,基本空間權重,minor_star,兇星 天刑 空間加權
+55,e_inauspicious_lnr,小星兇_孤辰,A,基本空間權重,minor_star,兇星 孤辰 空間加權
+56,e_inauspicious_sht,小星兇_破碎,A,基本空間權重,minor_star,兇星 破碎 空間加權
+57,e_inauspicious_mdr,小星兇_大耗,A,基本空間權重,minor_star,兇星 大耗 空間加權
+58,e_inauspicious_rob,小星兇_劫殺,A,基本空間權重,minor_star,兇星 劫殺 空間加權
+59,e_inauspicious_ail,小星兇_天月,A,基本空間權重,minor_star,兇星 天月 空間加權
+60,e_inauspicious_hia,小星兇_旬空,A,基本空間權重,minor_star,兇星 旬空 空間加權
+61,e_general_cmd,小星將_將星,A,基本空間權重,minor_star,將星系 將星 空間加權
+62,e_general_std,小星將_攀鞍,A,基本空間權重,minor_star,將星系 攀鞍 空間加權
+63,e_general_yho,小星將_歲驛,A,基本空間權重,minor_star,將星系 歲驛 空間加權
+64,e_general_rst,小星將_息神,A,基本空間權重,minor_star,將星系 息神 空間加權
+65,e_general_csh,小星將_災煞,A,基本空間權重,minor_star,將星系 災煞 空間加權
+66,e_general_sla,小星將_指背,A,基本空間權重,minor_star,將星系 指背 空間加權
+67,e_general_lsa,小星將_月煞,A,基本空間權重,minor_star,將星系 月煞 空間加權
+68,e_general_vdn,小星將_亡神,A,基本空間權重,minor_star,將星系 亡神 空間加權
+69,e_annual_jup,小星歲_歲建,A,基本空間權重,minor_star,歲星系 歲建 空間加權
+70,e_annual_glo,小星歲_晦氣,A,基本空間權重,minor_star,歲星系 晦氣 空間加權
+71,e_annual_mgt,小星歲_喪門,A,基本空間權重,minor_star,歲星系 喪門 空間加權
+72,e_annual_shk,小星歲_貫索,A,基本空間權重,minor_star,歲星系 貫索 空間加權
+73,e_annual_sdr,小星歲_小耗,A,基本空間權重,minor_star,歲星系 小耗 空間加權
+74,e_annual_dvi,小星歲_龍德,A,基本空間權重,minor_star,歲星系 龍德 空間加權
+75,e_annual_wti,小星歲_白虎,A,基本空間權重,minor_star,歲星系 白虎 空間加權
+76,e_annual_cgu,小星歲_吊客,A,基本空間權重,minor_star,歲星系 吊客 空間加權
+77,e_annual_sch,小星歲_病符,A,基本空間權重,minor_star,歲星系 病符 空間加權
+78,decade_dgl,大羊,A,基本空間權重,flow_star,大限：大羊
+79,decade_dst,大陀,A,基本空間權重,flow_star,大限：大陀
+80,decade_dcp,大魁,A,基本空間權重,flow_star,大限：大魁
+81,decade_dca,大鉞,A,基本空間權重,flow_star,大限：大鉞
+82,decade_ddi,大祿,A,基本空間權重,flow_star,大限：大祿
+83,decade_dhh,大馬,A,基本空間權重,flow_star,大限：大馬
+84,decade_drp,大鸞,A,基本空間權重,flow_star,大限：大鸞
+85,decade_dhj,大喜,A,基本空間權重,flow_star,大限：大喜
+86,small_sgl,小羊,A,基本空間權重,flow_star,小限：小羊
+87,small_sst,小陀,A,基本空間權重,flow_star,小限：小陀
+88,small_scp,小魁,A,基本空間權重,flow_star,小限：小魁
+89,small_sca,小鉞,A,基本空間權重,flow_star,小限：小鉞
+90,small_sdi,小祿,A,基本空間權重,flow_star,小限：小祿
+91,small_shh,小馬,A,基本空間權重,flow_star,小限：小馬
+92,small_srp,小鸞,A,基本空間權重,flow_star,小限：小鸞
+93,small_shj,小喜,A,基本空間權重,flow_star,小限：小喜
+94,year_ygl,年羊,A,基本空間權重,flow_star,流年：年羊
+95,year_yst,年陀,A,基本空間權重,flow_star,流年：年陀
+96,year_ycp,年魁,A,基本空間權重,flow_star,流年：年魁
+97,year_yca,年鉞,A,基本空間權重,flow_star,流年：年鉞
+98,year_ydi,年祿,A,基本空間權重,flow_star,流年：年祿
+99,year_yhh,年馬,A,基本空間權重,flow_star,流年：年馬
+100,year_yrp,年鸞,A,基本空間權重,flow_star,流年：年鸞
+101,year_yhj,年喜,A,基本空間權重,flow_star,流年：年喜
+102,self_identity,核心自我,B,複合維度抽取,palace_propagated,命宮(1)空間傳播後信號強度
+103,sibling_investment,手足親情,B,複合維度抽取,palace_propagated,兄弟宮(2)空間傳播後信號強度
+104,partnership_investment,伴侶關係,B,複合維度抽取,palace_propagated,夫妻宮(3)空間傳播後信號強度
+105,offspring_investment,子嗣傳承,B,複合維度抽取,palace_propagated,子女宮(4)空間傳播後信號強度
+106,wealth_investment,現金財富,B,複合維度抽取,palace_propagated,財帛宮(5)空間傳播後信號強度
+107,health_vitality,身體健康,B,複合維度抽取,palace_propagated,疾厄宮(6)空間傳播後信號強度
+108,external_expression,外在展現,B,複合維度抽取,palace_propagated,遷移宮(7)空間傳播後信號強度
+109,social_investment,朋友社交,B,複合維度抽取,palace_propagated,交友宮(8)空間傳播後信號強度
+110,career_investment,事業投入,B,複合維度抽取,palace_propagated,官祿宮(9)空間傳播後信號強度
+111,asset_investment,田宅資產,B,複合維度抽取,palace_propagated,田宅宮(A)空間傳播後信號強度
+112,spiritual_pursuit,精神追求,B,複合維度抽取,palace_propagated,福德宮(B)空間傳播後信號強度
+113,parental_inheritance,父母關係,B,複合維度抽取,palace_propagated,父母宮(C)空間傳播後信號強度
+114,body_palace_signal,身宮指標,B,複合維度抽取,palace_axis,身宮對應宮位的傳播信號
+115,inner_outer_friction,性格內外關係,B,複合維度抽取,palace_axis,命宮與遷移宮的張力平衡度
+116,ideal_reality_friction,財富思維關係,B,複合維度抽取,palace_axis,財帛宮與福德宮的張力平衡度
+117,career_family_friction,事業夫妻關係,B,複合維度抽取,palace_axis,官祿宮與夫妻宮的張力平衡度
+118,hereditary_health_friction,遺傳健康關係,B,複合維度抽取,palace_axis,父母宮與疾厄宮的張力平衡度
+119,sibling_social_friction,親朋好友關係,B,複合維度抽取,palace_axis,兄弟宮與交友宮的張力平衡度
+120,offspring_asset_friction,子女家庭關係,B,複合維度抽取,palace_axis,子女宮與田宅宮的張力平衡度
+121,sihua_fo_signal,祿宮位信號,B,複合維度抽取,sihua_context,祿落宮的空間傳播後信號強度
+122,sihua_pw_signal,權宮位信號,B,複合維度抽取,sihua_context,權落宮的空間傳播後信號強度
+123,sihua_ho_signal,科宮位信號,B,複合維度抽取,sihua_context,科落宮的空間傳播後信號強度
+124,sihua_bi_signal,忌宮位信號,B,複合維度抽取,sihua_context,忌落宮的空間傳播後信號強度
+125,sihua_fo_factor,祿宮位因子,B,複合維度抽取,sihua_context,祿宮位距命宮空間因子
+126,sihua_pw_factor,權宮位因子,B,複合維度抽取,sihua_context,權宮位距命宮空間因子
+127,sihua_ho_factor,科宮位因子,B,複合維度抽取,sihua_context,科宮位距命宮空間因子
+128,sihua_bi_factor,忌宮位因子,B,複合維度抽取,sihua_context,忌宮位距命宮空間因子
+129,ming_sihua_modifier,命宮四化修正,B,複合維度抽取,sihua_context,命宮四化對全盤的乘性修正
+130,body_sihua_modifier,身宮四化修正,B,複合維度抽取,sihua_context,身宮四化對全盤的修正
+131,debt_palace_factor,忌欠宮位因子,B,複合維度抽取,debt_effect,化忌對宮(忌欠宮)距命宮因子
+132,debt_palace_signal,忌欠宮位信號,B,複合維度抽取,debt_effect,忌欠宮經過空間傳播後的總活躍度
+133,sihua_fo_palace_code,化祿宮位編碼,B,複合維度抽取,debt_effect,化祿落宮的宮位編碼(正規化至0-1)
+134,sihua_pw_palace_code,化權宮位編碼,B,複合維度抽取,debt_effect,化權落宮的宮位編碼(正規化至0-1)
+135,sihua_ho_palace_code,化科宮位編碼,B,複合維度抽取,debt_effect,化科落宮的宮位編碼(正規化至0-1)
+136,sihua_bi_palace_code,化忌宮位編碼,B,複合維度抽取,debt_effect,化忌落宮的宮位編碼(正規化至0-1)
+137,debt_palace_code,忌欠宮位編碼,B,複合維度抽取,debt_effect,化忌對宮(忌欠宮)的宮位編碼(正規化至0-1)
+138,dark_lu_effect,暗祿效應,B,複合維度抽取,debt_effect,化祿暗合宮(暗祿)內最強主星權重
+139,ming_dark_signal,命宮暗合宮信號,B,複合維度抽取,dark_harmony,命宮暗合宮信號
+140,ming_dark_star,命宮暗合宮主星,B,複合維度抽取,dark_harmony,命宮暗合宮主星
+141,cai_dark_signal,財帛暗合宮信號,B,複合維度抽取,dark_harmony,財帛暗合宮信號
+142,guan_dark_signal,官祿暗合宮信號,B,複合維度抽取,dark_harmony,官祿暗合宮信號
+143,sihua_dark_effect,四化落暗合宮效應,B,複合維度抽取,dark_harmony,四化落暗合宮效應
+144,dark_activity,暗合整體活躍度,B,複合維度抽取,dark_harmony,暗合整體活躍度
+145,signal_concentration,信號集中度,B,複合維度抽取,signal_distribution,12宮位信號的HHI集中度指標
+146,signal_range,信號極差,B,複合維度抽取,signal_distribution,12宮位信號最大與最小值之差
+147,top_palace_ratio,最強宮位佔比,B,複合維度抽取,signal_distribution,最強宮位信號佔全盤總信號比例
+148,trine_ratio,三方四正佔比,B,複合維度抽取,signal_distribution,命宮三方四正信號佔全盤總信號比例
+149,signal_entropy,信號熵值,B,複合維度抽取,signal_distribution,12宮位信號的資訊熵指標
+150,brake_formation_ratio,煞星陣型比,B,複合維度抽取,signal_distribution,四煞星所在宮位互為三方四正的配對比例
+151,void_formation_ratio,空劫陣型比,B,複合維度抽取,signal_distribution,空劫星所在宮位互為三方四正的配對比例
+152,brake_formation_coverage,煞星陣型覆蓋率,B,複合維度抽取,signal_distribution,煞星陣型中三方四正聯集涵蓋的宮位佔12宮比例
+153,void_formation_coverage,空劫陣型覆蓋率,B,複合維度抽取,signal_distribution,空劫陣型中三方四正聯集涵蓋的宮位佔12宮比例
+154,palace_max_positive,最強正能量宮位信號,B,複合維度抽取,palace_polarity,12宮中正能量(主星+輔星)最高的宮位之信號強度
+155,palace_max_positive_code,最強正能量宮位編碼,B,複合維度抽取,palace_polarity,正能量最高宮位的編碼(正規化至0-1)
+156,palace_max_negative,最強負能量宮位信號,B,複合維度抽取,palace_polarity,12宮中負能量(煞星+空劫)最高的宮位之信號強度
+157,palace_max_negative_code,最強負能量宮位編碼,B,複合維度抽取,palace_polarity,負能量最高宮位的編碼(正規化至0-1)
+158,palace_min_net,最弱淨品質宮位信號,B,複合維度抽取,palace_polarity,正負相減後最低的宮位之淨值
+159,palace_min_net_code,最弱淨品質宮位編碼,B,複合維度抽取,palace_polarity,淨品質最低宮位的編碼(正規化至0-1)
+160,sihua_fo_environment,祿宮位品質,B,複合維度抽取,sihua_quality,祿落宮的(正能量-負能量)/總能量
+161,sihua_pw_environment,權宮位品質,B,複合維度抽取,sihua_quality,權落宮的(正能量-負能量)/總能量
+162,sihua_ho_environment,科宮位品質,B,複合維度抽取,sihua_quality,科落宮的(正能量-負能量)/總能量
+163,sihua_bi_environment,忌宮位品質,B,複合維度抽取,sihua_quality,忌落宮的(正能量-負能量)/總能量
+164,quan_brake_coexist,化權煞星共存度,B,複合維度抽取,sihua_quality,化權落宮的煞星能量佔該宮總能量比例
+165,ji_void_coexist,化忌空劫共存度,B,複合維度抽取,sihua_quality,化忌落宮的空劫能量佔該宮總能量比例
+166,ji_brake_trine,化忌三方四正煞星比,B,複合維度抽取,sihua_quality,化忌落宮三方四正中煞星能量佔總能量比例
+167,ji_void_trine,化忌三方四正空劫比,B,複合維度抽取,sihua_quality,化忌落宮三方四正中空劫能量佔總能量比例
+168,reserve_b_08,備用B08,B,複合維度抽取,reserve,Group B 插槽空間
+169,reserve_b_09,備用B09,B,複合維度抽取,reserve,Group B 插槽空間
+170,reserve_b_10,備用B10,B,複合維度抽取,reserve,Group B 插槽空間
+171,reserve_b_11,備用B11,B,複合維度抽取,reserve,Group B 插槽空間
+172,reserve_b_12,備用B12,B,複合維度抽取,reserve,Group B 插槽空間
+173,P_ZFTG,紫府同宮格,C,複合編碼計算,pattern_match,氣質高貴處事穩重、追求高標準有領導統御之才
+174,P_YLCL,陽梁昌祿格,C,複合編碼計算,pattern_match,學術能力卓越且理性清高、善於在考試競爭中脫穎而出
+175,P_JYTL,機月同梁格,C,複合編碼計算,pattern_match,性格穩定邏輯清晰善於助人、為組織中的中堅力量
+176,P_RYBM,日月並明格,C,複合編碼計算,pattern_match,光明磊落重視聲譽樂於助人、兼具陽剛與柔和氣質
+177,P_ZFCY,紫府朝垣格,C,複合編碼計算,pattern_match,領導才能出眾有遠見卓識、行事穩健值得信賴
+178,P_TFCY,天府朝垣格,C,複合編碼計算,pattern_match,穩重守成重視品味與生活品質、理財能力強
+179,P_JCQH,君臣慶會格,C,複合編碼計算,pattern_match,領袖魅力強動員組織能力出眾、在任何產業或階層皆具號召力
+180,P_FXCY,府相朝垣格,C,複合編碼計算,pattern_match,人緣好注重品味、遇難有貴人相助福氣深厚
+181,P_JLJH,機梁加會格,C,複合編碼計算,pattern_match,心慈溫和善企劃分析、口才佳好談理論有謀略
+182,P_WLZJ,文梁振紀格,C,複合編碼計算,pattern_match,剛正不阿口才出眾、文采與原則兼備
+183,P_JRTG,巨日同宮格,C,複合編碼計算,pattern_match,口才犀利善於表達能言善辯、具雙重性格的張力
+184,P_JCGH,金燦光輝格,C,複合編碼計算,pattern_match,氣勢恢宏心胸豪邁志向遠大、具領袖群倫之風範
+185,P_RZLM,日照雷門格,C,複合編碼計算,pattern_match,崇尚文化中規中矩學識淵博、兼具名氣與才華
+186,P_MZCH,明珠出海格,C,複合編碼計算,pattern_match,細心謹慎思慮周全大方穩重、為循序漸進型成就者
+187,P_YLTM,月朗天門格,C,複合編碼計算,pattern_match,溫文儒雅內斂有親和力學識淵博、清雅中帶富貴
+188,P_YSCH,月生滄海格,C,複合編碼計算,pattern_match,聰明秀氣幽默感佳人緣極好、富謙讓美德
+189,P_SXRM,壽星入廟格,C,複合編碼計算,pattern_match,沉穩善良正直無私學識優秀、具化解危機之能力
+190,P_YXRM,英星入廟格,C,複合編碼計算,pattern_match,果斷勇猛魄力十足敢於冒險、為事業開路先鋒
+191,P_SZYY,石中隱玉格,C,複合編碼計算,pattern_match,聰明才智理想高遠耐操耐磨、先苦後甘型成就者
+192,P_QSCD,七殺朝斗格,C,複合編碼計算,pattern_match,堅韌不屈執行力強不畏艱難、性格強勢不輕易妥協
+193,P_MTDJ,馬頭帶箭格,C,複合編碼計算,pattern_match,剛毅果決耐磨抗壓適合創業、先苦後榮型
+194,P_JJTL,巨機同臨格,C,複合編碼計算,pattern_match,思想敏捷善辯善析富研究心、個性堅持己見
+195,P_TYGM,天乙拱命格,C,複合編碼計算,pattern_match,學識出眾助人為樂且常得人助、逢凶化吉運勢佳
+196,P_SQJH,三奇加會格,C,複合編碼計算,pattern_match,財官名三全才華出眾、決斷力與名望兼備
+197,P_QLXF,權祿巡逢格,C,複合編碼計算,pattern_match,專業能力強兼具經商智謀與決斷力、既富且貴
+198,P_KQLJ,科權祿夾格,C,複合編碼計算,pattern_match,名利兼備事業發展有靠山、關鍵時刻總有助力
+199,P_SLJM,雙祿夾命格,C,複合編碼計算,pattern_match,財運極佳理財有方、對金錢機會敏銳
+200,P_ZYTG,左右同宮格,C,複合編碼計算,pattern_match,端莊大方樂善好施組織能力強、貴人緣極佳
+201,P_WGWH,文桂文華格,C,複合編碼計算,pattern_match,博學多才文采出眾談吐優雅、學術藝術天賦高
+202,P_TWTX,貪武同行格,C,複合編碼計算,pattern_match,交際手腕好耿直爽朗越挫越勇、大器晚成型
+203,P_SHHT,三合火貪格,C,複合編碼計算,pattern_match,爆發力強敢衝敢闖、物質慾望旺盛善抓橫財機會
+204,P_TLCY,貪鈴朝垣格,C,複合編碼計算,pattern_match,多才多藝善於展現自我、先名後利型
+205,P_ZFJM,紫府夾命格,C,複合編碼計算,pattern_match,帝星令星護衛氣質高貴、領導力強穩重大方
+206,P_RYJM,日月夾命格,C,複合編碼計算,pattern_match,日月光輝護照光明磊落、六親緣厚樂於助人
+207,P_ZYJM,左右夾命格,C,複合編碼計算,pattern_match,雙輔護衛人緣極佳、貴人運強善於團隊合作
+208,P_CQJM,昌曲夾命格,C,複合編碼計算,pattern_match,雙文護衛聰明好學、文采出眾考試運佳
+209,P_LZWW,廉貞文武格,C,複合編碼計算,pattern_match,機智過人交際手腕好文武兼備、自我要求嚴格
+210,P_QSHL,權煞化祿格,C,複合編碼計算,pattern_match,逆境中崛起化壓力為動力、膽識過人
+211,P_XSCY,雄宿朝垣格,C,複合編碼計算,pattern_match,魅力出眾善於經營人脈、異性緣佳果斷有領導力
+212,P_FGWX,輔拱文星格,C,複合編碼計算,pattern_match,才學出眾人緣極佳、團隊合作力強
+213,P_LWGM,祿文拱命格,C,複合編碼計算,pattern_match,富而且秀談吐優雅、兼具財富與文化修養
+214,P_LHYY,祿合鴛鴦格,C,複合編碼計算,pattern_match,財運極強生財管道多元、天生對金錢有吸引力
+215,P_SLCY,雙祿朝垣格,C,複合編碼計算,pattern_match,財運穩健事業與財富相輔相成、一生富裕少波折
+216,P_LMPY,祿馬佩印格,C,複合編碼計算,pattern_match,善於外出經商經手財務能力強、行動力十足
+217,P_LMJC,祿馬交馳格,C,複合編碼計算,pattern_match,善於異地發展適應力強、環境變動中獲利
+218,P_EYTL,二曜同臨格,C,複合編碼計算,pattern_match,才華出眾聲勢顯赫、少年得志型
+219,P_DCGC,丹墀桂墀格,C,複合編碼計算,pattern_match,熱情正直聰慧靈敏、處事靈活有決斷力
+220,P_JDDY,甲第登庸格,C,複合編碼計算,pattern_match,學識與魄力兼備、考試能力強適合體制內發展
+221,P_KMHL,科名會祿格,C,複合編碼計算,pattern_match,才華出眾且善於變現名利相生、專業領域受推崇
+222,P_JXLM,極向離明格,C,複合編碼計算,pattern_match,氣場強大威風凜凜天生領袖氣質、自信且有威嚴
+223,P_HXFG,化星返貴格,C,複合編碼計算,pattern_match,口才犀利善於爭辯、能化是非為職業優勢
+224,P_JXDD,將星得地格,C,複合編碼計算,pattern_match,剛毅果決執行力強、善於理財與管理
+225,P_RYZB,日月照壁格,C,複合編碼計算,pattern_match,家庭根基穩固不動產運佳、居住環境優越
+226,P_CLJM,財祿夾馬格,C,複合編碼計算,pattern_match,善於冒險投機行動力強、對財富機會嗅覺敏銳
+227,P_MLAL,明祿暗祿格,C,複合編碼計算,pattern_match,財運明暗兼收常有意外之財、理財管道多元
+228,P_KMLA,科明祿暗格,C,複合編碼計算,pattern_match,名聲在外暗財隨來、以科名帶動財運
+229,P_SMQH,水木清華格,C,複合編碼計算,pattern_match,聰明機靈善解人意創意思維強、人際關係佳
+230,P_CGZG,蟾宮折桂格,C,複合編碼計算,pattern_match,考試運極佳競爭力強、政界或學術界出類拔萃
+231,P_SQCD,三奇朝斗格,C,複合編碼計算,pattern_match,才華橫溢多才多藝、際遇優於常人
+232,P_MWZY,命無正曜格,C,複合編碼計算,pattern_match,性格多變適應力強、易受外在環境影響
+233,P_JJMY,極居卯酉格,C,複合編碼計算,pattern_match,外表風流慾望強烈、意志力易受誘惑動搖
+234,P_SGLZ,殺拱廉貞格,C,複合編碼計算,pattern_match,性格剛烈好勝爭強、急躁時容易與人衝突
+235,P_JFSS,巨逢四煞格,C,複合編碼計算,pattern_match,口舌犀利但易得罪人、猜疑心重不利人際關係
+236,P_MTDJX,馬頭帶劍格,C,複合編碼計算,pattern_match,性烈如火剛毅果斷、獨立性強但人際緣較薄
+237,P_MLFK,命裡逢空格,C,複合編碼計算,pattern_match,思想超脫有宗教或哲學傾向、物質慾望淡薄
+238,P_TLGY,天梁拱月格,C,複合編碼計算,pattern_match,內心敏感情感細膩、傾向漂泊不易安定
+239,P_WXYJ,文星遇夾格,C,複合編碼計算,pattern_match,有才華但不易發揮、學業易有波折功名較遲
+240,P_WXSW,文星失位格,C,複合編碼計算,pattern_match,學習過程較吃力、文書易疏忽表達不夠流暢
+241,P_KXSC,科星煞湊格,C,複合編碼計算,pattern_match,有才學但表現不穩定、心浮氣躁時功名多阻
+242,P_KXFP,科星逢破格,C,複合編碼計算,pattern_match,學有所成但不易獲得認可、因名實不符鬱鬱不得志
+243,P_KYXC,魁鉞凶沖格,C,複合編碼計算,pattern_match,貴人運較弱機遇易失、多靠獨力奮鬥
+244,P_WTSS,武貪守身格,C,複合編碼計算,pattern_match,心性不定多才多藝但難專精、先苦後甘型
+245,P_JJHY,巨機化酉格,C,複合編碼計算,pattern_match,聰明善辯但言語易傷人、多疑善妒內心不易安定
+246,P_XQJY,刑囚夾印格,C,複合編碼計算,pattern_match,性格鮮明不循常規、容易與法律或權威產生摩擦
+247,P_YTYS,月同遇煞格,C,複合編碼計算,pattern_match,性格內斂多愁善感、身心較為敏感脆弱
+248,P_MLKW,馬落空亡格,C,複合編碼計算,pattern_match,好動不安難以安定、行動多但成果不易累積
+249,P_LMPD,梁馬飄蕩格,C,複合編碼計算,pattern_match,漂泊不定熱心助人但易為人作嫁、難享安穩
+250,P_SBFS,生不逢時格,C,複合編碼計算,pattern_match,懷才不遇時運不易配合、容易鬱鬱寡歡
+251,P_LFLS,祿逢兩煞格,C,複合編碼計算,pattern_match,求財辛苦守財不易、財運較為反覆
+252,P_RYCH,日月藏輝格,C,複合編碼計算,pattern_match,勞碌奔波自信心較不足、六親緣較薄
+253,P_CYQC,財與囚仇格,C,複合編碼計算,pattern_match,求財心切但方法易偏激、財務糾紛多須注意因財惹禍
+254,P_YSGP,一生孤貧格,C,複合編碼計算,pattern_match,個性孤僻較衝動、破壞力強但難以守成
+255,P_JZZY,君子在野格,C,複合編碼計算,pattern_match,有潛質但不易施展、處處受制發展受限
+256,P_LCHG,兩重華蓋格,C,複合編碼計算,pattern_match,外表光鮮但內在較空虛、眼高手低實際落差大
+257,P_YTJJ,羊陀夾忌格,C,複合編碼計算,pattern_match,處處受制計劃容易落空、多災多難需格外謹慎
+258,P_HLJM,火鈴夾命格,C,複合編碼計算,pattern_match,性格急躁精神容易緊張、易招意外需注意安全
+259,P_JKJM,劫空夾命格,C,複合編碼計算,pattern_match,物質較匱乏六親緣薄、精神超脫但現實較困頓
+260,P_LCTW,鈴昌陀武格,C,複合編碼計算,pattern_match,性格較為極端內心壓力大、孤僻傾向明顯需要關注
+261,P_LTLX,廉貪落陷格,C,複合編碼計算,pattern_match,風流多情善於交際但不重承諾、家庭觀念較薄弱
+262,P_FSTH,泛水桃花格,C,複合編碼計算,pattern_match,魅力過人善察言觀色人際手腕高超、但容易感情用事
+263,P_FLCZ,風流彩杖格,C,複合編碼計算,pattern_match,聰明風流但易受情困、執著於感情容易因色惹禍
+264,career_potential,事業潛力,D,自動加總計算,theme_composite,事業發展如何？官祿信號+領導力+管理力+紫微能量
+265,wealth_potential,財富潛力,D,自動加總計算,theme_composite,能賺到錢嗎？財帛信號+武曲+祿存+田宅信號
+266,relationship_quality,感情品質,D,自動加總計算,theme_composite,感情運好嗎？夫妻信號+情感深度+包容耐心+磁性魅力
+267,health_resilience,健康韌性,D,自動加總計算,theme_composite,身體狀況如何？疾厄信號+內在穩定+天同+天梁
+268,social_influence,人際影響力,D,自動加總計算,theme_composite,人緣好嗎？遷移信號+交友信號+社交適應+表達力
+269,creative_talent,創造才華,D,自動加總計算,theme_composite,有什麼天賦？創造慾望+磁性魅力+智慧敏捷+小星才華
+270,academic_potential,學業潛力,D,自動加總計算,theme_composite,適合讀書考試嗎？智慧敏捷+管理秩序+文昌+文曲
+271,family_harmony,家庭和諧,D,自動加總計算,theme_composite,家庭關係好嗎？父母信號+兄弟信號+子女信號+包容耐心
+272,spiritual_depth,靈性深度,D,自動加總計算,theme_composite,內在世界如何？福德信號+情感深度+小星靈性
+273,stress_resilience,抗壓能力,D,自動加總計算,theme_composite,扛得住壓力嗎？果斷行動+內在穩定+七殺-情感深度
+274,pattern_count_norm,格局數量,D,自動加總計算,pattern_summary,命中格局總數的正規化指標
+275,wealth_pattern_sum,富格分數,D,自動加總計算,pattern_summary,富格類型格局的加權總分
+276,noble_pattern_sum,貴格分數,D,自動加總計算,pattern_summary,貴格類型格局的加權總分
+277,special_pattern_sum,特殊格分數,D,自動加總計算,pattern_summary,特殊格局的加權總分
+278,challenge_pattern_sum,凶格分數,D,自動加總計算,pattern_summary,凶格/挑戰格局的加權總分
+279,pattern_avg_quality,平均品質,D,自動加總計算,pattern_summary,格局條件完整滿足的平均比例
+280,pattern_counter_risk,破格風險,D,自動加總計算,pattern_summary,反條件(煞星/空劫)削弱格局的風險
+281,pattern_palace_coverage,宮位覆蓋度,D,自動加總計算,pattern_summary,活化格局涉及的宮位數量
+282,support_brake_ratio,輔煞比,D,自動加總計算,support_summary,全盤輔佐與煞星的能量比例
+283,six_auspicious_completeness,六吉完整度,D,自動加總計算,support_summary,六吉星會照命宮的完整度
+284,brake_concentration,煞星集中度,D,自動加總計算,support_summary,煞星是否集中在少數宮位
+285,max_support_star,最強輔星,D,自動加總計算,support_summary,全盤最強的一顆輔佐星能量
+286,max_brake_star,最強煞星,D,自動加總計算,support_summary,全盤最強的一顆煞星能量
+287,support_brake_dispersion,輔煞分散度,D,自動加總計算,support_summary,輔煞星分佈的均勻程度
+288,void_key_palace_effect,關鍵宮空劫,D,自動加總計算,support_summary,空劫落入命/財/官的最大影響
+289,palace_1_quality,命宮品質,D,自動加總計算,palace_core,命宮內主星協同+輔星加持的正能量
+290,palace_1_pressure,命宮壓力,D,自動加總計算,palace_core,命宮內主星與煞星的衝突壓力
+291,palace_5_quality,財帛品質,D,自動加總計算,palace_core,財帛宮內主星協同+輔星加持的正能量
+292,palace_5_pressure,財帛壓力,D,自動加總計算,palace_core,財帛宮內主星與煞星的衝突壓力
+293,palace_9_quality,官祿品質,D,自動加總計算,palace_core,官祿宮內主星協同+輔星加持的正能量
+294,palace_9_pressure,官祿壓力,D,自動加總計算,palace_core,官祿宮內主星與煞星的衝突壓力
+295,palace_7_quality,遷移品質,D,自動加總計算,palace_core,遷移宮內主星協同+輔星加持的正能量
+296,palace_7_pressure,遷移壓力,D,自動加總計算,palace_core,遷移宮內主星與煞星的衝突壓力
+297,palace_6_quality,疾厄品質,D,自動加總計算,palace_wellbeing,疾厄宮內主星協同+輔星加持的正能量
+298,palace_6_pressure,疾厄壓力,D,自動加總計算,palace_wellbeing,疾厄宮內主星與煞星的衝突壓力
+299,palace_B_quality,福德品質,D,自動加總計算,palace_wellbeing,福德宮內主星協同+輔星加持的正能量
+300,palace_B_pressure,福德壓力,D,自動加總計算,palace_wellbeing,福德宮內主星與煞星的衝突壓力
+301,palace_2_quality,兄弟品質,D,自動加總計算,palace_family,兄弟宮內主星協同+輔星加持的正能量
+302,palace_2_pressure,兄弟壓力,D,自動加總計算,palace_family,兄弟宮內主星與煞星的衝突壓力
+303,palace_3_quality,夫妻品質,D,自動加總計算,palace_family,夫妻宮內主星協同+輔星加持的正能量
+304,palace_3_pressure,夫妻壓力,D,自動加總計算,palace_family,夫妻宮內主星與煞星的衝突壓力
+305,palace_4_quality,子女品質,D,自動加總計算,palace_family,子女宮內主星協同+輔星加持的正能量
+306,palace_4_pressure,子女壓力,D,自動加總計算,palace_family,子女宮內主星與煞星的衝突壓力
+307,palace_C_quality,父母品質,D,自動加總計算,palace_family,父母宮內主星協同+輔星加持的正能量
+308,palace_C_pressure,父母壓力,D,自動加總計算,palace_family,父母宮內主星與煞星的衝突壓力
+309,global_balance,全盤均衡度,D,自動加總計算,global,人格維度分佈的均衡程度
+310,positive_energy_ratio,正負能量比,D,自動加總計算,global,正面維度能量佔總能量比例
+311,pattern_coverage,格局覆蓋率,D,自動加總計算,global,命中格局佔預設格局池的比例
+312,sihua_influence,四化影響力,D,自動加總計算,global,四化對全盤能量的擾動強度
+313,palace_activity,宮位活躍度,D,自動加總計算,global,有顯著能量活動的宮位數量比例
+314,extraversion_index,外向指數 (E-I),E,人格特質維度,mbti_axis,MBTI 外向指數 (E-I)
+315,intuition_index,直覺指數 (N-S),E,人格特質維度,mbti_axis,MBTI 直覺指數 (N-S)
+316,thinking_index,理性指數 (T-F),E,人格特質維度,mbti_axis,MBTI 理性指數 (T-F)
+317,judging_index,秩序指數 (J-P),E,人格特質維度,mbti_axis,MBTI 秩序指數 (J-P)
+318,radiant_expression,光明外顯,E,人格特質維度,personality_facet,太陽式的公開展現能量 — 熱情、博愛、無私的外向展現
+319,magnetic_charm,磁性魅力,E,人格特質維度,personality_facet,貪狼廉貞式的吸引力 — 費洛蒙驅動的外向社交
+320,social_adaptability,社交適應,E,人格特質維度,personality_facet,廉貞主、貪狼次 — 關係與人際彈性上的社交適應
+321,inner_stability,內在穩定,E,人格特質維度,personality_facet,天府太陰式的穩定能量 — 能自我沉澱、不依賴外界掌聲的內向能量
+322,creative_desire,創造慾望,E,人格特質維度,personality_facet,貪狼式的多才多慾 — 跳脫框架、多才多藝的直覺傾向
+323,intellectual_agility,智慧敏捷,E,人格特質維度,personality_facet,天機式的思維敏捷度 — 抽象思考、邏輯推演與點子發想
+324,administrative_order,管理秩序,E,人格特質維度,personality_facet,天府式的組織管理 — 重視現有資源、建立 SOP 的實感傾向
+325,ambition_scope,太陽旺陷,E,人格特質維度,personality_facet,太陽星純亮度（不含空間因子）— 亮度高則光明磊落、公開透明；亮度低則低調變通、善用資源
+326,lunar_nurture,太陰旺陷,E,人格特質維度,personality_facet,太陰星純亮度（不含空間因子）— 亮度高則親情資源豐厚、承擔家庭責任；亮度低則與家人疏離、較少家庭羈絆
+327,martial_resolve,果斷行動力,E,人格特質維度,personality_facet,武曲七殺式的決斷力 — 冷靜、殺伐果斷的理性決策
+328,emotional_depth,情感深度,E,人格特質維度,personality_facet,太陰式的情感細膩 — 心思細膩、容易共情的感性特質
+329,nurturing_patience,包容耐心,E,人格特質維度,personality_facet,天同天梁式的包容特質 — 重視和諧、願意妥協與照顧他人
+330,communicative_force,表達力,E,人格特質維度,personality_facet,巨門文曲式的口才與溝通 — 用語言說服(T)或感染(F)他人
+331,leadership_drive,領導力,E,人格特質維度,personality_facet,紫微式的領導能量 — 渴望建立階級、掌控全局的秩序傾向
+332,self_sovereignty,自主權,E,人格特質維度,personality_facet,紫府同宮式的獨立自足 — 極度獨立、不容他人干涉的堅定邊界感
+333,diplomatic_grace,外交圓融,E,人格特質維度,personality_facet,天相天梁式的調和能力 — 在體制內調和鼎鼐、維持結構穩定
+334,rebellious_change,變革驅動力,E,人格特質維度,personality_facet,破軍式的破壞重建能量 — 討厭僵化、隨時準備推翻現狀的靈活特質
+335,link_sensing,連結感應,E,人格特質維度,ni_source,廉貞(主 1.0)+小星靈性(次 0.5) — 供 Ni 內向直覺取樣
+336,reset_to_zero,重置歸零,E,人格特質維度,ni_source,地空+地劫(主 1.0)+截空(次 0.5)A2彙整值 — 供 Ni 內向直覺取樣
+337,cognitive_Se,外傾感覺,E,人格特質維度,cognitive_function,Se 外向感覺 — 感官敏銳、當下行動：果斷行動+光明外顯+磁性魅力
+338,cognitive_Si,內傾感覺,E,人格特質維度,cognitive_function,Si 內向感覺 — 經驗累積、穩定程序：內在穩定+管理秩序
+339,cognitive_Ne,外傾直覺,E,人格特質維度,cognitive_function,Ne 外向直覺 — 可能性、聯想發散：創造慾望+變革驅動力
+340,cognitive_Ni,內傾直覺,E,人格特質維度,cognitive_function,Ni 內向直覺 — 連結感應(0.5)+接續力/天梁(0.3)+作用力/太陽(0.2) 實作見 engine
+341,cognitive_Te,外傾思考,E,人格特質維度,cognitive_function,Te 外向思維 — 效率系統、可衡量結果：管理秩序+領導力+自主權
+342,cognitive_Ti,內傾思考,E,人格特質維度,cognitive_function,Ti 內向思維 — 精確分析、邏輯框架：智慧敏捷+表達力
+343,cognitive_Fe,外傾情感,E,人格特質維度,cognitive_function,Fe 外向情感 — 感知群體情緒、維護和諧：外交圓融+包容耐心+社交適應+小星人際
+344,cognitive_Fi,內傾情感,E,人格特質維度,cognitive_function,Fi 內向情感 — 內在價值觀、真實性：情感深度+內在穩定+小星靈性
+345,temperament_activity,活動量,E,人格特質維度,temperament,活動量 — Thomas & Chess 氣質：果斷行動+光明外顯+變革驅動
+346,temperament_rhythmicity,規律性,E,人格特質維度,temperament,規律性 — Thomas & Chess 氣質：管理秩序+內在穩定+領導力
+347,temperament_approach,趨避性,E,人格特質維度,temperament,趨避性 — Thomas & Chess 氣質：磁性魅力+光明外顯+社交適應
+348,temperament_adaptability,適應性,E,人格特質維度,temperament,適應性 — Thomas & Chess 氣質：社交適應+外交圓融+變革驅動
+349,temperament_sensitivity,反應閾,E,人格特質維度,temperament,反應閾 — Thomas & Chess 氣質：情感深度+智慧敏捷+小星靈性
+350,temperament_intensity,反應強度,E,人格特質維度,temperament,反應強度 — Thomas & Chess 氣質：果斷行動+表達力+光明外顯
+351,temperament_mood,情緒本質,E,人格特質維度,temperament,情緒本質 — Thomas & Chess 氣質：包容耐心+光明外顯+小星吉+小星人際
+352,temperament_distractibility,注意力分散度,E,人格特質維度,temperament,注意力分散度 — Thomas & Chess 氣質：創造慾望+智慧敏捷+變革驅動
+353,temperament_persistence,堅持度,E,人格特質維度,temperament,堅持度 — Thomas & Chess 氣質：內在穩定+自主權+太陽旺陷

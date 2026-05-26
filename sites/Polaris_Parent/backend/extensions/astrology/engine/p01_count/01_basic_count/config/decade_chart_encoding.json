@@ -1,0 +1,51 @@
+{
+  "encoding_version": "1.0",
+  "encoding_type": "decade_chart",
+  "description": "大限編碼設定檔",
+  "last_updated": "2025-10-30",
+
+  "field_mapping": {
+    "decade_order": "大限順序",
+    "age_range": "大限歲數",
+    "year_range": "大限西元區間",
+    "decade_name": "大限名稱",
+    "palace_position": "宮位"
+  },
+
+  "decade_stars_config": {
+    "comment": "大限星曜配置及編碼映射",
+    "stars": {
+      "大羊": "擎羊",
+      "大陀": "陀羅",
+      "大鉞": "天鉞",
+      "大魁": "天魁",
+      "大祿": "祿存",
+      "大喜": "天喜",
+      "大鸞": "紅鸞",
+      "大馬": "天馬"
+    },
+    "star_codes": {
+      "大羊": "dGL",
+      "大陀": "dST",
+      "大魁": "dCP",
+      "大鉞": "dCA",
+      "大祿": "dDI",
+      "大馬": "dHH",
+      "大鸞": "dRP",
+      "大喜": "dHJ"
+    }
+  },
+
+  "encoding_rules": {
+    "comment": "編碼規則說明",
+    "palace_code_mapping": {
+      "1": "命宮", "2": "兄弟", "3": "夫妻", "4": "子女",
+      "5": "財帛", "6": "疾厄", "7": "遷移", "8": "交友",
+      "9": "官祿", "A": "田宅", "B": "福德", "C": "父母"
+    },
+    "excluded_prefixes": ["Q", "I"],
+    "excluded_special_codes": ["Q5", "LMAR", "MBLE", "GM"],
+    "excluded_sihua": "所有8碼編碼（四化）",
+    "decade_1_special": "第1大限編碼與本命盤完全相同"
+  }
+}

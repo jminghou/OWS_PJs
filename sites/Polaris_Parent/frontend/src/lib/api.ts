@@ -17,6 +17,14 @@ export {
   submissionApi,
   authorApi,
   rbacApi,
+  astrologyApi,
 } from './api/index';
 
 export type { FetchOptions, I18nSettings, AuthorContentCard, AuthorDetailResponse } from './api/index';
+export type {
+  ZiweiCalcRequest,
+  ZiweiCalcResponse,
+  ZiweiPlace,
+  TimeType,
+  GeoHierarchy,
+} from './api/index';

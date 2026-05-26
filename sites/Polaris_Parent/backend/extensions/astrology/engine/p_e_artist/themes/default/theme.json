@@ -1,0 +1,12 @@
+{
+    "name": "預設亮色 (Default Light)",
+    "description": "系統預設的亮色主題，適合列印與一般螢幕觀看。",
+    "author": "System",
+    "version": "1.0",
+    "config": {
+        "layout": {
+            "header_text_y_factor": 0.6,
+            "header_line_y_factor": 0.75
+        }
+    }
+}

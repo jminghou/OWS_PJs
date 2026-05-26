@@ -13,6 +13,7 @@ const navContent: Record<string, {
   articles: string;
   products: string;
   contact: string;
+  ziwei: string;
   openMenu: string;
 }> = {
   'zh-TW': {
@@ -22,6 +23,7 @@ const navContent: Record<string, {
     articles: '親紫專欄',
     products: '服務與產品',
     contact: '聯絡我們',
+    ziwei: '線上排盤',
     openMenu: '打開主選單',
   },
   'zh-CN': {
@@ -31,6 +33,7 @@ const navContent: Record<string, {
     articles: '亲紫专栏',
     products: '服务与产品',
     contact: '联系我们',
+    ziwei: '在线排盘',
     openMenu: '打开主菜单',
   },
   'en': {
@@ -40,6 +43,7 @@ const navContent: Record<string, {
     articles: 'Articles',
     products: 'Products',
     contact: 'Contact',
+    ziwei: 'Ziwei Chart',
     openMenu: 'Open main menu',
   },
   'ja': {
@@ -49,6 +53,7 @@ const navContent: Record<string, {
     articles: '記事',
     products: '製品',
     contact: 'お問い合わせ',
+    ziwei: '紫微占い',
     openMenu: 'メニューを開く',
   },
 };
@@ -148,6 +153,12 @@ export default function PublicHeader() {
             >
               {content.products}
             </button>
+            <Link
+              href={`${basePath}/ziwei`}
+              className="bg-brand-purple-600 text-white hover:bg-brand-purple-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              {content.ziwei}
+            </Link>
             {i18nEnabled && <LanguageSwitcher />}
           </nav>
 
@@ -203,6 +214,13 @@ export default function PublicHeader() {
             >
               {content.products}
             </button>
+            <Link
+              href={`${basePath}/ziwei`}
+              className="bg-brand-purple-600 text-white hover:bg-brand-purple-700 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {content.ziwei}
+            </Link>
           </div>
         </div>
       )}

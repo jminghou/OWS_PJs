@@ -56,7 +56,7 @@ SITE_EXTENSIONS = [
     BlueprintConfig(
         module_path='sites.Polaris_Parent.backend.extensions.astrology',
         url_prefix='/api/v1/astrology',
-        enabled=False
+        enabled=True
     ),
     # Add more site-specific extensions here as needed
     # BlueprintConfig(

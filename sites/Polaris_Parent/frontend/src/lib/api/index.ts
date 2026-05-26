@@ -23,6 +23,14 @@ export { userApi, submissionApi } from './users';
 export { authorApi } from './authors';
 export type { AuthorContentCard, AuthorDetailResponse } from './authors';
 export { rbacApi } from './rbac';
+export { astrologyApi } from './astrology';
+export type {
+  ZiweiCalcRequest,
+  ZiweiCalcResponse,
+  ZiweiPlace,
+  TimeType,
+  GeoHierarchy,
+} from './astrology';
 
 // Default export for backwards compatibility
 import { authApi } from './auth';
@@ -34,6 +42,7 @@ import { i18nApi, homepageApi } from './settings';
 import { userApi, submissionApi } from './users';
 import { authorApi } from './authors';
 import { rbacApi } from './rbac';
+import { astrologyApi } from './astrology';
 
 const api = {
   auth: authApi,
@@ -51,6 +60,7 @@ const api = {
   product: productApi,
   paymentMethod: paymentMethodApi,
   rbac: rbacApi,
+  astrology: astrologyApi,
 };
 
 export default api;
