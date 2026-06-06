@@ -1,9 +1,49 @@
 import logging
+import os
 from logging.config import fileConfig
 
 from flask import current_app
 
 from alembic import context
+
+# =============================================================================
+# 統一資料庫架構（見 ARCHITECTURE_UNIFIED_DB.md）
+# 本站的表只在 blog/shop schema；版本表放 blog schema，與紫微系統的
+# public.alembic_version 互不干擾。include_name 嚴格限定 autogenerate 只比對
+# blog/shop，避免把 account/graph/public 既有表誤判為「待刪除」。
+# =============================================================================
+_OWNED_SCHEMAS = {s for s in (
+    os.environ.get('OWS_BLOG_SCHEMA'),
+    os.environ.get('OWS_SHOP_SCHEMA'),
+) if s}
+_VERSION_TABLE_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA') or None
+
+
+def _include_name(name, type_, parent_names):
+    """只讓 autogenerate 反射本站擁有的 schema（blog/shop）。"""
+    if type_ == 'schema':
+        return name in _OWNED_SCHEMAS
+    return True
+
+
+def _include_object(object_, name, type_, reflected, compare_to):
+    """只比對 blog/shop schema 的物件；media_lib / account / graph / public 一律略過，
+    確保此 migration 不會誤建或誤刪其他子系統的表。"""
+    if type_ == 'table':
+        return object_.schema in _OWNED_SCHEMAS
+    tbl = getattr(object_, 'table', None)
+    if tbl is not None:
+        return tbl.schema in _OWNED_SCHEMAS
+    return True
+
+
+# 本站擁有的 schema 設定（None 代表未設環境變數，退回單一 public 行為）
+_SCHEMA_KWARGS = {
+    'include_schemas': True,
+    'version_table_schema': _VERSION_TABLE_SCHEMA,
+    'include_name': _include_name,
+    'include_object': _include_object,
+} if _OWNED_SCHEMAS else {}
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -65,7 +105,8 @@ def run_migrations_offline():
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url, target_metadata=get_metadata(), literal_binds=True
+        url=url, target_metadata=get_metadata(), literal_binds=True,
+        **_SCHEMA_KWARGS
     )
 
     with context.begin_transaction():
@@ -100,6 +141,7 @@ def run_migrations_online():
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
+            **_SCHEMA_KWARGS,
             **conf_args
         )
 

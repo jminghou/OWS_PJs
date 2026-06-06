@@ -4,12 +4,18 @@ Media Library - Database Models
 所有資料表位於 PostgreSQL 的 media_lib schema 中。
 """
 
+import os
 from datetime import datetime, timezone
 from core.backend_engine.factory import db
 from sqlalchemy.dialects.postgresql import JSONB
 from packages.media_lib.config import SCHEMA_NAME
 
 SCHEMA_ARGS = {'schema': SCHEMA_NAME}
+
+# users 表所在 schema 須與 core models 一致（統一資料庫架構：Polaris=blog；
+# 未設環境變數的站別=public，行為不變）。見 ARCHITECTURE_UNIFIED_DB.md。
+_USERS_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA') or None
+_USERS_FK = f'{_USERS_SCHEMA}.users.id' if _USERS_SCHEMA else 'users.id'
 
 
 # =============================================================================
@@ -37,7 +43,7 @@ class MLFolder(db.Model):
     name = db.Column(db.String(255), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.folders.id'))
     path = db.Column(db.String(500), nullable=False, index=True)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id', deferrable=True))
+    created_by = db.Column(db.Integer, db.ForeignKey(_USERS_FK, deferrable=True))
     description = db.Column(db.Text)
     thumbnail_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.files.id'))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -74,7 +80,7 @@ class MLFile(db.Model):
     alt_text = db.Column(db.String(500))
     caption = db.Column(db.Text)
     folder_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.folders.id'))
-    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id', deferrable=True))
+    uploaded_by = db.Column(db.Integer, db.ForeignKey(_USERS_FK, deferrable=True))
     attributes = db.Column(JSONB, default=dict)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
