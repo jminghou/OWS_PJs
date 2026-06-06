@@ -9,7 +9,7 @@ const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
 
   // 轉譯 monorepo 內的套件
-  transpilePackages: ['@ows/ui'],
+  transpilePackages: ['@ows/ui', '@ows/ziwei-chart'],
   turbopack: {
     rules: {
       '*.svg': {

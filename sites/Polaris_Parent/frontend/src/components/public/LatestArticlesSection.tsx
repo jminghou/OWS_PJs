@@ -20,8 +20,6 @@ interface LatestArticlesSectionProps {
  * 同時輸出 ItemList 結構化資料，幫 AI 理解這是一組內容集合。
  */
 export default function LatestArticlesSection({
-  title,
-  description,
   articles,
   viewMoreLink,
   viewMoreText,
@@ -30,28 +28,25 @@ export default function LatestArticlesSection({
   const itemList = buildItemListJsonLd(articles);
 
   return (
-    <section id="articles" className="py-12 md:py-16 bg-gray-50 scroll-mt-16">
+    <section id="articles" className="py-12 md:py-16 bg-white scroll-mt-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {itemList && <JsonLd data={itemList} />}
-
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{title}</h2>
-          {description && <p className="text-gray-600 max-w-2xl mx-auto">{description}</p>}
-        </div>
 
         {articles.length === 0 ? (
           <p className="text-center text-gray-500">{emptyMessage}</p>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* IG 式純圖磚牆：手機固定 2 欄，桌面起 auto-fill 讓每張圖磚維持約 200px 基本寬度，
+                避免瀏覽器寬窄造成圖片尺寸落差過大 */}
+            <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-1.5 sm:gap-2">
               {articles.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard key={post.id} post={post} variant="tile" />
               ))}
             </div>
             <div className="text-center mt-10">
               <Link
                 href={viewMoreLink}
-                className="inline-flex items-center px-6 py-3 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-colors"
+                className="inline-flex items-center px-7 py-3 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-banner shadow-[0_8px_24px_rgba(139,92,246,0.25)] hover:shadow-[0_10px_30px_rgba(139,92,246,0.35)] hover:-translate-y-0.5 transition-all duration-300"
               >
                 {viewMoreText}
               </Link>

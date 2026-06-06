@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -118,7 +117,7 @@ export default function PublicHeader() {
   return (
     <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-14">
           <div className="flex items-center">
             <button
               onClick={() => scrollToSection('hero')}
@@ -128,7 +127,7 @@ export default function PublicHeader() {
             </button>
           </div>
 
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-4">
             <button
               onClick={() => scrollToSection('hero')}
               className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
@@ -153,12 +152,12 @@ export default function PublicHeader() {
             >
               {content.products}
             </button>
-            <Link
-              href={`${basePath}/ziwei`}
-              className="bg-brand-purple-600 text-white hover:bg-brand-purple-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            <button
+              onClick={() => scrollToSection('ziwei')}
+              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {content.ziwei}
-            </Link>
+            </button>
             {i18nEnabled && <LanguageSwitcher />}
           </nav>
 
@@ -166,7 +165,7 @@ export default function PublicHeader() {
             {i18nEnabled && <LanguageSwitcher />}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 p-2 rounded-md"
+              className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-purple-500 p-2 rounded-md"
             >
               <span className="sr-only">{content.openMenu}</span>
               <svg
@@ -214,13 +213,12 @@ export default function PublicHeader() {
             >
               {content.products}
             </button>
-            <Link
-              href={`${basePath}/ziwei`}
-              className="bg-brand-purple-600 text-white hover:bg-brand-purple-700 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
+            <button
+              onClick={() => scrollToSection('ziwei')}
+              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
             >
               {content.ziwei}
-            </Link>
+            </button>
           </div>
         </div>
       )}

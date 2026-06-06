@@ -25,6 +25,8 @@ export interface ZiweiCalcRequest {
   place?: ZiweiPlace; // time_type=solar_time 時必填
   include_flow?: boolean;
   render?: boolean;
+  /** 附正規化命盤 JSON（供互動命盤引擎 @ows/ziwei-chart）。 */
+  include_chart_json?: boolean;
   theme?: string;
 }
 
@@ -35,6 +37,8 @@ export interface ZiweiCalcResponse {
   solar_time: string | null;
   data: Record<string, any>;
   svg: string | null;
+  /** p_e_artist 正規化形狀（placements/stars/sihua_summary），互動命盤用。 */
+  chart_json: Record<string, any> | null;
   error?: string;
 }
 

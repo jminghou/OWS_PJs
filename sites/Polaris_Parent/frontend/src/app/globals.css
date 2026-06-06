@@ -25,6 +25,9 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
 
+    /* 全站 Banner / 卡片統一圓角（用 rounded-banner 套用）。改這一個值即可一次調整所有網頁圓角。 */
+    --radius-banner: 1rem;
+
     /* Admin UI accent palette (shared with packages/ui admin components)
        Polaris values approximate Tailwind blue-*. */
     --admin-accent-50: 213.8 100% 96.9%;
@@ -102,7 +105,7 @@
 }
 
 .prose-content a {
-  @apply text-blue-600 hover:text-blue-800 underline decoration-blue-200 hover:decoration-blue-400 transition-colors;
+  @apply text-brand-purple-700 hover:text-brand-purple-900 underline decoration-brand-purple-200 hover:decoration-brand-purple-400 transition-colors;
 }
 
 .prose-content ul {
@@ -122,7 +125,7 @@
 }
 
 .prose-content blockquote {
-  @apply border-l-4 border-blue-200 pl-6 py-2 my-6 italic text-gray-700 bg-blue-50 rounded-r-lg;
+  @apply border-l-4 border-warm-400 pl-6 py-2 my-6 italic text-gray-700 bg-warm-50 rounded-r-lg;
 }
 
 .prose-content img {

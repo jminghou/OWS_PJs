@@ -53,7 +53,7 @@ export default function AuthorsSection({ authors, locale = 'zh-TW' }: AuthorsSec
           return (
             <div
               key={author.id}
-              className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col sm:flex-row gap-4 items-center sm:items-start"
+              className="bg-white border border-gray-200 rounded-banner p-6 flex flex-col sm:flex-row gap-4 items-center sm:items-start"
             >
               {author.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element

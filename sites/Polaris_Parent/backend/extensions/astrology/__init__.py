@@ -83,10 +83,14 @@ def calculate():
         place       {city, country}       (time_type=solar_time 時必填)
         include_flow                      (選填, bool, 預設 False)
         render                            (選填, bool, 預設 True → 附 SVG)
+        include_chart_json                (選填, bool, 預設 False → 附正規化命盤 JSON）
         theme                             (選填, str, 預設 "default")
 
     Response JSON:
-        { success, chart_id, solar_time, time_type, data, svg }
+        { success, chart_id, solar_time, time_type, data, svg, chart_json }
+
+    chart_json 為 p_e_artist 期待的正規化形狀（placements/stars/sihua_summary），
+    供前端互動命盤引擎（@ows/ziwei-chart）使用；與靜態 SVG 同一份資料來源。
     """
     eng = _get_engine()
     if eng is None:
@@ -115,6 +119,7 @@ def calculate():
         return jsonify({"success": False, "error": "time_type 必須為 clock_time 或 solar_time"}), 400
     include_flow = bool(data.get("include_flow", False))
     do_render = data.get("render", True)
+    include_chart_json = bool(data.get("include_chart_json", False))
     theme = data.get("theme", "default")
 
     y, mo, d, h = parts["year"], parts["month"], parts["day"], parts["hour"]
@@ -167,6 +172,15 @@ def calculate():
             svg = None
             chart.setdefault("_render_error", str(exc))
 
+    # 正規化命盤 JSON（供前端互動引擎；與 SVG 同一份資料來源）
+    chart_json = None
+    if include_chart_json:
+        try:
+            chart_json = eng.chart_to_artist_dict(chart)
+        except Exception as exc:  # noqa: BLE001
+            # 轉換失敗不擋其餘資料回傳
+            chart.setdefault("_chart_json_error", str(exc))
+
     return jsonify({
         "success": True,
         "chart_id": chart_id,
@@ -174,6 +188,7 @@ def calculate():
         "solar_time": solar_time_str,
         "data": chart,
         "svg": svg,
+        "chart_json": chart_json,
     })
 
 

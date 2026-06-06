@@ -3,7 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { SITE_URL } from '@/lib/seo';
 
-const inter = Inter({ subsets: ['latin'] });
+// 拉丁字（英文/數字）走 Inter；中文一律走微軟正黑體（見 tailwind sans 設定）
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
   // 讓 OG / Twitter / canonical 的相對網址能解析成絕對網址
@@ -50,7 +51,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-TW">
-      <body className={inter.className}>
+      <body className={`${inter.variable} font-sans`}>
         {children}
       </body>
     </html>

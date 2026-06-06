@@ -63,7 +63,7 @@ export default function HeroSection({
   };
 
   return (
-    <section id="hero" className="relative h-[calc(100vh-64px)] min-h-[500px] md:min-h-[640px] overflow-hidden">
+    <section id="hero" className="relative h-[350px] overflow-hidden">
       {/* Background - HeroCarousel for slides */}
       {backgroundSlides.length > 0 ? (
         <div className="absolute inset-0">
@@ -77,72 +77,74 @@ export default function HeroSection({
         </div>
       ) : (
         <>
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-purple-600 to-brand-purple-800" />
-          <div className="absolute inset-0 bg-black/30 z-[1]" />
+          {/* 暖紫漸層：紫為品牌核心，收尾帶暖金，破除冷感 */}
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-purple-700 via-brand-purple-500 to-warm-400" />
+          {/* 只壓暗底部、保留上方通透，文字仍清晰 */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/15 to-transparent z-[1]" />
         </>
       )}
 
-      {/* Content overlay - centered vertically and horizontally */}
+      {/* Content overlay - centered vertically and horizontally（含 CTA，統一置中、間距用 margin 控制）*/}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
         <div className="text-center pointer-events-auto px-4">
           {/* 品牌眉標（小字，在描述性 H1 上方） */}
           {eyebrow && (
-            <p className="text-base md:text-lg font-medium tracking-widest text-white/80 mb-3 drop-shadow">
+            <p className="text-sm md:text-base font-medium tracking-widest text-white/80 mb-2 drop-shadow">
               {eyebrow}
             </p>
           )}
-          {/* 描述性主標 H1（Feature 6: 可被 per-slide title 覆寫） */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center drop-shadow-lg mb-4">
+          {/* 描述性主標 H1（縮小一階 + 收緊行高） */}
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-wide leading-snug text-white text-center drop-shadow-md mb-2">
             {displayTitle}
           </h1>
 
-          {/* Horizontal rule decoration */}
-          <div className="relative my-6">
-            <hr className="w-24 border-t-2 border-white/50 mx-auto" />
+          {/* Horizontal rule decoration — 暖金細線（縮短、拉近與副標距離） */}
+          <div className="relative my-3">
+            <hr className="w-16 border-t-2 border-warm-300/70 mx-auto" />
           </div>
 
-          {/* Subtitle - 支援富文本 HTML */}
+          {/* Subtitle - 支援富文本 HTML（字級縮小） */}
           <div
-            className="text-lg md:text-xl text-white/90 text-center max-w-2xl mx-auto mb-8 prose prose-invert prose-p:text-white/90 prose-p:my-1 prose-strong:text-white prose-em:text-purple-200"
+            className="text-sm md:text-base text-white/90 text-center max-w-2xl mx-auto prose prose-invert prose-p:text-white/90 prose-p:my-1 prose-strong:text-white prose-em:text-purple-200"
             dangerouslySetInnerHTML={{ __html: displaySubtitle }}
           />
-        </div>
-      </div>
 
-      {/* Feature 1: CTA button at bottom */}
-      <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-10">
-        {hasCtaUrl ? (
-          // Per-slide CTA: navigate to the slide's link
-          <a
-            href={ctaUrl}
-            target={ctaNewTab ? '_blank' : '_self'}
-            rel={ctaNewTab ? 'noopener noreferrer' : undefined}
-            className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            {ctaText}
-          </a>
-        ) : (
-          // Global fallback: scroll to #banner section
-          <button
-            onClick={handleScrollToSection}
-            className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            {ctaText}
-            <svg
-              className="ml-2 h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-        )}
+          {/* Feature 1: CTA button（移入流內、尺寸縮小、與上方拉開間距） */}
+          <div className="mt-7">
+            {hasCtaUrl ? (
+              // Per-slide CTA: navigate to the slide's link
+              <a
+                href={ctaUrl}
+                target={ctaNewTab ? '_blank' : '_self'}
+                rel={ctaNewTab ? 'noopener noreferrer' : undefined}
+                className="inline-flex items-center px-6 py-2.5 text-sm bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-banner transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                {ctaText}
+              </a>
+            ) : (
+              // Global fallback: scroll to #banner section
+              <button
+                onClick={handleScrollToSection}
+                className="inline-flex items-center px-6 py-2.5 text-sm bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-banner transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                {ctaText}
+                <svg
+                  className="ml-2 h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );

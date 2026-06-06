@@ -13,7 +13,7 @@ export default function PublicLayout({
       {/* 全站實體資料：讓 AI 把所有內容歸屬到一個可信的組織/網站 */}
       <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
       <PublicHeader />
-      <main className="min-h-screen pt-16">
+      <main className="min-h-screen pt-14">
         {children}
       </main>
       <PublicFooter />

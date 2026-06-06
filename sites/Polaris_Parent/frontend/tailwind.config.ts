@@ -10,6 +10,16 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // 拉丁字優先 Inter，中文一律微軟正黑體（瀏覽器逐字選字）
+        sans: [
+          'var(--font-inter)',
+          '"Microsoft JhengHei"',
+          '"微軟正黑體"',
+          'system-ui',
+          'sans-serif',
+        ],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -83,6 +93,8 @@ const config: Config = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        // 全站「Banner / 卡片」統一圓角：只要改 globals.css 的 --radius-banner 即可一次調整全部
+        banner: 'var(--radius-banner)',
       },
     },
   },
