@@ -239,6 +239,44 @@ __table_args__ = {'schema': 'shop'}                          # 原本沒有 → 
 
 ---
 
+## 11. 第二期：身分整合（Option B — 精簡 app_users + blog profile 擴充）
+
+> 目標：部落格改以 `account.app_users` 為**唯一身分來源**，淘汰 `blog.users` 與自有 RBAC 四表。security-sensitive，分步驟、每步本機驗證。
+
+### 11.1 結構落差（已查證）
+`account.app_users`（BIGINT id；username/password_hash/role/is_active/permissions JSONB/allowed_collectors）**缺** email、avatar、作者檔案(attributes)、meta_data、last_login，且 id 為 BIGINT（blog.users 為 Integer）。`account.users` 是命主表（8176 筆），非登入帳號。
+
+### 11.2 身分資料模型（Option B）
+- **`account.app_users`** = 身分核心（紫微擁有寫入；blog 只讀）。權限走 `role` + `permissions` JSONB（沿用 blog 權限碼，見 §10）。
+- **`blog.member_profiles`（新增，blog 擁有）** = 1:1 擴充，`app_user_id BIGINT PK → account.app_users.id`，存 email / avatar / attributes(作者檔案) / meta_data / last_login。blog_app 直接寫這張，不寫 account。
+
+### 11.3 ORM 與最小改動策略（⚠️ 必須 Claire-safe）
+**關鍵約束**：認證/`User`/RBAC 程式在 **`core/` 共用引擎**，`Claire_Project` 也用（連 `ows_claire`，**無 account schema**）。所有改動必須對 Claire 安全 → 用「環境變數分支」隔離 Polaris 專屬行為。
+
+- **`blog.users` 改為唯讀 VIEW**（Polaris DB only）：`account.app_users LEFT JOIN blog.member_profiles`，欄位對齊現有 `User` 模型（id/username/email/password_hash/role/is_active/avatar/attributes/meta_data/last_login/created_at/updated_at）→ ~28 處 `User.query` 與 ~19 處 `.attributes` **讀取零改動**。Claire 維持真實 `users` table。
+- **`get_user_permissions()`** 環境分支：`_BLOG_SCHEMA` 有設（Polaris）→ 讀 `app_users.role` + `app_users.permissions` JSONB（admin→全部）；未設（Claire）→ 維持 RBAC 四表邏輯。所有 `@require_permission` 不需改。
+- **FK 目標環境驅動**：`contents.author_id`、`orders.user_id`、`comments.user_id`、`activity_logs.user_id`、`media_lib.files.uploaded_by` → Polaris 指 `account.app_users.id`(BIGINT)、Claire 指 `users.id`(Integer)（沿用 media_lib `_USERS_FK` 模式）。
+- **寫入路徑**（login last_login、編輯者 CRUD、register）：view 唯讀 → 這幾處改為寫 `member_profiles`（profile）／經 ziwei 寫 app_users（身分核心），同樣用環境分支不影響 Claire。
+- **新增 Polaris 站專屬模型**（放 `sites/Polaris_Parent/backend/`，不放共用 core）：`AppUser`→`account.app_users`、`MemberProfile`→`blog.member_profiles`，供寫入路徑與 FK 解析用。
+
+### 11.4 分步序列（每步本機驗證）— ✅ 本機已完成（2026-06-07）
+- **2.1** ✅ 建 `blog.member_profiles` + 授權 blog_app 讀 `account.app_users`。
+- **2.2** ✅ Polaris 模型 `AppUser`/`MemberProfile`（`sites/Polaris_Parent/backend/models.py`）；`get_user_permissions` 環境分支讀 `app_users.role`+`permissions`（admin→全部）；core/media_lib 的 user 外鍵環境驅動改指 `account.app_users(BIGINT)`；受影響關聯（User.contents/comments/activity_logs、Order.user）改明確 `primaryjoin/foreign_keys`；`User.user_roles` 關聯僅 Claire 定義。
+- **2.3** ✅ `blog.users` 改為**可讀寫 VIEW**（over app_users+member_profiles）+ INSTEAD OF INSERT/UPDATE/DELETE triggers（SECURITY DEFINER 路由寫入；`init_users_view.sql`）。登入/last_login/編輯者 CRUD/作者檔案皆透明運作，共用程式碼幾乎零改動。
+- **2.4** ✅ 重建 blog/shop（FK→account.app_users）、重生 baseline migration（排除 users/RBAC/member_profiles）、media_lib user 外鍵改指 account.app_users(BIGINT)。
+- **2.5** ✅ blog.users 為 view、RBAC 四表不再建於 db_pcount_v3（模型仍留供 Claire）。
+
+**驗證結果**：登入經 app_users（view）、JWT identity=app_users.id、權限由 app_users.role/permissions（admin 25 權限）、文章作者 FK→app_users 且作者頁 attributes 正常、經 view 建立/改 role/刪除編輯者皆成功、last_login 經 trigger 寫 member_profiles、HTTP 登入/profile/權限閘/logout 全 200；**隔離維持**（blog_app 不能直接寫 account，只能經 view trigger）；**Claire 完全不受影響**（env 未設→users.id Integer、user_roles 關聯保留、mapper 正常）。
+
+**待清理（非阻塞）**：`rbac_admin` 端點與 `flask seed-rbac`/`assign-role` CLI 對 Polaris 已無作用（RBAC 表不存在），日後可加 guard 或移除；blog 管理介面「編輯者管理」的 email/作者檔案寫入已透過 view 正常，但「角色指派」UI 若依賴 RBAC 端點需改走 app_users.role。
+
+### 11.5 風險與 checkpoint
+- 動到認證/授權（登入、JWT identity、權限判斷）→ 每步後跑登入/權限/RBAC 驗證，並用 `/security-review` 掃 diff。
+- 既有 blog admin（blog.users）將被 app_users 帳號取代：上線前需確認 app_users 內有可登入後台的 editor/admin（密碼為紫微側設定）。
+- member_profiles → account.app_users 的 FK 使「紫微刪 app_user」會連動 blog 側（ON DELETE CASCADE）；屬單庫 FK 整合的預期行為。
+
+---
+
 ## 附錄：關鍵檔案
 
 **部落格（OWS_PJs）**

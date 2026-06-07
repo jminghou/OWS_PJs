@@ -26,14 +26,30 @@ def _include_name(name, type_, parent_names):
     return True
 
 
+# 第二期：blog.users 改為 view、RBAC 四表淘汰、member_profiles 由 SQL 自管，
+# 這些不歸 Alembic 管理 → 從 autogenerate 排除（避免誤建/誤刪）。
+_BLOG_SCHEMA_NAME = os.environ.get('OWS_BLOG_SCHEMA')
+_BLOG_UNMANAGED_TABLES = {
+    'users', 'roles', 'permissions', 'role_permissions', 'user_roles', 'member_profiles',
+}
+
+
+def _table_managed(schema, table_name):
+    if schema not in _OWNED_SCHEMAS:
+        return False
+    if schema == _BLOG_SCHEMA_NAME and table_name in _BLOG_UNMANAGED_TABLES:
+        return False
+    return True
+
+
 def _include_object(object_, name, type_, reflected, compare_to):
-    """只比對 blog/shop schema 的物件；media_lib / account / graph / public 一律略過，
-    確保此 migration 不會誤建或誤刪其他子系統的表。"""
+    """只比對 blog/shop 中由 Alembic 管理的物件；media_lib / account / graph / public、
+    以及 blog 的 view/RBAC/member_profiles 一律略過，確保不誤建或誤刪其他子系統的表。"""
     if type_ == 'table':
-        return object_.schema in _OWNED_SCHEMAS
+        return _table_managed(object_.schema, object_.name)
     tbl = getattr(object_, 'table', None)
     if tbl is not None:
-        return tbl.schema in _OWNED_SCHEMAS
+        return _table_managed(tbl.schema, tbl.name)
     return True
 
 

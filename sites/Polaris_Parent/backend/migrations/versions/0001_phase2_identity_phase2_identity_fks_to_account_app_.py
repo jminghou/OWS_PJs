@@ -1,8 +1,8 @@
-"""unified baseline in blog/shop schema
+"""phase2 identity: FKs to account.app_users, blog.users as view
 
-Revision ID: 0001_unified_baseline
+Revision ID: 0001_phase2_identity
 Revises: 
-Create Date: 2026-06-06 18:44:14.183810
+Create Date: 2026-06-07 08:43:12.582484
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '0001_unified_baseline'
+revision = '0001_phase2_identity'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -80,38 +80,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     schema='blog'
     )
-    op.create_table('permissions',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('code', sa.String(length=100), nullable=False),
-    sa.Column('name', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('description', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('module', sa.String(length=50), nullable=False),
-    sa.Column('action', sa.String(length=50), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    schema='blog'
-    )
-    with op.batch_alter_table('permissions', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_blog_permissions_code'), ['code'], unique=True)
-        batch_op.create_index(batch_op.f('ix_blog_permissions_module'), ['module'], unique=False)
-
-    op.create_table('roles',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('code', sa.String(length=50), nullable=False),
-    sa.Column('name', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('description', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('is_system', sa.Boolean(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('permissions_snapshot', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    schema='blog'
-    )
-    with op.batch_alter_table('roles', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_blog_roles_code'), ['code'], unique=True)
-        batch_op.create_index(batch_op.f('ix_blog_roles_is_active'), ['is_active'], unique=False)
-
     op.create_table('settings',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('key', sa.String(length=100), nullable=False),
@@ -162,27 +130,6 @@ def upgrade():
     with op.batch_alter_table('tags', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_blog_tags_code'), ['code'], unique=True)
 
-    op.create_table('users',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('username', sa.String(length=50), nullable=False),
-    sa.Column('email', sa.String(length=100), nullable=False),
-    sa.Column('password_hash', sa.String(length=255), nullable=False),
-    sa.Column('role', sa.String(length=20), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('avatar', sa.String(length=500), nullable=True),
-    sa.Column('attributes', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('meta_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.Column('last_login', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    schema='blog'
-    )
-    with op.batch_alter_table('users', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_blog_users_email'), ['email'], unique=True)
-        batch_op.create_index(batch_op.f('ix_blog_users_is_active'), ['is_active'], unique=False)
-        batch_op.create_index(batch_op.f('ix_blog_users_username'), ['username'], unique=True)
-
     op.create_table('payment_methods',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('code', sa.String(length=50), nullable=False),
@@ -203,7 +150,7 @@ def upgrade():
 
     op.create_table('activity_logs',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.BigInteger(), nullable=True),
     sa.Column('action', sa.String(length=100), nullable=False),
     sa.Column('table_name', sa.String(length=50), nullable=True),
     sa.Column('record_id', sa.Integer(), nullable=True),
@@ -212,7 +159,7 @@ def upgrade():
     sa.Column('ip_address', sa.String(length=45), nullable=True),
     sa.Column('user_agent', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['blog.users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['account.app_users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     schema='blog'
     )
@@ -228,7 +175,7 @@ def upgrade():
     sa.Column('status', sa.String(length=20), nullable=True),
     sa.Column('content_type', sa.String(length=50), nullable=True),
     sa.Column('category_id', sa.Integer(), nullable=True),
-    sa.Column('author_id', sa.Integer(), nullable=True),
+    sa.Column('author_id', sa.BigInteger(), nullable=True),
     sa.Column('featured_image', sa.String(length=500), nullable=True),
     sa.Column('cover_image', sa.String(length=500), nullable=True),
     sa.Column('meta_title', sa.String(length=200), nullable=True),
@@ -242,7 +189,7 @@ def upgrade():
     sa.Column('original_id', sa.Integer(), nullable=True),
     sa.Column('attributes', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('meta_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.ForeignKeyConstraint(['author_id'], ['blog.users.id'], ),
+    sa.ForeignKeyConstraint(['author_id'], ['account.app_users.id'], ),
     sa.ForeignKeyConstraint(['category_id'], ['blog.categories.id'], ),
     sa.ForeignKeyConstraint(['original_id'], ['blog.contents.id'], ),
     sa.PrimaryKeyConstraint('id'),
@@ -258,32 +205,10 @@ def upgrade():
         batch_op.create_index(batch_op.f('ix_blog_contents_status'), ['status'], unique=False)
         batch_op.create_index('ix_contents_list', ['status', 'content_type', 'language', 'published_at'], unique=False)
 
-    op.create_table('role_permissions',
-    sa.Column('role_id', sa.Integer(), nullable=False),
-    sa.Column('permission_id', sa.Integer(), nullable=False),
-    sa.Column('granted_at', sa.DateTime(), nullable=True),
-    sa.Column('granted_by', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['granted_by'], ['blog.users.id'], ),
-    sa.ForeignKeyConstraint(['permission_id'], ['blog.permissions.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['role_id'], ['blog.roles.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('role_id', 'permission_id'),
-    schema='blog'
-    )
-    op.create_table('user_roles',
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('role_id', sa.Integer(), nullable=False),
-    sa.Column('assigned_at', sa.DateTime(), nullable=True),
-    sa.Column('assigned_by', sa.Integer(), nullable=True),
-    sa.Column('expires_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['role_id'], ['blog.roles.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['user_id'], ['blog.users.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('user_id', 'role_id'),
-    schema='blog'
-    )
     op.create_table('orders',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('order_no', sa.String(length=50), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('amount', sa.Integer(), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=True),
     sa.Column('items', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
@@ -293,7 +218,7 @@ def upgrade():
     sa.Column('attributes', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('paid_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['blog.users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['account.app_users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     schema='shop'
     )
@@ -306,7 +231,7 @@ def upgrade():
     op.create_table('comments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('content_id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.BigInteger(), nullable=True),
     sa.Column('author_name', sa.String(length=100), nullable=True),
     sa.Column('author_email', sa.String(length=100), nullable=True),
     sa.Column('comment_text', sa.Text(), nullable=False),
@@ -315,7 +240,7 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['content_id'], ['blog.contents.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['parent_id'], ['blog.comments.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['blog.users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['account.app_users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     schema='blog'
     )
@@ -444,8 +369,6 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_shop_orders_currency'))
 
     op.drop_table('orders', schema='shop')
-    op.drop_table('user_roles', schema='blog')
-    op.drop_table('role_permissions', schema='blog')
     with op.batch_alter_table('contents', schema=None) as batch_op:
         batch_op.drop_index('ix_contents_list')
         batch_op.drop_index(batch_op.f('ix_blog_contents_status'))
@@ -466,12 +389,6 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_shop_payment_methods_code'))
 
     op.drop_table('payment_methods', schema='shop')
-    with op.batch_alter_table('users', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_blog_users_username'))
-        batch_op.drop_index(batch_op.f('ix_blog_users_is_active'))
-        batch_op.drop_index(batch_op.f('ix_blog_users_email'))
-
-    op.drop_table('users', schema='blog')
     with op.batch_alter_table('tags', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_blog_tags_code'))
 
@@ -486,16 +403,6 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_blog_settings_key'))
 
     op.drop_table('settings', schema='blog')
-    with op.batch_alter_table('roles', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_blog_roles_is_active'))
-        batch_op.drop_index(batch_op.f('ix_blog_roles_code'))
-
-    op.drop_table('roles', schema='blog')
-    with op.batch_alter_table('permissions', schema=None) as batch_op:
-        batch_op.drop_index(batch_op.f('ix_blog_permissions_module'))
-        batch_op.drop_index(batch_op.f('ix_blog_permissions_code'))
-
-    op.drop_table('permissions', schema='blog')
     op.drop_table('menus', schema='blog')
     op.drop_table('homepage_slides', schema='blog')
     op.drop_table('homepage_settings', schema='blog')

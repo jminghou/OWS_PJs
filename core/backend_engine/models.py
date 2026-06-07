@@ -45,6 +45,18 @@ def _q(name: str, schema: Optional[str]) -> str:
     return f'{schema}.{name}' if schema else name
 
 
+# 第二期身分整合（§11）：使用者外鍵的「目標」與「型別」依部署而定。
+# Polaris（_BLOG_SCHEMA 有設）→ 指向 account.app_users(BIGINT)，身分集中於紫微側；
+# 其他站（如 Claire，未設）→ 維持指向自身 users 表(Integer)，行為不變。
+# 註：Polaris 需由站專屬模型把 account.app_users 載入 metadata，FK 字串才解析得到。
+if _BLOG_SCHEMA:
+    _USER_FK_TARGET = 'account.app_users.id'
+    _USER_ID_TYPE = db.BigInteger
+else:
+    _USER_FK_TARGET = 'users.id'
+    _USER_ID_TYPE = db.Integer
+
+
 # =============================================================================
 # Utility Functions
 # =============================================================================
@@ -134,7 +146,7 @@ class RolePermission(db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey(_q('roles.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
     permission_id = db.Column(db.Integer, db.ForeignKey(_q('permissions.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
     granted_at = db.Column(db.DateTime, default=datetime.utcnow)
-    granted_by = db.Column(db.Integer, db.ForeignKey(_q('users.id', _BLOG_SCHEMA)), nullable=True)
+    granted_by = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), nullable=True)
 
     def __repr__(self):
         return f'<RolePermission role={self.role_id} permission={self.permission_id}>'
@@ -145,7 +157,7 @@ class UserRole(db.Model):
     __tablename__ = 'user_roles'
     __table_args__ = {'schema': _BLOG_SCHEMA}
 
-    user_id = db.Column(db.Integer, db.ForeignKey(_q('users.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET, ondelete='CASCADE'), primary_key=True)
     role_id = db.Column(db.Integer, db.ForeignKey(_q('roles.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
     assigned_at = db.Column(db.DateTime, default=datetime.utcnow)
     assigned_by = db.Column(db.Integer, nullable=True)
@@ -181,10 +193,24 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime)
 
     # Relationships
-    contents = db.relationship('Content', backref='author', lazy='dynamic')
-    comments = db.relationship('Comment', backref='user', lazy='dynamic')
-    activity_logs = db.relationship('ActivityLog', backref='user', lazy='dynamic')
-    user_roles = db.relationship('UserRole', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    # 第二期：使用者外鍵改指 account.app_users（Polaris）後，User 與這些表之間已無
+    # DB 外鍵連結，須明確指定 primaryjoin/foreign_keys（join 於 User.id == *.user/author_id）。
+    # 對 Claire（外鍵仍指自身 users）同樣成立。
+    contents = db.relationship('Content', backref='author', lazy='dynamic',
+                               foreign_keys='Content.author_id',
+                               primaryjoin='User.id == Content.author_id')
+    comments = db.relationship('Comment', backref='user', lazy='dynamic',
+                               foreign_keys='Comment.user_id',
+                               primaryjoin='User.id == Comment.user_id')
+    activity_logs = db.relationship('ActivityLog', backref='user', lazy='dynamic',
+                                    foreign_keys='ActivityLog.user_id',
+                                    primaryjoin='User.id == ActivityLog.user_id')
+    # RBAC 四表僅供未統一身分的站別（Claire）使用；Polaris 已淘汰、表不存在，
+    # 故不定義此關聯（否則刪除 User 時 cascade 會去查不存在的 blog.user_roles）。
+    if not _BLOG_SCHEMA:
+        user_roles = db.relationship('UserRole', backref='user', lazy='dynamic', cascade='all, delete-orphan',
+                                     foreign_keys='UserRole.user_id',
+                                     primaryjoin='User.id == UserRole.user_id')
 
     def set_password(self, password: str) -> None:
         """Hash and set password after validation."""
@@ -296,7 +322,7 @@ class Content(db.Model):
     status = db.Column(db.String(20), default='draft', index=True)
     content_type = db.Column(db.String(50), default='article', index=True)
     category_id = db.Column(db.Integer, db.ForeignKey(_q('categories.id', _BLOG_SCHEMA)), index=True)
-    author_id = db.Column(db.Integer, db.ForeignKey(_q('users.id', _BLOG_SCHEMA)), index=True)
+    author_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), index=True)
     featured_image = db.Column(db.String(500))  # 16:9, supports GCS long URLs
     cover_image = db.Column(db.String(500))  # 1:1
     meta_title = db.Column(db.String(200))
@@ -390,7 +416,7 @@ class Comment(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     content_id = db.Column(db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA), ondelete='CASCADE'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey(_q('users.id', _BLOG_SCHEMA)))
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET))
     author_name = db.Column(db.String(100))
     author_email = db.Column(db.String(100))
     comment_text = db.Column(db.Text, nullable=False)
@@ -593,7 +619,7 @@ class ActivityLog(db.Model):
     __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey(_q('users.id', _BLOG_SCHEMA)))
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET))
     action = db.Column(db.String(100), nullable=False)
     table_name = db.Column(db.String(50))
     record_id = db.Column(db.Integer)
@@ -869,7 +895,7 @@ class Order(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     order_no = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey(_q('users.id', _BLOG_SCHEMA)), nullable=False)
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), nullable=False)
     amount = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='pending', index=True)
     items = db.Column(JSONB, default=[])  # Snapshot of items
@@ -886,7 +912,9 @@ class Order(db.Model):
     paid_at = db.Column(db.DateTime, nullable=True)
 
     # Relationships
-    user = db.relationship('User', backref='orders')
+    user = db.relationship('User', backref='orders',
+                           foreign_keys='Order.user_id',
+                           primaryjoin='User.id == Order.user_id')
 
     def to_dict(self) -> Dict[str, Any]:
         return {
