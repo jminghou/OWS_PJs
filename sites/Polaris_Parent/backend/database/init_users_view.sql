@@ -32,7 +32,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON blog.users TO blog_app;
 
 -- ── INSTEAD OF INSERT：建 app_users（身分）+ member_profiles（擴充）────────────
 CREATE OR REPLACE FUNCTION blog._users_insert() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 DECLARE new_id bigint;
 BEGIN
     INSERT INTO account.app_users(
@@ -60,7 +60,7 @@ $$;
 
 -- ── INSTEAD OF UPDATE：身分欄位寫 app_users；擴充欄位 upsert member_profiles ────
 CREATE OR REPLACE FUNCTION blog._users_update() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     UPDATE account.app_users
        SET username      = NEW.username,
@@ -91,7 +91,7 @@ $$;
 
 -- ── INSTEAD OF DELETE：刪 app_users（member_profiles 由 FK ON DELETE CASCADE）──
 CREATE OR REPLACE FUNCTION blog._users_delete() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     DELETE FROM account.app_users WHERE id = OLD.id;
     RETURN OLD;
