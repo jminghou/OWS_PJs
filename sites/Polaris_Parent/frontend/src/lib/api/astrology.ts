@@ -4,7 +4,7 @@
  *   POST /api/v1/astrology/calculate
  *   GET  /api/v1/astrology/geo-options
  */
-import { API_URL } from './client';
+import { API_URL, request } from './client';
 
 export type TimeType = 'clock_time' | 'solar_time';
 
@@ -70,6 +70,37 @@ export interface SaveAndRegisterResponse {
   error?: string;
 }
 
+/** 結構化生辰（供重繪：以此打 /calculate）。 */
+export interface ChartBirth {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+}
+
+export interface MyChart {
+  chart_id: string;
+  name?: string | null;
+  gender?: string | null;
+  birth?: ChartBirth | null;
+  clock_time?: string | null;
+  solar_time?: string | null;
+  place?: string | null;
+}
+
+export interface MyPerson {
+  user_id: string;
+  display_name?: string | null;
+  relation_label?: string | null;
+  charts: MyChart[];
+}
+
+export interface MyFavorite extends MyChart {
+  note?: string | null;
+  created_at?: string | null;
+}
+
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     method: 'POST',
@@ -102,6 +133,28 @@ export const astrologyApi = {
     postJson<{ success: boolean; message?: string }>('/astrology/set-password', {
       token,
       password,
+    }),
+
+  // ── 會員端（需登入；帶 cookie）──
+  /** 我的命盤（擁有的人 + 其命盤）。 */
+  myCharts: () =>
+    request<{ success: boolean; people: MyPerson[] }>('/astrology/my/charts'),
+
+  /** 我的收藏。 */
+  myFavorites: () =>
+    request<{ success: boolean; favorites: MyFavorite[] }>('/astrology/my/favorites'),
+
+  /** 收藏一張公開命盤。 */
+  addFavorite: (chartId: string, note = '') =>
+    request<{ success: boolean }>('/astrology/my/favorites', {
+      method: 'POST',
+      body: JSON.stringify({ chart_id: chartId, note }),
+    }),
+
+  /** 取消收藏。 */
+  removeFavorite: (chartId: string) =>
+    request<{ success: boolean }>(`/astrology/my/favorites/${chartId}`, {
+      method: 'DELETE',
     }),
 
   /** 取得地點級聯選項（真太陽時用）。 */

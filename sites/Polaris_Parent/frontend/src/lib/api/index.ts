@@ -30,6 +30,12 @@ export type {
   ZiweiPlace,
   TimeType,
   GeoHierarchy,
+  SaveAndRegisterRequest,
+  SaveAndRegisterResponse,
+  ChartBirth,
+  MyChart,
+  MyPerson,
+  MyFavorite,
 } from './astrology';
 
 // Default export for backwards compatibility
