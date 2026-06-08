@@ -270,8 +270,9 @@ def upload_file():
 
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f'Upload failed: {e}')
-        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+        # 細節只寫進後端 log，避免把 exception（可能含憑證等敏感資訊）回傳給前端
+        current_app.logger.exception('Upload failed')
+        return jsonify({'error': 'Upload failed. Please try again later.'}), 500
 
 
 @media_lib_bp.route('/files/<int:file_id>', methods=['PUT'])
@@ -656,8 +657,8 @@ def scan_gcs():
         }), 200
 
     except Exception as e:
-        current_app.logger.error(f'GCS scan failed: {e}')
-        return jsonify({'error': f'Scan failed: {str(e)}'}), 500
+        current_app.logger.exception('GCS scan failed')
+        return jsonify({'error': 'Scan failed. Please try again later.'}), 500
 
 
 @media_lib_bp.route('/import/execute', methods=['POST'])
@@ -772,7 +773,8 @@ def import_from_gcs():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Database commit failed: {str(e)}'}), 500
+        current_app.logger.exception('GCS import: database commit failed')
+        return jsonify({'error': 'Database commit failed. Please try again later.'}), 500
 
     return jsonify({
         'imported': imported,
