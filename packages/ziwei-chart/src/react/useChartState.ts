@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { DEFAULT_LAYERS, type LayerFlags } from "./types";
+import { DEFAULT_LAYERS, type LayerFlags, type ActiveLayer } from "./types";
 
 /** 管理主軸宮與圖層開關狀態（支援受控 axisPalace）。 */
 export function useChartState(opts: {
@@ -26,5 +26,7 @@ export function useChartState(opts: {
     setOverrides((prev) => ({ ...prev, [key]: !layers[key] }));
   }
 
-  return { axisPalace, selectPalace, layers, toggleLayer };
+  const [activeLayer, setActiveLayer] = useState<ActiveLayer>({ type: "natal" });
+
+  return { axisPalace, selectPalace, layers, toggleLayer, activeLayer, setActiveLayer };
 }

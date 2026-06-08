@@ -19,6 +19,16 @@ const OUT = join(here, "..", "src", "react", "starSvgData.ts");
 
 const files = readdirSync(STARS_DIR).filter((f) => f.toLowerCase().endsWith(".svg")).sort();
 
+/** 是否為「深色墨」（要換成 currentColor，讓圖示跟著主題變色）。白/淺色保留。 */
+function isDarkInk(hex) {
+  let h = hex.slice(1);
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return r + g + b < 200; // 近黑（如 #231815/#050101）→ true；#fff → false
+}
+
 const data = {};
 const colors = new Set();
 for (const f of files) {
@@ -30,6 +40,8 @@ for (const f of files) {
   for (const c of inner.matchAll(/fill:\s*(#[0-9A-Fa-f]{3,6})/g)) colors.add(c[1]);
   for (const c of inner.matchAll(/fill="(#[0-9A-Fa-f]{3,6})"/g)) colors.add(c[1]);
   inner = inner.split("cls-").join(code + "cls-");
+  // 深色墨 → currentColor（圖示色由主題的 starGlyph 控制；白色高光保留）
+  inner = inner.replace(/(#[0-9A-Fa-f]{3,6})/g, (m) => (isDarkInk(m) ? "currentColor" : m));
   inner = inner.replace(/\s+/g, " ").trim();
   data[code] = { viewBox, inner };
 }

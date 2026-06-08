@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ZiweiChart } from '@ows/ziwei-chart';
+import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
 import Button from '@/components/ui/Button';
 import {
   astrologyApi,
@@ -33,6 +33,7 @@ export default function ZiweiChartForm() {
   const [result, setResult] = useState<ZiweiCalcResponse | null>(null);
   const [pngBusy, setPngBusy] = useState(false);
   const [viewMode, setViewMode] = useState<'interactive' | 'static'>('interactive');
+  const [chartTheme, setChartTheme] = useState<'light' | 'dark' | 'sepia'>('light');
 
   // 切到「真太陽時」時才載入地點選項
   useEffect(() => {
@@ -92,6 +93,7 @@ export default function ZiweiChartForm() {
             : undefined,
         render: true,
         include_chart_json: true,
+        include_flow: true,
       });
       setResult(res);
     } catch (err: any) {
@@ -382,6 +384,24 @@ export default function ZiweiChartForm() {
               </div>
             )}
 
+            {/* 版型樣式（互動命盤）*/}
+            {result.chart_json && viewMode === 'interactive' && (
+              <label className="inline-flex items-center gap-2 text-sm text-gray-600">
+                版型
+                <select
+                  value={chartTheme}
+                  onChange={(e) =>
+                    setChartTheme(e.target.value as 'light' | 'dark' | 'sepia')
+                  }
+                  className="px-3 py-2 text-sm rounded-banner border border-gray-300 focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+                >
+                  <option value="light">淺色</option>
+                  <option value="dark">深色</option>
+                  <option value="sepia">宣紙</option>
+                </select>
+              </label>
+            )}
+
             {result.svg && (
               <>
                 <button
@@ -404,8 +424,18 @@ export default function ZiweiChartForm() {
           </div>
 
           {result.chart_json && viewMode === 'interactive' ? (
-            <div className="w-full">
-              <ZiweiChart chart={result.chart_json} />
+            <div
+              className="w-full rounded-banner p-2 sm:p-4"
+              style={{
+                background: chartTheme === 'light' ? 'transparent' : NAMED_THEMES[chartTheme].colors?.bg,
+                transition: 'background 200ms ease',
+              }}
+            >
+              <ZiweiChart
+                chart={result.chart_json}
+                flow={result.flow ?? undefined}
+                theme={NAMED_THEMES[chartTheme]}
+              />
             </div>
           ) : result.svg ? (
             <div

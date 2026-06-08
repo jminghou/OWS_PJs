@@ -39,6 +39,8 @@ export interface ZiweiCalcResponse {
   svg: string | null;
   /** p_e_artist 正規化形狀（placements/stars/sihua_summary），互動命盤用。 */
   chart_json: Record<string, any> | null;
+  /** 流盤層（目前含大限 decades）；需 include_flow + include_chart_json。 */
+  flow: Record<string, any> | null;
   error?: string;
 }
 

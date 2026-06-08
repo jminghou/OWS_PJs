@@ -57,13 +57,22 @@ export class GridLayout {
 
 // ── 宮位內部排版（對應 _render_palace_el）───────────────────
 
+interface BadgeGeom {
+  cx: number;
+  cy: number;
+  r: number;
+  label: string;
+}
+
 export interface StarIconBox {
   star: StarInfo;
   x: number;
   y: number;
   size: number;
-  /** 四化徽章（圓心、半徑、字母），無則 null。 */
-  badge: { cx: number; cy: number; r: number; label: string } | null;
+  /** 本命四化徽章（右上角），無則 null。 */
+  badge: BadgeGeom | null;
+  /** 流盤四化徽章（左上角，疊加模式），無則 null。 */
+  flowBadge: BadgeGeom | null;
 }
 
 export interface PalaceLayout {
@@ -74,6 +83,8 @@ export interface PalaceLayout {
   nameEn: { x: number; y: number };
   /** 地支文字位置（anchor=end）。 */
   branch: { x: number; y: number };
+  /** 流盤宮位標記（大X/流X/小X），疊加模式時顯示；無則 null。 */
+  flowTag: { x: number; y: number; text: string } | null;
   /** header 底線。 */
   underline: { x1: number; y1: number; x2: number; y2: number };
   majorIcons: StarIconBox[];
@@ -100,15 +111,14 @@ function iconBoxes(
     const x = leftX + i * (iconSize + gap);
     const y = rowTopY;
     const letter = star.sihua ? SIHUA_LETTER[star.sihua] ?? "" : "";
-    const badge = letter
-      ? {
-          cx: x + iconSize - badgeSize / 2,
-          cy: y + badgeSize / 2,
-          r: badgeSize / 2,
-          label: letter,
-        }
+    const flowLetter = star.flowSihua ? SIHUA_LETTER[star.flowSihua] ?? "" : "";
+    const badge: BadgeGeom | null = letter
+      ? { cx: x + iconSize - badgeSize / 2, cy: y + badgeSize / 2, r: badgeSize / 2, label: letter }
       : null;
-    return { star, x, y, size: iconSize, badge };
+    const flowBadge: BadgeGeom | null = flowLetter
+      ? { cx: x + badgeSize / 2, cy: y + badgeSize / 2, r: badgeSize / 2, label: flowLetter }
+      : null;
+    return { star, x, y, size: iconSize, badge, flowBadge };
   });
 }
 
@@ -119,7 +129,7 @@ export function computePalaceLayout(
   palace: PalaceInfo,
   cell: CellRect,
   theme: ZiweiTheme,
-  opts: { cnName: string; enName: string; branchLabel: string },
+  opts: { cnName: string; enName: string; branchLabel: string; flowTag?: string },
 ): PalaceLayout {
   const lo = theme.layout;
   const padLeft = lo.palacePadLeft;
@@ -151,6 +161,12 @@ export function computePalaceLayout(
         : theme.sizes.palaceName * 0.55),
     0,
   );
+  // 流盤宮位標記（大X/流X/小X）緊接宮名右側
+  const tagText = opts.flowTag ?? "";
+  const tagFs = theme.sizes.palaceName;
+  const tagW = tagText ? [...tagText].length * tagFs : 0;
+  const tagX = px + padLeft + cnW + 4;
+  const enX = tagX + (tagText ? tagW + 4 : 0);
 
   // stars 區域幾何（對應 svg_writer）
   const minorHeight = starMinorSize * minorLh + minorPb;
@@ -190,8 +206,9 @@ export function computePalaceLayout(
   return {
     cell,
     name: { x: px + padLeft, y: py + baselineY },
-    nameEn: { x: px + padLeft + cnW + 4, y: py + baselineY },
+    nameEn: { x: enX, y: py + baselineY },
     branch: { x: px + pw - padRight, y: py + baselineY },
+    flowTag: tagText ? { x: tagX, y: py + baselineY, text: tagText } : null,
     underline: {
       x1: px + padLeft,
       y1: py + underlineY,

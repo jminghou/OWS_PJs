@@ -1,8 +1,9 @@
-import type { FC } from "react";
+import { Fragment, type FC } from "react";
 import type { PalaceInfo } from "../core/model";
 import type { PalaceLayout, StarIconBox } from "../core/layout";
 import type { ZiweiTheme } from "../core/theme";
-import { brightnessNameZh } from "../core/registry";
+import { brightnessNameZh, starNameZh } from "../core/registry";
+import { isFlowStar } from "../core/constants";
 import { StarIcon } from "./StarIcon";
 import type { LayerFlags } from "./types";
 
@@ -22,21 +23,25 @@ interface PalaceProps {
 function Badge({
   box,
   theme,
+  bg,
+  ink,
 }: {
   box: NonNullable<StarIconBox["badge"]>;
   theme: ZiweiTheme;
+  bg?: string;
+  ink?: string;
 }) {
   const fs = theme.sizes.sihuaTag;
   return (
     <g style={{ pointerEvents: "none" }}>
-      <circle cx={box.cx} cy={box.cy} r={box.r} fill={theme.colors.sihuaBadgeBg} />
+      <circle cx={box.cx} cy={box.cy} r={box.r} fill={bg ?? theme.colors.sihuaBadgeBg} />
       <text
         x={box.cx}
         y={box.cy + fs * 0.35}
         textAnchor="middle"
         fontSize={fs}
         fontWeight="bold"
-        fill={theme.colors.sihuaTagInk}
+        fill={ink ?? theme.colors.sihuaTagInk}
         fontFamily={theme.fontFamily}
       >
         {box.label}
@@ -57,7 +62,13 @@ function IconWithExtras({
   const bright = layers.brightness ? brightnessNameZh(box.star.brightness) : "";
   return (
     <g style={{ pointerEvents: "none" }}>
-      <StarIcon code={box.star.code} x={box.x} y={box.y} size={box.size} />
+      <StarIcon
+        code={box.star.code}
+        x={box.x}
+        y={box.y}
+        size={box.size}
+        glyphColor={theme.colors.starGlyph}
+      />
       {bright ? (
         <text
           x={box.x + box.size / 2}
@@ -71,6 +82,9 @@ function IconWithExtras({
         </text>
       ) : null}
       {layers.sihua && box.badge ? <Badge box={box.badge} theme={theme} /> : null}
+      {layers.sihua && box.flowBadge ? (
+        <Badge box={box.flowBadge} theme={theme} bg={theme.colors.flowStar} ink="#ffffff" />
+      ) : null}
     </g>
   );
 }
@@ -123,6 +137,19 @@ export const Palace: FC<PalaceProps> = ({
       >
         {cnName}
       </text>
+      {layout.flowTag ? (
+        <text
+          x={layout.flowTag.x}
+          y={layout.flowTag.y}
+          fontSize={theme.sizes.palaceName}
+          fontWeight="bold"
+          fill={theme.colors.flowStar}
+          fontFamily={theme.fontFamily}
+          style={{ pointerEvents: "none" }}
+        >
+          {layout.flowTag.text}
+        </text>
+      ) : null}
       {layers.palaceNameEn && enName ? (
         <text
           x={layout.nameEn.x}
@@ -165,20 +192,45 @@ export const Palace: FC<PalaceProps> = ({
         <IconWithExtras key={`s-${i}`} box={box} theme={theme} layers={layers} />
       ))}
 
-      {/* 小星文字 */}
-      {layers.minorStars && layout.minorText ? (
-        <text
-          x={layout.minorText.x}
-          y={layout.minorText.y}
-          textAnchor="middle"
-          fontSize={theme.sizes.starMinor}
-          fill={theme.colors.starMinor}
-          fontFamily={theme.fontFamily}
-          style={{ pointerEvents: "none" }}
-        >
-          {layout.minorText.text}
-        </text>
-      ) : null}
+      {/* 小星／流曜文字（流曜以區隔色標記，各自可開關） */}
+      {layout.minorText
+        ? (() => {
+            const sep = theme.layout.minorSeparator;
+            const shown = palace.minors.filter((s) =>
+              isFlowStar(s.code) ? layers.flowStars : layers.minorStars,
+            );
+            if (shown.length === 0) return null;
+            return (
+              <text
+                x={layout.minorText!.x}
+                y={layout.minorText!.y}
+                textAnchor="middle"
+                fontSize={theme.sizes.starMinor}
+                fontFamily={theme.fontFamily}
+                style={{ pointerEvents: "none" }}
+              >
+                {shown.map((s, i) => {
+                  const flow = isFlowStar(s.code);
+                  return (
+                    <Fragment key={`${s.code}-${i}`}>
+                      {i > 0 ? (
+                        <tspan fill={theme.colors.starMinor} opacity={0.55}>
+                          {sep}
+                        </tspan>
+                      ) : null}
+                      <tspan
+                        fill={flow ? theme.colors.flowStar : theme.colors.starMinor}
+                        fontWeight={flow ? 600 : undefined}
+                      >
+                        {starNameZh(s.code)}
+                      </tspan>
+                    </Fragment>
+                  );
+                })}
+              </text>
+            );
+          })()
+        : null}
     </g>
   );
 };
