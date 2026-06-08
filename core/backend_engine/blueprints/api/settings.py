@@ -121,6 +121,13 @@ def api_get_homepage_settings():
     except (json.JSONDecodeError, TypeError, ValueError):
         about_section = {}
 
+    # 服務宣言區塊（Banner）
+    banner_setting = Setting.query.filter_by(key='homepage_banner_section').first()
+    try:
+        banner_section = json.loads(banner_setting.value) if banner_setting and banner_setting.value else {}
+    except (json.JSONDecodeError, TypeError, ValueError):
+        banner_section = {}
+
     homepage_settings = HomepageSettings.query.first()
     button_text = homepage_settings.button_text if homepage_settings else {}
     # Features 7 & 9: global carousel settings
@@ -138,6 +145,7 @@ def api_get_homepage_settings():
         'slides': [s.to_dict() for s in slides],
         'button_text': button_text,
         'about_section': about_section,
+        'banner_section': banner_section,
         'pause_on_hover': pause_on_hover,
         'lazy_loading': lazy_loading,
         'updated_at': updated_at
@@ -169,6 +177,15 @@ def api_update_homepage_settings():
             setting.value = json.dumps(about_data, ensure_ascii=False)
         else:
             db.session.add(Setting(key='homepage_about_section', value=json.dumps(about_data, ensure_ascii=False)))
+
+    # 1b. 處理服務宣言區塊 (Banner，使用 Setting 表)
+    if 'banner_section' in data:
+        banner_data = data.get('banner_section')
+        setting = Setting.query.filter_by(key='homepage_banner_section').first()
+        if setting:
+            setting.value = json.dumps(banner_data, ensure_ascii=False)
+        else:
+            db.session.add(Setting(key='homepage_banner_section', value=json.dumps(banner_data, ensure_ascii=False)))
 
     # 2. 處理全域設定 (按鈕文字 + Features 7 & 9)
     homepage_settings = HomepageSettings.query.first()
