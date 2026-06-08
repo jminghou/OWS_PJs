@@ -116,6 +116,31 @@ def determine_yin_yang_gender(year_stem, gender):
     else:
         return "未知"
 
+def lunar_to_solar(lunar_year, lunar_month, lunar_day, is_leap=False):
+    """
+    農曆 → 西曆轉換
+
+    Args:
+        lunar_year (int): 農曆年
+        lunar_month (int): 農曆月（1-12）
+        lunar_day (int): 農曆日（1-30）
+        is_leap (bool): 該月是否為閏月
+
+    Returns:
+        tuple: 西曆 (year, month, day)
+
+    Raises:
+        ValueError: 當農曆日期不存在時（如該月僅 29 天卻輸入 30，或指定閏月不存在）
+    """
+    try:
+        d = sxtwl.fromLunar(lunar_year, lunar_month, lunar_day, is_leap)
+    except Exception as e:
+        raise ValueError(
+            f"無效的農曆日期 {lunar_year}年{'閏' if is_leap else ''}{lunar_month}月{lunar_day}日：{e}"
+        )
+    return d.getSolarYear(), d.getSolarMonth(), d.getSolarDay()
+
+
 def calculate_lunar_date(solar_date, gender):
     if len(solar_date) == 4:
         year, month, day, hour = solar_date

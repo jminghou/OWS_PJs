@@ -27,7 +27,7 @@ from .core.encoder_flow import (
     generate_small_limit_encoding_data,
     generate_year_flow_encoding_data
 )
-from .core.id_generator import generate_chart_id
+from .core.id_generator import generate_chart_id, compute_lookup_user_id
 
 __version__ = "1.0.0"
 __all__ = [
@@ -43,4 +43,5 @@ __all__ = [
 
     # ID 管理
     'generate_chart_id',                    # 生成命盤 ID
+    'compute_lookup_user_id',               # 計算跨批次人物 lookup user_id（無性別）
 ]

@@ -21,6 +21,8 @@ def calculate_chart(
     name: str = "",
     birthplace: str = "",
     time_type: str = "solar_time",
+    calendar_type: str = "solar",
+    is_leap_month: bool = False,
     include_flow: bool = True,
     include_encoding: bool = True,
     **kwargs
@@ -30,13 +32,19 @@ def calculate_chart(
 
     Args:
         birth_date: 出生日期時間 (year, month, day, hour, minute)
-                   例如: (1987, 11, 17, 14, 30)
+                   - calendar_type="solar"：西元日期，例如 (1987, 11, 17, 14, 30)
+                   - calendar_type="lunar"：農曆日期，例如 (1987, 10, 26, 0, 0)
+                     （函式會先轉成西元，再走相同排盤流程）
         gender: 性別，"男" 或 "女"
         name: 姓名（可選）
         birthplace: 出生地（可選）
         time_type: 時間類型
                   - "solar_time": 太陽時間（真太陽時）
                   - "clock_time": 鐘錶時間
+        calendar_type: 輸入曆法
+                  - "solar": 西元（預設）
+                  - "lunar": 農曆，birth_date 視為農曆年月日，內部轉西元後排盤
+        is_leap_month: 農曆輸入時，該月是否為閏月（calendar_type="lunar" 時生效）
         include_flow: 是否計算流年流月（大限、小限、流年）
         include_encoding: 是否包含快速條件編碼（本命盤、大限、小限、流年編碼）
         **kwargs: 其他可選參數
@@ -68,6 +76,18 @@ def calculate_chart(
         >>> print(chart['chart_id'])
         >>> print(chart['宮位資料']['命宮']['主星'])
     """
+    # 農曆輸入：先轉成西元日期，之後完全走西元排盤流程
+    # （chart_id、get_all_data、曆法數據、編碼皆只依賴此西元 birth_date）
+    if calendar_type == "lunar":
+        from .sxtwl_utils import lunar_to_solar
+        lunar_year, lunar_month, lunar_day = birth_date[0], birth_date[1], birth_date[2]
+        hour = birth_date[3] if len(birth_date) > 3 else 0
+        minute = birth_date[4] if len(birth_date) > 4 else 0
+        solar_year, solar_month, solar_day = lunar_to_solar(
+            lunar_year, lunar_month, lunar_day, is_leap_month
+        )
+        birth_date = (solar_year, solar_month, solar_day, hour, minute)
+
     # 組裝 basic_data 字典
     basic_data = {
         '命盤主': name or '未命名',
@@ -75,6 +95,10 @@ def calculate_chart(
         '出生地': birthplace or '',
         'time_type': time_type,
     }
+
+    # 記錄原始輸入曆法供溯源（不影響計算）
+    if calendar_type == "lunar":
+        basic_data['輸入曆法'] = '農曆'
 
     # 新增其他可選參數
     basic_data.update(kwargs)

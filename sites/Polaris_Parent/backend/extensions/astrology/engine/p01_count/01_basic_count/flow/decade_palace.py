@@ -131,7 +131,8 @@ def get_ten_palace_info(yin_yang_gender, bureau, twelve_palaces, solar_date, pal
                 "父母": (16, 25)
             }
             
-    elif yin_yang_gender == "陰女":
+    # 逆行（陰男、陽女）：命→兄弟→夫妻…，第二大限進兄弟宮
+    elif yin_yang_gender == "陰男":
         if bureau_number == 2:  # 水二局
             age_ranges = {
                 "命宮": (2, 11),
@@ -208,8 +209,8 @@ def get_ten_palace_info(yin_yang_gender, bureau, twelve_palaces, solar_date, pal
                 "父母": (116, 125)
             }
 
-    # 添加陰男情況的大限表定義
-    elif yin_yang_gender == "陰男":
+    # 順行（陽男、陰女）：命→父母→福德…，第二大限進父母宮
+    elif yin_yang_gender == "陰女":
         if bureau_number == 2:  # 水二局
             age_ranges = {
                 "命宮": (2, 11),
@@ -331,7 +332,7 @@ def get_ten_palace_info(yin_yang_gender, bureau, twelve_palaces, solar_date, pal
             "夫妻": 11,
             "兄弟": 12
         }
-    elif yin_yang_gender == "陰女":
+    elif yin_yang_gender == "陰男":
         order_map = {
             "命宮": 1,
             "兄弟": 2,
@@ -346,7 +347,7 @@ def get_ten_palace_info(yin_yang_gender, bureau, twelve_palaces, solar_date, pal
             "福德": 11,
             "父母": 12
         }
-    elif yin_yang_gender == "陰男":
+    elif yin_yang_gender == "陰女":
         order_map = {
             "命宮": 1,
             "父母": 2,

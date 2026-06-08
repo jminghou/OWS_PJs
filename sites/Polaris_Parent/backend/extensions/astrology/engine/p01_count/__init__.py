@@ -22,10 +22,12 @@ calculate_chart = _basic_count.calculate_chart
 calculate_batch_charts = _basic_count.calculate_batch_charts
 encode_chart_data = _basic_count.encode_chart_data
 generate_chart_id = _basic_count.generate_chart_id
+compute_lookup_user_id = _basic_count.compute_lookup_user_id
 
 __all__ = [
     'calculate_chart',
     'calculate_batch_charts',
     'encode_chart_data',
     'generate_chart_id',
+    'compute_lookup_user_id',
 ]
