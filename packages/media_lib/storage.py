@@ -36,17 +36,42 @@ class MediaStorage:
             from google.cloud import storage
             self.bucket_name = kwargs['bucket_name']
             self.public_url_prefix = f'https://storage.googleapis.com/{self.bucket_name}'
-            credentials_path = kwargs.get('credentials_path')
-            if credentials_path:
-                self.client = storage.Client.from_service_account_json(credentials_path)
-            else:
-                self.client = storage.Client()
+            credentials = kwargs.get('credentials')
+            self.client = self._build_gcs_client(storage, credentials)
             self.bucket = self.client.bucket(self.bucket_name)
 
         elif backend == 'local':
             self.base_path = kwargs['base_path']
             self.url_prefix = kwargs.get('url_prefix', '/uploads')
             os.makedirs(self.base_path, exist_ok=True)
+
+    @staticmethod
+    def _build_gcs_client(storage, credentials):
+        """
+        建立 GCS client，相容三種憑證來源：
+
+        1. 未提供憑證 → 使用環境預設憑證（ADC，例如 GCE/Cloud Run 內建身分）。
+        2. 提供「JSON 內容」（以 '{' 開頭）→ 解析後用 from_service_account_info。
+        3. 提供「檔案路徑」→ 用 from_service_account_json。
+
+        注意：production 的 GCS_CREDENTIALS_JSON 環境變數存的是 JSON 全文，
+        from_service_account_json() 只吃路徑，直接傳全文會被當成檔名而噴
+        [Errno 36] Filename too long。
+        """
+        if not credentials:
+            return storage.Client()
+
+        value = credentials.strip() if isinstance(credentials, str) else credentials
+
+        # JSON 內容（dict 或以 '{' 開頭的字串）
+        if isinstance(value, dict):
+            return storage.Client.from_service_account_info(value)
+        if isinstance(value, str) and value.startswith('{'):
+            import json
+            return storage.Client.from_service_account_info(json.loads(value))
+
+        # 否則視為檔案路徑
+        return storage.Client.from_service_account_json(value)
 
     @classmethod
     def get_instance(cls) -> 'MediaStorage':
@@ -55,11 +80,11 @@ class MediaStorage:
             bucket_name = current_app.config.get('GCS_BUCKET_NAME')
 
             if bucket_name:
-                credentials_path = current_app.config.get('GCS_CREDENTIALS_JSON')
+                credentials = current_app.config.get('GCS_CREDENTIALS_JSON')
                 cls._instance = cls(
                     'gcs',
                     bucket_name=bucket_name,
-                    credentials_path=credentials_path,
+                    credentials=credentials,
                 )
                 current_app.logger.info(
                     f'MediaStorage initialized with GCS backend (bucket: {bucket_name})'
