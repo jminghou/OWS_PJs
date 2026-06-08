@@ -16,6 +16,7 @@ import urllib.request
 import urllib.error
 
 from flask import Blueprint, jsonify, request, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 try:
     from core.backend_engine.factory import limiter
@@ -41,6 +42,26 @@ def _ziwei_save_and_register(payload: dict):
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.loads(r.read().decode('utf-8')), None
+    except urllib.error.HTTPError as e:
+        try:
+            detail = json.loads(e.read().decode('utf-8')).get('detail')
+        except Exception:
+            detail = None
+        return None, detail or f"命盤服務錯誤 ({e.code})"
+    except Exception as e:  # noqa: BLE001
+        return None, f"無法連線命盤服務：{e}"
+
+
+def _ziwei_call(method: str, path: str, payload: dict = None):
+    """通用呼叫紫微 public API（帶服務密鑰）。回 (data, error)。"""
+    data = json.dumps(payload).encode('utf-8') if payload is not None else None
+    req = urllib.request.Request(
+        f"{_ZIWEI_API_URL}{path}", data=data, method=method,
+        headers={'Content-Type': 'application/json', 'X-Service-Token': _PUBLIC_SERVICE_TOKEN})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            body = r.read().decode('utf-8')
+            return (json.loads(body) if body else {}), None
     except urllib.error.HTTPError as e:
         try:
             detail = json.loads(e.read().decode('utf-8')).get('detail')
@@ -366,6 +387,52 @@ def set_password():
         db.session.rollback()
         return jsonify({"success": False, "error": str(ve)}), 400
     return jsonify({"success": True, "message": "密碼已設定，請登入"})
+
+
+# ── 會員端：我的命盤 / 收藏（需登入；member_id 取自 JWT）─────────────────────
+@bp.route('/my/charts', methods=['GET'])
+@jwt_required()
+def my_charts():
+    """登入會員擁有的人（命主）+ 其命盤。"""
+    data, err = _ziwei_call('GET', f'/public/members/{get_jwt_identity()}/charts')
+    if err:
+        return jsonify({"success": False, "error": err}), 502
+    return jsonify({"success": True, **data})
+
+
+@bp.route('/my/favorites', methods=['GET'])
+@jwt_required()
+def my_favorites():
+    """登入會員收藏的命盤。"""
+    data, err = _ziwei_call('GET', f'/public/members/{get_jwt_identity()}/favorites')
+    if err:
+        return jsonify({"success": False, "error": err}), 502
+    return jsonify({"success": True, **data})
+
+
+@bp.route('/my/favorites', methods=['POST'])
+@jwt_required()
+@_limit("30 per minute")
+def add_my_favorite():
+    """收藏一張公開命盤。body: {chart_id, note?}"""
+    body = request.get_json(silent=True) or {}
+    if not body.get("chart_id"):
+        return jsonify({"success": False, "error": "缺少 chart_id"}), 400
+    data, err = _ziwei_call('POST', f'/public/members/{get_jwt_identity()}/favorites',
+                            {"chart_id": body.get("chart_id"), "note": body.get("note", "")})
+    if err:
+        return jsonify({"success": False, "error": err}), 502
+    return jsonify(data)
+
+
+@bp.route('/my/favorites/<chart_id>', methods=['DELETE'])
+@jwt_required()
+def remove_my_favorite(chart_id):
+    """取消收藏。"""
+    data, err = _ziwei_call('DELETE', f'/public/members/{get_jwt_identity()}/favorites/{chart_id}')
+    if err:
+        return jsonify({"success": False, "error": err}), 502
+    return jsonify(data)
 
 
 # ── 健康檢查 ────────────────────────────────────────────────
