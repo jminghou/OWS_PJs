@@ -24,7 +24,7 @@ from datetime import datetime
 import pytz
 import re
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload, subqueryload
+from sqlalchemy.orm import joinedload, subqueryload, defer
 
 from core.backend_engine.factory import db, cache
 from core.backend_engine.blueprints.api import bp
@@ -43,6 +43,12 @@ from core.backend_engine.services.rbac import require_permission, RBACService
 
 content_schema = ContentSchema()
 contents_schema = ContentSchema(many=True)
+# 列表用精簡 schema：卡片只需標題/摘要/圖片/作者/分類/標籤，
+# 不需整篇內文與 SEO/JSONB 重欄位。排除後可大幅縮小列表 payload 與序列化成本。
+contents_list_schema = ContentSchema(
+    many=True,
+    exclude=('content', 'meta_data', 'attributes', 'meta_title', 'meta_description'),
+)
 category_schema = CategorySchema()
 categories_schema = CategorySchema(many=True)
 tag_schema = TagSchema()
@@ -121,11 +127,13 @@ def api_contents():
     tag = request.args.get('tag')
     language = request.args.get('language')
 
-    # Optimized query: Use eager loading to solve N+1 problem
+    # Optimized query: Use eager loading to solve N+1 problem.
+    # defer(content)：列表不回傳內文全文，避免從 DB 撈出整欄大文字。
     query = Content.query.options(
         joinedload(Content.author),
         joinedload(Content.category),
-        subqueryload(Content.tags)
+        subqueryload(Content.tags),
+        defer(Content.content)
     )
 
     if is_i18n_enabled():
@@ -169,15 +177,24 @@ def api_contents():
         query = query.filter(search_filter)
 
     if tag:
-        query = query.join(Content.tags).filter(Tag.code == tag)
+        # 前端分類按鈕送的是在地化顯示名（slugs 值），但標籤主鍵是 code（多為英文）。
+        # 這裡同時接受 code 或任一語言的 slug 值，避免「點分類卻 0 筆」。
+        tag_lang = language or get_i18n_setting('i18n_default_language', 'zh-TW')
+        matched_tag_ids = [
+            t.id for t in Tag.query.all()
+            if t.code == tag
+            or get_localized_slug(t, tag_lang) == tag
+            or (t.slugs and tag in t.slugs.values())
+        ]
+        query = query.join(Content.tags).filter(Tag.id.in_(matched_tag_ids or [-1]))
 
     contents_pagination = query.order_by(Content.published_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
 
-    # Serialize with Marshmallow and decorate
+    # Serialize with Marshmallow and decorate（列表用精簡 schema，不含內文全文）
     contents_data = []
-    dumped_data = contents_schema.dump(contents_pagination.items)
+    dumped_data = contents_list_schema.dump(contents_pagination.items)
     for idx, content in enumerate(contents_pagination.items):
         contents_data.append(_decorate_content(content, dumped_data[idx]))
 

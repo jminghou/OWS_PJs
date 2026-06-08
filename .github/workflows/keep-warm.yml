@@ -1,0 +1,32 @@
+name: Keep API Warm
+
+# 目的：定期 ping 後端 /health，避免 Railway 服務閒置休眠導致首次請求冷啟動（實測可達 3 秒）。
+# /health 不查 DB，成本極低。GitHub 排程最短間隔為 5 分鐘，且高負載時可能略有延遲；
+# 若需要更穩定的保溫，建議改用外部監控（如 UptimeRobot，免費 5 分鐘間隔）指向同一個 /health。
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # 每 5 分鐘
+  workflow_dispatch: {}       # 也可手動觸發
+
+# 避免上一輪未結束時重複觸發
+concurrency:
+  group: keep-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        env:
+          # 可在 repo Settings → Variables 設定 HEALTH_URL 覆寫；未設定時用正式站預設值
+          HEALTH_URL: ${{ vars.HEALTH_URL || 'https://api.clairelab.tw/health' }}
+        run: |
+          echo "Pinging $HEALTH_URL"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$HEALTH_URL" || echo "000")
+          echo "HTTP $code"
+          # 保溫用途：即使非 200 也不讓 workflow 失敗（避免無謂的告警噪音）
+          if [ "$code" != "200" ]; then
+            echo "::warning::Health check returned $code (warm-up ping, not failing the job)"
+          fi
