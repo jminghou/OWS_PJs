@@ -457,6 +457,7 @@ export default function HomepagePage() {
   const [slides, setSlides] = useState<HomepageSlide[]>([]);
   const [buttonText, setButtonText] = useState<Record<string, string>>({});
   const [aboutSection, setAboutSection] = useState<Record<string, any>>({});
+  const [bannerSection, setBannerSection] = useState<Record<string, any>>({});
   const [pauseOnHover, setPauseOnHover] = useState(true);
   const [lazyLoading, setLazyLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -468,7 +469,7 @@ export default function HomepagePage() {
   const [pendingField, setPendingField] = useState<'image_url' | 'video_url'>('image_url');
   const [isAboutImageBrowserOpen, setIsAboutImageBrowserOpen] = useState(false);
 
-  type SectionKey = 'slides' | 'button_text' | 'about_section' | 'carousel_settings';
+  type SectionKey = 'slides' | 'button_text' | 'about_section' | 'banner_section' | 'carousel_settings';
   const [activeSection, setActiveSection] = useState<SectionKey>('slides');
 
   const enabledLanguages = i18nSettings?.languages || [];
@@ -503,6 +504,7 @@ export default function HomepagePage() {
       setSlides(homepageData.slides || []);
       setButtonText(homepageData.button_text || {});
       setAboutSection(homepageData.about_section || {});
+      setBannerSection(homepageData.banner_section || {});
       setPauseOnHover(homepageData.pause_on_hover ?? true);
       setLazyLoading(homepageData.lazy_loading ?? true);
       setI18nSettings(i18nData);
@@ -599,6 +601,7 @@ export default function HomepagePage() {
         slides,
         button_text: buttonText,
         about_section: aboutSection,
+        banner_section: bannerSection,
         pause_on_hover: pauseOnHover,
         lazy_loading: lazyLoading,
       });
@@ -623,6 +626,7 @@ export default function HomepagePage() {
     { key: 'carousel_settings', label: '輪播全域設定' },
     { key: 'button_text', label: '按鈕文字設定' },
     { key: 'about_section', label: '關於我們區塊設定' },
+    { key: 'banner_section', label: '服務宣言區塊設定' },
   ];
 
   const sidebar = (
@@ -663,6 +667,7 @@ export default function HomepagePage() {
                 {activeSection === 'carousel_settings' && '設定輪播的全域行為（hover 暫停、延遲載入）'}
                 {activeSection === 'button_text' && '設定首頁 Hero Section 進入「關於我們」按鈕的多語言文字'}
                 {activeSection === 'about_section' && '管理首頁「關於我們」區塊的多語言內容'}
+                {activeSection === 'banner_section' && '管理首頁「服務宣言」區塊的多語言標題與描述'}
               </p>
             </div>
             <Button
@@ -921,6 +926,72 @@ export default function HomepagePage() {
                           rows={4}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-navy-400 focus:outline-none"
                           placeholder="看懂天賦&#10;理解差異&#10;精準溝通"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── 服務宣言區塊設定 ─────────────────────────────────────── */}
+          {activeSection === 'banner_section' && (
+            <>
+              {loading ? (
+                <div className="flex justify-center items-center py-6">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-navy-600"></div>
+                </div>
+              ) : (
+                <div className="space-y-6 max-w-3xl">
+                  <div className="flex gap-2 border-b border-gray-200">
+                    {enabledLanguages.map((lang) => (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => setActiveLanguage(lang)}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${
+                          activeLanguage === lang
+                            ? 'text-brand-navy-600 border-b-2 border-brand-navy-600'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        {languageNames[lang] || lang}
+                      </button>
+                    ))}
+                  </div>
+
+                  {enabledLanguages.map((lang) => (
+                    <div
+                      key={lang}
+                      className={`space-y-4 ${activeLanguage === lang ? 'block' : 'hidden'}`}
+                    >
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">標題</label>
+                        <input
+                          type="text"
+                          value={bannerSection[lang]?.heading || ''}
+                          onChange={(e) => {
+                            const n = { ...bannerSection };
+                            n[lang] = { ...n[lang], heading: e.target.value };
+                            setBannerSection(n);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-navy-400 focus:outline-none"
+                          placeholder="例如：在資源投入前，先與你的長期價值對齊"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                        <textarea
+                          value={bannerSection[lang]?.description || ''}
+                          onChange={(e) => {
+                            const n = { ...bannerSection };
+                            n[lang] = { ...n[lang], description: e.target.value };
+                            setBannerSection(n);
+                          }}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-navy-400 focus:outline-none"
+                          placeholder="例如：作為策略建築師，專注於將複雜變數轉化為支持企業長期成長的堅實架構。"
                         />
                       </div>
                     </div>
