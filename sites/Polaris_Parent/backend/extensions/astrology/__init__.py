@@ -304,6 +304,7 @@ def save_and_register():
         "hour": parts["hour"], "minute": minute,
         "gender": gender, "name": (data.get("name") or "").strip(),
         "place": (data.get("place") or "").strip(), "email": email,
+        "relation": (data.get("relation") or "self"),
     })
     if zerr:
         return jsonify({"success": False, "error": zerr}), 502
