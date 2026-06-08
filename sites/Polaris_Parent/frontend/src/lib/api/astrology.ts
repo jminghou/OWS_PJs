@@ -47,6 +47,29 @@ export interface ZiweiCalcResponse {
 /** 洲 → 國家 → 城市[] */
 export type GeoHierarchy = Record<string, Record<string, string[]>>;
 
+/** 一鍵建檔 + 註冊（第三期 §12） */
+export interface SaveAndRegisterRequest {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute?: number;
+  gender: string; // 男 / 女
+  name?: string;
+  place?: string;
+  email: string;
+  relation?: string; // 命主相對會員：self/father/...（預設 self）
+}
+
+export interface SaveAndRegisterResponse {
+  success: boolean;
+  chart_id: string;
+  member_id: string;
+  is_new_member: boolean;
+  email: string;
+  error?: string;
+}
+
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     method: 'POST',
@@ -69,6 +92,17 @@ export const astrologyApi = {
   /** 排盤：回傳命盤 JSON 與十二宮方圖 SVG。 */
   calculate: (req: ZiweiCalcRequest) =>
     postJson<ZiweiCalcResponse>('/astrology/calculate', req),
+
+  /** 一鍵建檔 + 註冊：存命盤、建免密碼會員、寄設定密碼信。 */
+  saveAndRegister: (req: SaveAndRegisterRequest) =>
+    postJson<SaveAndRegisterResponse>('/astrology/save-and-register', req),
+
+  /** 以設定密碼信的 token 設定會員密碼。 */
+  setPassword: (token: string, password: string) =>
+    postJson<{ success: boolean; message?: string }>('/astrology/set-password', {
+      token,
+      password,
+    }),
 
   /** 取得地點級聯選項（真太陽時用）。 */
   geoOptions: async (): Promise<GeoHierarchy> => {

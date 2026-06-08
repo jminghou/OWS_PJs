@@ -35,6 +35,12 @@ export default function ZiweiChartForm() {
   const [viewMode, setViewMode] = useState<'interactive' | 'static'>('interactive');
   const [chartTheme, setChartTheme] = useState<'light' | 'dark' | 'sepia'>('light');
 
+  // 一鍵建檔 + 註冊（第三期）
+  const [saveEmail, setSaveEmail] = useState('');
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveDone, setSaveDone] = useState('');
+  const [saveErr, setSaveErr] = useState('');
+
   // 切到「真太陽時」時才載入地點選項
   useEffect(() => {
     if (form.timeType !== 'solar_time' || geo) return;
@@ -100,6 +106,45 @@ export default function ZiweiChartForm() {
       setError(err.message || '排盤失敗，請稍後再試');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── 一鍵建檔 + 註冊：存命盤、建免密碼會員、寄設定密碼信 ──
+  const handleSave = async () => {
+    setSaveErr('');
+    setSaveDone('');
+    if (!saveEmail || !saveEmail.includes('@')) {
+      setSaveErr('請輸入有效的 email');
+      return;
+    }
+    const [year, month, day] = form.date.split('-').map(Number);
+    const [hour, minute] = form.time.split(':').map(Number);
+    setSaveBusy(true);
+    try {
+      const res = await astrologyApi.saveAndRegister({
+        year,
+        month,
+        day,
+        hour,
+        minute: minute || 0,
+        gender: form.gender,
+        name: form.name,
+        place:
+          form.timeType === 'solar_time'
+            ? `${form.city}, ${form.country}`
+            : '',
+        email: saveEmail,
+        relation: 'self',
+      });
+      setSaveDone(
+        res.is_new_member
+          ? '已儲存命盤並建立會員！設定密碼信已寄出，請至 email 設定密碼即可登入查看。'
+          : '已儲存命盤到你的會員帳號！'
+      );
+    } catch (err: any) {
+      setSaveErr(err.message || '儲存失敗，請稍後再試');
+    } finally {
+      setSaveBusy(false);
     }
   };
 
@@ -353,6 +398,32 @@ export default function ZiweiChartForm() {
               </span>
             )}
             {result.solar_time && <span>真太陽時：{result.solar_time}</span>}
+          </div>
+
+          {/* 一鍵建檔 + 註冊 */}
+          <div className="mb-4 p-4 bg-brand-purple-50 rounded-banner border border-brand-purple-200">
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              儲存這張命盤到你的會員帳號（輸入 email 即可，免密碼）
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                value={saveEmail}
+                onChange={(e) => setSaveEmail(e.target.value)}
+                placeholder="你的 email"
+                className={`${inputCls} sm:flex-1`}
+              />
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={saveBusy}
+                className="bg-brand-purple-600 hover:bg-brand-purple-700 whitespace-nowrap"
+              >
+                {saveBusy ? '儲存中…' : '儲存命盤・成為會員'}
+              </Button>
+            </div>
+            {saveErr && <p className="mt-2 text-sm text-red-600">{saveErr}</p>}
+            {saveDone && <p className="mt-2 text-sm text-green-700">{saveDone}</p>}
           </div>
 
           <div className="flex flex-wrap items-center gap-3 mb-4">
