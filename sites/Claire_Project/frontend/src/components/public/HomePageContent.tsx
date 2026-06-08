@@ -140,8 +140,8 @@ export default function HomePageContent({
 
       {/* 4. Banner Section - Text only */}
       <BannerSection
-        heading={content.bannerHeading}
-        description={content.bannerDescription}
+        heading={homepageSettings.banner_section?.[locale]?.heading || content.bannerHeading}
+        description={homepageSettings.banner_section?.[locale]?.description || content.bannerDescription}
       />
 
       {/* 5. Contact Section - 研究交流 */}
