@@ -224,6 +224,11 @@ export interface HomepageSettings {
     mission_points: string[];
     image_url?: string;
   }>;
+  // 服務宣言區塊（Banner）多語言內容
+  banner_section?: Record<string, {
+    heading: string;
+    description: string;
+  }>;
   // Feature 7: Global hover pause toggle
   pause_on_hover?: boolean;
   // Feature 9: Global lazy loading toggle
