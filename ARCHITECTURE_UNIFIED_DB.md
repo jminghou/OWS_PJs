@@ -277,6 +277,75 @@ __table_args__ = {'schema': 'shop'}                          # 原本沒有 → 
 
 ---
 
+## 12. 第三期：排盤一鍵建檔 + 註冊（跨 repo）
+
+> 目標：使用者在部落格排盤頁輸入生辰（+ email）算出命盤後，按一鍵即把命盤存入
+> `account.*` 並完成低摩擦會員註冊。
+
+### 12.1 可重用的持久化路徑（關鍵發現）
+紫微側 **`calculate_and_upload(chart_data)`**（`1_run/PolarisUI/backend/modules/ziwei/logic/chart_input/chart_upload.py`）已封裝「計算 + 多表寫入」：呼叫 `EnhancedChartUploader.upload_chart()`，在單一 transaction 內寫 `account.users` + `user_profiles` + `user_chart_raw` + `user_natal_codes` + `user_fortune_codes`(252)，回命主 `user_id`（= chart_id）。**第三期不需重寫多表寫入，直接重用。**
+
+### 12.2 目標流程
+```
+排盤頁(blog) 輸入生辰 + email → 一鍵
+  → blog 後端 → 紫微 public API: POST /public/charts/save-and-register
+       1. 組 chart_data（blog 生辰輸入 → ChartInputNode 形狀：Name/Gender/Clock time/Place/Calendar type）
+       2. calculate_and_upload() → 持久化命盤 → chart_id（命主 user_id）
+       3. UPSERT account.app_users（以 email 找/建免密碼會員）→ member_id
+       4. 連結 chart ↔ member
+       5. 回 { member_id, chart_id }
+  → blog 設定登入態
+```
+- chart_id 與 blog 排盤引擎同源（vendored），身分天然相容。
+
+### 12.3 待決定（fork — 直接影響實作）
+- **命主↔會員連結**：`account.users` 加 `owner_member_id BIGINT`（紫微 p12_sql migration）／獨立 `member_charts` 連結表／暫存 `account.users.tags` JSONB。
+- **MVP「註冊」交付**：免密碼會員（之後 phase4 magic link 登入）／當下要求設密碼／寄設定密碼信。
+- **端點防護**：rate limit + email 格式/驗證 + 防同 email 重複建命主（UPSERT 會員、命盤掛同一人）。
+- **前端協調**：排盤頁 `ZiweiChartForm.tsx` 目前有**未提交的開發中改動**（需與你的進度協調，避免衝突）。
+
+### 12.4 分步序列（規劃，未施工）
+- 3.1 紫微側：`POST /public/charts/save-and-register`（重用 calculate_and_upload + app_users upsert + 連結）。
+- 3.2 連結 schema（依 12.3 決定）。
+- 3.3 blog 後端：proxy/呼叫該 API（或前端直呼）。
+- 3.4 blog 排盤頁：加 email 欄 + 一鍵按鈕 + 設登入態。
+- 3.5 防護 + 驗證（rate limit、email、重複處理）。
+
+### 12.5 e2e 驗證結果（2026-06-08）
+真實兩後端（紫微 :8000 + blog :5001）跑通一鍵建檔全鏈：命盤完整寫入（user_chart_raw / natal / **fortune_codes 252**）、會員建立、`blog.member_profiles(email)`、命主歸戶 `owner_member_id`、set-password 信（本機無 SMTP→log 連結）。測試資料已清理。
+- **釐清**：命主↔命盤 linking 正確（uploader 將 `user_profiles.user_id` 設為命主 user_id）。e2e 一度查到 None 是**清理假象**——`user_profiles.user_id` 外鍵為 `ON DELETE SET NULL`，先刪命主會把 profile 的 user_id 清掉。
+- **待修（小）**：blog 端點把 `calculate_and_upload` 回的**命主 user_id** 誤標成 `chart_id`。`UploadResult` 同時有兩者，需讓 `calculate_and_upload` 一併回傳 chart_id，端點分開回。
+
+### 12.6 資料模型擴充：會員擁有 / 關係 / 收藏
+
+**確認的既有模型（比預期完整）**
+- `user_id = hash(姓名+生日)` → 識別「**人/命主**」；`chart_id` → 具體命盤。
+- **一人多盤自動成立**（同人同 user_id、不同算法不同 chart_id）；重複上傳同一人自動去重（UPSERT users）。
+- `account.user_relationships`（from/to_user_id + relation_type/reverse_type）→ **人與人關係已有表**。
+
+**擴充需求 → DB 變化（已定案 2026-06-08）**
+| # | 變化 | 狀態 |
+|---|---|---|
+| 1 | `account.users.owner_member_id`（人歸戶到會員；NULL=非會員所有） | ✅ 已做（0004） |
+| 2 | **新表 `account.member_favorites`**（收藏 M2M）`(member_id→app_users, chart_id→命盤, note, created_at, PK(member_id,chart_id))` | ➕ 待做 |
+| 3 | `account.users.relation_label` VARCHAR（命主相對會員：self/father/mother/…） | ➕ 待做 |
+| 4 | `account.user_profiles.is_public` BOOLEAN DEFAULT FALSE（會員端可見的策展旗標） | ➕ 待做 |
+| 5 | `account.user_relationships`（人與人關係） | ✅ 既有沿用 |
+| 6 | 會員自有命盤的 **per-member user_id**（uploader 接受注入 user_id；端點以 member 命名空間計算） | ➕ 待做（最小隔離） |
+
+**已定案的設計**
+1. **隔離（選項 B，最小工作量）**：會員自己的人用 **per-member 命名空間 user_id**（member 為 salt），避免跨會員同名同生日撞庫；公共/名人庫維持全域 hash。chart_id 碰撞屬罕見邊界，先接受。
+2. **收藏**：指向 `chart_id`、名人盤**共享單一份**（多人收藏同一 chart_id）、`member_favorites.note` 存個人註記。
+3. **關係**：加 `relation_label`（會員視角，組「我的家人」清單）；人對人完整關係另用 `user_relationships`。
+4. **可見性（會員端 vs 管理端分離）**：
+   - **會員端**只看：`owner_member_id = 我`（自己建立的）+ `member_favorites`（收藏）+ `is_public=TRUE`（策展公共盤）。
+   - **管理端**維持 `collector` / `allowed_collectors` ACL，看全部。
+   - **公共命盤** = `owner_member_id IS NULL` **且** `is_public=TRUE`。
+   - **現有 8176** 維持 `is_public=FALSE`（owner NULL）→ **只對管理端可見，一般會員看不到**；會員預設只看自己建立的，公共池由日後策展（標 is_public）逐步開放。
+5. **self 命主**：`relation_label='self'`。
+
+---
+
 ## 附錄：關鍵檔案
 
 **部落格（OWS_PJs）**

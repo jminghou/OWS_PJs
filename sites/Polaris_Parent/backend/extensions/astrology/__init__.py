@@ -10,7 +10,12 @@ Endpoints:
 排盤核心 vendored 於 ./engine（同步用 scripts/publish_ziwei_engine.ps1）。
 """
 
-from flask import Blueprint, jsonify, request
+import os
+import json
+import urllib.request
+import urllib.error
+
+from flask import Blueprint, jsonify, request, current_app
 
 try:
     from core.backend_engine.factory import limiter
@@ -18,6 +23,32 @@ except Exception:  # pragma: no cover - 限流器不可用時不擋功能
     limiter = None
 
 bp = Blueprint('astrology', __name__)
+
+# 第三期：排盤一鍵建檔 — 呼叫紫微 public API（server-to-server，服務密鑰）
+_ZIWEI_API_URL = os.environ.get('ZIWEI_API_URL', 'http://127.0.0.1:8000').rstrip('/')
+_PUBLIC_SERVICE_TOKEN = os.environ.get('PUBLIC_SERVICE_TOKEN', '')
+
+
+def _ziwei_save_and_register(payload: dict):
+    """呼叫紫微 POST /public/charts/save-and-register。回 (data, error)。"""
+    req = urllib.request.Request(
+        f"{_ZIWEI_API_URL}/public/charts/save-and-register",
+        data=json.dumps(payload).encode('utf-8'),
+        method='POST',
+        headers={'Content-Type': 'application/json',
+                 'X-Service-Token': _PUBLIC_SERVICE_TOKEN},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode('utf-8')), None
+    except urllib.error.HTTPError as e:
+        try:
+            detail = json.loads(e.read().decode('utf-8')).get('detail')
+        except Exception:
+            detail = None
+        return None, detail or f"命盤服務錯誤 ({e.code})"
+    except Exception as e:  # noqa: BLE001
+        return None, f"無法連線命盤服務：{e}"
 
 
 # ── 引擎延遲載入（import 失敗時回 500，不在 app 啟動期炸掉整個站）──
@@ -174,12 +205,22 @@ def calculate():
 
     # 正規化命盤 JSON（供前端互動引擎；與 SVG 同一份資料來源）
     chart_json = None
+    flow = None
     if include_chart_json:
         try:
             chart_json = eng.chart_to_artist_dict(chart)
         except Exception as exc:  # noqa: BLE001
             # 轉換失敗不擋其餘資料回傳
             chart.setdefault("_chart_json_error", str(exc))
+
+        # 流盤層（大限 + 流年 + 小限）。需 include_flow 才有流盤編碼可轉。
+        if include_flow:
+            try:
+                from .engine.convert import ChartParser, serialize_chart
+                from .flow_contract import build_flow_layers
+                flow = build_flow_layers(chart, ChartParser(), serialize_chart)
+            except Exception as exc:  # noqa: BLE001
+                chart.setdefault("_flow_error", str(exc))
 
     return jsonify({
         "success": True,
@@ -189,6 +230,7 @@ def calculate():
         "data": chart,
         "svg": svg,
         "chart_json": chart_json,
+        "flow": flow,
     })
 
 
@@ -201,6 +243,128 @@ def geo_options():
     if eng is None:
         return jsonify({"success": False, "error": f"排盤引擎載入失敗：{_engine_error}"}), 500
     return jsonify({"success": True, "hierarchy": eng.geographic_hierarchy()})
+
+
+# ── 一鍵建檔 + 註冊（第三期，§12）──────────────────────────
+def _send_set_password_email(member_id, email):
+    """寄設定密碼信（best-effort；無 SMTP 則記 log 含連結）。簽章 token，無需新表。"""
+    try:
+        from itsdangerous import URLSafeTimedSerializer
+        from core.backend_engine.factory import mail
+        from flask_mail import Message
+        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='set-password')
+        token = s.dumps({"member_id": member_id, "email": email})
+        frontend = os.environ.get('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
+        link = f"{frontend}/set-password?token={token}"
+        try:
+            mail.send(Message(
+                subject="設定您的會員密碼",
+                recipients=[email],
+                sender=current_app.config.get('MAIL_DEFAULT_SENDER'),
+                body=f"歡迎成為會員！請於 24 小時內點擊連結設定密碼：\n{link}",
+            ))
+            current_app.logger.info(f"set-password email sent to {email}")
+        except Exception as send_err:  # noqa: BLE001
+            current_app.logger.warning(
+                f"set-password 信無法寄出（本機可能無 SMTP）：{send_err}；連結：{link}")
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.error(f"set-password token 產生失敗：{exc}")
+
+
+@bp.route('/save-and-register', methods=['POST'])
+@_limit("5 per minute")
+def save_and_register():
+    """排盤一鍵建檔 + 註冊：紫微存命盤 + 建免密碼會員 + 歸戶；本站補 member_profiles(email) + 寄設定密碼信。"""
+    if not _PUBLIC_SERVICE_TOKEN:
+        return jsonify({"success": False, "error": "服務未設定（PUBLIC_SERVICE_TOKEN 缺）"}), 503
+    data = request.get_json(silent=True) or {}
+
+    parts = {}
+    for key in ("year", "month", "day", "hour"):
+        val, err = _as_int(data, key)
+        if err:
+            return jsonify({"success": False, "error": err}), 400
+        parts[key] = val
+    minute = 0
+    if data.get("minute") not in ("", None):
+        minute, err = _as_int(data, "minute")
+        if err:
+            return jsonify({"success": False, "error": err}), 400
+
+    gender = _norm_gender(data.get("gender"))
+    if gender not in ("男", "女"):
+        return jsonify({"success": False, "error": "gender 必須為 男/女（或 M/F）"}), 400
+    email = (data.get("email") or "").strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"success": False, "error": "請提供有效的 email"}), 400
+
+    # 1. 呼叫紫微：存命盤 + 建免密碼會員 + 歸戶
+    zres, zerr = _ziwei_save_and_register({
+        "year": parts["year"], "month": parts["month"], "day": parts["day"],
+        "hour": parts["hour"], "minute": minute,
+        "gender": gender, "name": (data.get("name") or "").strip(),
+        "place": (data.get("place") or "").strip(), "email": email,
+    })
+    if zerr:
+        return jsonify({"success": False, "error": zerr}), 502
+    member_id = int(zres["member_id"])
+    chart_id = zres["chart_id"]
+    is_new = bool(zres.get("is_new_member"))
+
+    # 2. 本站補 member_profiles(email)（blog 擁有）
+    from core.backend_engine.factory import db
+    from sqlalchemy import text
+    try:
+        db.session.execute(text(
+            "INSERT INTO blog.member_profiles(app_user_id, email) VALUES (:m, :e) "
+            "ON CONFLICT (app_user_id) DO UPDATE SET email = EXCLUDED.email, updated_at = now()"
+        ), {"m": member_id, "e": email})
+        db.session.commit()
+    except Exception as exc:  # noqa: BLE001
+        db.session.rollback()
+        current_app.logger.error(f"member_profiles upsert failed: {exc}")
+
+    # 3. 新會員 → 寄設定密碼信
+    if is_new:
+        _send_set_password_email(member_id, email)
+
+    return jsonify({
+        "success": True,
+        "chart_id": chart_id,
+        "member_id": str(member_id),
+        "is_new_member": is_new,
+        "email": email,
+    })
+
+
+@bp.route('/set-password', methods=['POST'])
+@_limit("5 per minute")
+def set_password():
+    """以設定密碼信的 token 設定會員密碼（經 blog.users view → app_users.password_hash）。"""
+    data = request.get_json(silent=True) or {}
+    token = data.get("token") or ""
+    password = data.get("password") or ""
+    from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='set-password')
+    try:
+        payload = s.loads(token, max_age=24 * 3600)
+    except SignatureExpired:
+        return jsonify({"success": False, "error": "連結已過期，請重新申請"}), 400
+    except BadSignature:
+        return jsonify({"success": False, "error": "連結無效"}), 400
+
+    from core.backend_engine.models import User
+    from core.backend_engine.factory import db
+    user = User.query.get(payload.get("member_id"))
+    if not user:
+        return jsonify({"success": False, "error": "會員不存在"}), 404
+    try:
+        user.set_password(password)  # 複雜度驗證 + bcrypt（經 view trigger 寫 app_users）
+        db.session.commit()
+    except ValueError as ve:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(ve)}), 400
+    return jsonify({"success": True, "message": "密碼已設定，請登入"})
 
 
 # ── 健康檢查 ────────────────────────────────────────────────
