@@ -157,6 +157,19 @@ export const astrologyApi = {
       method: 'DELETE',
     }),
 
+  /** 編輯自己命盤的名稱 / 關係標籤。 */
+  updateChart: (chartId: string, patch: { name?: string; relation_label?: string }) =>
+    request<{ success: boolean }>(`/astrology/my/charts/${chartId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
+  /** 刪除自己的命盤。 */
+  deleteChart: (chartId: string) =>
+    request<{ success: boolean }>(`/astrology/my/charts/${chartId}`, {
+      method: 'DELETE',
+    }),
+
   /** 取得地點級聯選項（真太陽時用）。 */
   geoOptions: async (): Promise<GeoHierarchy> => {
     const res = await fetch(`${API_URL}/astrology/geo-options`);

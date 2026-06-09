@@ -58,6 +58,12 @@ SITE_EXTENSIONS = [
         url_prefix='/api/v1/astrology',
         enabled=True
     ),
+    # 會員商業循環（訂單登錄 → 審核 → 發券 / 收藏文章）。路由內部分 /membership/* 與 /admin/*
+    BlueprintConfig(
+        module_path='sites.Polaris_Parent.backend.extensions.membership',
+        url_prefix='/api/v1',
+        enabled=True
+    ),
     # Add more site-specific extensions here as needed
     # BlueprintConfig(
     #     module_path='sites.Polaris_Parent.backend.extensions.custom_feature',

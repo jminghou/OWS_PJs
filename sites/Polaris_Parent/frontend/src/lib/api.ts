@@ -18,6 +18,8 @@ export {
   authorApi,
   rbacApi,
   astrologyApi,
+  membershipApi,
+  adminCommerceApi,
 } from './api/index';
 
 export type { FetchOptions, I18nSettings, AuthorContentCard, AuthorDetailResponse } from './api/index';
@@ -27,4 +29,13 @@ export type {
   ZiweiPlace,
   TimeType,
   GeoHierarchy,
+} from './api/index';
+export type {
+  ExternalProduct,
+  OrderSubmission,
+  MemberReward,
+  SavedArticle,
+  CreateOrderSubmissionRequest,
+  AdminOrderSubmission,
+  CouponConfig,
 } from './api/index';

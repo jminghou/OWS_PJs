@@ -435,6 +435,28 @@ def remove_my_favorite(chart_id):
     return jsonify(data)
 
 
+@bp.route('/my/charts/<chart_id>', methods=['PATCH'])
+@jwt_required()
+def update_my_chart(chart_id):
+    """編輯自己命盤的名稱 / 關係標籤。body: {name?, relation_label?}"""
+    body = request.get_json(silent=True) or {}
+    payload = {k: body[k] for k in ('name', 'relation_label') if k in body}
+    data, err = _ziwei_call('PATCH', f'/public/members/{get_jwt_identity()}/charts/{chart_id}', payload)
+    if err:
+        return jsonify({"success": False, "error": err}), 502
+    return jsonify(data)
+
+
+@bp.route('/my/charts/<chart_id>', methods=['DELETE'])
+@jwt_required()
+def delete_my_chart(chart_id):
+    """刪除自己的命盤。"""
+    data, err = _ziwei_call('DELETE', f'/public/members/{get_jwt_identity()}/charts/{chart_id}')
+    if err:
+        return jsonify({"success": False, "error": err}), 502
+    return jsonify(data)
+
+
 # ── 健康檢查 ────────────────────────────────────────────────
 @bp.route('/health', methods=['GET'])
 def health_check():

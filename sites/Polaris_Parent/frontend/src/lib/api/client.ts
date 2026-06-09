@@ -137,7 +137,7 @@ export async function request<T>(endpoint: string, options: FetchOptions = {}): 
       }
 
       throw new RequestError(
-        errorData.message || 'An error occurred',
+        errorData.message || errorData.error || 'An error occurred',
         response.status,
         errorData.errors
       );

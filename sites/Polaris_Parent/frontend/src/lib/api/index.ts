@@ -37,6 +37,16 @@ export type {
   MyPerson,
   MyFavorite,
 } from './astrology';
+export { membershipApi } from './membership';
+export type {
+  ExternalProduct,
+  OrderSubmission,
+  MemberReward,
+  SavedArticle,
+  CreateOrderSubmissionRequest,
+} from './membership';
+export { adminCommerceApi } from './admin-commerce';
+export type { AdminOrderSubmission, CouponConfig } from './admin-commerce';
 
 // Default export for backwards compatibility
 import { authApi } from './auth';
@@ -49,6 +59,8 @@ import { userApi, submissionApi } from './users';
 import { authorApi } from './authors';
 import { rbacApi } from './rbac';
 import { astrologyApi } from './astrology';
+import { membershipApi } from './membership';
+import { adminCommerceApi } from './admin-commerce';
 
 const api = {
   auth: authApi,
@@ -67,6 +79,8 @@ const api = {
   paymentMethod: paymentMethodApi,
   rbac: rbacApi,
   astrology: astrologyApi,
+  membership: membershipApi,
+  adminCommerce: adminCommerceApi,
 };
 
 export default api;
