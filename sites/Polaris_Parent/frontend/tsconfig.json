@@ -27,6 +27,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@ows/ziwei-chart": [
+        "../../../packages/ziwei-chart/src/index.ts"
+      ],
+      "@ows/ziwei-chart/core": [
+        "../../../packages/ziwei-chart/src/core/index.ts"
       ]
     },
     "target": "ES2017"

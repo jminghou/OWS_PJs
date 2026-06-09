@@ -3,6 +3,8 @@
 // const createNextIntlPlugin = require('next-intl/plugin');
 // const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // standalone 用於 Docker/Railway 部署；Vercel 不需要
@@ -10,6 +12,17 @@ const nextConfig = {
 
   // 轉譯 monorepo 內的套件
   transpilePackages: ['@ows/ui', '@ows/ziwei-chart'],
+
+  // 以「路徑別名」解析 @ows/ziwei-chart（指向 monorepo 原始碼），不依賴 workspace symlink，
+  // 讓 Vercel 子目錄建置也能解析（與 @ows/ui 用相對路徑的做法一致，修正長期建置失敗）。
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@ows/ziwei-chart$': path.resolve(__dirname, '../../../packages/ziwei-chart/src/index.ts'),
+      '@ows/ziwei-chart/core': path.resolve(__dirname, '../../../packages/ziwei-chart/src/core/index.ts'),
+    };
+    return config;
+  },
   turbopack: {
     rules: {
       '*.svg': {
