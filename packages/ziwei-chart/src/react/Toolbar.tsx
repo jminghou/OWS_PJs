@@ -12,6 +12,7 @@ const ITEMS: Array<{ key: keyof LayerFlags; label: string }> = [
   { key: "sanfang", label: "三方四正" },
   { key: "sihua", label: "四化" },
   { key: "minorStars", label: "小星" },
+  { key: "flowStars", label: "流曜" },
   { key: "brightness", label: "亮度" },
   { key: "palaceNameEn", label: "英文宮名" },
 ];

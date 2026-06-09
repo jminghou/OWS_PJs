@@ -40,6 +40,10 @@ PERMISSIONS: List[Tuple[str, str, str, str, str]] = [
     # Orders
     ('orders.read',      'orders',   'read',    '閱讀訂單', 'Read Orders'),
     ('orders.update',    'orders',   'update',  '更新訂單', 'Update Orders'),
+    # Member commerce loop（會員訂單登錄審核 / 外部商品 / 折扣碼）
+    ('order_submissions.review', 'order_submissions', 'review', '審核訂單登錄', 'Review Order Submissions'),
+    ('product_types.manage',     'product_types',     'manage', '維護外部商品', 'Manage Product Types'),
+    ('coupons.manage',           'coupons',           'manage', '管理折扣碼',   'Manage Coupons'),
     # Submissions
     ('submissions.read',   'submissions', 'read',   '閱讀表單提交', 'Read Submissions'),
     ('submissions.update', 'submissions', 'update', '更新表單提交', 'Update Submissions'),

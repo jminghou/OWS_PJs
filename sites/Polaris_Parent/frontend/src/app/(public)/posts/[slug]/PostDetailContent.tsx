@@ -13,6 +13,7 @@ import { formatDateTime, getImageUrl, getGcsImageUrl } from '@/lib/utils';
 import { extractToc, extractKeyTakeaways } from '@/lib/articleContent';
 import { absoluteUrl } from '@/lib/seo';
 import ShareButtons from '@/components/public/ShareButtons';
+import SaveArticleButton from '@/components/public/SaveArticleButton';
 
 interface PostDetailContentProps {
   post: Content;
@@ -167,8 +168,11 @@ export default function PostDetailContent({ post, relatedPosts = [] }: PostDetai
                 </div>
               )}
 
-              {/* 社群分享 */}
-              <ShareButtons url={shareUrl} title={post.title} />
+              {/* 收藏 + 社群分享 */}
+              <div className="mt-8 pt-6 border-t border-gray-200 flex items-center justify-between gap-4 flex-wrap">
+                <SaveArticleButton contentId={post.id} />
+                <ShareButtons url={shareUrl} title={post.title} />
+              </div>
             </article>
 
             {/* 相關推薦（伺服器端渲染，進入初始 HTML 利於 AI/搜尋抓取與站內連結） */}

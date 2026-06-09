@@ -4,12 +4,23 @@ Media Library - Database Models
 所有資料表位於 PostgreSQL 的 media_lib schema 中。
 """
 
+import os
 from datetime import datetime, timezone
 from core.backend_engine.factory import db
 from sqlalchemy.dialects.postgresql import JSONB
 from packages.media_lib.config import SCHEMA_NAME
 
 SCHEMA_ARGS = {'schema': SCHEMA_NAME}
+
+# 使用者外鍵目標（統一資料庫架構 §11）：
+# Polaris（OWS_BLOG_SCHEMA 有設）→ account.app_users(BIGINT)，身分集中於紫微側；
+# 其他站（未設）→ 自身 users 表(Integer)，行為不變。
+if os.environ.get('OWS_BLOG_SCHEMA'):
+    _USERS_FK = 'account.app_users.id'
+    _USERS_ID_TYPE = db.BigInteger
+else:
+    _USERS_FK = 'users.id'
+    _USERS_ID_TYPE = db.Integer
 
 
 # =============================================================================
@@ -37,7 +48,7 @@ class MLFolder(db.Model):
     name = db.Column(db.String(255), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.folders.id'))
     path = db.Column(db.String(500), nullable=False, index=True)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id', deferrable=True))
+    created_by = db.Column(_USERS_ID_TYPE, db.ForeignKey(_USERS_FK, deferrable=True))
     description = db.Column(db.Text)
     thumbnail_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.files.id'))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -74,7 +85,7 @@ class MLFile(db.Model):
     alt_text = db.Column(db.String(500))
     caption = db.Column(db.Text)
     folder_id = db.Column(db.Integer, db.ForeignKey(f'{SCHEMA_NAME}.folders.id'))
-    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id', deferrable=True))
+    uploaded_by = db.Column(_USERS_ID_TYPE, db.ForeignKey(_USERS_FK, deferrable=True))
     attributes = db.Column(JSONB, default=dict)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),

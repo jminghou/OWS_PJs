@@ -13,6 +13,26 @@ import re
 from datetime import datetime
 
 
+def compute_lookup_user_id(name: str, clock_time: str) -> int:
+    """
+    產生跨批次人物 lookup 用的 user_id（無性別 hash，60-bit BIGINT）
+
+    這是 account.users.user_id 的計算公式。新批次（研究筆記）沒有 Gender 欄位，
+    無法重算 chart_id，但可用相同的 (Name, Clock time) 算出同一個 user_id 來
+    對應到舊批次已上傳的人物。
+
+    參數:
+        name (str): JSON 頂層 "Name" 欄位
+        clock_time (str): JSON 頂層 "Clock time" 欄位（如 "25 April 1902 at 07:15"）
+
+    返回:
+        int: 60-bit user_id（PostgreSQL BIGINT 範圍內的正整數）
+    """
+    unique_key = f"{name}|{clock_time}"
+    hash_value = hashlib.sha256(unique_key.encode('utf-8')).hexdigest()
+    return int(hash_value[:15], 16)
+
+
 def hash_name_to_int(name):
     """
     使用 SHA256 雜湊姓名，轉換為 9 位整數

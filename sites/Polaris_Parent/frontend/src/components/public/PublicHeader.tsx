@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import LanguageSwitcher from './LanguageSwitcher';
+import { useAuthStore } from '@/store/auth';
 
 // 多語言導航內容
 const navContent: Record<string, {
@@ -14,6 +16,9 @@ const navContent: Record<string, {
   contact: string;
   ziwei: string;
   openMenu: string;
+  login: string;
+  account: string;
+  logout: string;
 }> = {
   'zh-TW': {
     siteName: '親紫之間',
@@ -24,6 +29,9 @@ const navContent: Record<string, {
     contact: '聯絡我們',
     ziwei: '線上排盤',
     openMenu: '打開主選單',
+    login: '登入',
+    account: '會員中心',
+    logout: '登出',
   },
   'zh-CN': {
     siteName: '亲紫之间',
@@ -34,6 +42,9 @@ const navContent: Record<string, {
     contact: '联系我们',
     ziwei: '在线排盘',
     openMenu: '打开主菜单',
+    login: '登录',
+    account: '会员中心',
+    logout: '登出',
   },
   'en': {
     siteName: 'Qin Zi Blog',
@@ -44,6 +55,9 @@ const navContent: Record<string, {
     contact: 'Contact',
     ziwei: 'Ziwei Chart',
     openMenu: 'Open main menu',
+    login: 'Login',
+    account: 'My Account',
+    logout: 'Logout',
   },
   'ja': {
     siteName: '親紫の間',
@@ -54,6 +68,9 @@ const navContent: Record<string, {
     contact: 'お問い合わせ',
     ziwei: '紫微占い',
     openMenu: 'メニューを開く',
+    login: 'ログイン',
+    account: 'マイページ',
+    logout: 'ログアウト',
   },
 };
 
@@ -64,6 +81,18 @@ export default function PublicHeader() {
   const [i18nEnabled, setI18nEnabled] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { isAuthenticated, checkAuth, logout } = useAuthStore();
+
+  // 載入時確認登入狀態（讓頂部導覽顯示會員中心/登出）
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const handleLogout = async () => {
+    await logout();
+    setIsMenuOpen(false);
+    router.push('/');
+  };
 
   // 從路徑獲取當前語言
   const getCurrentLocale = () => {
@@ -158,6 +187,29 @@ export default function PublicHeader() {
             >
               {content.ziwei}
             </button>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/account"
+                  className="text-brand-purple-700 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  {content.account}
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-500 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  {content.logout}
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="text-brand-purple-700 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                {content.login}
+              </Link>
+            )}
             {i18nEnabled && <LanguageSwitcher />}
           </nav>
 
@@ -219,6 +271,32 @@ export default function PublicHeader() {
             >
               {content.ziwei}
             </button>
+            <div className="border-t border-warm-100 my-1" />
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/account"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-brand-purple-700 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+                >
+                  {content.account}
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-500 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+                >
+                  {content.logout}
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-brand-purple-700 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+              >
+                {content.login}
+              </Link>
+            )}
           </div>
         </div>
       )}

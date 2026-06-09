@@ -18,8 +18,10 @@ export interface StarInfo {
   branch: string;
   /** 亮度碼 P3/P2/P1/P0/N1/N2/N3 或 null。 */
   brightness: string | null;
-  /** 四化碼 FO/PW/HO/BI 或 null。 */
+  /** 本命四化碼 FO/PW/HO/BI 或 null。 */
   sihua: string | null;
+  /** 流盤四化碼（大限/流年/小限），疊加模式時與本命四化雙標；預設 null。 */
+  flowSihua?: string | null;
   /** 分類：main=十四主星、sub=有圖副星、minor=純文字小星。 */
   kind: "main" | "sub" | "minor";
 }

@@ -52,3 +52,14 @@ export const SIHUA_LABEL: Record<string, string> = {
 };
 
 export type SihuaCode = "FO" | "PW" | "HO" | "BI";
+
+/**
+ * 流曜（流盤加星）編碼樣式：前綴 d=大限 / y=流年 / s=小限，
+ * 後綴為 8 顆 魁鉞祿羊馬鸞喜陀（CP/CA/DI/GL/HH/RP/HJ/ST）。
+ */
+export const FLOW_STAR_RE = /^([dys])(GL|ST|CP|CA|DI|HH|RP|HJ)$/;
+
+/** 是否為流曜（流盤層才會出現）。 */
+export function isFlowStar(code: string): boolean {
+  return FLOW_STAR_RE.test(code);
+}

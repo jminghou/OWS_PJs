@@ -45,12 +45,13 @@ def get_products():
     language = request.args.get('language', 'zh-TW')
     currency = request.args.get('currency', 'TWD')
 
-    # Optimized query: Eager load all related objects
+    # Optimized query: Eager load related objects.
+    # 註：Product.prices 為 lazy='dynamic'，無法被 eager load（會 InvalidRequestError）；
+    # get_price() 本就直接查 ProductPrice，故此處不 eager load prices。
     query = Product.query.options(
         joinedload(Product.category),
         joinedload(Product.original),
         subqueryload(Product.tags),
-        subqueryload(Product.prices),
         subqueryload(Product.translations)
     ).filter_by(is_active=True, language=language)
 

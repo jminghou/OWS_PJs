@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { contentApi, categoryApi } from '@/lib/api';
 import { Content, ContentListResponse, Category } from '@/types';
+import {
+  contentsListCacheKey,
+  getCachedContentsList,
+  setCachedContentsList,
+} from '@/lib/contentsListCache';
 import PostCard from '@/components/public/PostCard';
 import Button from '@/components/ui/Button';
 
@@ -39,6 +44,9 @@ export default function ArticlesContent({ locale }: ArticlesContentProps) {
     fetchCategories();
   }, [locale]);
 
+  // 追蹤「最後一次請求」的 key：較早送出的請求晚回來時直接丟棄，避免覆蓋較新的篩選結果
+  const requestKeyRef = useRef<string>('');
+
   useEffect(() => {
     fetchPosts();
   }, [currentPage, activeFilters]);
@@ -53,32 +61,51 @@ export default function ArticlesContent({ locale }: ArticlesContentProps) {
   };
 
   const fetchPosts = async () => {
-    try {
+    const params: any = {
+      page: currentPage,
+      per_page: 12,
+      status: 'published',
+      type: 'article', // 只顯示一般文章
+      language: locale || 'zh-TW',
+    };
+
+    if (activeFilters.search) {
+      params.search = activeFilters.search;
+    }
+
+    if (activeFilters.category) {
+      params.category_id = parseInt(activeFilters.category);
+    }
+
+    const key = contentsListCacheKey(params);
+    requestKeyRef.current = key;
+
+    // 命中快取：立即渲染、不顯示骨架；接著仍在背景重新驗證
+    const cached = getCachedContentsList(key);
+    if (cached) {
+      setPosts(cached.contents);
+      setPagination(cached.pagination);
+      setError(null);
+      setLoading(false);
+    } else {
       setLoading(true);
-      const params: any = {
-        page: currentPage,
-        per_page: 12,
-        status: 'published',
-        type: 'article', // 只顯示一般文章
-        language: locale || 'zh-TW',
-      };
+    }
 
-      if (activeFilters.search) {
-        params.search = activeFilters.search;
-      }
-
-      if (activeFilters.category) {
-        params.category_id = parseInt(activeFilters.category);
-      }
-
+    try {
       const response: ContentListResponse = await contentApi.getList(params);
+      setCachedContentsList(key, response);
+      if (requestKeyRef.current !== key) return; // 已切換到其他篩選，丟棄此回應
       setPosts(response.contents);
       setPagination(response.pagination);
       setError(null);
     } catch (err: any) {
-      setError(err.message || '載入文章時發生錯誤');
+      if (requestKeyRef.current === key && !cached) {
+        setError(err.message || '載入文章時發生錯誤');
+      }
     } finally {
-      setLoading(false);
+      if (requestKeyRef.current === key) {
+        setLoading(false);
+      }
     }
   };
 

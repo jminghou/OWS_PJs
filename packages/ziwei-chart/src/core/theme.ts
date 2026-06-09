@@ -12,6 +12,10 @@ export interface ZiweiThemeColors {
   palaceNameEn: string;
   branchInk: string;
   starMinor: string;
+  /** 流曜（大限/流年/小限加星）文字色，與一般小星區隔。 */
+  flowStar: string;
+  /** 星曜圖示墨色（圖示內 currentColor 由此決定）。 */
+  starGlyph: string;
   sihuaFo: string;
   sihuaPw: string;
   sihuaHo: string;
@@ -77,6 +81,8 @@ export const DEFAULT_THEME: ZiweiTheme = {
     palaceNameEn: "rgba(26,26,46,0.38)",
     branchInk: "rgba(0, 0, 0, 0.26)",
     starMinor: "#3a4a5c",
+    flowStar: "#0e7490",
+    starGlyph: "#231815",
     sihuaFo: "#2E7D32",
     sihuaPw: "#1565C0",
     sihuaHo: "#6A1B9A",

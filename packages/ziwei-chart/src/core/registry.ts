@@ -62,8 +62,20 @@ export function brightnessNameZh(code: string | null): string {
   return BRIGHTNESS_NAME_ZH[code] ?? "";
 }
 
+// 流曜中文名生成（y*/s* 未列於 star_codes.json，依樣式組名）。
+const _FLOW_PREFIX_ZH: Record<string, string> = { d: "大", y: "流", s: "小" };
+const _FLOW_SUFFIX_ZH: Record<string, string> = {
+  GL: "羊", ST: "陀", CP: "魁", CA: "鉞", DI: "祿", HH: "馬", RP: "鸞", HJ: "喜",
+};
+
+function flowStarNameZh(code: string): string | null {
+  const m = /^([dys])(GL|ST|CP|CA|DI|HH|RP|HJ)$/.exec(code);
+  if (!m) return null;
+  return _FLOW_PREFIX_ZH[m[1]] + _FLOW_SUFFIX_ZH[m[2]];
+}
+
 export function starNameZh(code: string): string {
-  return STAR_NAME_ZH[code] ?? code;
+  return STAR_NAME_ZH[code] ?? flowStarNameZh(code) ?? code;
 }
 export function palaceNameZh(code: string): string {
   return PALACE_NAME_ZH[code] ?? code;
@@ -73,4 +85,29 @@ export function palaceNameEn(code: string): string {
 }
 export function branchNameZh(code: string): string {
   return BRANCH_NAME_ZH[code] ?? code;
+}
+
+// 宮名序列（命→兄→夫→…→父），與 PALACE_NAME_ZH/EN 的編碼順序一致。
+const _NAME_SEQ_CODES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C"];
+
+/**
+ * 流盤宮名重排：給「該層命宮所在地支」，回傳 地支碼 → {zh,en} 宮名。
+ * 規律與本命一致：命宮在 mingBranch，後續宮位地支每 -1（卯→寅→丑…）。
+ * 供大限/流年切換時，整組宮名隨命宮位移。
+ */
+export function palaceNamesByMingBranch(
+  mingBranch: string,
+): Record<string, { zh: string; en: string }> {
+  const mingInt = parseInt(mingBranch, 10);
+  const out: Record<string, { zh: string; en: string }> = {};
+  if (!mingInt || Number.isNaN(mingInt)) return out;
+  for (let k = 0; k < 12; k++) {
+    const b = (((mingInt - 1 - k) % 12) + 12) % 12 + 1;
+    const code = _NAME_SEQ_CODES[k];
+    out[String(b).padStart(2, "0")] = {
+      zh: PALACE_NAME_ZH[code],
+      en: PALACE_NAME_EN[code],
+    };
+  }
+  return out;
 }

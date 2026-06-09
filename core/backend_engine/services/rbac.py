@@ -18,6 +18,7 @@ Usage:
         # Do something
 """
 
+import os
 from functools import wraps
 from typing import List, Optional, Set
 
@@ -25,6 +26,17 @@ from flask import jsonify
 from flask_jwt_extended import get_jwt_identity
 
 from core.backend_engine.factory import db
+
+# 第二期身分整合（§11）：Polaris 的權限來源是 account.app_users（role + permissions JSONB），
+# 不再用 blog 自有 RBAC 四表。其他站（Claire，未設 OWS_BLOG_SCHEMA）維持 RBAC 四表邏輯。
+_BLOG_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA')
+
+# 各 legacy role 對應的預設權限（與舊邏輯一致，供 Polaris 分支沿用）
+_EDITOR_PERMS = {
+    'contents.create', 'contents.read', 'contents.update', 'contents.publish',
+    'media.upload', 'media.delete', 'products.read',
+}
+_READER_PERMS = {'contents.read', 'products.read'}
 
 
 # =============================================================================
@@ -59,6 +71,14 @@ class RBACService:
         cache_key = f"user_perms_{user_id}"
         if use_cache and cache_key in cls._permissions_cache:
             return cls._permissions_cache[cache_key]
+
+        # =====================================================================
+        # Polaris（統一資料庫）：權限來源 = account.app_users.role + permissions JSONB
+        # =====================================================================
+        if _BLOG_SCHEMA:
+            perms = cls._app_user_permissions(user_id)
+            cls._permissions_cache[cache_key] = perms
+            return perms
 
         user = User.query.get(user_id)
         if not user:
@@ -116,6 +136,34 @@ class RBACService:
         # Cache the result
         cls._permissions_cache[cache_key] = permissions
         return permissions
+
+    @classmethod
+    def _app_user_permissions(cls, user_id) -> Set[str]:
+        """Polaris：從 account.app_users 取權限（role + permissions JSONB）。
+
+        - role='admin' → 擁有全部 blog 權限碼（取自 rbac_seed.PERMISSIONS）
+        - role='editor' → 編輯者預設集；'user'/'member' → 讀者集
+        - 另外併入 permissions JSONB 內的明確權限碼（與紫微 page:* 等共存無妨）
+        """
+        from sqlalchemy import text
+        row = db.session.execute(
+            text("SELECT role, permissions FROM account.app_users WHERE id = :uid"),
+            {"uid": user_id},
+        ).fetchone()
+        if not row:
+            return set()
+        role, raw_perms = row[0], row[1]
+        if role == 'admin':
+            from core.backend_engine.services.rbac_seed import PERMISSIONS
+            return {p[0] for p in PERMISSIONS}
+        perms: Set[str] = set()
+        if role == 'editor':
+            perms |= _EDITOR_PERMS
+        elif role in ('user', 'member'):
+            perms |= _READER_PERMS
+        if isinstance(raw_perms, list):
+            perms |= {str(p) for p in raw_perms}
+        return perms
 
     @classmethod
     def has_permission(cls, user_id: int, permission_code: str) -> bool:

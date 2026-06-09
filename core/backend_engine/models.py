@@ -9,8 +9,13 @@ Key Features:
 - JSONB attributes for extensibility
 - i18n (internationalization) support
 - Multi-currency pricing
+
+Schema 分流（統一資料庫架構，見 ARCHITECTURE_UNIFIED_DB.md）：
+本模組為跨站共用。Polaris 透過環境變數把表放進 blog/shop schema；其他站
+（如 Claire）不設這些變數 → schema=None＝public，行為與過去完全相同。
 """
 
+import os
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
@@ -20,6 +25,36 @@ import bcrypt
 import re
 
 from core.backend_engine.factory import db
+
+
+# =============================================================================
+# Schema configuration (per-deployment via env; default None = public)
+# =============================================================================
+
+_BLOG_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA') or None
+_SHOP_SCHEMA = os.environ.get('OWS_SHOP_SCHEMA') or None
+
+
+def _q(name: str, schema: Optional[str]) -> str:
+    """Qualify a table name / FK target with schema when set.
+
+    e.g. _q('users.id', 'blog') -> 'blog.users.id'; _q('users.id', None) -> 'users.id'.
+    Used for ForeignKey targets and association `secondary` references so the same
+    shared models render under blog/shop (Polaris) or public (other sites).
+    """
+    return f'{schema}.{name}' if schema else name
+
+
+# 第二期身分整合（§11）：使用者外鍵的「目標」與「型別」依部署而定。
+# Polaris（_BLOG_SCHEMA 有設）→ 指向 account.app_users(BIGINT)，身分集中於紫微側；
+# 其他站（如 Claire，未設）→ 維持指向自身 users 表(Integer)，行為不變。
+# 註：Polaris 需由站專屬模型把 account.app_users 載入 metadata，FK 字串才解析得到。
+if _BLOG_SCHEMA:
+    _USER_FK_TARGET = 'account.app_users.id'
+    _USER_ID_TYPE = db.BigInteger
+else:
+    _USER_FK_TARGET = 'users.id'
+    _USER_ID_TYPE = db.Integer
 
 
 # =============================================================================
@@ -57,6 +92,7 @@ def validate_password(password: str) -> bool:
 class Role(db.Model):
     """Role model for RBAC."""
     __tablename__ = 'roles'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(50), unique=True, nullable=False, index=True)
@@ -85,6 +121,7 @@ class Role(db.Model):
 class Permission(db.Model):
     """Permission model for RBAC."""
     __tablename__ = 'permissions'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(100), unique=True, nullable=False, index=True)  # e.g., 'contents.create'
@@ -104,11 +141,12 @@ class Permission(db.Model):
 class RolePermission(db.Model):
     """Association table for Role-Permission relationship."""
     __tablename__ = 'role_permissions'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True)
-    permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id', ondelete='CASCADE'), primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey(_q('roles.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
+    permission_id = db.Column(db.Integer, db.ForeignKey(_q('permissions.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
     granted_at = db.Column(db.DateTime, default=datetime.utcnow)
-    granted_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    granted_by = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), nullable=True)
 
     def __repr__(self):
         return f'<RolePermission role={self.role_id} permission={self.permission_id}>'
@@ -117,9 +155,10 @@ class RolePermission(db.Model):
 class UserRole(db.Model):
     """Association table for User-Role relationship."""
     __tablename__ = 'user_roles'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id', ondelete='CASCADE'), primary_key=True)
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET, ondelete='CASCADE'), primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey(_q('roles.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
     assigned_at = db.Column(db.DateTime, default=datetime.utcnow)
     assigned_by = db.Column(db.Integer, nullable=True)
     expires_at = db.Column(db.DateTime, nullable=True)  # Optional expiration for temporary roles
@@ -135,6 +174,7 @@ class UserRole(db.Model):
 class User(UserMixin, db.Model):
     """User model with RBAC support."""
     __tablename__ = 'users'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False, index=True)
@@ -153,10 +193,24 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime)
 
     # Relationships
-    contents = db.relationship('Content', backref='author', lazy='dynamic')
-    comments = db.relationship('Comment', backref='user', lazy='dynamic')
-    activity_logs = db.relationship('ActivityLog', backref='user', lazy='dynamic')
-    user_roles = db.relationship('UserRole', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    # 第二期：使用者外鍵改指 account.app_users（Polaris）後，User 與這些表之間已無
+    # DB 外鍵連結，須明確指定 primaryjoin/foreign_keys（join 於 User.id == *.user/author_id）。
+    # 對 Claire（外鍵仍指自身 users）同樣成立。
+    contents = db.relationship('Content', backref='author', lazy='dynamic',
+                               foreign_keys='Content.author_id',
+                               primaryjoin='User.id == Content.author_id')
+    comments = db.relationship('Comment', backref='user', lazy='dynamic',
+                               foreign_keys='Comment.user_id',
+                               primaryjoin='User.id == Comment.user_id')
+    activity_logs = db.relationship('ActivityLog', backref='user', lazy='dynamic',
+                                    foreign_keys='ActivityLog.user_id',
+                                    primaryjoin='User.id == ActivityLog.user_id')
+    # RBAC 四表僅供未統一身分的站別（Claire）使用；Polaris 已淘汰、表不存在，
+    # 故不定義此關聯（否則刪除 User 時 cascade 會去查不存在的 blog.user_roles）。
+    if not _BLOG_SCHEMA:
+        user_roles = db.relationship('UserRole', backref='user', lazy='dynamic', cascade='all, delete-orphan',
+                                     foreign_keys='UserRole.user_id',
+                                     primaryjoin='User.id == UserRole.user_id')
 
     def set_password(self, password: str) -> None:
         """Hash and set password after validation."""
@@ -223,11 +277,12 @@ class User(UserMixin, db.Model):
 class Category(db.Model):
     """Category model with i18n support."""
     __tablename__ = 'categories'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(100), unique=True, nullable=False, index=True)
     slugs = db.Column(JSONB, default={})  # {"zh-TW": "政治", "en-US": "politics"}
-    parent_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
+    parent_id = db.Column(db.Integer, db.ForeignKey(_q('categories.id', _BLOG_SCHEMA)))
     sort_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True, index=True)
 
@@ -266,8 +321,8 @@ class Content(db.Model):
     slug = db.Column(db.String(200), unique=True, nullable=False, index=True)
     status = db.Column(db.String(20), default='draft', index=True)
     content_type = db.Column(db.String(50), default='article', index=True)
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), index=True)
-    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)
+    category_id = db.Column(db.Integer, db.ForeignKey(_q('categories.id', _BLOG_SCHEMA)), index=True)
+    author_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), index=True)
     featured_image = db.Column(db.String(500))  # 16:9, supports GCS long URLs
     cover_image = db.Column(db.String(500))  # 1:1
     meta_title = db.Column(db.String(200))
@@ -280,7 +335,7 @@ class Content(db.Model):
 
     # i18n fields
     language = db.Column(db.String(10), default='zh-TW', nullable=False, index=True)
-    original_id = db.Column(db.Integer, db.ForeignKey('contents.id'), nullable=True)
+    original_id = db.Column(db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA)), nullable=True)
 
     # NEW: JSONB extension fields
     attributes = db.Column(JSONB, default={})  # Custom fields per site
@@ -289,11 +344,12 @@ class Content(db.Model):
     # 複合索引：加速公開列表查詢（filter status+content_type+language、order by published_at）
     __table_args__ = (
         db.Index('ix_contents_list', 'status', 'content_type', 'language', 'published_at'),
+        {'schema': _BLOG_SCHEMA},
     )
 
     # Relationships
     comments = db.relationship('Comment', backref='content', lazy='dynamic', cascade='all, delete-orphan')
-    tags = db.relationship('Tag', secondary='content_tags', back_populates='contents')
+    tags = db.relationship('Tag', secondary=_q('content_tags', _BLOG_SCHEMA), back_populates='contents')
     translations = db.relationship('Content', backref=db.backref('original', remote_side=[id]), lazy='dynamic')
 
     def is_published(self) -> bool:
@@ -316,6 +372,7 @@ class Content(db.Model):
 class Tag(db.Model):
     """Tag model with i18n support."""
     __tablename__ = 'tags'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(50), unique=True, nullable=False, index=True)
@@ -327,8 +384,8 @@ class Tag(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    contents = db.relationship('Content', secondary='content_tags', back_populates='tags')
-    products = db.relationship('Product', secondary='product_tags', back_populates='tags')
+    contents = db.relationship('Content', secondary=_q('content_tags', _BLOG_SCHEMA), back_populates='tags')
+    products = db.relationship('Product', secondary=_q('product_tags', _SHOP_SCHEMA), back_populates='tags')
 
     def get_slug(self, language: str = 'zh-TW') -> str:
         """Get localized slug."""
@@ -342,8 +399,9 @@ class Tag(db.Model):
 
 # Content-Tag association table
 content_tags = db.Table('content_tags',
-    db.Column('content_id', db.Integer, db.ForeignKey('contents.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tags.id', ondelete='CASCADE'), primary_key=True)
+    db.Column('content_id', db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey(_q('tags.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True),
+    schema=_BLOG_SCHEMA,
 )
 
 
@@ -354,14 +412,15 @@ content_tags = db.Table('content_tags',
 class Comment(db.Model):
     """Comment model with nested replies support."""
     __tablename__ = 'comments'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
-    content_id = db.Column(db.Integer, db.ForeignKey('contents.id', ondelete='CASCADE'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    content_id = db.Column(db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA), ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET))
     author_name = db.Column(db.String(100))
     author_email = db.Column(db.String(100))
     comment_text = db.Column(db.Text, nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey('comments.id'))
+    parent_id = db.Column(db.Integer, db.ForeignKey(_q('comments.id', _BLOG_SCHEMA)))
     status = db.Column(db.String(20), default='pending', index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -385,6 +444,7 @@ class Comment(db.Model):
 class Menu(db.Model):
     """Menu model for navigation."""
     __tablename__ = 'menus'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -402,13 +462,14 @@ class Menu(db.Model):
 class MenuItem(db.Model):
     """Menu item model with hierarchy support."""
     __tablename__ = 'menu_items'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
-    menu_id = db.Column(db.Integer, db.ForeignKey('menus.id', ondelete='CASCADE'), nullable=False)
+    menu_id = db.Column(db.Integer, db.ForeignKey(_q('menus.id', _BLOG_SCHEMA), ondelete='CASCADE'), nullable=False)
     title = db.Column(db.String(100), nullable=False)
     url = db.Column(db.String(500))
-    content_id = db.Column(db.Integer, db.ForeignKey('contents.id'))
-    parent_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'))
+    content_id = db.Column(db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA)))
+    parent_id = db.Column(db.Integer, db.ForeignKey(_q('menu_items.id', _BLOG_SCHEMA)))
     sort_order = db.Column(db.Integer, default=0)
     css_class = db.Column(db.String(100))
     target = db.Column(db.String(20), default='_self')
@@ -429,6 +490,7 @@ class MenuItem(db.Model):
 class Setting(db.Model):
     """Key-value settings model."""
     __tablename__ = 'settings'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False, index=True)
@@ -445,6 +507,7 @@ class Setting(db.Model):
 class HomepageSlide(db.Model):
     """Homepage carousel slide model."""
     __tablename__ = 'homepage_slides'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     slide_id = db.Column(db.String(100), unique=True, nullable=False)
@@ -517,6 +580,7 @@ class HomepageSlide(db.Model):
 class HomepageSettings(db.Model):
     """Homepage global settings model."""
     __tablename__ = 'homepage_settings'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     button_text = db.Column(JSONB, default={})   # {"zh-TW": "關於我們", "en": "About Us"}
@@ -552,9 +616,10 @@ class HomepageSettings(db.Model):
 class ActivityLog(db.Model):
     """Activity log for audit trail."""
     __tablename__ = 'activity_logs'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET))
     action = db.Column(db.String(100), nullable=False)
     table_name = db.Column(db.String(50))
     record_id = db.Column(db.Integer)
@@ -575,6 +640,7 @@ class ActivityLog(db.Model):
 class Submission(db.Model):
     """User submission model (e.g., astrology questions)."""
     __tablename__ = 'submissions'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     submission_type = db.Column(db.String(50), default='general', index=True)  # for multi-purpose
@@ -626,7 +692,7 @@ class Product(db.Model):
     gallery_images = db.Column(JSONB, default=[])
 
     # Classification
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), index=True)
+    category_id = db.Column(db.Integer, db.ForeignKey(_q('categories.id', _BLOG_SCHEMA)), index=True)
 
     # Status
     is_active = db.Column(db.Boolean, default=True, index=True)
@@ -642,11 +708,11 @@ class Product(db.Model):
     sales_count = db.Column(db.Integer, default=0)
 
     # Content relation
-    detail_content_id = db.Column(db.Integer, db.ForeignKey('contents.id', ondelete='SET NULL'), nullable=True)
+    detail_content_id = db.Column(db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA), ondelete='SET NULL'), nullable=True)
 
     # i18n fields
     language = db.Column(db.String(10), nullable=False, default='zh-TW', index=True)
-    original_id = db.Column(db.Integer, db.ForeignKey('products.id', ondelete='CASCADE'), nullable=True)
+    original_id = db.Column(db.Integer, db.ForeignKey(_q('products.id', _SHOP_SCHEMA), ondelete='CASCADE'), nullable=True)
 
     # NEW: JSONB extension fields
     attributes = db.Column(JSONB, default={})
@@ -657,10 +723,11 @@ class Product(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint('product_id', 'language', name='uq_product_id_language'),
+        {'schema': _SHOP_SCHEMA},
     )
 
     # Relationships
-    tags = db.relationship('Tag', secondary='product_tags', back_populates='products')
+    tags = db.relationship('Tag', secondary=_q('product_tags', _SHOP_SCHEMA), back_populates='products')
     detail_content = db.relationship('Content', foreign_keys=[detail_content_id], backref='product_detail')
     original = db.relationship('Product', remote_side=[id], foreign_keys=[original_id], backref='translations')
     prices = db.relationship('ProductPrice', backref='product', lazy='dynamic', cascade='all, delete-orphan')
@@ -781,8 +848,9 @@ class Product(db.Model):
 
 # Product-Tag association table
 product_tags = db.Table('product_tags',
-    db.Column('product_id', db.Integer, db.ForeignKey('products.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tags.id', ondelete='CASCADE'), primary_key=True)
+    db.Column('product_id', db.Integer, db.ForeignKey(_q('products.id', _SHOP_SCHEMA), ondelete='CASCADE'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey(_q('tags.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True),
+    schema=_SHOP_SCHEMA,
 )
 
 
@@ -791,7 +859,7 @@ class ProductPrice(db.Model):
     __tablename__ = 'product_prices'
 
     id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id', ondelete='CASCADE'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey(_q('products.id', _SHOP_SCHEMA), ondelete='CASCADE'), nullable=False)
     currency = db.Column(db.String(10), nullable=False, index=True)
     price = db.Column(db.Integer, nullable=False)
     original_price = db.Column(db.Integer, nullable=True)
@@ -801,6 +869,7 @@ class ProductPrice(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint('product_id', 'currency', name='uq_product_currency'),
+        {'schema': _SHOP_SCHEMA},
     )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -822,10 +891,11 @@ class ProductPrice(db.Model):
 class Order(db.Model):
     """Order model with multi-currency support."""
     __tablename__ = 'orders'
+    __table_args__ = {'schema': _SHOP_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     order_no = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), nullable=False)
     amount = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='pending', index=True)
     items = db.Column(JSONB, default=[])  # Snapshot of items
@@ -842,7 +912,9 @@ class Order(db.Model):
     paid_at = db.Column(db.DateTime, nullable=True)
 
     # Relationships
-    user = db.relationship('User', backref='orders')
+    user = db.relationship('User', backref='orders',
+                           foreign_keys='Order.user_id',
+                           primaryjoin='User.id == Order.user_id')
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -867,6 +939,7 @@ class Order(db.Model):
 class PaymentMethod(db.Model):
     """Payment method configuration model."""
     __tablename__ = 'payment_methods'
+    __table_args__ = {'schema': _SHOP_SCHEMA}
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(50), unique=True, nullable=False, index=True)

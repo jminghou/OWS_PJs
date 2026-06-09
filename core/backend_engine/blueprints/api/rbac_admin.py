@@ -13,6 +13,8 @@ RBAC Admin API Routes
 - PUT    /admin/users/<id>/roles           設定使用者的角色（覆寫）
 """
 
+import os
+
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required
 
@@ -20,6 +22,48 @@ from core.backend_engine.factory import db
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.models import Role, Permission, RolePermission, UserRole, User
 from core.backend_engine.services.rbac import require_permission, RBACService
+
+# 統一身分模型（§11）：Polaris 用 account.app_users.role（單一）+ permissions JSONB，
+# 無自有 RBAC 四表。以下提供與前端相容的「固定角色/權限」視圖，並把使用者角色
+# 的讀/寫對應到 app_users.role（經 blog.users view）。其他站（Claire）維持原 RBAC。
+_BLOG_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA')
+# 設定單一角色時的優先序（前端可能傳多個碼，統一模型取其一）
+_ROLE_PRIORITY = ['admin', 'editor', 'member', 'user']
+
+
+def _polaris_role_perms():
+    """回傳 Polaris 固定角色 → (zh, en, 權限碼list) 對應。"""
+    from core.backend_engine.services.rbac import _EDITOR_PERMS, _READER_PERMS
+    from core.backend_engine.services.rbac_seed import PERMISSIONS
+    all_codes = sorted({p[0] for p in PERMISSIONS})
+    return {
+        'admin':  ('管理員', 'Administrator', all_codes),
+        'editor': ('編輯者', 'Editor', sorted(_EDITOR_PERMS)),
+        'member': ('會員', 'Member', sorted(_READER_PERMS)),
+        'user':   ('一般使用者', 'User', sorted(_READER_PERMS)),
+    }
+
+
+def _polaris_roles_payload():
+    return [
+        {'id': i + 1, 'code': code, 'name': {'zh-TW': zh, 'en': en},
+         'description': {}, 'is_system': True, 'is_active': True, 'permissions': perms}
+        for i, (code, (zh, en, perms)) in enumerate(_polaris_role_perms().items())
+    ]
+
+
+def _polaris_permissions_payload():
+    from core.backend_engine.services.rbac_seed import PERMISSIONS
+    grouped = {}
+    for i, (code, module, action, zh, en) in enumerate(PERMISSIONS):
+        grouped.setdefault(module, []).append(
+            {'id': i + 1, 'code': code, 'action': action, 'name': {'zh-TW': zh, 'en': en}})
+    return grouped
+
+
+_POLARIS_ROLE_UNSUPPORTED = (
+    {'message': '統一身分模型不支援自訂角色：角色為 account.app_users.role 的固定值'
+                '（admin/editor/member/user）。請於使用者編輯指派角色。'}, 400)
 
 
 def _role_to_dict(role):
@@ -46,6 +90,8 @@ def _role_to_dict(role):
 @require_permission('users.update')
 def rbac_list_permissions():
     """List all permissions grouped by module."""
+    if _BLOG_SCHEMA:
+        return jsonify({'modules': _polaris_permissions_payload()}), 200
     perms = Permission.query.order_by(Permission.module, Permission.action).all()
     grouped = {}
     for p in perms:
@@ -62,6 +108,8 @@ def rbac_list_permissions():
 @require_permission('users.update')
 def rbac_list_roles():
     """List all roles with their permission codes."""
+    if _BLOG_SCHEMA:
+        return jsonify({'roles': _polaris_roles_payload()}), 200
     roles = Role.query.order_by(Role.id).all()
     return jsonify({'roles': [_role_to_dict(r) for r in roles]}), 200
 
@@ -71,6 +119,8 @@ def rbac_list_roles():
 @require_permission('users.update')
 def rbac_create_role():
     """Create a new (custom) role."""
+    if _BLOG_SCHEMA:
+        return jsonify(_POLARIS_ROLE_UNSUPPORTED[0]), _POLARIS_ROLE_UNSUPPORTED[1]
     data = request.get_json() or {}
     code = (data.get('code') or '').strip()
     if not code:
@@ -97,6 +147,8 @@ def rbac_create_role():
 @require_permission('users.update')
 def rbac_update_role(role_id):
     """Update a role's name/description/active/permissions."""
+    if _BLOG_SCHEMA:
+        return jsonify(_POLARIS_ROLE_UNSUPPORTED[0]), _POLARIS_ROLE_UNSUPPORTED[1]
     role = Role.query.get_or_404(role_id)
     data = request.get_json() or {}
 
@@ -119,6 +171,8 @@ def rbac_update_role(role_id):
 @require_permission('users.update')
 def rbac_delete_role(role_id):
     """Delete a custom role (system roles cannot be deleted)."""
+    if _BLOG_SCHEMA:
+        return jsonify(_POLARIS_ROLE_UNSUPPORTED[0]), _POLARIS_ROLE_UNSUPPORTED[1]
     role = Role.query.get_or_404(role_id)
     if role.is_system:
         return jsonify({'message': 'System roles cannot be deleted'}), 400
@@ -148,6 +202,9 @@ def _set_role_permissions(role, permission_codes):
 @require_permission('users.update')
 def rbac_get_user_roles(user_id):
     """Get the role codes assigned to a user."""
+    if _BLOG_SCHEMA:
+        u = User.query.get_or_404(user_id)
+        return jsonify({'roles': [u.role] if u.role else []}), 200
     User.query.get_or_404(user_id)
     role_ids = [ur.role_id for ur in UserRole.query.filter_by(user_id=user_id).all()]
     codes = [r.code for r in Role.query.filter(Role.id.in_(role_ids)).all()] if role_ids else []
@@ -162,6 +219,14 @@ def rbac_set_user_roles(user_id):
     user = User.query.get_or_404(user_id)
     data = request.get_json() or {}
     codes = set(data.get('roles', []))
+
+    if _BLOG_SCHEMA:
+        # 統一模型：單一 app_users.role（依優先序取一），經 view trigger 寫入
+        chosen = next((r for r in _ROLE_PRIORITY if r in codes), None) or 'user'
+        user.role = chosen
+        db.session.commit()
+        RBACService.clear_cache(user.id)
+        return jsonify({'message': 'User role updated', 'roles': [chosen]}), 200
 
     UserRole.query.filter_by(user_id=user.id).delete()
     if codes:
