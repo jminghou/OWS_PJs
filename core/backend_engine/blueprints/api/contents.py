@@ -509,6 +509,50 @@ def api_create_tag():
         return jsonify({'message': f'Creation failed: {str(e)}'}), 500
 
 
+@bp.route('/tags/find-or-create', methods=['POST'])
+@jwt_required()
+@require_permission('contents.update')
+def api_find_or_create_tags():
+    """Find existing tags by code or create missing ones; return their ids.
+
+    Body: {"codes": ["洞察", ...]}  -> {"message", "tags": [...], "tag_ids": [...]}
+    Used by the article editor so saving an article with tags is a single step.
+    """
+    data = request.get_json() or {}
+    raw_codes = data.get('codes') or []
+
+    # Normalize: strip, drop empties, de-dup while preserving order
+    codes = []
+    for c in raw_codes:
+        code = (c or '').strip()
+        if code and code not in codes:
+            codes.append(code)
+
+    if not codes:
+        return jsonify({'message': 'No tag codes provided', 'tags': [], 'tag_ids': []}), 200
+
+    try:
+        existing = {t.code: t for t in Tag.query.filter(Tag.code.in_(codes)).all()}
+        result_tags = []
+        for code in codes:
+            tag = existing.get(code)
+            if tag is None:
+                tag = Tag(code=code, slugs={})
+                db.session.add(tag)
+                existing[code] = tag
+            result_tags.append(tag)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Tags resolved successfully',
+            'tags': tags_schema.dump(result_tags),
+            'tag_ids': [t.id for t in result_tags],
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Find-or-create failed: {str(e)}'}), 500
+
+
 @bp.route('/tags/<int:tag_id>', methods=['PUT'])
 @jwt_required()
 @require_permission('contents.update')
