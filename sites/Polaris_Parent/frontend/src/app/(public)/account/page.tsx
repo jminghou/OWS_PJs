@@ -57,6 +57,11 @@ export default function AccountPage() {
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);
   const [form, setForm] = useState({ product_type_id: 0, external_order_no: '', chart_id: '', note: '' });
+  // 退回重送
+  const [resubmitTarget, setResubmitTarget] = useState<OrderSubmission | null>(null);
+  const [resubmitNo, setResubmitNo] = useState('');
+  const [resubmitNote, setResubmitNote] = useState('');
+  const [resubmitBusy, setResubmitBusy] = useState(false);
 
   // 收藏文章
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([]);
@@ -201,6 +206,36 @@ export default function AccountPage() {
       setErr(e.message || '登錄訂單失敗');
     } finally {
       setSubmitBusy(false);
+    }
+  };
+
+  const openResubmit = (s: OrderSubmission) => {
+    setResubmitTarget(s);
+    setResubmitNo(s.external_order_no);
+    setResubmitNote('');
+    setErr('');
+  };
+
+  const doResubmit = async () => {
+    if (!resubmitTarget) return;
+    if (!resubmitNo.trim()) {
+      setErr('請輸入訂單號');
+      return;
+    }
+    setResubmitBusy(true);
+    setErr('');
+    try {
+      await membershipApi.resubmitOrder(resubmitTarget.id, {
+        external_order_no: resubmitNo.trim(),
+        note: resubmitNote.trim() || undefined,
+      });
+      setResubmitTarget(null);
+      const s = await membershipApi.myOrderSubmissions();
+      setSubmissions(s.submissions || []);
+    } catch (e: any) {
+      setErr(e.message || '重送失敗');
+    } finally {
+      setResubmitBusy(false);
     }
   };
 
@@ -400,7 +435,7 @@ export default function AccountPage() {
             <div className="space-y-2">
               {submissions.map((s) => (
                 <div key={s.id} className={cardCls}>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-gray-800">{s.product_name}</span>
                       <span className={`px-2 py-0.5 text-xs rounded-full ${subStatusCls(s.status)}`}>{s.status}</span>
@@ -414,6 +449,15 @@ export default function AccountPage() {
                       <p className="text-green-700 text-xs mt-1">折扣碼：<span className="font-mono">{s.coupon_code}</span></p>
                     )}
                   </div>
+                  {s.status === '退回' && (
+                    <button
+                      type="button"
+                      onClick={() => openResubmit(s)}
+                      className="px-3 py-2 text-sm rounded-banner border border-brand-purple-300 text-brand-purple-700 hover:bg-brand-purple-50 whitespace-nowrap"
+                    >
+                      修正並重送
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -514,6 +558,57 @@ export default function AccountPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 退回重送 Modal */}
+      {resubmitTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setResubmitTarget(null)} />
+          <div className="relative bg-white rounded-banner shadow-xl w-full max-w-md p-6 space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">修正並重送</h3>
+            <p className="text-sm text-gray-500">
+              {resubmitTarget.product_name}（{resubmitTarget.platform}）
+              {resubmitTarget.note && (
+                <span className="block text-red-600 mt-1">退回原因：{resubmitTarget.note}</span>
+              )}
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">訂單號</label>
+              <input
+                value={resubmitNo}
+                onChange={(e) => setResubmitNo(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-banner"
+                placeholder="修正後的訂單編號"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">補充說明（選填）</label>
+              <input
+                value={resubmitNote}
+                onChange={(e) => setResubmitNote(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-banner"
+                placeholder="給審核者的補充說明"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setResubmitTarget(null)}
+                className="px-4 py-2 text-sm rounded-banner border border-gray-300 text-gray-600 hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <Button
+                type="button"
+                onClick={doResubmit}
+                disabled={resubmitBusy}
+                className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
+              >
+                {resubmitBusy ? '送出中…' : '重新送審'}
+              </Button>
+            </div>
           </div>
         </div>
       )}

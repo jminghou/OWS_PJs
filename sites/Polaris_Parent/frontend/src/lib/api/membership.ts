@@ -70,6 +70,13 @@ export const membershipApi = {
       body: JSON.stringify(body),
     }),
 
+  /** 退回後修正並重送（沿用原筆改回待審核）。 */
+  resubmitOrder: (id: number, body: { external_order_no?: string; note?: string }) =>
+    request<{ success: boolean; status: string }>(`/membership/order-submissions/${id}/resubmit`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   /** 我的訂單提交（含商品名與已發折扣碼）。 */
   myOrderSubmissions: () =>
     request<{ success: boolean; submissions: OrderSubmission[] }>('/membership/order-submissions'),

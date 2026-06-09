@@ -155,6 +155,36 @@ def create_order_submission():
     return jsonify({'success': True, 'id': sub.id, 'status': sub.status}), 201
 
 
+@bp.route('/membership/order-submissions/<int:sub_id>/resubmit', methods=['POST'])
+@jwt_required()
+@_limit("20 per minute")
+def resubmit_order_submission(sub_id):
+    """退回後修正並重送：沿用原筆改回待審核（避免唯一鍵擋同訂單號）。
+    body: {external_order_no?, note?}（僅限本人、且狀態為退回）"""
+    _Pt, _C, OrderSubmission, _R, _S = _models()
+    member_id = _member_id()
+    sub = OrderSubmission.query.filter_by(id=sub_id, member_id=member_id).first()
+    if not sub:
+        return jsonify({'success': False, 'error': '提交不存在'}), 404
+    if sub.status != '退回':
+        return jsonify({'success': False, 'error': '只有被退回的訂單可重送'}), 400
+
+    data = request.get_json(silent=True) or {}
+    new_no = (data.get('external_order_no') or '').strip()
+    if new_no:
+        sub.external_order_no = new_no
+    if 'note' in data:
+        sub.note = (data.get('note') or '').strip() or None
+    sub.status = '待審核'
+    sub.reviewed_at = None
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': '此訂單號已登錄過（同平台不可重複）'}), 409
+    return jsonify({'success': True, 'status': sub.status})
+
+
 @bp.route('/membership/order-submissions', methods=['GET'])
 @jwt_required()
 def list_my_order_submissions():
