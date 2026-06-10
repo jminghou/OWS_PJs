@@ -59,6 +59,21 @@ export interface SaveAndRegisterRequest {
   place?: string;
   email: string;
   relation?: string; // 命主相對會員：self/father/...（預設 self）
+  rating?: string; // 資料評級（Rodden rating：AA/A/B/C/DD/X/XX）
+}
+
+/** 會員中心排盤儲存（需登入；email 由後端取自本人）。 */
+export interface SaveMyChartRequest {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute?: number;
+  gender: string; // 男 / 女
+  name?: string;
+  place?: string;
+  relation?: string; // self/father/mother/...（預設 self）
+  rating?: string; // 資料評級（Rodden rating）
 }
 
 export interface SaveAndRegisterResponse {
@@ -139,6 +154,13 @@ export const astrologyApi = {
   /** 我的命盤（擁有的人 + 其命盤）。 */
   myCharts: () =>
     request<{ success: boolean; people: MyPerson[] }>('/astrology/my/charts'),
+
+  /** 會員中心排盤儲存：把一張命盤歸檔到自己帳號。 */
+  saveMyChart: (req: SaveMyChartRequest) =>
+    request<{ success: boolean; chart_id: string }>('/astrology/my/charts', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
 
   /** 我的收藏。 */
   myFavorites: () =>

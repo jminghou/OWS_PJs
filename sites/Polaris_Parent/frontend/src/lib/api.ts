@@ -29,6 +29,13 @@ export type {
   ZiweiPlace,
   TimeType,
   GeoHierarchy,
+  SaveAndRegisterRequest,
+  SaveAndRegisterResponse,
+  SaveMyChartRequest,
+  ChartBirth,
+  MyChart,
+  MyPerson,
+  MyFavorite,
 } from './api/index';
 export type {
   ExternalProduct,

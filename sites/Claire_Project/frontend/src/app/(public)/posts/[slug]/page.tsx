@@ -4,47 +4,52 @@ import { contentApi } from '@/lib/api';
 import { Content } from '@/types';
 import PostDetailContent from './PostDetailContent';
 
-// ISR: 每小時重新驗證
+// ISR: 每小時重新驗證；後台存檔會經由 /api/revalidate 立即清快取。
+// 注意：此頁不可讀取 searchParams/cookies 等動態 API，否則整個路由會退回
+// 動態渲染，每次點擊都要等後端與資料庫（Neon 冷啟動），ISR 形同失效。
 export const revalidate = 3600;
 
 interface PostDetailPageProps {
   params: Promise<{
     slug: string;
   }>;
-  searchParams: Promise<{
-    preview?: string;
-  }>;
 }
 
-async function getPost(slug: string, isPreview: boolean = false): Promise<Content | null> {
+async function getPost(slug: string): Promise<Content | null> {
   try {
-    console.log('Fetching post with slug:', slug, 'Preview mode:', isPreview);
     const response = await contentApi.getBySlug(slug);
-    console.log('API response:', response);
-    
-    // 如果不是預覽模式，只允許已發佈的文章
-    if (!isPreview && response.status !== 'published') {
-      console.log('Post not published and not preview mode');
+
+    // 公開頁只允許已發佈的文章
+    if (response.status !== 'published') {
       return null;
     }
-    
+
     return response;
   } catch (error: any) {
     console.error('Error fetching post:', error.message || error);
-    console.error('Error details:', {
-      message: error.message,
-      status: error.status,
-      errors: error.errors,
-    });
     return null;
   }
 }
 
-export async function generateMetadata({ params, searchParams }: PostDetailPageProps): Promise<Metadata> {
+// build 時預先產生所有已發佈文章的靜態頁，讓第一次點擊直接由 CDN 回應。
+// 之後新發佈的文章（dynamicParams 預設 true）會在第一次造訪時產生並快取。
+export async function generateStaticParams() {
+  try {
+    const response = await contentApi.getList({
+      per_page: 100,
+      status: 'published',
+      type: 'article',
+    });
+    return response.contents.map((post) => ({ slug: post.slug }));
+  } catch (error) {
+    console.error('Error generating static params:', error);
+    return [];
+  }
+}
+
+export async function generateMetadata({ params }: PostDetailPageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
-  const isPreview = resolvedSearchParams.preview === 'true';
-  const post = await getPost(resolvedParams.slug, isPreview);
+  const post = await getPost(resolvedParams.slug);
 
   if (!post) {
     return {
@@ -74,11 +79,9 @@ export async function generateMetadata({ params, searchParams }: PostDetailPageP
   };
 }
 
-export default async function PostDetailPage({ params, searchParams }: PostDetailPageProps) {
+export default async function PostDetailPage({ params }: PostDetailPageProps) {
   const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
-  const isPreview = resolvedSearchParams.preview === 'true';
-  const post = await getPost(resolvedParams.slug, isPreview);
+  const post = await getPost(resolvedParams.slug);
 
   if (!post) {
     notFound();
@@ -111,22 +114,6 @@ export default async function PostDetailPage({ params, searchParams }: PostDetai
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {isPreview && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm">
-                您正在預覽模式中檢視此文章。這個頁面只有管理員可以存取。
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
       <PostDetailContent post={post} />
     </>
   );

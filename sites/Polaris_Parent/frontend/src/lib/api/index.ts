@@ -32,6 +32,7 @@ export type {
   GeoHierarchy,
   SaveAndRegisterRequest,
   SaveAndRegisterResponse,
+  SaveMyChartRequest,
   ChartBirth,
   MyChart,
   MyPerson,

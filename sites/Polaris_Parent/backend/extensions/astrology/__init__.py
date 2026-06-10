@@ -326,6 +326,7 @@ def save_and_register():
         "gender": gender, "name": (data.get("name") or "").strip(),
         "place": (data.get("place") or "").strip(), "email": email,
         "relation": (data.get("relation") or "self"),
+        "rating": (data.get("rating") or "").strip(),
     })
     if zerr:
         return jsonify({"success": False, "error": zerr}), 502
@@ -461,6 +462,7 @@ def register():
                         "gender": gender, "name": (chart.get("name") or "").strip(),
                         "place": (chart.get("place") or "").strip(), "email": email,
                         "relation": (chart.get("relation") or "self"),
+                        "rating": (chart.get("rating") or "").strip(),
                     }
         if payload is not None:
             zres, zerr = _ziwei_save_and_register(payload)
@@ -522,6 +524,63 @@ def resend_set_password():
 
 
 # ── 會員端：我的命盤 / 收藏（需登入；member_id 取自 JWT）─────────────────────
+@bp.route('/my/charts', methods=['POST'])
+@jwt_required()
+@_limit("10 per minute")
+def save_my_chart():
+    """
+    會員中心排盤儲存：以登入會員身分存一張命盤並歸檔到自己帳號。
+
+    Request JSON:
+        year, month, day, hour      (必填, int)
+        minute                      (選填, int, 預設 0)
+        gender                      (必填, 男/女 或 M/F)
+        name, place                 (選填, str)
+        relation                    (選填, self/father/mother/...，預設 self)
+        rating                      (選填, 資料評級 Rodden rating：AA/A/B/C/DD/X/XX)
+
+    email 取自登入會員本人（不信任 client 傳入），其餘走既有紫微 save-and-register。
+    """
+    if not _PUBLIC_SERVICE_TOKEN:
+        return jsonify({"success": False, "error": "服務未設定（PUBLIC_SERVICE_TOKEN 缺）"}), 503
+    data = request.get_json(silent=True) or {}
+
+    parts = {}
+    for key in ("year", "month", "day", "hour"):
+        val, err = _as_int(data, key)
+        if err:
+            return jsonify({"success": False, "error": err}), 400
+        parts[key] = val
+    minute = 0
+    if data.get("minute") not in ("", None):
+        minute, err = _as_int(data, "minute")
+        if err:
+            return jsonify({"success": False, "error": err}), 400
+    gender = _norm_gender(data.get("gender"))
+    if gender not in ("男", "女"):
+        return jsonify({"success": False, "error": "gender 必須為 男/女（或 M/F）"}), 400
+
+    from core.backend_engine.models import User
+    user = User.query.get(int(get_jwt_identity()))
+    if user is None or not user.is_active:
+        return jsonify({"success": False, "error": "會員不存在或已停用"}), 404
+    email = (user.email or user.username or "").strip().lower()
+    if "@" not in email:
+        return jsonify({"success": False, "error": "會員帳號缺少 email，無法歸檔"}), 400
+
+    zres, zerr = _ziwei_save_and_register({
+        "year": parts["year"], "month": parts["month"], "day": parts["day"],
+        "hour": parts["hour"], "minute": minute,
+        "gender": gender, "name": (data.get("name") or "").strip(),
+        "place": (data.get("place") or "").strip(), "email": email,
+        "relation": (data.get("relation") or "self"),
+        "rating": (data.get("rating") or "").strip(),
+    })
+    if zerr:
+        return jsonify({"success": False, "error": zerr}), 502
+    return jsonify({"success": True, "chart_id": zres.get("chart_id")})
+
+
 @bp.route('/my/charts', methods=['GET'])
 @jwt_required()
 def my_charts():

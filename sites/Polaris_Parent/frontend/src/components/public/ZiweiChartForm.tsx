@@ -16,16 +16,16 @@ import {
  * 紫微斗數排盤「區塊模板」：出生時辰表單 + 命盤結果。
  * 不含外層容器與標題，供 /ziwei 頁與首頁區塊共用。
  *
- * 基本原則：官網公開頁一律只給「最基礎的靜態命盤 + 單一 CTA」，
- * 互動命盤與其他進階功能（版型、下載、流盤切換）全部收在會員專區 /account。
+ * 基本原則：官網公開頁的排盤一律是「demo 樣品」——不分訪客或會員，
+ * 只給最基礎的靜態命盤 + 單一 CTA；排盤、儲存與所有進階功能（互動命盤、
+ * 版型、下載、流盤切換）都在會員專區 /account 進行。
  * - 未登入：CTA「加入會員，解鎖更多命盤功能」→ 暫存命盤並前往
  *   /login?mode=register，註冊／登入成功後命盤自動存入帳號。
- * - 已登入：CTA「使用進階命盤功能」→ 把這張命盤存入帳號後前往會員專區。
+ * - 已登入：CTA「使用進階命盤功能」→ 前往會員專區（不在此存盤）。
  */
 export default function ZiweiChartForm() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const user = useAuthStore((s) => s.user);
   const [form, setForm] = useState({
     name: '',
     gender: '男',
@@ -42,10 +42,6 @@ export default function ZiweiChartForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ZiweiCalcResponse | null>(null);
-
-  // 會員 CTA：存盤後前往會員專區
-  const [saveBusy, setSaveBusy] = useState(false);
-  const [saveErr, setSaveErr] = useState('');
 
   // 切到「真太陽時」時才載入地點選項
   useEffect(() => {
@@ -140,23 +136,9 @@ export default function ZiweiChartForm() {
     router.push('/login?mode=register');
   };
 
-  // ── 會員 CTA：把這張命盤存入帳號 → 前往會員專區 ──
-  const goAdvanced = async () => {
-    const email = user?.email || user?.username;
-    if (!email) {
-      router.push('/account');
-      return;
-    }
-    setSaveErr('');
-    setSaveBusy(true);
-    try {
-      await astrologyApi.saveAndRegister({ ...chartPayload(), email });
-      router.push('/account');
-    } catch (err: any) {
-      setSaveErr(err.message || '命盤儲存失敗，請稍後再試');
-    } finally {
-      setSaveBusy(false);
-    }
+  // ── 會員 CTA：前往會員專區（排盤與儲存都在那邊進行）──
+  const goAdvanced = () => {
+    router.push('/account');
   };
 
   const inputCls =
@@ -358,17 +340,13 @@ export default function ZiweiChartForm() {
           {/* 唯一的按鈕：依登入狀態決定 CTA */}
           <div className="mt-6 text-center">
             {isAuthenticated ? (
-              <>
-                <Button
-                  type="button"
-                  onClick={goAdvanced}
-                  disabled={saveBusy}
-                  className="bg-brand-purple-600 hover:bg-brand-purple-700"
-                >
-                  {saveBusy ? '儲存命盤中…' : '使用進階命盤功能'}
-                </Button>
-                {saveErr && <p className="mt-2 text-sm text-red-600">{saveErr}</p>}
-              </>
+              <Button
+                type="button"
+                onClick={goAdvanced}
+                className="bg-brand-purple-600 hover:bg-brand-purple-700"
+              >
+                使用進階命盤功能
+              </Button>
             ) : (
               <Button
                 type="button"
@@ -378,6 +356,9 @@ export default function ZiweiChartForm() {
                 加入會員，解鎖更多命盤功能
               </Button>
             )}
+            <p className="mt-3 text-xs text-gray-400">
+              此為展示用命盤預覽；排盤儲存與完整功能請在會員專區使用。
+            </p>
           </div>
         </div>
       )}

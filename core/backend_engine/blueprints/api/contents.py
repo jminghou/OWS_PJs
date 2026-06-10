@@ -34,6 +34,7 @@ from core.backend_engine.blueprints.api.utils import (
     skip_public_cache, invalidate_public_cache
 )
 from core.backend_engine.services.view_counter import record_view
+from core.backend_engine.services.revalidate import trigger_frontend_revalidate
 from core.backend_engine.models import Content, Category, Tag, User, Comment
 from core.backend_engine.schemas.content import ContentSchema
 from core.backend_engine.schemas.category import CategorySchema
@@ -68,6 +69,18 @@ def _clear_public_cache_on_write(response):
     except Exception:
         pass
     return response
+
+
+def _revalidate_content_pages(*slugs):
+    """文章寫入後通知前端清除文章相關的 ISR 快取。
+
+    文章詳情頁是靜態 ISR（build 時預產），不即時清快取的話，
+    編輯後要等 revalidate 週期（1 小時）才會反映。
+    未設定 FRONTEND_REVALIDATE_URL / REVALIDATE_SECRET 的站點自動跳過。
+    """
+    paths = ['/']  # 首頁有精選文章列表
+    paths += [f'/posts/{s}' for s in dict.fromkeys(slugs) if s]
+    trigger_frontend_revalidate(paths)
 
 
 def _decorate_content(content, data):
@@ -326,6 +339,7 @@ def api_create_content():
             tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
             content.tags = tags
         db.session.commit()
+        _revalidate_content_pages(content.slug)
         return jsonify({'message': 'Content created successfully', 'id': content.id}), 201
     except Exception as e:
         db.session.rollback()
@@ -345,6 +359,7 @@ def api_update_content(content_id):
 
     data = request.get_json()
 
+    old_slug = content.slug  # slug 可能被改，新舊頁面快取都要清
     content.title = data.get('title', content.title)
     content.content = data.get('content', content.content)
     content.summary = data.get('summary', content.summary)
@@ -373,6 +388,7 @@ def api_update_content(content_id):
 
     try:
         db.session.commit()
+        _revalidate_content_pages(old_slug, content.slug)
         return jsonify({'message': 'Content updated successfully'}), 200
     except Exception as e:
         db.session.rollback()
@@ -390,8 +406,10 @@ def api_delete_content(content_id):
     if not RBACService.has_permission(user_id, 'contents.delete') and content.author_id != user_id:
         return jsonify({'message': 'Insufficient permissions'}), 403
 
+    slug = content.slug
     db.session.delete(content)
     db.session.commit()
+    _revalidate_content_pages(slug)
     return jsonify({'message': 'Content deleted successfully'}), 200
 
 

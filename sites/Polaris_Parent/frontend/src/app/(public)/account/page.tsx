@@ -11,7 +11,9 @@ import type {
   MyChart,
   MyFavorite,
   ZiweiCalcResponse,
+  SaveMyChartRequest,
 } from '@/lib/api/astrology';
+import MemberChartForm from '@/components/account/MemberChartForm';
 import type {
   ExternalProduct,
   OrderSubmission,
@@ -53,6 +55,12 @@ export default function AccountPage() {
   const [chartTheme, setChartTheme] = useState<'light' | 'dark' | 'sepia'>('light');
   const [pngBusy, setPngBusy] = useState(false);
 
+  // 會員中心排盤：表單開關 + 未儲存的草稿盤（排好後按「儲存命盤」才歸檔）
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [draft, setDraft] = useState<SaveMyChartRequest | null>(null);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+
   // 我的訂單 / 折扣券
   const [submissions, setSubmissions] = useState<OrderSubmission[]>([]);
   const [rewards, setRewards] = useState<MemberReward[]>([]);
@@ -79,25 +87,27 @@ export default function AccountPage() {
     if (!isLoading && !isAuthenticated) router.push('/login');
   }, [isLoading, isAuthenticated, router]);
 
-  // 載入資料
+  // 載入資料（儲存命盤後也會重載）
+  const loadCharts = async () => {
+    setLoading(true);
+    setErr('');
+    try {
+      const [c, f] = await Promise.all([
+        astrologyApi.myCharts(),
+        astrologyApi.myFavorites(),
+      ]);
+      setPeople(c.people || []);
+      setFavorites(f.favorites || []);
+    } catch (e: any) {
+      setErr(e.message || '載入失敗');
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     if (!isAuthenticated) return;
-    (async () => {
-      setLoading(true);
-      setErr('');
-      try {
-        const [c, f] = await Promise.all([
-          astrologyApi.myCharts(),
-          astrologyApi.myFavorites(),
-        ]);
-        setPeople(c.people || []);
-        setFavorites(f.favorites || []);
-      } catch (e: any) {
-        setErr(e.message || '載入失敗');
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadCharts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   const viewChart = async (c: MyChart) => {
@@ -121,12 +131,41 @@ export default function AccountPage() {
         include_flow: true,
       });
       setViewMode('interactive');
+      setDraft(null); // 檢視已儲存的命盤 → 不顯示「儲存命盤」按鈕
+      setSaveMsg('');
       setViewing(res);
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e: any) {
       setErr(e.message || '重繪失敗');
     } finally {
       setViewBusy(false);
+    }
+  };
+
+  // ── 會員中心排盤：計算完成 → 以草稿盤呈現（待按「儲存命盤」歸檔）──
+  const onComposed = (res: ZiweiCalcResponse, payload: SaveMyChartRequest) => {
+    setViewMode('interactive');
+    setViewing(res);
+    setDraft(payload);
+    setSaveMsg('');
+    setErr('');
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const saveDraft = async () => {
+    if (!draft) return;
+    setSaveBusy(true);
+    setErr('');
+    try {
+      await astrologyApi.saveMyChart(draft);
+      setDraft(null);
+      setSaveMsg('已儲存！這張命盤已歸檔到你的帳號。');
+      setComposerOpen(false);
+      await loadCharts();
+    } catch (e: any) {
+      setErr(e.message || '儲存失敗，請稍後再試');
+    } finally {
+      setSaveBusy(false);
     }
   };
 
@@ -353,8 +392,25 @@ export default function AccountPage() {
         <div className="mb-8 bg-white rounded-banner border border-warm-200/70 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
             <span>命盤 ID：<span className="font-mono">{viewing.chart_id}</span></span>
-            <button onClick={() => setViewing(null)} className="text-gray-400 hover:text-gray-700">關閉 ✕</button>
+            <button onClick={() => { setViewing(null); setDraft(null); }} className="text-gray-400 hover:text-gray-700">關閉 ✕</button>
           </div>
+
+          {/* 草稿盤：尚未歸檔，顯示儲存列 */}
+          {draft && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-banner flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm text-amber-800">
+                這張命盤尚未儲存。按「儲存命盤」即可歸檔到你的帳號。
+              </span>
+              <Button
+                type="button"
+                onClick={saveDraft}
+                disabled={saveBusy}
+                className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
+              >
+                {saveBusy ? '儲存中…' : '儲存命盤'}
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-3 mb-4">
             {/* 互動 / 靜態 檢視切換 */}
@@ -466,14 +522,35 @@ export default function AccountPage() {
       {err && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-banner text-red-700 text-sm">{err}</div>
       )}
+      {saveMsg && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-banner text-green-700 text-sm">{saveMsg}</div>
+      )}
       {viewBusy && <p className="mb-4 text-sm text-gray-500">重繪命盤中…</p>}
+
+      {/* 排新命盤（會員中心排盤 + 儲存）*/}
+      {tab === 'charts' && (
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setComposerOpen((o) => !o)}
+            className="px-4 py-2 text-sm rounded-banner border border-brand-purple-600 text-brand-purple-700 hover:bg-brand-purple-50 transition-colors"
+          >
+            {composerOpen ? '收合排盤表單 ▲' : '＋ 排新命盤'}
+          </button>
+          {composerOpen && (
+            <div className="mt-4">
+              <MemberChartForm onComputed={onComposed} />
+            </div>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <p className="text-gray-500">載入中…</p>
       ) : tab === 'charts' ? (
         people.length === 0 ? (
           <p className="text-gray-500">
-            還沒有命盤。到排盤頁排一張，按「使用進階命盤功能」即可存入這裡。
+            還沒有命盤。按上方「＋ 排新命盤」排一張並儲存，就會歸檔到這裡。
           </p>
         ) : (
           <div className="space-y-6">
