@@ -16,7 +16,22 @@ export function formatDate(dateString: string, formatStr: string = 'yyyy-MM-dd')
 
 export function formatDateTime(dateString: string): string {
   try {
-    return format(parseISO(dateString), 'yyyy-MM-dd HH:mm');
+    // 後端輸出的是無時區標記的 UTC 時間（naive datetime），補上 Z 才能正確換算
+    const normalized = /[Zz]$|[+-]\d{2}:?\d{2}$/.test(dateString)
+      ? dateString
+      : dateString + 'Z';
+    const date = parseISO(normalized);
+    if (isNaN(date.getTime())) return dateString;
+    // 固定以台灣時區顯示（sv-SE locale 的輸出格式即為 yyyy-MM-dd HH:mm）
+    return new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date);
   } catch {
     return dateString;
   }

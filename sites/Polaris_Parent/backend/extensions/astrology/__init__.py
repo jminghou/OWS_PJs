@@ -389,6 +389,122 @@ def set_password():
     return jsonify({"success": True, "message": "密碼已設定，請登入"})
 
 
+# ── 登入／註冊合一頁：email + 密碼註冊，成功即登入 ──────────────────────────
+@bp.route('/register', methods=['POST'])
+@_limit("5 per minute")
+def register():
+    """
+    會員註冊（email + 密碼），成功後直接發 JWT cookies（免再登入）。
+
+    Request JSON:
+        email, password                  (必填)
+        chart                            (選填) 剛排的命盤，註冊後自動歸戶：
+            {year, month, day, hour, minute?, gender, name?, place?, relation?}
+
+    有 chart → 走既有紫微 save-and-register（建會員 + 存盤 + 歸戶）後補設密碼；
+    無 chart → 直接經 blog.users view 建會員（INSTEAD OF trigger 寫
+    account.app_users + blog.member_profiles）。
+    """
+    from datetime import datetime
+    from flask_jwt_extended import (create_access_token, create_refresh_token,
+                                    set_access_cookies, set_refresh_cookies)
+    from core.backend_engine.factory import db
+    from core.backend_engine.models import User, validate_password
+    from core.backend_engine.schemas.user import UserSchema
+
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"success": False, "error": "請提供有效的 email"}), 400
+    password = data.get("password") or ""
+    try:
+        validate_password(password)
+    except ValueError as ve:
+        return jsonify({"success": False, "error": str(ve)}), 400
+
+    if User.query.filter_by(username=email).first():
+        return jsonify({
+            "success": False,
+            "error": "此 email 已是會員，請直接登入；若尚未設定密碼，請在登入頁重寄設定密碼信。",
+        }), 409
+
+    chart = data.get("chart") or None
+    chart_id = None
+    if chart:
+        # 有剛排的命盤 → 既有 save-and-register 一次完成建會員 + 存盤 + 歸戶
+        if not _PUBLIC_SERVICE_TOKEN:
+            return jsonify({"success": False, "error": "服務未設定（PUBLIC_SERVICE_TOKEN 缺）"}), 503
+        parts = {}
+        for key in ("year", "month", "day", "hour"):
+            val, err = _as_int(chart, key)
+            if err:
+                return jsonify({"success": False, "error": f"chart.{key} 無效"}), 400
+            parts[key] = val
+        minute = 0
+        if chart.get("minute") not in ("", None):
+            minute, err = _as_int(chart, "minute")
+            if err:
+                return jsonify({"success": False, "error": "chart.minute 無效"}), 400
+        gender = _norm_gender(chart.get("gender"))
+        if gender not in ("男", "女"):
+            return jsonify({"success": False, "error": "chart.gender 必須為 男/女（或 M/F）"}), 400
+
+        zres, zerr = _ziwei_save_and_register({
+            "year": parts["year"], "month": parts["month"], "day": parts["day"],
+            "hour": parts["hour"], "minute": minute,
+            "gender": gender, "name": (chart.get("name") or "").strip(),
+            "place": (chart.get("place") or "").strip(), "email": email,
+            "relation": (chart.get("relation") or "self"),
+        })
+        if zerr:
+            return jsonify({"success": False, "error": zerr}), 502
+        chart_id = zres.get("chart_id")
+
+        user = User.query.filter_by(username=email).first()
+        if user is None:
+            return jsonify({"success": False, "error": "會員建立失敗，請稍後再試"}), 500
+        user.email = email  # view trigger upsert member_profiles
+        user.set_password(password)
+    else:
+        user = User(username=email, email=email, role='member', is_active=True)
+        user.set_password(password)
+        db.session.add(user)
+
+    user.last_login = datetime.utcnow()
+    try:
+        db.session.commit()
+    except Exception as exc:  # noqa: BLE001
+        db.session.rollback()
+        current_app.logger.error(f"register commit failed: {exc}")
+        return jsonify({"success": False, "error": "註冊失敗，請稍後再試"}), 500
+
+    # 與 /auth/login 相同：JWT 進 httpOnly cookies，回傳 user
+    response = jsonify({
+        "success": True,
+        "user": UserSchema().dump(user),
+        "chart_id": chart_id,
+    })
+    set_access_cookies(response, create_access_token(identity=str(user.id)))
+    set_refresh_cookies(response, create_refresh_token(identity=str(user.id)))
+    return response, 200
+
+
+@bp.route('/resend-set-password', methods=['POST'])
+@_limit("3 per minute")
+def resend_set_password():
+    """重寄設定密碼信（兼忘記密碼）。無論 email 是否存在一律回成功，避免帳號枚舉。"""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"success": False, "error": "請提供有效的 email"}), 400
+
+    from core.backend_engine.models import User
+    user = User.query.filter_by(username=email).first()
+    if user is not None and user.is_active:
+        _send_set_password_email(user.id, email)
+    return jsonify({"success": True, "message": "若該 email 為會員，設定密碼信已寄出，請於 24 小時內完成設定。"})
+
+
 # ── 會員端：我的命盤 / 收藏（需登入；member_id 取自 JWT）─────────────────────
 @bp.route('/my/charts', methods=['GET'])
 @jwt_required()

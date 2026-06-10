@@ -19,6 +19,7 @@ from core.backend_engine.blueprints.api import bp
 from core.backend_engine.blueprints.api.utils import get_i18n_setting
 from core.backend_engine.models import Setting, User, HomepageSlide, HomepageSettings
 from core.backend_engine.services.rbac import require_permission
+from core.backend_engine.services.revalidate import trigger_frontend_revalidate
 
 
 # ==================== i18n Settings ====================
@@ -260,7 +261,10 @@ def api_update_homepage_settings():
 
     try:
         db.session.commit()
-        return jsonify({'message': 'Homepage settings updated'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': f'Database error: {str(e)}'}), 500
+
+    # 通知前端立即清除首頁 ISR 快取（best-effort，失敗不影響儲存結果）
+    trigger_frontend_revalidate()
+    return jsonify({'message': 'Homepage settings updated'}), 200

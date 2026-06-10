@@ -16,7 +16,10 @@
 # 終端機 1：Redis
 docker-compose up -d redis
 
-# 終端機 2：後端（先啟動 venv）
+# 1. 先啟用虛擬環境（建議用 .venv）
+.\.venv\Scripts\Activate.ps1
+
+# 2. 再啟動 Flask
 flask --app "sites.Polaris_Parent.backend.app:app" run --port 5000
 
 # 終端機 3：前端

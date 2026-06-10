@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
 import Button from '@/components/ui/Button';
+import { useAuthStore } from '@/store/auth';
+import { stashPendingChart } from '@/lib/pendingChart';
 import {
   astrologyApi,
   type GeoHierarchy,
@@ -11,10 +14,19 @@ import {
 } from '@/lib/api';
 
 /**
- * 紫微斗數排盤「區塊模板」：出生時辰表單 + 命盤結果（含下載 SVG/PNG）。
+ * 紫微斗數排盤「區塊模板」：出生時辰表單 + 命盤結果。
  * 不含外層容器與標題，供 /ziwei 頁與首頁區塊共用。
+ *
+ * 權限分流：
+ * - 未登入瀏覽者：只看得到靜態圖，唯一的按鈕是「加入會員」CTA，
+ *   按下後暫存命盤並前往 /login?mode=register（登入／註冊合一頁），
+ *   註冊或登入成功後命盤自動存入帳號。
+ * - 已登入會員：完整功能（互動命盤、版型切換、下載 SVG/PNG）。
  */
 export default function ZiweiChartForm() {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const [form, setForm] = useState({
     name: '',
     gender: '男',
@@ -40,6 +52,11 @@ export default function ZiweiChartForm() {
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveDone, setSaveDone] = useState('');
   const [saveErr, setSaveErr] = useState('');
+
+  // 已登入會員：建檔 email 預填會員信箱
+  useEffect(() => {
+    if (isAuthenticated && user?.email) setSaveEmail(user.email);
+  }, [isAuthenticated, user?.email]);
 
   // 切到「真太陽時」時才載入地點選項
   useEffect(() => {
@@ -98,8 +115,9 @@ export default function ZiweiChartForm() {
             ? { city: form.city, country: form.country }
             : undefined,
         render: true,
-        include_chart_json: true,
-        include_flow: true,
+        // 互動命盤資料只給會員：未登入者僅取靜態 SVG
+        include_chart_json: isAuthenticated,
+        include_flow: isAuthenticated,
       });
       setResult(res);
     } catch (err: any) {
@@ -146,6 +164,25 @@ export default function ZiweiChartForm() {
     } finally {
       setSaveBusy(false);
     }
+  };
+
+  // ── 訪客 CTA：暫存剛排的命盤 → 前往登入／註冊合一頁 ──
+  const goJoin = () => {
+    const [year, month, day] = form.date.split('-').map(Number);
+    const [hour, minute] = form.time.split(':').map(Number);
+    stashPendingChart({
+      year,
+      month,
+      day,
+      hour,
+      minute: minute || 0,
+      gender: form.gender,
+      name: form.name,
+      place:
+        form.timeType === 'solar_time' ? `${form.city}, ${form.country}` : '',
+      relation: 'self',
+    });
+    router.push('/login?mode=register');
   };
 
   // ── 下載（全部在前端，零伺服器成本）──
@@ -400,10 +437,38 @@ export default function ZiweiChartForm() {
             {result.solar_time && <span>真太陽時：{result.solar_time}</span>}
           </div>
 
-          {/* 一鍵建檔 + 註冊 */}
+          {!isAuthenticated ? (
+            <>
+              {/* 未登入：只給靜態圖，無任何工具列 */}
+              {result.svg ? (
+                <div
+                  className="w-full overflow-x-auto flex justify-center [&>svg]:max-w-full [&>svg]:h-auto"
+                  // SVG 由自家後端 p_e_artist 產生（可信來源）
+                  dangerouslySetInnerHTML={{ __html: result.svg }}
+                />
+              ) : (
+                <p className="text-sm text-amber-600">
+                  命盤資料已產生，但圖檔渲染失敗。
+                </p>
+              )}
+
+              {/* 唯一的按鈕：加入會員 CTA → 暫存命盤並前往登入／註冊合一頁 */}
+              <div className="mt-6 text-center">
+                <Button
+                  type="button"
+                  onClick={goJoin}
+                  className="bg-brand-purple-600 hover:bg-brand-purple-700"
+                >
+                  加入會員，解鎖更多命盤功能
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+          {/* 會員：儲存這張命盤到帳號 */}
           <div className="mb-4 p-4 bg-brand-purple-50 rounded-banner border border-brand-purple-200">
             <p className="text-sm font-medium text-gray-700 mb-2">
-              儲存這張命盤到你的會員帳號（輸入 email 即可，免密碼）
+              儲存這張命盤到你的會員帳號
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
@@ -419,7 +484,7 @@ export default function ZiweiChartForm() {
                 disabled={saveBusy}
                 className="bg-brand-purple-600 hover:bg-brand-purple-700 whitespace-nowrap"
               >
-                {saveBusy ? '儲存中…' : '儲存命盤・成為會員'}
+                {saveBusy ? '儲存中…' : '儲存命盤'}
               </Button>
             </div>
             {saveErr && <p className="mt-2 text-sm text-red-600">{saveErr}</p>}
@@ -518,6 +583,8 @@ export default function ZiweiChartForm() {
             <p className="text-sm text-amber-600">
               命盤資料已產生，但圖檔渲染失敗。
             </p>
+          )}
+            </>
           )}
         </div>
       )}

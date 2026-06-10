@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, LoginCredentials } from '@/types';
 import { authApi } from '@/lib/api';
+import type { RegisterPayload, RegisterResponse } from '@/lib/api/auth';
 
 interface AuthState {
   user: User | null;
@@ -11,6 +12,7 @@ interface AuthState {
 
   // Actions
   login: (credentials: LoginCredentials) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<RegisterResponse>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
@@ -39,6 +41,29 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           set({
             error: error.message || 'Login failed',
+            isLoading: false,
+            isAuthenticated: false,
+            user: null,
+          });
+          throw error;
+        }
+      },
+
+      register: async (payload: RegisterPayload) => {
+        set({ isLoading: true, error: null });
+
+        try {
+          const response = await authApi.register(payload);
+          set({
+            user: response.user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+          return response;
+        } catch (error: any) {
+          set({
+            error: error.message || '註冊失敗，請稍後再試',
             isLoading: false,
             isAuthenticated: false,
             user: null,
