@@ -19,16 +19,16 @@ const footerContent: Record<string, {
 }> = {
   'zh-TW': {
     siteName: '數位鍊金室',
-    description: '將數位轉型、行銷科技與電商增長等複雜變數，轉化為支持企業長期成長的堅實架構。',
+    description: '用全局思考，看見問題本質。將問題轉化為可決策、可執行的解決能力',
     quickLinks: '快速連結',
     home: '首頁',
-    articles: '策略專欄',
-    about: '關於我們',
+    articles: '閱讀觀點',
+    about: '關於鍊金室',
     contact: '聯絡我們',
-    contactInfo: '聯絡資訊',
-    privacy: '隱私政策',
-    terms: '使用條款',
-    copyright: '© 2025 數位鍊金室. 版權所有。',
+    contactInfo: '聯絡資訊 Email: clairelab.tw@gmail.com',
+    privacy: '',
+    terms: '',
+    copyright: '© 2026 數位鍊金室. 版權所有。',
   },
   'zh-CN': {
     siteName: '数位炼金室',

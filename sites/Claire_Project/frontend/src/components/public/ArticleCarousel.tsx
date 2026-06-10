@@ -75,10 +75,19 @@ export default function ArticleCarousel({
 
       {articles.length > 0 ? (
         <>
-          {/* Horizontal Scroll Container */}
-          <div className="relative">
+          {/* Desktop: 4x4 Fixed Grid */}
+          <div className="hidden md:grid max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid-cols-2 lg:grid-cols-4 gap-6">
+            {articles.map((article) => (
+              <article key={article.id}>
+                <CarouselArticleCard article={article} />
+              </article>
+            ))}
+          </div>
+
+          {/* Mobile: Horizontal Scroll */}
+          <div className="relative md:hidden">
             <div
-              className="flex gap-6 overflow-x-auto px-4 sm:px-8 lg:px-16 pb-4 snap-x snap-mandatory scrollbar-hide"
+              className="flex gap-6 overflow-x-auto px-4 sm:px-8 pb-4 snap-x snap-mandatory scrollbar-hide"
               style={{
                 WebkitOverflowScrolling: 'touch',
               }}
@@ -86,7 +95,7 @@ export default function ArticleCarousel({
               {articles.map((article) => (
                 <article
                   key={article.id}
-                  className="flex-shrink-0 w-[280px] md:w-[320px] snap-start"
+                  className="flex-shrink-0 w-[280px] snap-start"
                 >
                   <CarouselArticleCard article={article} />
                 </article>

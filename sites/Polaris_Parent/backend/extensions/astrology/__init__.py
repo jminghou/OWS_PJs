@@ -428,44 +428,59 @@ def register():
             "error": "此 email 已是會員，請直接登入；若尚未設定密碼，請在登入頁重寄設定密碼信。",
         }), 409
 
+    # 有剛排的命盤 → 既有 save-and-register 一次完成建會員 + 存盤 + 歸戶。
+    # 命盤服務不可用或存盤失敗時「降級為純註冊」：仍建會員，回傳警告，不擋註冊。
     chart = data.get("chart") or None
     chart_id = None
+    chart_warning = None
     if chart:
-        # 有剛排的命盤 → 既有 save-and-register 一次完成建會員 + 存盤 + 歸戶
+        payload = None
         if not _PUBLIC_SERVICE_TOKEN:
-            return jsonify({"success": False, "error": "服務未設定（PUBLIC_SERVICE_TOKEN 缺）"}), 503
-        parts = {}
-        for key in ("year", "month", "day", "hour"):
-            val, err = _as_int(chart, key)
-            if err:
-                return jsonify({"success": False, "error": f"chart.{key} 無效"}), 400
-            parts[key] = val
-        minute = 0
-        if chart.get("minute") not in ("", None):
-            minute, err = _as_int(chart, "minute")
-            if err:
-                return jsonify({"success": False, "error": "chart.minute 無效"}), 400
-        gender = _norm_gender(chart.get("gender"))
-        if gender not in ("男", "女"):
-            return jsonify({"success": False, "error": "chart.gender 必須為 男/女（或 M/F）"}), 400
+            chart_warning = "命盤服務未設定，命盤未儲存"
+        else:
+            parts = {}
+            for key in ("year", "month", "day", "hour"):
+                val, err = _as_int(chart, key)
+                if err:
+                    chart_warning = f"命盤資料不完整（{key}），命盤未儲存"
+                    break
+                parts[key] = val
+            else:
+                minute = 0
+                if chart.get("minute") not in ("", None):
+                    minute, err = _as_int(chart, "minute")
+                    if err:
+                        minute = 0
+                gender = _norm_gender(chart.get("gender"))
+                if gender not in ("男", "女"):
+                    chart_warning = "命盤資料不完整（gender），命盤未儲存"
+                else:
+                    payload = {
+                        "year": parts["year"], "month": parts["month"], "day": parts["day"],
+                        "hour": parts["hour"], "minute": minute,
+                        "gender": gender, "name": (chart.get("name") or "").strip(),
+                        "place": (chart.get("place") or "").strip(), "email": email,
+                        "relation": (chart.get("relation") or "self"),
+                    }
+        if payload is not None:
+            zres, zerr = _ziwei_save_and_register(payload)
+            if zerr:
+                current_app.logger.warning(f"register: 命盤歸戶失敗，降級為純註冊：{zerr}")
+                chart_warning = "註冊已完成，但命盤儲存失敗，請登入後重新排盤儲存"
+            else:
+                chart_id = zres.get("chart_id")
 
-        zres, zerr = _ziwei_save_and_register({
-            "year": parts["year"], "month": parts["month"], "day": parts["day"],
-            "hour": parts["hour"], "minute": minute,
-            "gender": gender, "name": (chart.get("name") or "").strip(),
-            "place": (chart.get("place") or "").strip(), "email": email,
-            "relation": (chart.get("relation") or "self"),
-        })
-        if zerr:
-            return jsonify({"success": False, "error": zerr}), 502
-        chart_id = zres.get("chart_id")
-
-        user = User.query.filter_by(username=email).first()
-        if user is None:
-            return jsonify({"success": False, "error": "會員建立失敗，請稍後再試"}), 500
+    # 取得或建立會員。注意：ziwei save-and-register 可能已建了會員（即使存盤失敗），
+    # 故一律先查再建，避免 unique 衝突。
+    user = User.query.filter_by(username=email).first()
+    if user is not None:
         user.email = email  # view trigger upsert member_profiles
         user.set_password(password)
     else:
+        if chart_id is not None:
+            # 不應發生：ziwei 回報建檔成功但本站查不到會員
+            current_app.logger.error(f"register: ziwei 建檔成功但查無會員 {email}")
+            return jsonify({"success": False, "error": "會員建立失敗，請稍後再試"}), 500
         user = User(username=email, email=email, role='member', is_active=True)
         user.set_password(password)
         db.session.add(user)
@@ -483,6 +498,7 @@ def register():
         "success": True,
         "user": UserSchema().dump(user),
         "chart_id": chart_id,
+        "chart_warning": chart_warning,
     })
     set_access_cookies(response, create_access_token(identity=str(user.id)))
     set_refresh_cookies(response, create_refresh_token(identity=str(user.id)))

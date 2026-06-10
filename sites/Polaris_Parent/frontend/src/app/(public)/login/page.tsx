@@ -35,6 +35,9 @@ function LoginContent() {
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMsg, setResendMsg] = useState('');
 
+  // 註冊成功但命盤儲存失敗（降級）→ 顯示警告，不自動導頁
+  const [chartWarning, setChartWarning] = useState('');
+
   useEffect(() => {
     setPendingChart(loadPendingChart());
   }, []);
@@ -74,12 +77,17 @@ function LoginContent() {
     e.preventDefault();
     setLocalErr('');
     try {
-      await register({
+      const res = await register({
         email: email.trim().toLowerCase(),
         password,
         chart: pendingChart ?? undefined,
       });
       clearPendingChart();
+      if (res.chart_warning) {
+        // 已註冊並登入，但命盤沒存成功 → 留在本頁顯示警告
+        setChartWarning(res.chart_warning);
+        return;
+      }
       router.push('/account');
     } catch {
       /* 錯誤訊息由 store.error 顯示 */
@@ -176,6 +184,18 @@ function LoginContent() {
           {resendMsg && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-banner text-green-700 text-sm">
               {resendMsg}
+            </div>
+          )}
+          {chartWarning && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-banner text-amber-800 text-sm space-y-2">
+              <p>註冊成功！{chartWarning}</p>
+              <Button
+                type="button"
+                onClick={() => router.push('/account')}
+                className="bg-brand-purple-600 hover:bg-brand-purple-700"
+              >
+                前往會員中心
+              </Button>
             </div>
           )}
 

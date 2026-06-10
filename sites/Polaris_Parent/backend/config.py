@@ -195,6 +195,14 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
 
     # -------------------------------------------------------------------------
+    # Frontend ISR On-demand Revalidation
+    # 後台儲存首頁設定後，回呼前端 /api/revalidate 立即清除 ISR 快取。
+    # 兩者任一未設定時自動跳過（前端回到原本的 revalidate 週期）。
+    # -------------------------------------------------------------------------
+    FRONTEND_REVALIDATE_URL = os.environ.get('FRONTEND_REVALIDATE_URL')  # e.g. https://www.polaris-parent.com/api/revalidate
+    REVALIDATE_SECRET = os.environ.get('REVALIDATE_SECRET')
+
+    # -------------------------------------------------------------------------
     # Site-Specific Settings
     # -------------------------------------------------------------------------
     SITE_NAME = os.environ.get('SITE_NAME', 'Polaris Parent')

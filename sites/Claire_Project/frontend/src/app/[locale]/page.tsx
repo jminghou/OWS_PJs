@@ -25,7 +25,7 @@ async function getFeaturedPosts(locale: string): Promise<Content[]> {
     const response = await contentApi.getList({
       status: 'published',
       type: 'article',
-      per_page: 3,
+      per_page: 16,
       language: locale,
     });
     return response.contents;

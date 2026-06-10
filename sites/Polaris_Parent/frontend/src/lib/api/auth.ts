@@ -28,6 +28,8 @@ export interface RegisterResponse {
   success: boolean;
   user: User;
   chart_id?: string | null;
+  /** 註冊成功但命盤儲存失敗（命盤服務不可用等）時的警告訊息。 */
+  chart_warning?: string | null;
 }
 
 export const authApi = {

@@ -44,6 +44,12 @@ const nextConfig = {
         hostname: '*.up.railway.app',
         pathname: '/uploads/**',
       },
+      // GCS 媒體庫（文章封面、幻燈片圖片）
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        pathname: '/claireproject/**',
+      },
     ],
   },
   env: {

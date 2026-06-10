@@ -48,6 +48,10 @@ export default function AccountPage() {
   const [err, setErr] = useState('');
   const [viewing, setViewing] = useState<ZiweiCalcResponse | null>(null);
   const [viewBusy, setViewBusy] = useState(false);
+  // 進階檢視工具（互動／靜態、版型、下載）— 進階功能只在會員專區提供
+  const [viewMode, setViewMode] = useState<'interactive' | 'static'>('interactive');
+  const [chartTheme, setChartTheme] = useState<'light' | 'dark' | 'sepia'>('light');
+  const [pngBusy, setPngBusy] = useState(false);
 
   // 我的訂單 / 折扣券
   const [submissions, setSubmissions] = useState<OrderSubmission[]>([]);
@@ -112,16 +116,80 @@ export default function AccountPage() {
         minute: c.birth.minute,
         gender: c.gender || '男',
         name: c.name || '',
-        render: false,
+        render: true, // 也取靜態 SVG（供靜態檢視與下載）
         include_chart_json: true,
         include_flow: true,
       });
+      setViewMode('interactive');
       setViewing(res);
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e: any) {
       setErr(e.message || '重繪失敗');
     } finally {
       setViewBusy(false);
+    }
+  };
+
+  // ── 下載（全部在前端，零伺服器成本；自公開頁搬入，進階功能限會員專區）──
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadSvg = () => {
+    if (!viewing?.svg) return;
+    downloadBlob(
+      new Blob([viewing.svg], { type: 'image/svg+xml;charset=utf-8' }),
+      `ziwei_${viewing.chart_id || 'chart'}.svg`
+    );
+  };
+
+  // 用 canvas 把 SVG 點陣化成 PNG（2x 清晰度），全在瀏覽器完成
+  const downloadPng = async (scale = 2) => {
+    if (!viewing?.svg) return;
+    setPngBusy(true);
+    try {
+      const svg = viewing.svg;
+      const m =
+        svg.match(/viewBox="0\s+0\s+([\d.]+)\s+([\d.]+)"/) ||
+        svg.match(/width="([\d.]+)"[^>]*height="([\d.]+)"/);
+      const w = m ? parseFloat(m[1]) : 800;
+      const h = m ? parseFloat(m[2]) : 800;
+
+      const svgUrl = URL.createObjectURL(
+        new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
+      );
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('SVG 載入失敗'));
+        img.src = svgUrl;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('無法建立繪圖環境');
+      ctx.fillStyle = '#ffffff'; // 白底，避免透明背景
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(svgUrl);
+
+      await new Promise<void>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (blob) downloadBlob(blob, `ziwei_${viewing.chart_id || 'chart'}.png`);
+          resolve();
+        }, 'image/png');
+      });
+    } catch (e: any) {
+      setErr(e.message || 'PNG 轉換失敗');
+    } finally {
+      setPngBusy(false);
     }
   };
 
@@ -280,14 +348,103 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* 重繪的命盤 */}
-      {viewing?.chart_json && (
+      {/* 重繪的命盤（互動命盤 + 進階工具列：會員專區限定）*/}
+      {viewing && (viewing.chart_json || viewing.svg) && (
         <div className="mb-8 bg-white rounded-banner border border-warm-200/70 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
             <span>命盤 ID：<span className="font-mono">{viewing.chart_id}</span></span>
             <button onClick={() => setViewing(null)} className="text-gray-400 hover:text-gray-700">關閉 ✕</button>
           </div>
-          <ZiweiChart chart={viewing.chart_json} flow={viewing.flow ?? undefined} theme={NAMED_THEMES.light} />
+
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            {/* 互動 / 靜態 檢視切換 */}
+            {viewing.chart_json && viewing.svg && (
+              <div className="inline-flex rounded-banner border border-brand-purple-600 overflow-hidden text-sm">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('interactive')}
+                  className={`px-4 py-2 transition-colors ${
+                    viewMode === 'interactive'
+                      ? 'bg-brand-purple-600 text-white'
+                      : 'text-brand-purple-700 hover:bg-brand-purple-50'
+                  }`}
+                >
+                  互動命盤
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('static')}
+                  className={`px-4 py-2 transition-colors ${
+                    viewMode === 'static'
+                      ? 'bg-brand-purple-600 text-white'
+                      : 'text-brand-purple-700 hover:bg-brand-purple-50'
+                  }`}
+                >
+                  靜態圖
+                </button>
+              </div>
+            )}
+
+            {/* 版型樣式（互動命盤）*/}
+            {viewing.chart_json && viewMode === 'interactive' && (
+              <label className="inline-flex items-center gap-2 text-sm text-gray-600">
+                版型
+                <select
+                  value={chartTheme}
+                  onChange={(e) =>
+                    setChartTheme(e.target.value as 'light' | 'dark' | 'sepia')
+                  }
+                  className="px-3 py-2 text-sm rounded-banner border border-gray-300 focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+                >
+                  <option value="light">淺色</option>
+                  <option value="dark">深色</option>
+                  <option value="sepia">宣紙</option>
+                </select>
+              </label>
+            )}
+
+            {viewing.svg && (
+              <>
+                <button
+                  type="button"
+                  onClick={downloadSvg}
+                  className="px-4 py-2 text-sm rounded-banner border border-brand-purple-600 text-brand-purple-700 hover:bg-brand-purple-50 transition-colors"
+                >
+                  下載 SVG
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadPng(2)}
+                  disabled={pngBusy}
+                  className="px-4 py-2 text-sm rounded-banner border border-brand-purple-600 text-brand-purple-700 hover:bg-brand-purple-50 transition-colors disabled:opacity-50"
+                >
+                  {pngBusy ? '轉換中…' : '下載 PNG'}
+                </button>
+              </>
+            )}
+          </div>
+
+          {viewing.chart_json && viewMode === 'interactive' ? (
+            <div
+              className="w-full rounded-banner p-2 sm:p-4"
+              style={{
+                background: chartTheme === 'light' ? 'transparent' : NAMED_THEMES[chartTheme].colors?.bg,
+                transition: 'background 200ms ease',
+              }}
+            >
+              <ZiweiChart
+                chart={viewing.chart_json}
+                flow={viewing.flow ?? undefined}
+                theme={NAMED_THEMES[chartTheme]}
+              />
+            </div>
+          ) : viewing.svg ? (
+            <div
+              className="w-full overflow-x-auto flex justify-center [&>svg]:max-w-full [&>svg]:h-auto"
+              // SVG 由自家後端 p_e_artist 產生（可信來源）
+              dangerouslySetInnerHTML={{ __html: viewing.svg }}
+            />
+          ) : null}
         </div>
       )}
 
@@ -316,7 +473,7 @@ export default function AccountPage() {
       ) : tab === 'charts' ? (
         people.length === 0 ? (
           <p className="text-gray-500">
-            還沒有命盤。到排盤頁排一張並「儲存命盤」即可出現在這裡。
+            還沒有命盤。到排盤頁排一張，按「使用進階命盤功能」即可存入這裡。
           </p>
         ) : (
           <div className="space-y-6">

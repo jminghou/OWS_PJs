@@ -17,9 +17,9 @@ const navContent: Record<string, {
   'zh-TW': {
     siteName: '數位鍊金室',
     home: '首頁',
-    about: '關於我們',
-    articles: '策略專欄',
-    products: '研究交流',
+    articles: '閱讀觀點',
+    about: '關於鍊金室',
+    products: '聯繫交流',
     contact: '聯絡我們',
     openMenu: '打開主選單',
   },
