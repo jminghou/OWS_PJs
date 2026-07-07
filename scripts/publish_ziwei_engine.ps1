@@ -14,7 +14,7 @@
       - p_e_artist/                             SVG/HTML 繪圖引擎
       - p_a_foundation/(core/mapping + data)    繪圖用編碼對照（最小集）
       - p_d_graph/exporter/code_registry.py     code→名稱對照（最小集）
-      - convert/(special_decoder + chart_parser + chart_serializer)  encoded_array→繪圖格式
+      - convert/(special_decoder + chart_parser + chart_serializer + palace_stems)  encoded_array→繪圖格式
 
     每次更動 P_Union 排盤邏輯後重跑本腳本即可同步。
 
@@ -72,7 +72,7 @@ Remove-Item "$Engine\p_e_artist\__main__.py" -Force -ErrorAction SilentlyContinu
 # 4) p_a_foundation（繪圖用最小集：core/mapping + data）
 New-Item -ItemType Directory -Force -Path "$Engine\p_a_foundation\core","$Engine\p_a_foundation\data" | Out-Null
 Copy-Item "$Source\p_a_foundation\core\mapping.py" "$Engine\p_a_foundation\core\mapping.py" -Force
-foreach ($f in @("palace_codes.json","earthly_branch_codes.json","sihua_codes.json","dim_stars.csv","star_properties.csv","star_codes.json")) {
+foreach ($f in @("palace_codes.json","earthly_branch_codes.json","heavenly_stem_codes.json","sihua_codes.json","dim_stars.csv","star_properties.csv","star_codes.json")) {
     if (Test-Path "$Source\p_a_foundation\data\$f") { Copy-Item "$Source\p_a_foundation\data\$f" "$Engine\p_a_foundation\data\$f" -Force }
 }
 Set-Content "$Engine\p_a_foundation\__init__.py" "# minimal vendored stub (rendering deps only)" -Encoding utf8
@@ -91,7 +91,12 @@ Set-Content "$Engine\p_d_graph\exporter\__init__.py" "# minimal vendored stub: a
 New-Item -ItemType Directory -Force -Path "$Engine\convert" | Out-Null
 Copy-Item "$Source\p_a_foundation\core\special_decoder.py" "$Engine\convert\special_decoder.py" -Force
 Copy-Item "$Source\p_d_graph\bridge\chart_parser.py"        "$Engine\convert\chart_parser.py" -Force
+Copy-Item "$Source\p_d_graph\bridge\palace_stems.py"        "$Engine\convert\palace_stems.py" -Force
 Copy-Item "$Source\p_d_graph\exporter\chart_serializer.py"  "$Engine\convert\chart_serializer.py" -Force
+
+# palace_stems.py：修正根目錄深度（bridge 在 P_Union 深一層；vendored convert 的上兩層即 engine 目錄，
+# p01_count 與 p_a_foundation 皆在 engine 下）
+Replace-InFile "$Engine\convert\palace_stems.py" "_union_root = Path(__file__).parent.parent.parent" "_union_root = Path(__file__).parent.parent"
 
 # chart_parser.py：移除 p_a_foundation 套件依賴，改用本地 special_decoder
 Replace-InFile "$Engine\convert\chart_parser.py" @'
@@ -120,8 +125,9 @@ Replace-InFile "$Engine\convert\chart_parser.py" @'
 '@ @'
         self._special = SpecialCodeDecoder()
 '@
-# chart_serializer.py：改用本地 chart_parser
+# chart_serializer.py：改用本地 chart_parser 與 palace_stems
 Replace-InFile "$Engine\convert\chart_serializer.py" "from ..bridge.chart_parser import ChartState" "from .chart_parser import ChartState"
+Replace-InFile "$Engine\convert\chart_serializer.py" "from ..bridge.palace_stems import build_palace_branch_map, compute_palace_stems" "from .palace_stems import build_palace_branch_map, compute_palace_stems"
 
 Set-Content "$Engine\convert\__init__.py" @'
 """編碼 → 繪圖格式轉換層（vendored 自 P_Union）。"""

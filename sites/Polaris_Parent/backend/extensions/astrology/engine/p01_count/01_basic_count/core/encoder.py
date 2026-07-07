@@ -1,10 +1,17 @@
 """
-命盤編碼模組（本命盤版本 v2.2）
+命盤編碼模組（本命盤版本 v2.3）
 用於機器學習和數據分析的命盤數據編碼
 
 編碼格式：
 - 身宮：Q + 宮位代碼 (2碼)
   範例：Q5（身宮在財帛宮）
+
+- 生年干支：Y + 天干代碼(2碼) + 地支代碼(2碼) = 5碼
+  範例：Y0404（丁卯年）
+  注意：v2.3 新增。刻意取 5 碼，舊版 ChartParser（只解 4/6 碼標準編碼）
+  會因長度不符自動略過，不會誤判為宮位星曜編碼。
+  年干為五虎遁之輸入，宮位天干可由此 token 完整重建
+  （唯一實作：palace/gz.py calculate_palace_gz）。
 
 - 命主：L + 星曜代碼 (4碼)
   範例：LMAR（命主是武曲）
@@ -31,9 +38,10 @@
 2. 命主（L + 星曜代碼）
 3. 身主（M + 星曜代碼）
 4. 性別（G + M/F）
-5. 身宮星曜（Q + 星曜代碼 + 地支）
-6. 星曜亮度（I + 星曜代碼 + 正負號 + 亮度值）
-7. 所有宮位星曜（按宮位順序）
+5. 生年干支（Y + 天干代碼 + 地支代碼）
+6. 身宮星曜（Q + 星曜代碼 + 地支）
+7. 星曜亮度（I + 星曜代碼 + 正負號 + 亮度值）
+8. 所有宮位星曜（按宮位順序）
 """
 
 import json
@@ -74,6 +82,19 @@ def load_encoding_mappings():
         sihua_map = json.load(f)
 
     return palace_map, star_map, earthly_branch_map, sihua_map
+
+
+def load_heavenly_stem_codes():
+    """
+    載入天干代碼映射表（v2.3 新增，獨立載入以維持 load_encoding_mappings 的回傳契約）
+
+    Returns:
+        dict: {"甲": "01", "乙": "02", ..., "癸": "10"}
+    """
+    base_path = get_config_path() / "encoding_mappings"
+
+    with open(base_path / "heavenly_stem_codes.json", 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 
 def build_earthly_branch_to_palace_mapping(chart_data, palace_code_map):
@@ -212,6 +233,40 @@ def encode_gender(chart_data):
         return "GM"
     elif gender == "女":
         return "GF"
+
+    return None
+
+
+def encode_year_gz(chart_data, heavenly_stem_map, earthly_branch_map):
+    """
+    編碼生年干支：Y + 天干代碼 + 地支代碼（v2.3 新增）
+
+    年干支取自曆法數據（sxtwl 農曆年干支，已正確處理農曆年界），
+    不可從西元年自行推算。
+
+    Args:
+        chart_data: 命盤數據
+        heavenly_stem_map: 天干代碼映射
+        earthly_branch_map: 地支代碼映射
+
+    Returns:
+        str: 生年干支編碼（如 "Y0404" = 丁卯年），資料不足時返回 None
+    """
+    calendar_data = chart_data.get("曆法數據", {})
+    year_stem = calendar_data.get("出生年干", "").strip()
+    year_branch = calendar_data.get("出生年支", "").strip()
+
+    # 備援：從 生年干支 欄位拆字
+    if not year_stem or not year_branch:
+        year_gz = calendar_data.get("生年干支", "").strip()
+        if len(year_gz) == 2:
+            year_stem, year_branch = year_gz[0], year_gz[1]
+
+    stem_code = heavenly_stem_map.get(year_stem)
+    branch_code = earthly_branch_map.get(year_branch)
+
+    if stem_code and branch_code:
+        return f"Y{stem_code}{branch_code}"
 
     return None
 
@@ -365,14 +420,20 @@ def encode_natal_chart(chart_data):
     if gender_code:
         encoded_list.append(gender_code)
 
-    # 4.5 身宮星曜編碼（Q + 星曜代碼 + 地支）
+    # 4.5 生年干支編碼（Y + 天干代碼 + 地支代碼，v2.3 新增）
+    heavenly_stem_map = load_heavenly_stem_codes()
+    year_gz_code = encode_year_gz(chart_data, heavenly_stem_map, earthly_branch_map)
+    if year_gz_code:
+        encoded_list.append(year_gz_code)
+
+    # 4.6 身宮星曜編碼（Q + 星曜代碼 + 地支）
     acquired_palace_stars = encode_acquired_palace_stars(
         chart_data, star_code_map, earthly_branch_map,
         eb_to_palace_map, star_to_sihua_map, sihua_code_map
     )
     encoded_list.extend(acquired_palace_stars)
 
-    # 4.6 星曜亮度編碼（I + 星曜代碼 + 正負號 + 亮度值）
+    # 4.7 星曜亮度編碼（I + 星曜代碼 + 正負號 + 亮度值）
     brightness_encodings = encode_star_brightness(
         chart_data, star_code_map, earthly_branch_map
     )
@@ -424,14 +485,14 @@ def encode_natal_chart(chart_data):
                     encoded_list.append(sihua_encoding)
 
     # 步驟 6: 分離特殊編碼和宮位星曜編碼
-    # 特殊編碼：Q5, LMAR, MBLE, GM, QMAR04, QMARPW, ISUNP2 等（Q, L, M, G, I 開頭）
+    # 特殊編碼：Q5, LMAR, MBLE, GM, Y0404, QMAR04, QMARPW, ISUNP2 等（Q, L, M, G, I, Y 開頭）
     # 宮位星曜編碼：1POL08, 1POLPW, 2HPI07 等（數字或 A-C 開頭）
     special_codes = []
     palace_star_codes = []
 
     for code in encoded_list:
         first_char = code[0]
-        if first_char in ['Q', 'L', 'M', 'G', 'I']:
+        if first_char in ['Q', 'L', 'M', 'G', 'I', 'Y']:
             special_codes.append(code)
         else:
             palace_star_codes.append(code)
@@ -474,7 +535,7 @@ def encode_chart_data(final_data):
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
         else:
-            config = {"encoding_version": "2.2"}
+            config = {"encoding_version": "2.3"}
 
         # 執行本命盤編碼
         natal_encoding = encode_natal_chart(final_data)
@@ -501,7 +562,7 @@ def encode_chart_data(final_data):
 # 測試函數
 if __name__ == "__main__":
     print("=" * 70)
-    print("本命盤編碼系統測試（v2.2）")
+    print("本命盤編碼系統測試（v2.3）")
     print("=" * 70)
 
     # 測試 1: 載入映射表

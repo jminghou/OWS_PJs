@@ -48,6 +48,12 @@ export const BRANCH_NAME_ZH: Record<string, string> = {
   "09": "申", "10": "酉", "11": "戌", "12": "亥",
 };
 
+/** 天干兩位碼 → 中文字（來源：p01_count encoding_mappings/heavenly_stem_codes.json，反轉）。 */
+export const STEM_NAME_ZH: Record<string, string> = {
+  "01": "甲", "02": "乙", "03": "丙", "04": "丁", "05": "戊",
+  "06": "己", "07": "庚", "08": "辛", "09": "壬", "10": "癸",
+};
+
 /** 四化碼 → 中文名。 */
 export const SIHUA_NAME_ZH: Record<SihuaCode, string> = {
   FO: "化祿", PW: "化權", HO: "化科", BI: "化忌",
@@ -85,6 +91,10 @@ export function palaceNameEn(code: string): string {
 }
 export function branchNameZh(code: string): string {
   return BRANCH_NAME_ZH[code] ?? code;
+}
+export function stemNameZh(code: string | null): string {
+  if (!code) return "";
+  return STEM_NAME_ZH[code] ?? "";
 }
 
 // 宮名序列（命→兄→夫→…→父），與 PALACE_NAME_ZH/EN 的編碼順序一致。

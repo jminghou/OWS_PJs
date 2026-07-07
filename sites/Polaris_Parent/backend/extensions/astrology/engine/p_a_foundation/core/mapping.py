@@ -23,6 +23,8 @@ class ZiweiMapping:
         self.palaces = self._load_json("palace_codes.json")
         self.branches = self._load_json("earthly_branch_codes.json")
         self.sihua = self._load_json("sihua_codes.json")
+        # 天干（v2.3 新增，容忍舊資料目錄缺檔）
+        self.stems = self._load_json_optional("heavenly_stem_codes.json")
         
         # 星曜改由 CSV 載入 (正式名稱為 dim_stars.csv)
         self.star_properties = {} # 儲存完整屬性 (代碼 -> 屬性字典)
@@ -34,10 +36,19 @@ class ZiweiMapping:
         self.stars_reverse = {v: k for k, v in self.stars.items()}
         self.branches_reverse = {v: k for k, v in self.branches.items()}
         self.sihua_reverse = {v: k for k, v in self.sihua.items()}
+        self.stems_reverse = {v: k for k, v in self.stems.items()}
 
     def _load_json(self, filename: str) -> Dict:
         """載入 JSON 檔案"""
         file_path = self.data_dir / filename
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    def _load_json_optional(self, filename: str) -> Dict:
+        """載入 JSON 檔案，檔案不存在時回傳空字典（供新增對照表向後相容）"""
+        file_path = self.data_dir / filename
+        if not file_path.exists():
+            return {}
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
@@ -85,6 +96,10 @@ class ZiweiMapping:
         """取得四化代碼 (例: '權' → 'PW')"""
         return self.sihua.get(name)
 
+    def get_stem_code(self, name: str) -> Optional[str]:
+        """取得天干代碼 (例: '甲' → '01')"""
+        return self.stems.get(name)
+
     # === 代碼 → 中文 ===
     def get_palace_name(self, code: str) -> Optional[str]:
         """取得宮位名稱 (不區分大小寫)"""
@@ -106,6 +121,10 @@ class ZiweiMapping:
     def get_sihua_name(self, code: str) -> Optional[str]:
         """取得四化名稱 (不區分大小寫)"""
         return self.sihua_reverse.get(code.upper())
+
+    def get_stem_name(self, code: str) -> Optional[str]:
+        """取得天干名稱 (例: '01' → '甲')"""
+        return self.stems_reverse.get(code)
 
 
 # 單例模式

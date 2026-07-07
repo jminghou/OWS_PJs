@@ -18,6 +18,8 @@ from typing import Optional, List
 # vendored 自 P_Union/p_a_foundation/core/special_decoder.py（純 stdlib、零外部依賴）
 from .special_decoder import SpecialCodeDecoder
 
+from .palace_stems import derive_year_stem_code_from_transforms
+
 
 # 四化代碼集合
 _SIHUA_CODES = {"FO", "PW", "HO", "BI"}
@@ -50,6 +52,8 @@ class ChartState:
     body_palace: str = ""                               # 身宮宮位 e.g. "5"
     life_master: str = ""                               # 命主星曜 e.g. "POL"
     body_master: str = ""                               # 身主星曜 e.g. "AAC"
+    year_stem: str = ""                                 # 年干代碼 e.g. "04"（丁），Y token 或化祿反推
+    year_branch: str = ""                               # 年支代碼 e.g. "04"（卯），僅 Y token 提供
     placements: List[StarPlacement] = field(default_factory=list)
     transforms: List[StarTransform] = field(default_factory=list)
     brightness: dict = field(default_factory=dict)      # {star_code: brightness_code}
@@ -153,6 +157,12 @@ class ChartParser:
                 continue
             self._parse_single(code, chart)
 
+        # 舊編碼（v2.2 以前）無 Y token → 由化祿星反推年干（十干化祿星唯一）
+        if not chart.year_stem:
+            derived = derive_year_stem_code_from_transforms(chart.transforms)
+            if derived:
+                chart.year_stem = derived
+
         chart._build_indices()
         return chart
 
@@ -160,8 +170,8 @@ class ChartParser:
         """解析單個編碼"""
         prefix = code[0].upper()
 
-        # 特殊編碼：G (性別), Q (身宮), L (命主), M (身主), I (亮度)
-        if prefix in ("G", "Q", "L", "M", "I"):
+        # 特殊編碼：G (性別), Q (身宮), L (命主), M (身主), I (亮度), Y (生年干支)
+        if prefix in ("G", "Q", "L", "M", "I", "Y"):
             self._parse_special(code, chart)
             return
 
@@ -198,6 +208,10 @@ class ChartParser:
             else:
                 brightness_code = f"N{abs(value)}"
             chart.brightness[star] = brightness_code
+
+        elif code_type == "year_gz":
+            chart.year_stem = result["stem"]
+            chart.year_branch = result["branch"]
 
     def _parse_standard(self, code: str, chart: ChartState) -> None:
         """解析標準編碼 (4碼或6碼)"""

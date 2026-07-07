@@ -11,6 +11,7 @@ import {
   palaceNameZh,
   palaceNameEn,
   branchNameZh,
+  stemNameZh,
   starNameZh,
   palaceNamesByMingBranch,
 } from "../core/registry";
@@ -181,7 +182,8 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
       let cnName = palaceNameZh(code);
       if (code === natalData.bodyPalace) cnName += "(身)";
       const enName = palaceNameEn(code);
-      const branchLabel = branchNameZh(palace.branch);
+      // 宮位干支：有宮干顯示「癸卯」，舊資料無宮干退回「卯」
+      const branchLabel = stemNameZh(palace.stem) + branchNameZh(palace.branch);
       // 流盤宮位標記：大X/流X/小X（X = 該層宮名首字）
       const flowZh = flowNames ? flowNames[palace.branch]?.zh : undefined;
       const flowTag = flowZh ? layerPrefix + flowZh[0] : undefined;

@@ -22,6 +22,7 @@ class PalaceInfo:
     """一個宮位的完整資訊。"""
     code: str                       # 宮位碼："1"~"9", "A", "B", "C"
     branch: str                     # 該宮所落地支碼
+    stem: Optional[str] = None      # 宮位天干碼 "01"~"10"（五虎遁）；舊 chart_json 無此資訊時 None
     stars: List[StarInfo] = field(default_factory=list)
 
 
@@ -53,22 +54,32 @@ class ChartData:
         chart_id = str(meta.get("chart_id") or data.get("chart_id") or "").strip()
         chart = data.get("chart", data)
 
+        # 宮位層（chart_json v2.3+）：每宮顯式 branch + stem（五虎遁宮干）。
+        # 舊 chart_json 無此區塊時退回星曜推斷（stem 為 None）。
+        palace_meta = chart.get("palaces") or {}
+        placements = chart.get("placements", {})
+
         palaces: Dict[str, PalaceInfo] = {}
-        for palace_code, palace_data in chart.get("placements", {}).items():
+        # 聯集：有 palaces 區塊時空宮也建 PalaceInfo（修正空宮缺格與 branch 誤設 "01" 問題）
+        for palace_code in list(placements.keys()) + [
+            pc for pc in palace_meta if pc not in placements
+        ]:
             stars: List[StarInfo] = []
-            branch = None
-            for star_code, star_data in palace_data.get("stars", {}).items():
+            inferred_branch = None
+            for star_code, star_data in (placements.get(palace_code, {}).get("stars") or {}).items():
                 stars.append(StarInfo(
                     code=star_code,
                     branch=star_data["branch"],
                     brightness=star_data.get("brightness"),
                     sihua=star_data.get("sihua"),
                 ))
-                if branch is None:
-                    branch = star_data["branch"]
+                if inferred_branch is None:
+                    inferred_branch = star_data["branch"]
+            pmeta = palace_meta.get(palace_code) or {}
             palaces[palace_code] = PalaceInfo(
                 code=palace_code,
-                branch=branch or "01",
+                branch=pmeta.get("branch") or inferred_branch or "01",
+                stem=pmeta.get("stem"),
                 stars=stars,
             )
 

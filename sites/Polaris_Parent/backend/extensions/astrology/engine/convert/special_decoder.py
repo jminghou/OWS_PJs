@@ -1,6 +1,6 @@
 """
 紫微斗數地基工程 - 特殊編碼解析模組
-處理元資訊編碼 (身宮、命主/身主、亮度、性別)
+處理元資訊編碼 (身宮、命主/身主、亮度、性別、生年干支)
 不使用 Bitmask，保持原始字串格式
 """
 
@@ -15,7 +15,7 @@ class SpecialCodeDecoder:
         解析特殊編碼並返回結構化資料
 
         Args:
-            code: 特殊編碼字串 (Q/L/M/I/G 開頭)
+            code: 特殊編碼字串 (Q/L/M/I/G/Y 開頭)
 
         Returns:
             解析後的字典，包含 type 和相關欄位
@@ -36,6 +36,8 @@ class SpecialCodeDecoder:
             return self._decode_brightness(code)
         elif code.startswith('G'):
             return self._decode_gender(code)
+        elif code.startswith('Y'):
+            return self._decode_year_gz(code)
         else:
             raise ValueError(f"未知的特殊編碼: {code}")
 
@@ -120,6 +122,32 @@ class SpecialCodeDecoder:
             'type': 'brightness',
             'star': star,
             'value': brightness
+        }
+
+    def _decode_year_gz(self, code: str) -> Dict:
+        """
+        解析生年干支編碼 (v2.3 新增)
+        - Y0404: 丁卯年 (5碼: Y + 天干代碼2碼 + 地支代碼2碼)
+        """
+        if len(code) != 5:
+            raise ValueError(f"生年干支編碼格式錯誤 (應為 5 碼): {code}")
+
+        stem_code = code[1:3]
+        branch_code = code[3:5]
+
+        if not stem_code.isdigit() or not branch_code.isdigit():
+            raise ValueError(f"生年干支編碼應為數字代碼: {code}")
+
+        if not 1 <= int(stem_code) <= 10:
+            raise ValueError(f"天干代碼超出範圍 (應為 01-10): {stem_code}")
+
+        if not 1 <= int(branch_code) <= 12:
+            raise ValueError(f"地支代碼超出範圍 (應為 01-12): {branch_code}")
+
+        return {
+            'type': 'year_gz',
+            'stem': stem_code,
+            'branch': branch_code
         }
 
     def _decode_gender(self, code: str) -> Dict:

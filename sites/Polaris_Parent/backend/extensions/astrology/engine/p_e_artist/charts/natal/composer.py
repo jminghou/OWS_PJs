@@ -232,8 +232,11 @@ class NatalComposer(BaseComposer):
             pname += "(身)"
         en_name = _PALACE_EN.get(palace.code, "")
 
-        # 地支顯示字（中文）
+        # 宮位干支顯示字（中文）：有宮干顯示「癸卯」，舊資料無宮干退回「卯」
         branch_cn = self._map.get_branch_name(palace.branch) or palace.branch
+        stem_cn = self._map.get_stem_name(palace.stem) if palace.stem else None
+        if stem_cn:
+            branch_cn = f"{stem_cn}{branch_cn}"
 
         # 星曜分類
         main_stars = [s for s in palace.stars if s.code in FOURTEEN_MAIN_STAR_CODES]

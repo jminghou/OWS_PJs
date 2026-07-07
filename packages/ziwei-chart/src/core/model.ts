@@ -31,6 +31,8 @@ export interface PalaceInfo {
   code: string;
   /** 該宮所落地支兩位碼。 */
   branch: string;
+  /** 宮位天干兩位碼 "01"~"10"（五虎遁）；舊 chart_json 無此資訊時 null。 */
+  stem: string | null;
   stars: StarInfo[];
   majors: StarInfo[];
   subs: StarInfo[];
@@ -48,6 +50,8 @@ export interface ChartData {
   bodyPalace: string;
   lifeMaster: string;
   bodyMaster: string;
+  /** 生年干支代碼；舊 chart_json 或反推不到時為 null。 */
+  yearGz: { stem: string | null; branch: string | null };
   /** 以宮位碼為鍵。 */
   palaces: Record<string, PalaceInfo>;
   sihuaSummary: SihuaEntry[];
@@ -64,6 +68,10 @@ export interface RawChartJson {
   meta?: { chart_id?: string };
   chart?: RawChartJson;
   placements?: Record<string, { stars?: Record<string, RawStar> }>;
+  /** 宮位層（chart_json v2.3+）：每宮顯式地支 + 天干（五虎遁）。 */
+  palaces?: Record<string, { branch?: string | null; stem?: string | null }>;
+  /** 生年干支代碼（chart_json v2.3+）。 */
+  year_gz?: { stem?: string | null; branch?: string | null };
   sihua_summary?: Record<string, { star: string; palace: string }>;
 }
 interface RawStar {
@@ -96,10 +104,17 @@ export function parseChart(raw: RawChartJson): ChartData {
   const chart: RawChartJson = raw.chart ?? raw;
 
   const placements = chart.placements ?? {};
+  // 宮位層（v2.3+）：顯式地支＋宮干，優先於星曜推斷
+  const palaceMeta = chart.palaces ?? {};
 
-  // 先從星曜推每宮地支
+  // 先從星曜推每宮地支（舊 chart_json fallback）
   const inferred: Record<string, string | null> = {};
   for (const pc of PALACE_CODES_12) {
+    const explicit = palaceMeta[pc]?.branch;
+    if (explicit) {
+      inferred[pc] = explicit;
+      continue;
+    }
     const stars = placements[pc]?.stars ?? {};
     let branch: string | null = null;
     for (const s of Object.values(stars)) {
@@ -138,6 +153,7 @@ export function parseChart(raw: RawChartJson): ChartData {
     palaces[pc] = {
       code: pc,
       branch,
+      stem: palaceMeta[pc]?.stem ?? null,
       stars,
       majors: stars.filter((s) => s.kind === "main"),
       subs: stars.filter((s) => s.kind === "sub"),
@@ -154,6 +170,10 @@ export function parseChart(raw: RawChartJson): ChartData {
     bodyPalace: chart.body_palace ?? "",
     lifeMaster: chart.life_master ?? "",
     bodyMaster: chart.body_master ?? "",
+    yearGz: {
+      stem: chart.year_gz?.stem ?? null,
+      branch: chart.year_gz?.branch ?? null,
+    },
     palaces,
     sihuaSummary,
     chartId,

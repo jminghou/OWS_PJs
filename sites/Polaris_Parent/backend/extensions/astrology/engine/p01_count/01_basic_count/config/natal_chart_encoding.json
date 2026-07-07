@@ -1,10 +1,17 @@
 {
-  "encoding_version": "2.2",
-  "description": "本命盤編碼配置（嚴謹版：宮位+星曜+地支+四化+性別+星曜亮度）",
+  "encoding_version": "2.3",
+  "description": "本命盤編碼配置（嚴謹版：宮位+星曜+地支+四化+性別+星曜亮度+生年干支）",
   "encoding_type": "natal_chart",
-  "last_updated": "2025-10-30",
+  "last_updated": "2026-07-07",
 
   "encoding_format": {
+    "year_gz_format": {
+      "structure": "Y{heavenly_stem_code}{earthly_branch_code}",
+      "example": "Y0404",
+      "length": 5,
+      "description": "生年干支編碼（Y0404 = 丁卯年）。年干為五虎遁輸入，可完整重建 12 宮天干（唯一實作：palace/gz.py）",
+      "note": "v2.3 新增。刻意取 5 碼：舊版 ChartParser 只解 4/6 碼標準編碼與 Q/L/M/I/G 特殊編碼，會自動略過此 token，向後相容"
+    },
     "gender_format": {
       "structure": "G{gender_code}",
       "example": "GM",
@@ -78,6 +85,12 @@
         "length": 2,
         "description": "地支編碼（子=01, 丑=02, ..., 亥=12）",
         "note": "星曜的絕對位置，永不變動"
+      },
+      "heavenly_stem_code": {
+        "position": 1,
+        "length": 2,
+        "description": "天干編碼（甲=01, 乙=02, ..., 癸=10）",
+        "note": "v2.3 新增，用於生年干支編碼（Y 前綴），映射檔 encoding_mappings/heavenly_stem_codes.json"
       }
     }
   },
@@ -88,7 +101,8 @@
     "sihua_data_path": "四化資料",
     "gender_data_path": "基本資料.性別",
     "brightness_data_path": "星曜亮度",
-    "note": "從命盤 JSON 中提取的數據路徑（v2.2 新增性別與星曜亮度路徑）"
+    "year_gz_data_path": "曆法數據.出生年干 / 曆法數據.出生年支",
+    "note": "從命盤 JSON 中提取的數據路徑（v2.2 新增性別與星曜亮度路徑；v2.3 新增生年干支路徑）"
   },
 
   "mapping_files": {

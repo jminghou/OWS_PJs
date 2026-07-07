@@ -95,7 +95,7 @@ class PalaceEl:
     code: str                # 1~9 / A / B / C
     cn_name: str
     en_name: str
-    branch_label: str        # 顯示用地支字（中文）
+    branch_label: str        # 顯示用干支字（中文；有宮干「癸卯」、無宮干「卯」）
     majors: List = field(default_factory=list)        # PalaceStarItem
     subs: List = field(default_factory=list)          # PalaceStarItem
     minor_labels: List = field(default_factory=list)  # str
