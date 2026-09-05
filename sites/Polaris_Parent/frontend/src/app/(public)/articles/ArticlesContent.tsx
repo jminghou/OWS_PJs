@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { contentApi, categoryApi } from '@/lib/api';
 import { Content, ContentListResponse, Category } from '@/types';
-import PostCard from '@/components/public/PostCard';
-import Button from '@/components/ui/Button';
+import PostCard from '@/components/platform/public/PostCard';
+import Button from '@/components/platform/ui/Button';
 
 interface ArticlesContentProps {
   locale?: string;

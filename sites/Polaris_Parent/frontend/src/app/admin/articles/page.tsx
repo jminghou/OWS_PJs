@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { contentApi, categoryApi, tagApi, i18nApi } from '@/lib/api';
 import { Content, Category, Tag, TranslationInfo } from '@/types';
-import AdminLayout from '@/components/admin/AdminLayout';
-import ArticleEditor, { ArticleFormData } from '@/components/admin/ArticleEditor';
-import { AdminListLayout, AdminEmptyState } from '@/components/admin/shared';
+import AdminLayout from '@/components/platform/admin/AdminLayout';
+import ArticleEditor, { ArticleFormData } from '@/components/platform/admin/ArticleEditor';
+import { AdminListLayout, AdminEmptyState } from '@/components/platform/admin/shared';
 import { ArticleSidebar } from './_components';
 import { FileText } from 'lucide-react';
 

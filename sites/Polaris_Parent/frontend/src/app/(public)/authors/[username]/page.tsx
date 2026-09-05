@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { authorApi, type AuthorDetailResponse } from '@/lib/api';
 import { getImageUrl, formatDate } from '@/lib/utils';
-import JsonLd from '@/components/seo/JsonLd';
+import JsonLd from '@/components/platform/seo/JsonLd';
 import {
   buildPersonJsonLd,
   buildBreadcrumbJsonLd,

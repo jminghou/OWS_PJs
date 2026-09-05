@@ -1,0 +1,127 @@
+name: Frozen Contract (Claire 不被改壞)
+
+# 平台模組化以 Polaris 為母體進行，Claire_Project 維持現狀不遷移。
+# 這個 workflow 是「不影響 Claire」的唯一真正保險 —— 見 docs/FROZEN_CONTRACT.md。
+#
+# 四道關卡：
+#   1. contract-audit  Claire 沒有長出契約外的新依賴（快，秒級）
+#   2. layering        Polaris 平台層沒有反向依賴領域層（模組化的驗收條件）
+#   3. claire-backend  Claire 後端仍能建立 Flask app（core 的 Python 契約沒破）
+#   4. claire-frontend Claire 前端型別檢查通過（packages/ui 的 export 面沒破）
+
+on:
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'packages/**'
+      - 'sites/Claire_Project/**'
+      - 'requirements.txt'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'docs/FROZEN_CONTRACT.md'
+      - 'scripts/check_frozen_contract.py'
+      - 'scripts/check_layering.py'
+      - 'sites/Polaris_Parent/frontend/src/**'
+      - '.github/workflows/frozen-contract.yml'
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: frozen-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-audit:
+    name: 契約稽核
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Claire 依賴面未擴大
+        run: python scripts/check_frozen_contract.py
+
+  layering:
+    name: Polaris 分層邊界
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      # 模組化的驗收條件：把 domain/ 刪掉，platform/ 仍可編譯。
+      # 平台層一旦反向依賴領域層，這個性質就沒了，而且要到 P3 抽套件時才會發現。
+      - name: 平台層未依賴領域層
+        run: python scripts/check_layering.py
+
+  claire-backend:
+    name: Claire 後端冒煙
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: 安裝共用依賴
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # TestingConfig 用記憶體 SQLite 且自帶測試金鑰，不需連任何外部服務。
+      # Claire 的 app 是模組層級建立的，所以 import 本身就會跑完 create_app()：
+      # core 的 factory 簽名、blueprint 註冊、media_lib 掛載、models 匯入全部走一遍。
+      - name: 建立 Flask app（不連 DB）
+        env:
+          FLASK_CONFIG: testing
+        run: |
+          python - <<'PY'
+          import sys
+          from sites.Claire_Project.backend.app import app
+
+          rules = sorted({r.rule for r in app.url_map.iter_rules()})
+          print(f'✓ Claire app 建立成功，註冊 {len(rules)} 條路由')
+
+          # docs/FROZEN_CONTRACT.md C-1 / C-2：Claire 前端實際依賴的路由必須還在。
+          required = [
+              '/api/v1/auth/login',
+              '/api/v1/contents',
+              '/api/v1/categories',
+              '/api/v1/tags',
+              '/api/v1/products',
+              '/api/v1/admin/products',
+              '/api/v1/orders',
+              '/api/v1/settings/homepage',
+              '/api/v1/submissions',
+              '/api/v1/users',
+              '/api/v1/admin/rbac/roles',
+              '/api/v1/media-lib/files',
+              '/api/v1/media-lib/folders',
+          ]
+          missing = [r for r in required if r not in rules]
+          if missing:
+              print('\n✗ 契約路由消失（會直接打壞 Claire 線上前端）：')
+              for r in missing:
+                  print(f'    {r}')
+              sys.exit(1)
+          print(f'✓ C-1 / C-2 契約路由 {len(required)} 條全數存在')
+          PY
+
+  claire-frontend:
+    name: Claire 前端型別檢查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: 安裝依賴
+        run: npm ci
+      # tsc 會沿著 shim 檔一路解析進 packages/ui，
+      # 所以 packages/ui 任何 export 面的破壞性變更都會在這裡爆。
+      - name: tsc --noEmit
+        working-directory: sites/Claire_Project/frontend
+        run: npx tsc --noEmit

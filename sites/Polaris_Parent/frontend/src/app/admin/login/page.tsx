@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
 import { LoginCredentials } from '@/types';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import Button from '@/components/platform/ui/Button';
+import Input from '@/components/platform/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/platform/ui/Card';
 
 export default function LoginPage() {
   const router = useRouter();

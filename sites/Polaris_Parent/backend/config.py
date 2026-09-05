@@ -209,6 +209,11 @@ class Config:
     DEFAULT_LANGUAGE = os.environ.get('DEFAULT_LANGUAGE', 'zh-TW')
     SUPPORTED_LANGUAGES = os.environ.get('SUPPORTED_LANGUAGES', 'zh-TW,en').split(',')
 
+    # 會員系統（core 的 /api/v1/auth/member/* 端點）。
+    # core blueprint 由所有站台共用，故預設關閉、由站台明確開啟 ——
+    # 沒有會員功能的站台不應憑空多出公開註冊端點。Polaris 的會員系統已上線。
+    MEMBER_AUTH_ENABLED = _bool_env('MEMBER_AUTH_ENABLED', True)
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 

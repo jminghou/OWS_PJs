@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { XCircle } from 'lucide-react';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 
 export default function OrderFailedPage() {
   const router = useRouter();

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { userApi } from '@/lib/api';
 import { User } from '@/types';
-import AdminLayout from '@/components/admin/AdminLayout';
-import { AdminListLayout, AdminEmptyState } from '@/components/admin/shared';
+import AdminLayout from '@/components/platform/admin/AdminLayout';
+import { AdminListLayout, AdminEmptyState } from '@/components/platform/admin/shared';
 import { AuthorSidebar, AuthorForm, type AuthorProfileForm } from './_components';
 import { Users } from 'lucide-react';
 

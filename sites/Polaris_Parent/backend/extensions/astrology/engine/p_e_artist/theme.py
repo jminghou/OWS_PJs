@@ -24,11 +24,9 @@ from typing import Any
 _DEFAULTS = {
     # 全局字型
     "font_family": "HarmonyOS Sans TC, Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif",
-    # 地支兩位碼：明體／襯線，避免黑體類無襯線
-    "font_branch": (
-        '"Noto Serif TC", "Source Han Serif TC", "LiSong Pro", '
-        '"PMingLiU", "Times New Roman", serif'
-    ),
+    # 宮位干支字型：與宮名同字型（曾用明體/襯線區隔，2026-07-17 統一）；
+    # 主題仍可覆寫此鍵單獨換字型
+    "font_branch": "HarmonyOS Sans TC, Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif",
 
     # 顏色
     "colors": {
@@ -48,6 +46,11 @@ _DEFAULTS = {
         "branch":         "#888888",
         "star_main":      "#2C3E50",
         "star_minor":     "#3a4a5c",
+        # 星曜圖示墨色（渲染時將單色圖示整體換成此色；暗色主題請覆寫為淺色。
+        # 疊盤時亦可每盤指定不同 star_ink 做盤別區分）。
+        "star_ink":       "#231815",
+        # 四化圖示墨色（與星曜分軌；本命四化=紅。未設定時退回 star_ink）。
+        "sihua_ink":      "#C62828",
         "brightness":     "#888888",
         "sihua_fo":       "#2E7D32",   # 化祿
         "sihua_pw":       "#1565C0",   # 化權
@@ -68,6 +71,17 @@ _DEFAULTS = {
         "sihua_tag":      12,
         "center_title":   16,
         "center_detail":  13,
+        # 中宮內容卡（center_content 原語）
+        "center_kv":        12,
+        "center_kv_label":  10,
+        "center_text":      12,
+        "center_note":      9,
+        "center_key":       10,
+        # 圖例對照表
+        "legend_name":    11,
+        "legend_header":  12,
+        # 疊盤：表頭各層宮名字級（與本命宮名同大小；層以顏色區分）
+        "overlay_layer_name": 11,
     },
 
     # 線條
@@ -87,10 +101,18 @@ _DEFAULTS = {
         # 主／副星圖示尺寸（v2 規格）
         "icon_main_size":     77,
         "icon_main_gap":      5,
-        "icon_sub_size":      43,
+        # 副星 35：讓 5 顆能排一行（5×35+4×gap1=179 ≤ 內寬182），
+        # 多數宮位單行落在固定網格線上，與疊盤同一對齊邏輯（原 43 兩行必超高）
+        "icon_sub_size":      35,
         "icon_sub_gap":       1,
         # 四化標籤
         "sihua_badge_size":   21,
+        "sihua_badge_gap":    2,    # 單盤徽章橫排間距（原寫死於 svg_writer）
+        # 主星區/輔星列/小星列 區塊間距（單盤；疊盤用 overlay_row_gap）
+        "icon_row_gap":       3,
+        # 小星曜（鸞喜等 SMALL_STAR_CODES）與所有運限流曜的縮放（乘副星尺寸）。
+        # 1.0＝與一般副星同尺寸（0.5 曾試過，縮太小無法辨認）
+        "small_star_scale":   1.0,
         # 中央 ID 距右下邊（px）
         "center_id_inset":    14,
         # 小星文字
@@ -100,6 +122,25 @@ _DEFAULTS = {
         # 宮位 header 與底線
         "header_underline_offset": 24,   # 距宮位頂部
         "header_baseline_offset":  18,   # 文字基線距宮位頂部
+        # 疊盤（overlay_layers 非空時生效）：圖示縮小以容納四化排與流曜
+        # 尺寸階層＝單盤 77/43/21 × 同一縮放係數 k≈0.78 → 60/34/16
+        "overlay_icon_main_size": 60,
+        "overlay_icon_sub_size":  34,
+        "overlay_icon_sub_gap":   2,
+        "overlay_badge_size":     16,   # 星曜圖下方的四化圖尺寸
+        "overlay_badge_gap":      2,
+        "overlay_row_gap":        3,    # 主星區/輔星列之間的間距
+        "overlay_layer_name_gap": 5,    # 表頭各層宮名之間距
+        # 圖例對照表（命盤下方；show_legend=True 時生效）
+        "legend_pad_x":         14,
+        "legend_top_gap":       20,   # 命盤底與圖例首行的間距
+        "legend_icon_size":     22,
+        "legend_row_h":         30,
+        "legend_cols":          4,
+        "legend_header_h":      26,
+        "legend_section_gap":   10,
+        "legend_icon_text_gap": 8,
+        "legend_bottom_pad":    8,
         # === 舊版相容（PalaceLayout 仍用，但 v2 composer 已不依賴） ===
         "padding":        4,
         "header_text_y_factor":  0.5,
@@ -127,7 +168,7 @@ class ThemeConfig:
     """
     主題設定物件。存取方式:
         theme.font_family       → str
-        theme.font_branch       → 地支碼專用字型（襯線，非黑體）
+        theme.font_branch       → 宮位干支字型（預設同 font_family，可單獨覆寫）
         theme.colors["bg"]      → str
         theme.sizes["star_main"] → int
         theme.layout["padding"]  → 星曜區與宮位左、右邊線距離
@@ -174,9 +215,21 @@ class ThemeConfig:
 .palace-header-line {{ stroke: {c['grid_stroke']}; stroke-width: {sw}; }}
 .branch-name {{ font-family: {fb}; font-size: {s['branch']}px; fill: {c['branch_ink']}; }}
 .stars-minor {{ font-family: {f}; font-size: {s['star_minor']}px; fill: {c['star_minor']}; letter-spacing: 0.01em; }}
+.stars-overflow {{ font-family: {f}; font-size: {s['star_minor']}px; fill: {c['star_minor']}; font-weight: bold; opacity: 0.7; }}
 .sihua-badge {{ fill: {c['sihua_badge_bg']}; stroke: none; }}
 .sihua-badge-text {{ font-family: {f}; font-size: {s['sihua_tag']}px; font-weight: bold; fill: {c['sihua_tag_ink']}; stroke: none; }}
 .palace-link {{ stroke: #cccccc; stroke-width: 0.5pt; stroke-dasharray: 4 2; fill: none; }}
+.palace-name-layer {{ font-family: {f}; font-size: {s['overlay_layer_name']}px; font-weight: 600; letter-spacing: 0.02em; }}
+.center-title {{ font-family: {f}; font-size: {s['center_title']}px; fill: {c['palace_name']}; font-weight: bold; letter-spacing: 0.06em; }}
+.center-kv-label {{ font-family: {f}; font-size: {s['center_kv_label']}px; fill: {c['branch']}; }}
+.center-kv-value {{ font-family: {f}; font-size: {s['center_kv']}px; fill: {c['center_text']}; }}
+.center-text {{ font-family: {f}; font-size: {s['center_text']}px; fill: {c['center_text']}; }}
+.center-note {{ font-family: monospace; font-size: {s['center_note']}px; fill: {c['chart_id_ink']}; letter-spacing: 0.05em; }}
+.center-divider {{ stroke: {c['grid_stroke']}; stroke-width: {sw}; }}
+.center-key-label {{ font-family: {f}; font-size: {s['center_key']}px; fill: {c['center_text']}; }}
+.legend-divider {{ stroke: {c['grid_stroke']}; stroke-width: {sw}; }}
+.legend-header {{ font-family: {f}; font-size: {s['legend_header']}px; fill: {c['palace_name']}; font-weight: bold; letter-spacing: 0.04em; }}
+.legend-name {{ font-family: {f}; font-size: {s['legend_name']}px; fill: {c['star_ink']}; }}
 """
 
     def to_html_css(self) -> str:
@@ -261,27 +314,41 @@ body {{ background: {c['body_bg']}; display: flex; justify-content: center; padd
 }}
 .stars-major-row {{
   display: flex; flex-direction: row; gap: {icon_main_gap}px;
-  align-items: center; justify-content: center;
+  align-items: flex-start; justify-content: center;
 }}
 
-.smw {{ display: block; flex-shrink: 0; }}
+.smw {{ display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }}
+.ssw {{ display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }}
 
-.smw-badge {{
-  display: inline-grid;
-  width: {icon_main}px; height: {icon_main}px;
-  flex-shrink: 0;
-}}
-.smw-badge > * {{ grid-area: 1 / 1 / 2 / 2; }}
-.smw-badge .star-major {{ width: {icon_main}px; height: {icon_main}px; display: block; }}
-.smw-badge .sihua-badge {{
-  justify-self: end; align-self: start;
-  width: {badge}px; height: {badge}px; display: block;
+/* 四化徽章＝星曜圖示正下方（主/副星共用；與 SVG／疊盤同一視覺語言） */
+.sbw {{ display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }}
+.sbw .sihua-badge {{
+  width: {badge}px; height: {badge}px; display: block; margin-top: 1px;
 }}
 
 .star-major {{ width: {icon_main}px; height: {icon_main}px; display: block; }}
 .star-sub   {{ width: {icon_sub}px;  height: {icon_sub}px;  display: block; }}
 
-.stars-sub-row {{ display: flex; flex-wrap: wrap; gap: {icon_sub_gap}px; justify-content: center; }}
+.stars-sub-row {{ display: flex; flex-wrap: wrap; gap: {icon_sub_gap}px; justify-content: center; align-items: flex-start; }}
+
+/* ── 圖示↔文字 一鍵切換（.text-mode 掛在 .chart-container 上） ── */
+.star-label {{
+  display: none; font-family: {f}; white-space: nowrap; line-height: 1.4;
+}}
+.sl-major {{ font-size: {s['star_main']}px; font-weight: 700; color: {c['star_main']}; }}
+.sl-sub   {{ font-size: {s['star_minor']}px; color: {c['star_minor']}; }}
+.chart-container.text-mode .star-major,
+.chart-container.text-mode .star-sub {{ display: none; }}
+.chart-container.text-mode .star-label {{ display: inline-block; }}
+.chart-container.text-mode .stars-major-row {{ gap: 10px; }}
+.chart-container.text-mode .stars-sub-row {{ gap: 6px; }}
+
+.chart-toolbar {{ position: fixed; top: 12px; right: 16px; z-index: 10; }}
+.chart-toolbar button {{
+  font-family: {f}; font-size: 12px; padding: 4px 12px; cursor: pointer;
+  color: {c['palace_name']}; background: {c['chart_container_bg']};
+  border: 1px solid {c['grid_stroke']}; border-radius: 4px;
+}}
 .stars-minor {{
   font-family: {f};
   font-size: {s['star_minor']}px; color: {c['star_minor']}; line-height: {minor_lh};

@@ -18,6 +18,12 @@ import urllib.error
 from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
+from core.backend_engine.services.member_auth import (
+    SignupHookResult,
+    on_member_signup,
+    send_set_password_email,
+)
+
 try:
     from core.backend_engine.factory import limiter
 except Exception:  # pragma: no cover - 限流器不可用時不擋功能
@@ -89,6 +95,64 @@ def _get_engine():
     return _engine
 
 
+# ── 星場引擎（p_d_graph_v3）延遲載入：與排盤引擎同一套容錯 ──
+_sf_engine = None
+_sf_error = None
+
+
+def _get_star_field():
+    """回傳星場引擎（載入失敗回 None，不擋排盤）。"""
+    global _sf_engine, _sf_error
+    if _sf_error is not None:
+        return None
+    if _sf_engine is None:
+        try:
+            # engine/ 目錄需在 sys.path 上（與 .engine 包裝層同一套 bootstrap）
+            from . import engine as _eng  # noqa: F401  觸發 sys.path 設定
+            from p_d_graph_v3 import StarFieldEngine
+            _sf_engine = StarFieldEngine()
+        except Exception as exc:  # noqa: BLE001
+            _sf_error = str(exc)
+            return None
+    return _sf_engine
+
+
+def _natal_encoded_array(chart):
+    """從排盤產物取本命編碼陣列（include_encoding=True 時必有）。"""
+    enc = (chart or {}).get("快速條件編碼") or {}
+    natal = enc.get("natal_chart_encoding") or []
+    if not natal:
+        raise ValueError("命盤缺少本命編碼（natal_chart_encoding）")
+    arr = natal[0].get("encoded_array")
+    if not arr:
+        raise ValueError("本命編碼陣列為空")
+    return arr
+
+
+def _build_v3_views(chart, star_energy=False, readings=False, kinds=None):
+    """
+    星場視圖：星曜能量卡 ／ 十二宮讀數。
+
+    **兩者共用同一次 analyze()**——兩張圖各跑一次引擎會白花一倍成本，
+    而 analyze() 本來就把兩者需要的東西都算了（實測 0.41 ms/張）。
+    回傳 (star_energy_payload | None, readings_payload | None)。
+    """
+    sf = _get_star_field()
+    if sf is None:
+        raise RuntimeError(f"星場引擎載入失敗：{_sf_error}")
+    if not (star_energy or readings):
+        return None, None
+
+    from p_d_graph_v3.star_energy import build_from_result as _star_view
+    from p_d_graph_v3.palace_readings import build_from_result as _palace_view
+
+    result = sf.analyze(_natal_encoded_array(chart))
+    return (
+        _star_view(result, sf, kinds=kinds) if star_energy else None,
+        _palace_view(result, sf) if readings else None,
+    )
+
+
 # ── 輸入正規化 ──────────────────────────────────────────────
 _GENDER_MAP = {
     "男": "男", "女": "女",
@@ -136,13 +200,27 @@ def calculate():
         include_flow                      (選填, bool, 預設 False)
         render                            (選填, bool, 預設 True → 附 SVG)
         include_chart_json                (選填, bool, 預設 False → 附正規化命盤 JSON）
+        include_star_energy               (選填, bool, 預設 False → 附星曜能量卡）
+        star_energy_kinds                 (選填, list[str], 預設全部；["major"]＝只主星）
+        include_readings                  (選填, bool, 預設 False → 附十二宮讀數）
         theme                             (選填, str, 預設 "default")
 
     Response JSON:
-        { success, chart_id, solar_time, time_type, data, svg, chart_json }
+        { success, chart_id, solar_time, time_type, data, svg, chart_json,
+          star_energy, readings }
 
     chart_json 為 p_e_artist 期待的正規化形狀（placements/stars/sihua_summary），
     供前端互動命盤引擎（@ows/ziwei-chart）使用；與靜態 SVG 同一份資料來源。
+
+    star_energy 為每顆星的 E 及其可回溯分解（供前端瀑布圖）：
+        E = 亮度倍率 × (1 + 影響加成 M) × 空劫衰減
+    每顆星附 steps（瀑布圖直接可畫）與 counterfactual（空劫／四化豁免的反事實）。
+    四化**不乘進 E**，它在這條鏈上的唯一作用是豁免空劫——所以會顯示在「空劫」那一步，
+    不是多加一步。實測 <1 ms，與排盤同一次請求算完，前端點星曜即純查表。
+
+    readings 為十二宮讀數（S總／S力／S化／S輔、四化通道、輔星流量矩陣、
+    逐筆取樣分解、四化場源），供熱力圖／弦圖／桑基等結構圖表。
+    與 star_energy **共用同一次 analyze()**，兩個都開不會多花一倍成本。
     """
     eng = _get_engine()
     if eng is None:
@@ -172,6 +250,12 @@ def calculate():
     include_flow = bool(data.get("include_flow", False))
     do_render = data.get("render", True)
     include_chart_json = bool(data.get("include_chart_json", False))
+    include_star_energy = bool(data.get("include_star_energy", False))
+    star_energy_kinds = data.get("star_energy_kinds") or None
+    if star_energy_kinds is not None and not isinstance(star_energy_kinds, list):
+        return jsonify({"success": False,
+                        "error": "star_energy_kinds 必須為字串陣列"}), 400
+    include_readings = bool(data.get("include_readings", False))
     theme = data.get("theme", "default")
 
     y, mo, d, h = parts["year"], parts["month"], parts["day"], parts["hour"]
@@ -243,6 +327,20 @@ def calculate():
             except Exception as exc:  # noqa: BLE001
                 chart.setdefault("_flow_error", str(exc))
 
+    # 星場視圖（星曜能量卡／十二宮讀數）。純查表算術，兩者共用同一次 analyze()，
+    # 實測 <1 ms；失敗不擋其餘資料回傳，與 svg / chart_json 同一套容錯策略。
+    star_energy = readings = None
+    if include_star_energy or include_readings:
+        try:
+            star_energy, readings = _build_v3_views(
+                chart,
+                star_energy=include_star_energy,
+                readings=include_readings,
+                kinds=star_energy_kinds,
+            )
+        except Exception as exc:  # noqa: BLE001
+            chart.setdefault("_star_field_error", str(exc))
+
     return jsonify({
         "success": True,
         "chart_id": chart_id,
@@ -252,6 +350,8 @@ def calculate():
         "svg": svg,
         "chart_json": chart_json,
         "flow": flow,
+        "star_energy": star_energy,
+        "readings": readings,
     })
 
 
@@ -266,32 +366,10 @@ def geo_options():
     return jsonify({"success": True, "hierarchy": eng.geographic_hierarchy()})
 
 
-# ── 一鍵建檔 + 註冊（第三期，§12）──────────────────────────
-def _send_set_password_email(member_id, email):
-    """寄設定密碼信（best-effort；無 SMTP 則記 log 含連結）。簽章 token，無需新表。"""
-    try:
-        from itsdangerous import URLSafeTimedSerializer
-        from core.backend_engine.factory import mail
-        from flask_mail import Message
-        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='set-password')
-        token = s.dumps({"member_id": member_id, "email": email})
-        frontend = os.environ.get('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
-        link = f"{frontend}/set-password?token={token}"
-        try:
-            mail.send(Message(
-                subject="設定您的會員密碼",
-                recipients=[email],
-                sender=current_app.config.get('MAIL_DEFAULT_SENDER'),
-                body=f"歡迎成為會員！請於 24 小時內點擊連結設定密碼：\n{link}",
-            ))
-            current_app.logger.info(f"set-password email sent to {email}")
-        except Exception as send_err:  # noqa: BLE001
-            current_app.logger.warning(
-                f"set-password 信無法寄出（本機可能無 SMTP）：{send_err}；連結：{link}")
-    except Exception as exc:  # noqa: BLE001
-        current_app.logger.error(f"set-password token 產生失敗：{exc}")
-
-
+# ── 一鍵建檔（第三期，§12）：排盤 + 建會員 + 歸戶 ──────────────────────
+# 註：純粹的會員身分機制（註冊 / 設定密碼 / 重寄設定信）已於 P1 搬到
+#     core.backend_engine.blueprints.api.member_auth —— 那是平台能力，不是排盤領域。
+#     這裡只留「需要呼叫紫微服務」的部分。
 @bp.route('/save-and-register', methods=['POST'])
 @_limit("5 per minute")
 def save_and_register():
@@ -349,7 +427,7 @@ def save_and_register():
 
     # 3. 新會員 → 寄設定密碼信
     if is_new:
-        _send_set_password_email(member_id, email)
+        send_set_password_email(member_id, email)
 
     return jsonify({
         "success": True,
@@ -358,169 +436,6 @@ def save_and_register():
         "is_new_member": is_new,
         "email": email,
     })
-
-
-@bp.route('/set-password', methods=['POST'])
-@_limit("5 per minute")
-def set_password():
-    """以設定密碼信的 token 設定會員密碼（經 blog.users view → app_users.password_hash）。"""
-    data = request.get_json(silent=True) or {}
-    token = data.get("token") or ""
-    password = data.get("password") or ""
-    from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='set-password')
-    try:
-        payload = s.loads(token, max_age=24 * 3600)
-    except SignatureExpired:
-        return jsonify({"success": False, "error": "連結已過期，請重新申請"}), 400
-    except BadSignature:
-        return jsonify({"success": False, "error": "連結無效"}), 400
-
-    from core.backend_engine.models import User
-    from core.backend_engine.factory import db
-    user = User.query.get(payload.get("member_id"))
-    if not user:
-        return jsonify({"success": False, "error": "會員不存在"}), 404
-    try:
-        user.set_password(password)  # 複雜度驗證 + bcrypt（經 view trigger 寫 app_users）
-        db.session.commit()
-    except ValueError as ve:
-        db.session.rollback()
-        return jsonify({"success": False, "error": str(ve)}), 400
-    return jsonify({"success": True, "message": "密碼已設定，請登入"})
-
-
-# ── 登入／註冊合一頁：email + 密碼註冊，成功即登入 ──────────────────────────
-@bp.route('/register', methods=['POST'])
-@_limit("5 per minute")
-def register():
-    """
-    會員註冊（email + 密碼），成功後直接發 JWT cookies（免再登入）。
-
-    Request JSON:
-        email, password                  (必填)
-        chart                            (選填) 剛排的命盤，註冊後自動歸戶：
-            {year, month, day, hour, minute?, gender, name?, place?, relation?}
-
-    有 chart → 走既有紫微 save-and-register（建會員 + 存盤 + 歸戶）後補設密碼；
-    無 chart → 直接經 blog.users view 建會員（INSTEAD OF trigger 寫
-    account.app_users + blog.member_profiles）。
-    """
-    from datetime import datetime
-    from flask_jwt_extended import (create_access_token, create_refresh_token,
-                                    set_access_cookies, set_refresh_cookies)
-    from core.backend_engine.factory import db
-    from core.backend_engine.models import User, validate_password
-    from core.backend_engine.schemas.user import UserSchema
-
-    data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
-    if "@" not in email or "." not in email.split("@")[-1]:
-        return jsonify({"success": False, "error": "請提供有效的 email"}), 400
-    password = data.get("password") or ""
-    try:
-        validate_password(password)
-    except ValueError as ve:
-        return jsonify({"success": False, "error": str(ve)}), 400
-
-    if User.query.filter_by(username=email).first():
-        return jsonify({
-            "success": False,
-            "error": "此 email 已是會員，請直接登入；若尚未設定密碼，請在登入頁重寄設定密碼信。",
-        }), 409
-
-    # 有剛排的命盤 → 既有 save-and-register 一次完成建會員 + 存盤 + 歸戶。
-    # 命盤服務不可用或存盤失敗時「降級為純註冊」：仍建會員，回傳警告，不擋註冊。
-    chart = data.get("chart") or None
-    chart_id = None
-    chart_warning = None
-    if chart:
-        payload = None
-        if not _PUBLIC_SERVICE_TOKEN:
-            chart_warning = "命盤服務未設定，命盤未儲存"
-        else:
-            parts = {}
-            for key in ("year", "month", "day", "hour"):
-                val, err = _as_int(chart, key)
-                if err:
-                    chart_warning = f"命盤資料不完整（{key}），命盤未儲存"
-                    break
-                parts[key] = val
-            else:
-                minute = 0
-                if chart.get("minute") not in ("", None):
-                    minute, err = _as_int(chart, "minute")
-                    if err:
-                        minute = 0
-                gender = _norm_gender(chart.get("gender"))
-                if gender not in ("男", "女"):
-                    chart_warning = "命盤資料不完整（gender），命盤未儲存"
-                else:
-                    payload = {
-                        "year": parts["year"], "month": parts["month"], "day": parts["day"],
-                        "hour": parts["hour"], "minute": minute,
-                        "gender": gender, "name": (chart.get("name") or "").strip(),
-                        "place": (chart.get("place") or "").strip(), "email": email,
-                        "relation": (chart.get("relation") or "self"),
-                        "rating": (chart.get("rating") or "").strip(),
-                    }
-        if payload is not None:
-            zres, zerr = _ziwei_save_and_register(payload)
-            if zerr:
-                current_app.logger.warning(f"register: 命盤歸戶失敗，降級為純註冊：{zerr}")
-                chart_warning = "註冊已完成，但命盤儲存失敗，請登入後重新排盤儲存"
-            else:
-                chart_id = zres.get("chart_id")
-
-    # 取得或建立會員。注意：ziwei save-and-register 可能已建了會員（即使存盤失敗），
-    # 故一律先查再建，避免 unique 衝突。
-    user = User.query.filter_by(username=email).first()
-    if user is not None:
-        user.email = email  # view trigger upsert member_profiles
-        user.set_password(password)
-    else:
-        if chart_id is not None:
-            # 不應發生：ziwei 回報建檔成功但本站查不到會員
-            current_app.logger.error(f"register: ziwei 建檔成功但查無會員 {email}")
-            return jsonify({"success": False, "error": "會員建立失敗，請稍後再試"}), 500
-        user = User(username=email, email=email, role='member', is_active=True)
-        user.set_password(password)
-        db.session.add(user)
-
-    user.last_login = datetime.utcnow()
-    try:
-        db.session.commit()
-    except Exception as exc:  # noqa: BLE001
-        db.session.rollback()
-        current_app.logger.error(f"register commit failed: {exc}")
-        return jsonify({"success": False, "error": "註冊失敗，請稍後再試"}), 500
-
-    # 與 /auth/login 相同：JWT 進 httpOnly cookies，回傳 user
-    response = jsonify({
-        "success": True,
-        "user": UserSchema().dump(user),
-        "chart_id": chart_id,
-        "chart_warning": chart_warning,
-    })
-    set_access_cookies(response, create_access_token(identity=str(user.id)))
-    set_refresh_cookies(response, create_refresh_token(identity=str(user.id)))
-    return response, 200
-
-
-@bp.route('/resend-set-password', methods=['POST'])
-@_limit("3 per minute")
-def resend_set_password():
-    """重寄設定密碼信（兼忘記密碼）。無論 email 是否存在一律回成功，避免帳號枚舉。"""
-    data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
-    if "@" not in email or "." not in email.split("@")[-1]:
-        return jsonify({"success": False, "error": "請提供有效的 email"}), 400
-
-    from core.backend_engine.models import User
-    user = User.query.filter_by(username=email).first()
-    if user is not None and user.is_active:
-        _send_set_password_email(user.id, email)
-    return jsonify({"success": True, "message": "若該 email 為會員，設定密碼信已寄出，請於 24 小時內完成設定。"})
 
 
 # ── 會員端：我的命盤 / 收藏（需登入；member_id 取自 JWT）─────────────────────
@@ -578,7 +493,47 @@ def save_my_chart():
     })
     if zerr:
         return jsonify({"success": False, "error": zerr}), 502
-    return jsonify({"success": True, "chart_id": zres.get("chart_id")})
+    return jsonify({
+        "success": True,
+        "chart_id": zres.get("chart_id"),
+        "is_existing": bool(zres.get("is_existing")),
+        "has_fortune": bool(zres.get("has_fortune")),
+    })
+
+
+# ── 命盤升級（補流運 252 筆）/ 降級（刪流運）────────────────────────────
+def _member_can_upgrade(user) -> bool:
+    """付費資格檢查（金流接上前的暫行版）：role 為 admin 或 paid 才可升級。
+    之後接金流時改查訂閱/訂單狀態，閘門位置維持在 blog 側。"""
+    return getattr(user, 'role', None) in ('admin', 'paid')
+
+
+@bp.route('/my/charts/<chart_id>/fortune', methods=['PUT'])
+@jwt_required()
+@_limit("5 per minute")
+def upgrade_my_chart(chart_id):
+    """升級自己的命盤為完整版（含大限/流年/小限流運編碼）。需付費資格。"""
+    from core.backend_engine.models import User
+    user = User.query.get(int(get_jwt_identity()))
+    if user is None or not user.is_active:
+        return jsonify({"success": False, "error": "會員不存在或已停用"}), 404
+    if not _member_can_upgrade(user):
+        return jsonify({"success": False, "error": "此功能需要付費會員資格"}), 403
+    data, err = _ziwei_call('PUT', f'/public/members/{user.id}/charts/{chart_id}/fortune')
+    if err:
+        return jsonify({"success": False, "error": err}), 502
+    return jsonify(data)
+
+
+@bp.route('/my/charts/<chart_id>/fortune', methods=['DELETE'])
+@jwt_required()
+@_limit("5 per minute")
+def downgrade_my_chart(chart_id):
+    """降級自己的命盤為本命版（刪除流運編碼；可再升級，無資料損失）。"""
+    data, err = _ziwei_call('DELETE', f'/public/members/{get_jwt_identity()}/charts/{chart_id}/fortune')
+    if err:
+        return jsonify({"success": False, "error": err}), 502
+    return jsonify(data)
 
 
 @bp.route('/my/charts', methods=['GET'])
@@ -659,3 +614,88 @@ def health_check():
         "engine_loaded": eng is not None,
         "engine_error": _engine_error,
     })
+
+
+# =============================================================================
+# 平台擴充點：註冊時順便歸戶命盤
+# =============================================================================
+# 通用的會員註冊流程住在 core（api/member_auth.py）。它不知道紫微斗數的存在，
+# 只在「email 查重之後、建立 User 之前」呼叫這裡登記的 hook。
+#
+# 為什麼是 pre-signup 而不是 post-signup：紫微服務的 save-and-register 會先在
+# 共用的 account.app_users 建好身分，core 隨後必須「先查再建」才不會撞 unique。
+
+@on_member_signup
+def _attach_pending_chart(email, data):
+    """
+    註冊附帶命盤時，呼叫紫微服務建會員 + 存盤 + 歸戶。
+
+    降級策略沿用原本行為：命盤服務不可用或存盤失敗時**不擋註冊**，
+    改回傳 warning 讓前端提示「請登入後重新排盤儲存」。
+    """
+    chart = data.get("chart") or None
+    if not chart:
+        return None
+
+    if not _PUBLIC_SERVICE_TOKEN:
+        return SignupHookResult(warning="命盤服務未設定，命盤未儲存")
+
+    parts = {}
+    for key in ("year", "month", "day", "hour"):
+        val, err = _as_int(chart, key)
+        if err:
+            return SignupHookResult(warning=f"命盤資料不完整（{key}），命盤未儲存")
+        parts[key] = val
+
+    minute = 0
+    if chart.get("minute") not in ("", None):
+        minute, err = _as_int(chart, "minute")
+        if err:
+            minute = 0
+
+    gender = _norm_gender(chart.get("gender"))
+    if gender not in ("男", "女"):
+        return SignupHookResult(warning="命盤資料不完整（gender），命盤未儲存")
+
+    zres, zerr = _ziwei_save_and_register({
+        "year": parts["year"], "month": parts["month"], "day": parts["day"],
+        "hour": parts["hour"], "minute": minute,
+        "gender": gender, "name": (chart.get("name") or "").strip(),
+        "place": (chart.get("place") or "").strip(), "email": email,
+        "relation": (chart.get("relation") or "self"),
+        "rating": (chart.get("rating") or "").strip(),
+    })
+    if zerr:
+        current_app.logger.warning(f"register: 命盤歸戶失敗，降級為純註冊：{zerr}")
+        return SignupHookResult(warning="註冊已完成，但命盤儲存失敗，請登入後重新排盤儲存")
+
+    return SignupHookResult(extra={"chart_id": zres.get("chart_id")})
+
+
+# =============================================================================
+# 舊路由別名（過渡期，P2 移除）
+# =============================================================================
+# 會員身分端點的正規路徑已是 /api/v1/auth/member/*，但 Polaris 前端目前仍打
+# /api/v1/astrology/*。這裡把舊路徑指到 core 的同一個 view function，
+# 讓 P1 是純結構重構、零行為變更，可以獨立部署。
+#
+# 移除條件：前端 lib/api/auth.ts 與 lib/api/astrology.ts 改用 /auth/member/*
+# （P2 抽 packages/platform-api 時一併處理）。
+
+def _register_legacy_aliases():
+    from core.backend_engine.blueprints.api import member_auth as _ma
+
+    for rule, view in (
+        ('/register', _ma.member_register),
+        ('/set-password', _ma.member_set_password),
+        ('/resend-set-password', _ma.member_resend_set_password),
+    ):
+        bp.add_url_rule(
+            rule,
+            endpoint=f'legacy{rule.replace("-", "_").replace("/", "_")}',
+            view_func=view,
+            methods=['POST'],
+        )
+
+
+_register_legacy_aliases()

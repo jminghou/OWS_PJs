@@ -20,6 +20,10 @@ const nextConfig = {
       ...config.resolve.alias,
       '@ows/ziwei-chart$': path.resolve(__dirname, '../../../packages/ziwei-chart/src/index.ts'),
       '@ows/ziwei-chart/core': path.resolve(__dirname, '../../../packages/ziwei-chart/src/core/index.ts'),
+      // 與 tsconfig paths 對齊。既有的六層相對路徑 import 仍可用，
+      // 但新程式碼一律走 @ows/ui，之後把元件搬進 packages 時不必再改 import。
+      '@ows/ui$': path.resolve(__dirname, '../../../packages/ui/src/index.ts'),
+      '@ows/ui': path.resolve(__dirname, '../../../packages/ui/src'),
     };
     return config;
   },

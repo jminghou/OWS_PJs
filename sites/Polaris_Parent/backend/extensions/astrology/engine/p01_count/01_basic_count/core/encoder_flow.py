@@ -6,7 +6,9 @@
 1. 從實際大限資料讀取宮位順序（不假設順逆行）
 2. 第1大限 = 本命盤編碼（特殊處理）
 3. 宮位映射從實際順序推導（支援陽男/陰女順行，陰男/陽女逆行）
-4. 排除本命盤的 Q/I 字首和前4碼
+4. 排除本命盤的 Q 字首和前4碼；亮度 I 碼**保留**（2026-07-18 起）——
+   I 碼與宮位無關（I{星3}{P/N}{值}），不走宮位映射，於宮位轉換後另行附加，
+   讓運限盤的星曜 E 也吃得到亮度修正
 5. 保留 6 碼宮位編碼和 8 碼本命四化編碼
 6. 保持星曜代碼和地支不變（只替換宮位代碼）
 7. 不包含 9 碼大限四化編碼（已移除，待使用新方式重新計算）
@@ -53,6 +55,113 @@ YEAR_FLOW_STAR_CODES = {
     "年喜": "yHJ"   # Year Heavenly-Joy
 }
 
+# 四化名稱 → 四化編碼（與生年四化 6 碼慣例一致：祿FO/權PW/科HO/忌BI）
+SIHUA_NAME_TO_CODE = {"祿": "FO", "權": "PW", "科": "HO", "忌": "BI"}
+
+# 運限層別 → 運限四化 token 尾碼（大限D/流年Y/小限S）
+FORTUNE_LAYER_MARKERS = {"decade": "D", "year": "Y", "small": "S"}
+
+
+# ==================== 運限四化編碼 ====================
+
+def _stem_from_ganzhi(ganzhi: str) -> str:
+    """從干支字串取天干（容錯 '辛未'、'1991(辛未)'、單字 '癸' 三種格式）。"""
+    if not ganzhi:
+        return ""
+    s = str(ganzhi).strip()
+    if "(" in s and ")" in s:
+        s = s[s.index("(") + 1: s.index(")")]
+    return s[0] if s else ""
+
+
+def _find_star_palace(encoded_array: List[str], star_code: str) -> Optional[str]:
+    """
+    在已重佈的編碼陣列中找某星曜所在宮位代碼（取首見）。
+
+    標準碼首碼為宮位（1-9,A-C）；特殊碼（G/Q/L/M/I/Y/T 前綴）自動跳過。
+    生年四化 6 碼與 placements 對同星宮位一致，任一命中皆正確。
+    """
+    for code in encoded_array:
+        if len(code) >= 4 and code[0] in PALACE_CODE_ORDER and code[1:4] == star_code:
+            return code[0]
+    return None
+
+
+def _decade_stem_for_age(decade_data: Dict, age: int) -> str:
+    """
+    找出某年齡所屬大限的年干（巢狀四化用）。
+
+    大限四化十年有效：流年/小限落在某大限之內，該大限四化須一併疊加。
+    大限歲數格式如 "3-12"；年齡小於第1大限起歲 → 沿用第1大限（童限期），
+    超過最後一個大限 → 取最後一個。
+    """
+    spans = []
+    for info in decade_data.values():
+        stem = info.get("年干", "")
+        rng = str(info.get("大限歲數", ""))
+        parts = rng.split("-")
+        try:
+            order = int(info.get("大限順序", "0"))
+            start = int(parts[0])
+            end = int(parts[1]) if len(parts) > 1 else start
+        except (ValueError, IndexError):
+            continue
+        spans.append((order, start, end, stem))
+    if not spans:
+        return ""
+    spans.sort()
+    for _order, start, end, stem in spans:
+        if start <= age <= end:
+            return stem
+    if age < spans[0][1]:
+        return spans[0][3]   # 童限期：沿用第1大限
+    return spans[-1][3]      # 超齡：取最後一個大限
+
+
+def generate_fortune_sihua_encodings(
+    encoded_array: List[str],
+    year_stem: str,
+    layer: str,
+    star_codes: Dict[str, str],
+) -> List[str]:
+    """
+    為運限盤生成運限四化 token（大限/流年/小限共用）。
+
+    Args:
+        encoded_array: 該盤已重佈的編碼陣列（含 placements，供反查星曜宮位）
+        year_stem: 該盤天干（大限=大限年干 / 流年=流年農曆年干 / 小限=小限農曆年干）
+        layer: 'decade' | 'year' | 'small'
+        star_codes: {星曜名稱: 星曜代碼}
+
+    Returns:
+        List[str]: 運限四化 token，格式 T{宮位}{星碼}{四化碼}{層碼}，例 T9BREFOD
+                   （大限破軍化祿於9宮）
+
+    說明:
+        - 十干四化沿用 stars.four_trans.calculate_four_transformations（唯一真源）
+        - 星曜宮位由該盤 placements 反查（與生年四化隨宮位旋轉同一慣例）
+        - 承載星不在盤面 → 略過該筆（防禦；主星/昌曲輔弼恆在盤）
+    """
+    from ..stars.four_trans import calculate_four_transformations
+
+    marker = FORTUNE_LAYER_MARKERS.get(layer)
+    stem = _stem_from_ganzhi(year_stem)
+    if not marker or not stem:
+        return []
+
+    transforms = calculate_four_transformations(stem)  # {祿/權/科/忌: 星名}
+    tokens = []
+    for hua_name, star_name in transforms.items():
+        sihua_code = SIHUA_NAME_TO_CODE.get(hua_name)
+        star_code = star_codes.get(star_name)
+        if not sihua_code or not star_code:
+            continue
+        palace = _find_star_palace(encoded_array, star_code)
+        if palace is None:
+            continue
+        tokens.append(f"T{palace}{star_code}{sihua_code}{marker}")
+    return tokens
+
 
 # ==================== 資料讀取 ====================
 
@@ -62,44 +171,45 @@ def load_chart_data(json_path: str) -> Dict:
         return json.load(f)
 
 
-def extract_natal_encoding(chart_data: Dict) -> List[str]:
-    """
-    提取本命盤編碼（排除 Q/I 字首、前4碼、9碼大限四化）
-
-    Returns:
-        List[str]: 純淨的本命盤編碼（包含 6 碼的宮位編碼和 8 碼的本命四化編碼）
-    """
-    # 檢查是否有本命盤編碼
+def _raw_natal_encoding(chart_data: Dict) -> List[str]:
+    """取出本命盤原始 encoded_array（支援新舊兩種欄位格式）。"""
     if "快速條件編碼" not in chart_data:
         raise ValueError("JSON 中沒有找到「快速條件編碼」區段")
 
     encoding_section = chart_data["快速條件編碼"]
 
-    # 支援兩種欄位名稱和格式：
     # 1. natal_chart_encoding（新格式，陣列）
-    # 2. 本命盤編碼（舊格式，物件）
     if "natal_chart_encoding" in encoding_section:
-        # 新格式：陣列格式 [{ "chart_type": "natal", "encoded_array": [...] }]
         natal_chart_list = encoding_section["natal_chart_encoding"]
         if isinstance(natal_chart_list, list) and len(natal_chart_list) > 0:
-            natal_encoding = natal_chart_list[0]["encoded_array"]
-        else:
-            raise ValueError("natal_chart_encoding 格式錯誤")
-    elif "本命盤編碼" in encoding_section:
-        # 舊格式：物件格式 { "encoded_array": [...] }
-        natal_encoding = encoding_section["本命盤編碼"]["encoded_array"]
-    else:
-        raise ValueError("找不到本命盤編碼資料（natal_chart_encoding 或 本命盤編碼）")
+            return natal_chart_list[0]["encoded_array"]
+        raise ValueError("natal_chart_encoding 格式錯誤")
+    # 2. 本命盤編碼（舊格式，物件）
+    if "本命盤編碼" in encoding_section:
+        return encoding_section["本命盤編碼"]["encoded_array"]
+    raise ValueError("找不到本命盤編碼資料（natal_chart_encoding 或 本命盤編碼）")
 
+
+def extract_natal_encoding(chart_data: Dict) -> List[str]:
+    """
+    提取本命盤編碼（排除 Q/I 字首、前4碼、9碼大限四化）
+
+    I 碼在此仍排除是因為本函數的輸出要走宮位映射（首碼＝宮位），
+    "I" 不是宮位碼；亮度改由 extract_brightness_encoding 另行提取、
+    於宮位轉換後附加。
+
+    Returns:
+        List[str]: 純淨的本命盤編碼（包含 6 碼的宮位編碼和 8 碼的本命四化編碼）
+    """
     clean_encoding = []
-    for code in natal_encoding:
+    for code in _raw_natal_encoding(chart_data):
         # 排除前4碼特殊編碼
         if code in ["Q5", "LMAR", "MBLE", "GM"]:
             continue
         # 排除 Q 字首（身宮相關）
         if code.startswith("Q"):
             continue
-        # 排除 I 字首（亮度相關）
+        # 排除 I 字首（亮度相關，走 extract_brightness_encoding）
         if code.startswith("I"):
             continue
         # 保留 6 碼的宮位編碼和 8 碼的本命四化編碼
@@ -108,6 +218,17 @@ def extract_natal_encoding(chart_data: Dict) -> List[str]:
             clean_encoding.append(code)
 
     return clean_encoding
+
+
+def extract_brightness_encoding(chart_data: Dict) -> List[str]:
+    """
+    提取亮度 I 碼（格式 I{星3}{P/N}{值}，如 IPOLP3）。
+
+    亮度綁星曜的地支落點，不隨運限宮位標籤旋轉——與宮位無關，
+    運限盤編碼於宮位轉換後直接附加即可（2026-07-18 起）。
+    """
+    return [code for code in _raw_natal_encoding(chart_data)
+            if code.startswith("I")]
 
 
 def extract_decade_data(chart_data: Dict) -> Dict:
@@ -481,6 +602,7 @@ def calculate_decade_chart_encoding(chart_data: Dict) -> List[Dict]:
     """
     # 提取必要資料
     natal_encoding = extract_natal_encoding(chart_data)
+    brightness_encoding = extract_brightness_encoding(chart_data)
     decade_data = extract_decade_data(chart_data)
 
     # 載入星曜編碼映射（用於大限星曜）
@@ -513,6 +635,9 @@ def calculate_decade_chart_encoding(chart_data: Dict) -> List[Dict]:
             # 轉換編碼
             encoded_array = convert_to_decade_encoding(natal_encoding, palace_mapping)
 
+        # 附加亮度 I 碼（宮位無關，不走映射）
+        encoded_array.extend(brightness_encoding)
+
         # 生成大限星曜編碼
         try:
             if "大限星曜" in palace_info:
@@ -527,6 +652,13 @@ def calculate_decade_chart_encoding(chart_data: Dict) -> List[Dict]:
                 encoded_array.extend(decade_star_encodings)
         except Exception as e:
             print(f"警告：大限 {decade_order} 的星曜編碼生成失敗 - {str(e)}")
+
+        # 生成大限四化編碼（該大限年干起四化，承載星隨宮位旋轉）
+        try:
+            encoded_array.extend(generate_fortune_sihua_encodings(
+                encoded_array, palace_info.get("年干", ""), "decade", star_codes))
+        except Exception as e:
+            print(f"警告：大限 {decade_order} 的四化編碼生成失敗 - {str(e)}")
 
         # 組合該大限的完整資訊
         decade_encoding_info = {
@@ -560,9 +692,15 @@ def calculate_small_limit_encoding(chart_data: Dict) -> List[Dict]:
     """
     # 提取必要資料
     natal_encoding = extract_natal_encoding(chart_data)
+    brightness_encoding = extract_brightness_encoding(chart_data)
     decade_data = extract_decade_data(chart_data)  # 用於建立宮位映射
     small_limit_data = extract_small_limit_data(chart_data)
     branch_codes = load_branch_codes()
+    star_codes = load_star_codes()
+    # 地支 → 宮干（五虎遁）：由大限資料反查（每宮 宮位=地支、年干=宮干）。
+    # 小限四化＝小限命宮所在地支的宮干起四化（與大限四化同邏輯，非當年天干）。
+    branch_to_stem = {info.get("宮位"): info.get("年干")
+                      for info in decade_data.values() if info.get("年干")}
 
     all_small_limit_encodings = []
 
@@ -609,6 +747,9 @@ def calculate_small_limit_encoding(chart_data: Dict) -> List[Dict]:
         # 轉換編碼
         encoded_array = convert_to_decade_encoding(natal_encoding, palace_mapping)
 
+        # 附加亮度 I 碼（宮位無關，不走映射）
+        encoded_array.extend(brightness_encoding)
+
         # 生成小限星曜編碼
         try:
             if age_info["small_limit_stars"]:
@@ -622,6 +763,22 @@ def calculate_small_limit_encoding(chart_data: Dict) -> List[Dict]:
                 encoded_array.extend(small_limit_star_encodings)
         except Exception as e:
             print(f"警告：年齡 {age} 的小限星曜編碼生成失敗 - {str(e)}")
+
+        # 巢狀四化①：所在大限的四化（十年有效，小限落在其中須疊加；layer=decade）
+        try:
+            encoded_array.extend(generate_fortune_sihua_encodings(
+                encoded_array, _decade_stem_for_age(decade_data, age),
+                "decade", star_codes))
+        except Exception as e:
+            print(f"警告：年齡 {age} 的所在大限四化編碼生成失敗 - {str(e)}")
+
+        # 巢狀四化②：小限四化（小限命宮所在地支的宮干起四化，五虎遁，同大限四化邏輯）
+        try:
+            xiao_stem = branch_to_stem.get(age_info.get("palace_position", ""), "")
+            encoded_array.extend(generate_fortune_sihua_encodings(
+                encoded_array, xiao_stem, "small", star_codes))
+        except Exception as e:
+            print(f"警告：年齡 {age} 的小限四化編碼生成失敗 - {str(e)}")
 
         # 組合該小限的完整資訊
         small_limit_encoding_info = {
@@ -654,9 +811,11 @@ def calculate_year_flow_encoding(chart_data: Dict) -> List[Dict]:
     """
     # 提取必要資料
     natal_encoding = extract_natal_encoding(chart_data)
+    brightness_encoding = extract_brightness_encoding(chart_data)
     decade_data = extract_decade_data(chart_data)  # 用於建立宮位映射
     year_flow_data = extract_year_flow_data(chart_data)
     branch_codes = load_branch_codes()
+    star_codes = load_star_codes()
 
     all_year_flow_encodings = []
 
@@ -703,6 +862,9 @@ def calculate_year_flow_encoding(chart_data: Dict) -> List[Dict]:
         # 轉換編碼
         encoded_array = convert_to_decade_encoding(natal_encoding, palace_mapping)
 
+        # 附加亮度 I 碼（宮位無關，不走映射）
+        encoded_array.extend(brightness_encoding)
+
         # 生成流年星曜編碼
         try:
             if age_info["year_flow_stars"]:
@@ -716,6 +878,21 @@ def calculate_year_flow_encoding(chart_data: Dict) -> List[Dict]:
                 encoded_array.extend(year_flow_star_encodings)
         except Exception as e:
             print(f"警告：年齡 {age} 的流年星曜編碼生成失敗 - {str(e)}")
+
+        # 巢狀四化①：所在大限的四化（十年有效，流年落在其中須疊加；layer=decade）
+        try:
+            encoded_array.extend(generate_fortune_sihua_encodings(
+                encoded_array, _decade_stem_for_age(decade_data, age),
+                "decade", star_codes))
+        except Exception as e:
+            print(f"警告：年齡 {age} 的所在大限四化編碼生成失敗 - {str(e)}")
+
+        # 巢狀四化②：流年四化（當年天干＝太歲干起四化；layer=year）
+        try:
+            encoded_array.extend(generate_fortune_sihua_encodings(
+                encoded_array, age_info.get("lunar_year", ""), "year", star_codes))
+        except Exception as e:
+            print(f"警告：年齡 {age} 的流年四化編碼生成失敗 - {str(e)}")
 
         # 組合該流年的完整資訊
         year_flow_encoding_info = {

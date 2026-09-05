@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { categoryApi, tagApi } from '@/lib/api';
 import { Category, Tag } from '@/types';
-import AdminLayout from '@/components/admin/AdminLayout';
-import { AdminListLayout, AdminEmptyState } from '@/components/admin/shared';
+import AdminLayout from '@/components/platform/admin/AdminLayout';
+import { AdminListLayout, AdminEmptyState } from '@/components/platform/admin/shared';
 import { CategoryTagSidebar, CategoryTagForm } from './_components';
 import { LayoutGrid } from 'lucide-react';
 

@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
+import { StarfieldSection } from '@/components/domain/ziwei/starfield';
 import { useAuthStore } from '@/store/auth';
 import { astrologyApi, membershipApi } from '@/lib/api';
 import type { MyPerson, MyChart, ZiweiCalcResponse } from '@/lib/api/astrology';
 import type { ExternalProduct, OrderSubmission, SavedArticle } from '@/lib/api/membership';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 
 const RELATIONS: { value: string; label: string }[] = [
   { value: 'self', label: '我自己' },
@@ -39,6 +40,8 @@ export default function ChartDetailPage() {
   const [orders, setOrders] = useState<OrderSubmission[]>([]);
   const [articles, setArticles] = useState<SavedArticle[]>([]);
   const [chartRender, setChartRender] = useState<ZiweiCalcResponse | null>(null);
+  /** 命盤上點到的宮位（1…C）；星場分析的星曜能量分頁會收斂到這一宮。 */
+  const [axisPalace, setAxisPalace] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -117,6 +120,10 @@ export default function ChartDetailPage() {
           render: false,
           include_chart_json: true,
           include_flow: true,
+          // 星場分析：與排盤同一次請求算完（實測 ~1.2 ms），
+          // 之後點星曜／切分頁都是純查表，不再打 API。
+          include_star_energy: true,
+          include_readings: true,
         });
         if (active) setChartRender(res);
       } catch {
@@ -143,6 +150,40 @@ export default function ChartDetailPage() {
       setErr(e.message || '更新失敗');
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  // ── 命盤升級 / 降級（流運資料）──
+  const [fortuneBusy, setFortuneBusy] = useState(false);
+
+  const upgradeFortune = async () => {
+    setFortuneBusy(true);
+    setErr('');
+    setMsg('');
+    try {
+      await astrologyApi.upgradeChart(chartId);
+      await reload();
+      setMsg('已升級為完整版（含大限 / 流年 / 小限流運資料）。');
+    } catch (e: any) {
+      setErr(e.message || '升級失敗');
+    } finally {
+      setFortuneBusy(false);
+    }
+  };
+
+  const downgradeFortune = async () => {
+    if (!confirm('確認降級為本命版？流運資料將被移除（之後可隨時再升級補回，無資料損失）。')) return;
+    setFortuneBusy(true);
+    setErr('');
+    setMsg('');
+    try {
+      await astrologyApi.downgradeChart(chartId);
+      await reload();
+      setMsg('已降級為本命版。');
+    } catch (e: any) {
+      setErr(e.message || '降級失敗');
+    } finally {
+      setFortuneBusy(false);
     }
   };
 
@@ -253,15 +294,71 @@ export default function ChartDetailPage() {
         </div>
       </div>
 
+      {/* 命盤版本（本命版 / 完整版）*/}
+      <div className={cardCls}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-gray-600">
+            <span className="font-medium text-gray-800 mr-2">命盤版本</span>
+            {chart.has_fortune ? (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">
+                完整版（含大限 / 流年 / 小限）
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">
+                本命版
+              </span>
+            )}
+          </div>
+          {chart.has_fortune ? (
+            <button
+              type="button"
+              onClick={downgradeFortune}
+              disabled={fortuneBusy}
+              className="px-3 py-2 text-sm rounded-banner border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {fortuneBusy ? '處理中…' : '降級為本命版'}
+            </button>
+          ) : (
+            <Button
+              type="button"
+              onClick={upgradeFortune}
+              disabled={fortuneBusy}
+              className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
+            >
+              {fortuneBusy ? '處理中…' : '升級為完整版'}
+            </Button>
+          )}
+        </div>
+        <p className="mt-2 text-xs text-gray-400">
+          完整版會建立大限 / 流年 / 小限的流運檢索資料（需付費會員資格）；降級僅移除流運資料，本命盤保留，可隨時再升級補回。
+        </p>
+      </div>
+
       {/* 盤面 */}
       {chartRender?.chart_json ? (
         <div className={cardCls}>
-          <ZiweiChart chart={chartRender.chart_json} flow={chartRender.flow ?? undefined} theme={NAMED_THEMES.light} />
+          <ZiweiChart
+            chart={chartRender.chart_json}
+            flow={chartRender.flow ?? undefined}
+            theme={NAMED_THEMES.light}
+            onPalaceClick={setAxisPalace}
+          />
         </div>
       ) : chart.birth ? (
         <p className="text-sm text-gray-500">命盤繪製中…</p>
       ) : (
         <p className="text-sm text-gray-500">此命盤缺少生辰資料，無法繪製盤面。</p>
+      )}
+
+      {/* 星場分析（點上方命盤的宮位，星曜能量會收斂到該宮） */}
+      {(chartRender?.star_energy || chartRender?.readings) && (
+        <div className={cardCls}>
+          <StarfieldSection
+            starEnergy={chartRender.star_energy}
+            readings={chartRender.readings}
+            palaceCode={axisPalace}
+          />
+        </div>
       )}
 
       {/* 為這張盤下單 */}

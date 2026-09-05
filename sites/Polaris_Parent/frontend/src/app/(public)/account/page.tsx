@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
+import { StarfieldSection } from '@/components/domain/ziwei/starfield';
 import { useAuthStore } from '@/store/auth';
 import { astrologyApi, membershipApi } from '@/lib/api';
 import type {
@@ -13,14 +14,14 @@ import type {
   ZiweiCalcResponse,
   SaveMyChartRequest,
 } from '@/lib/api/astrology';
-import MemberChartForm from '@/components/account/MemberChartForm';
+import MemberChartForm from '@/components/domain/ziwei/MemberChartForm';
 import type {
   ExternalProduct,
   OrderSubmission,
   MemberReward,
   SavedArticle,
 } from '@/lib/api/membership';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 
 const RELATION_LABELS: Record<string, string> = {
   self: '我自己',
@@ -53,6 +54,8 @@ export default function AccountPage() {
   // 進階檢視工具（互動／靜態、版型、下載）— 進階功能只在會員專區提供
   const [viewMode, setViewMode] = useState<'interactive' | 'static'>('interactive');
   const [chartTheme, setChartTheme] = useState<'light' | 'dark' | 'sepia'>('light');
+  /** 互動命盤上點到的宮位（1…C）；星場分析的星曜能量分頁會收斂到這一宮。 */
+  const [axisPalace, setAxisPalace] = useState<string | null>(null);
   const [pngBusy, setPngBusy] = useState(false);
 
   // 會員中心排盤：表單開關 + 未儲存的草稿盤（排好後按「儲存命盤」才歸檔）
@@ -129,6 +132,10 @@ export default function AccountPage() {
         render: true, // 也取靜態 SVG（供靜態檢視與下載）
         include_chart_json: true,
         include_flow: true,
+        // 星場分析：與排盤同一次請求算完（實測 ~1.2 ms），
+        // 之後點星曜／切分頁都是純查表，不再打 API。
+        include_star_energy: true,
+        include_readings: true,
       });
       setViewMode('interactive');
       setDraft(null); // 檢視已儲存的命盤 → 不顯示「儲存命盤」按鈕
@@ -157,9 +164,13 @@ export default function AccountPage() {
     setSaveBusy(true);
     setErr('');
     try {
-      await astrologyApi.saveMyChart(draft);
+      const res = await astrologyApi.saveMyChart(draft);
       setDraft(null);
-      setSaveMsg('已儲存！這張命盤已歸檔到你的帳號。');
+      setSaveMsg(
+        res.is_existing
+          ? '這張命盤先前已儲存過，已沿用既有命盤（未重複建檔）。'
+          : '已儲存！這張命盤已歸檔到你的帳號。'
+      );
       setComposerOpen(false);
       await loadCharts();
     } catch (e: any) {
@@ -492,6 +503,7 @@ export default function AccountPage() {
                 chart={viewing.chart_json}
                 flow={viewing.flow ?? undefined}
                 theme={NAMED_THEMES[chartTheme]}
+                onPalaceClick={setAxisPalace}
               />
             </div>
           ) : viewing.svg ? (
@@ -501,6 +513,17 @@ export default function AccountPage() {
               dangerouslySetInnerHTML={{ __html: viewing.svg }}
             />
           ) : null}
+
+          {/* 星場分析（點上方互動命盤的宮位，星曜能量會收斂到該宮） */}
+          {(viewing.star_energy || viewing.readings) && (
+            <div className="mt-6 border-t border-warm-200/70 pt-5">
+              <StarfieldSection
+                starEnergy={viewing.star_energy}
+                readings={viewing.readings}
+                palaceCode={axisPalace}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -570,6 +593,11 @@ export default function AccountPage() {
                       <div className="text-sm text-gray-600">
                         <span className="font-mono text-xs text-gray-400 mr-2">#{c.chart_id.slice(-6)}</span>
                         {c.gender === 'F' || c.gender === '女' ? '女' : '男'}　{birthText(c)}
+                        {c.has_fortune && (
+                          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">
+                            完整版
+                          </span>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button

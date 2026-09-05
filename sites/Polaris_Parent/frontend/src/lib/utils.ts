@@ -16,7 +16,7 @@ export {
   debounce,
   getCategoryPath,
   buildCategoryTree,
-} from '../../../../../packages/ui/src/lib/utils';
+} from '@ows/ui/lib/utils';
 
 export function getImageUrl(imagePath?: string, variant?: string): string {
   if (!imagePath) return '/placeholder.jpg';

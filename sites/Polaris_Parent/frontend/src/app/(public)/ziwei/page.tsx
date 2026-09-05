@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import ZiweiChartForm from '@/components/public/ZiweiChartForm';
+import ZiweiChartForm from '@/components/domain/ziwei/ZiweiChartForm';
 
 export const metadata: Metadata = {
   title: '紫微斗數 線上排盤',
-  description: '輸入出生時辰，立即排出十二宮命盤，可下載 SVG / PNG。',
+  description: '輸入出生時辰，立即排出可互動的十二宮命盤。',
   alternates: { canonical: '/ziwei' },
 };
 
@@ -13,7 +13,7 @@ export default function ZiweiPage() {
       <div className="text-center mb-10">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">紫微斗數 線上排盤</h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          輸入出生時辰，立即排出十二宮命盤
+          輸入出生時辰，立即排出可互動的十二宮命盤
         </p>
       </div>
 

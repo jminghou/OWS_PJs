@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import JsonLd from '@/components/seo/JsonLd';
-import AuthorsSection from '@/components/public/AuthorsSection';
+import JsonLd from '@/components/platform/seo/JsonLd';
+import AuthorsSection from '@/components/platform/public/AuthorsSection';
 import { buildAboutPageJsonLd, buildStaticPageAlternates } from '@/lib/seo';
 import { authorApi } from '@/lib/api';
 import type { Author } from '@/types';

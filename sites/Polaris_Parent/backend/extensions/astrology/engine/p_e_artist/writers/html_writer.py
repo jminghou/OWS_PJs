@@ -61,25 +61,19 @@ def _render_center_group(el: GroupEl) -> str:
     return "\n  ".join(parts)
 
 
-def _render_sihua_badge_svg(label: str, theme) -> str:
-    """v2 風格：21×21 內嵌 SVG，黑底白字。"""
+def _render_sihua_badge(label: str, theme) -> str:
+    """四化圖稿：內嵌 assets/stars/{F,P,H,I}.svg（沿用星曜圖檔置換機制）。
+
+    圖稿本身已含底圈與字樣，故不再另繪圓圈與文字。
+    """
     if not label:
         return ""
-    lo = theme.layout
-    size = lo["sihua_badge_size"]
-    half = size / 2
-    fs = theme.sizes["sihua_tag"]
-    bg = theme.colors["sihua_badge_bg"]
-    ink = theme.colors["sihua_tag_ink"]
-    f = theme.font_family
-    text_y = half + fs * 0.35
+    size = theme.layout["sihua_badge_size"]
+    sihua_ink = theme.colors.get("sihua_ink") or theme.colors.get("star_ink")
+    href = embed_as_data_uri(f"../assets/stars/{label}.svg", sihua_ink)
     return (
-        f'<svg class="sihua-badge" width="{size}" height="{size}" '
-        f'viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg">'
-        f'<circle cx="{half}" cy="{half}" r="{half}" fill="{bg}"/>'
-        f'<text x="{half}" y="{text_y}" text-anchor="middle" '
-        f'fill="{ink}" font-family="{f}" font-size="{fs}" font-weight="bold">'
-        f'{escape(label)}</text></svg>'
+        f'<img src="{escape(href)}" class="sihua-badge" '
+        f'width="{size}" height="{size}" alt=""/>'
     )
 
 
@@ -88,6 +82,7 @@ _SIHUA_LABEL = {"FO": "F", "PW": "P", "HO": "H", "BI": "I"}
 
 def _render_palace(p: PalaceEl, theme) -> str:
     sep = theme.layout.get("minor_separator", " · ")
+    ink = theme.colors.get("star_ink")
 
     # header
     cn = escape(p.cn_name)
@@ -103,23 +98,21 @@ def _render_palace(p: PalaceEl, theme) -> str:
         f'</div>'
     )
 
-    # majors
+    # majors（每顆＝圖示＋隱藏文字名，供 .text-mode 一鍵切換）
     major_html = ""
     if p.majors:
         items = []
         for m in p.majors:
-            href = embed_as_data_uri(m.href)
+            href = embed_as_data_uri(m.href, ink)
             title = escape(m.label) if m.label else ""
             badge_label = _SIHUA_LABEL.get(m.sihua, "")
-            if badge_label:
-                wrapper_cls = "smw smw-badge"
-                badge_svg = _render_sihua_badge_svg(badge_label, theme)
-            else:
-                wrapper_cls = "smw"
-                badge_svg = ""
+            wrapper_cls = "smw sbw" if badge_label else "smw"
+            badge_svg = _render_sihua_badge(badge_label, theme) if badge_label else ""
+            label_span = f'<span class="star-label sl-major">{title}</span>' if title else ""
             items.append(
                 f'<div class="{wrapper_cls}">'
                 f'<img src="{escape(href)}" class="star-major" title="{title}"/>'
+                f'{label_span}'
                 f'{badge_svg}'
                 f'</div>'
             )
@@ -127,15 +120,22 @@ def _render_palace(p: PalaceEl, theme) -> str:
             '<div class="stars-major-row">' + "".join(items) + '</div>'
         )
 
-    # subs
+    # subs（同上：圖示＋隱藏文字名）
     sub_html = ""
     if p.subs:
         items = []
         for s in p.subs:
-            href = embed_as_data_uri(s.href)
+            href = embed_as_data_uri(s.href, ink)
             title = escape(s.label) if s.label else ""
+            badge_label = _SIHUA_LABEL.get(s.sihua, "")
+            badge_svg = _render_sihua_badge(badge_label, theme) if badge_label else ""
+            label_span = f'<span class="star-label sl-sub">{title}</span>' if title else ""
             items.append(
+                f'<div class="ssw{" sbw" if badge_svg else ""}">'
                 f'<img src="{escape(href)}" class="star-sub" title="{title}"/>'
+                f'{label_span}'
+                f'{badge_svg}'
+                f'</div>'
             )
         sub_html = (
             '<div class="stars-sub-row">' + "".join(items) + '</div>'
@@ -237,9 +237,23 @@ def to_html(layout: ChartLayout, theme=None) -> str:
 </style>
 </head>
 <body>
+<div class="chart-toolbar">
+  <button id="mode-toggle" type="button">文字模式</button>
+</div>
 <div class="chart-container">
 {body}
 </div>
+<script>
+(function () {{
+  var btn = document.getElementById('mode-toggle');
+  var box = document.querySelector('.chart-container');
+  if (!btn || !box) return;
+  btn.addEventListener('click', function () {{
+    var on = box.classList.toggle('text-mode');
+    btn.textContent = on ? '圖示模式' : '文字模式';
+  }});
+}})();
+</script>
 </body>
 </html>
 """

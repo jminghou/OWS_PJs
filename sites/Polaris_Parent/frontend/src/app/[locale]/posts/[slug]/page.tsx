@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { contentApi } from '@/lib/api';
 import { Content } from '@/types';
 import PostDetailContent from '@/app/(public)/posts/[slug]/PostDetailContent';
-import JsonLd from '@/components/seo/JsonLd';
+import JsonLd from '@/components/platform/seo/JsonLd';
 import { buildArticleJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@/lib/seo';
 import { getRelatedPosts } from '@/lib/relatedPosts';
 

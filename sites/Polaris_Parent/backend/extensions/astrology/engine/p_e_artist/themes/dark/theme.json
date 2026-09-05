@@ -16,6 +16,8 @@
             "branch": "#0F3460",
             "star_main": "#EAEAEA",
             "star_minor": "#A8A8A8",
+            "star_ink": "#EAEAEA",
+            "sihua_ink": "#EF5350",
             "brightness": "#0F3460"
         }
     }

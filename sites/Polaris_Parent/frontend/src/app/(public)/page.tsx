@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import { contentApi, homepageApi } from '@/lib/api';
 import { Content } from '@/types';
-import HomePageContent from '@/components/public/HomePageContent';
+import HomePageContent from '@/components/platform/public/HomePageContent';
+import ZiweiHomeSection from '@/components/domain/ziwei/ZiweiHomeSection';
 import { localeContent } from '@/i18n/homePageData';
 
 // ISR: 每 60 秒重新驗證（新文章發佈後最多 60 秒內出現在首頁，不需手動 redeploy）
@@ -44,6 +45,7 @@ export default async function HomePage() {
 
   return (
     <HomePageContent
+      domainSection={<ZiweiHomeSection />}
       locale="zh-TW"
       content={content}
       latestPosts={latestPosts}

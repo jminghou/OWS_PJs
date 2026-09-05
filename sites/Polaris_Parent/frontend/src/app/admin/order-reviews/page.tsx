@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminCommerceApi } from '@/lib/api';
 import type { AdminOrderSubmission } from '@/lib/api/admin-commerce';
-import AdminLayout from '@/components/admin/AdminLayout';
-import Button from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import AdminLayout from '@/components/platform/admin/AdminLayout';
+import Button from '@/components/platform/ui/Button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/platform/ui/Card';
 import { formatDateTime } from '@/lib/utils';
 
 const STATUSES = ['待審核', '通過', '退回'] as const;

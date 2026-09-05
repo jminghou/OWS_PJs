@@ -12,8 +12,9 @@
       - solar/s3_solar_time.py                  真太陽時
       - geo/geo_manager.py                      地點→經緯度
       - p_e_artist/                             SVG/HTML 繪圖引擎
-      - p_a_foundation/(core/mapping + data)    繪圖用編碼對照（最小集）
+      - p_a_foundation/(core/mapping + special_decoder + data)  編碼對照（最小集）
       - p_d_graph/exporter/code_registry.py     code→名稱對照（最小集）
+      - p_d_graph_v3/                           星場引擎最小集（star_energy + palace_readings）
       - convert/(special_decoder + chart_parser + chart_serializer + palace_stems)  encoded_array→繪圖格式
 
     每次更動 P_Union 排盤邏輯後重跑本腳本即可同步。
@@ -23,7 +24,11 @@
 #>
 param(
     [string]$Source = "D:\P_Polaris_Parent\1_run\P_Union",
-    [string]$Engine = (Join-Path $PSScriptRoot "..\sites\Polaris_Parent\backend\extensions\astrology\engine")
+    [string]$Engine = (Join-Path $PSScriptRoot "..\sites\Polaris_Parent\backend\extensions\astrology\engine"),
+    # 互動命盤套件：星曜圖示是 p_e_artist 的副本（README 明訂「力求與靜態 SVG 視覺對等」），
+    # 但它不在 engine 目錄下，早期漏同步過一次 ⇒ 互動命盤顯示舊圖示、靜態圖是新的。
+    [string]$ChartPkg = (Join-Path $PSScriptRoot "..\packages\ziwei-chart"),
+    [switch]$SkipChartPkg
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,9 +74,12 @@ Copy-Item "$Source\p01_count\04_ui_web\geo_manager.py" "$Engine\geo\geo_manager.
 Copy-Tree "$Source\p_e_artist" "$Engine\p_e_artist"
 Remove-Item "$Engine\p_e_artist\__main__.py" -Force -ErrorAction SilentlyContinue
 
-# 4) p_a_foundation（繪圖用最小集：core/mapping + data）
+# 4) p_a_foundation（最小集：core/mapping + special_decoder + data）
+#    special_decoder 是 p_d_graph_v3/bridge/chart_parser 的直接相依（以套件路徑 import），
+#    與 convert/ 底下那份是同一來源的兩個落點，不可只留一邊。
 New-Item -ItemType Directory -Force -Path "$Engine\p_a_foundation\core","$Engine\p_a_foundation\data" | Out-Null
 Copy-Item "$Source\p_a_foundation\core\mapping.py" "$Engine\p_a_foundation\core\mapping.py" -Force
+Copy-Item "$Source\p_a_foundation\core\special_decoder.py" "$Engine\p_a_foundation\core\special_decoder.py" -Force
 foreach ($f in @("palace_codes.json","earthly_branch_codes.json","heavenly_stem_codes.json","sihua_codes.json","dim_stars.csv","star_properties.csv","star_codes.json")) {
     if (Test-Path "$Source\p_a_foundation\data\$f") { Copy-Item "$Source\p_a_foundation\data\$f" "$Engine\p_a_foundation\data\$f" -Force }
 }
@@ -137,6 +145,90 @@ from .chart_serializer import serialize_chart
 
 __all__ = ["SpecialCodeDecoder", "ChartParser", "ChartState", "serialize_chart"]
 '@ -Encoding utf8
+
+# 6b) p_d_graph_v3（星場引擎最小集：API 視圖 star_energy / palace_readings 用）
+#     只帶 E 計算鏈與視圖層需要的模組：
+#       config / star_field / lens / engine / bridge  ＝ 運算
+#       names / star_energy / palace_readings         ＝ API 視圖（不重算，只整形）
+#     **刻意不帶** persona.py、temperament.py、report_md.py 與兩個母體檔
+#     （facet_population.json / temperament_population.json）——
+#     母體是 LIMIT 便利取樣、取樣框是 AstroDatabank 名人庫，不該隨網站出貨；
+#     E 的計算完全不需要它。日後若要上百分位，先解決母體再開這道門。
+New-Item -ItemType Directory -Force -Path "$Engine\p_d_graph_v3\data" | Out-Null
+foreach ($f in @("config.py","star_field.py","lens.py","engine.py","names.py","star_energy.py","palace_readings.py")) {
+    Copy-Item "$Source\p_d_graph_v3\$f" "$Engine\p_d_graph_v3\$f" -Force
+}
+Copy-Tree "$Source\p_d_graph_v3\bridge" "$Engine\p_d_graph_v3\bridge"
+foreach ($f in @("dimension_definitions_v3.csv","coefficients.json","sampling_window.json","influence_matrix.csv")) {
+    Copy-Item "$Source\p_d_graph_v3\data\$f" "$Engine\p_d_graph_v3\data\$f" -Force
+}
+# 最小 __init__ 覆蓋：避開 persona/temperament/report_md 的 import 鏈（那些沒 vendor）
+Set-Content "$Engine\p_d_graph_v3\__init__.py" @'
+"""p_d_graph_v3 星場引擎（vendored 最小集）。
+
+只保留 E 計算鏈：config / star_field / lens / engine / star_energy。
+視圖層（persona / temperament）與 Markdown 產出層（report_md）未 vendor，
+兩個母體基準檔亦未隨行——網站端不提供百分位定位。
+"""
+from .config import V3Registry, VECTOR_VERSION, ENGINE_VERSION
+from .star_field import StarFieldComputer, StarFieldResult
+from .lens import PalaceLens, Reading, PALACE_CODES
+from .engine import StarFieldEngine, V3Result
+from .names import Names
+from .star_energy import build_star_energy
+from .palace_readings import build_palace_readings
+
+__all__ = [
+    "V3Registry", "VECTOR_VERSION", "ENGINE_VERSION",
+    "StarFieldComputer", "StarFieldResult",
+    "PalaceLens", "Reading", "PALACE_CODES",
+    "StarFieldEngine", "V3Result", "Names",
+    "build_star_energy", "build_palace_readings",
+]
+'@ -Encoding utf8
+
+# 6c) 互動命盤套件的星曜圖示（@ows/ziwei-chart）
+#     這份 assets 是 p_e_artist/assets/stars 的副本，但**不在 engine 目錄下**，
+#     所以前面的步驟碰不到它。漏掉就會出現「靜態圖已更新、互動命盤還是舊圖示」。
+#     套件不直接讀 SVG：要跑 gen:stars 把向量內嵌成 src/react/starSvgData.ts。
+#     只覆蓋兩邊都有的檔（新增圖示還要在 constants.ts 註冊代碼，故不自動加）。
+if (-not $SkipChartPkg) {
+    $pkgStars = Join-Path $ChartPkg "src\assets\stars"
+    if (Test-Path $pkgStars) {
+        $srcStars = "$Source\p_e_artist\assets\stars"
+        $updated = 0
+        $missing = @()
+        Get-ChildItem $pkgStars -Filter *.svg | ForEach-Object {
+            $from = Join-Path $srcStars $_.Name
+            if (Test-Path $from) {
+                if ((Get-FileHash $from).Hash -ne (Get-FileHash $_.FullName).Hash) {
+                    Copy-Item $from $_.FullName -Force
+                    $updated++
+                }
+            } else {
+                $missing += $_.Name
+            }
+        }
+        # 真源多出來、套件沒有的圖示（需人工決定是否納入＋註冊代碼）
+        $extra = @()
+        if (Test-Path $srcStars) {
+            $pkgNames = (Get-ChildItem $pkgStars -Filter *.svg).Name
+            $extra = (Get-ChildItem $srcStars -Filter *.svg).Name | Where-Object { $pkgNames -notcontains $_ }
+        }
+        Write-Host "[chart-pkg] 圖示更新 $updated 個" -ForegroundColor Cyan
+        if ($missing.Count) { Write-Host ("[chart-pkg] ⚠ 真源缺少：" + ($missing -join ", ")) -ForegroundColor Yellow }
+        if ($extra.Count)   { Write-Host ("[chart-pkg] ℹ 真源多出（未自動納入，需先在 constants.ts 註冊）：" + ($extra -join ", ")) -ForegroundColor Yellow }
+        if ($updated -gt 0) {
+            Push-Location $ChartPkg
+            try {
+                & npm run gen:stars
+                if ($LASTEXITCODE -ne 0) { Write-Host "[chart-pkg] ⚠ gen:stars 失敗，請手動在 $ChartPkg 執行 npm run gen:stars" -ForegroundColor Yellow }
+            } finally { Pop-Location }
+        }
+    } else {
+        Write-Host "[chart-pkg] 找不到 $pkgStars，略過" -ForegroundColor Yellow
+    }
+}
 
 # 7) 清掉所有 __pycache__/tests/examples/output/Doc/demo
 Clean-Junk $Engine

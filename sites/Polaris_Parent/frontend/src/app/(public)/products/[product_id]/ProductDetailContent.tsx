@@ -6,7 +6,7 @@ import { Product } from '@/types';
 import { handleCheckout } from '@/lib/checkout';
 import { useAuthStore } from '@/store/auth';
 import { formatPrice } from '@/lib/currency';
-import CurrencySelector from '@/components/CurrencySelector';
+import CurrencySelector from '@/components/platform/CurrencySelector';
 
 interface ProductDetailContentProps {
   product: Product;

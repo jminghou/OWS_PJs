@@ -1,0 +1,47 @@
+{
+  "_description": "v3 係數檔 — 亮度、四化通道 k、四化場（g 增益＋獨立空間表）、空劫衰減 k 與作用範圍、取樣類別權重（規格書 §3/§4/§5，全部可調）",
+  "_note": "k_祿權科忌 預設 1.0 起跑（待決 #3：真盤跑一輪後再調，含 k_忌 是否隨亮度反轉）；k_空劫 沿用 v2 VOID_HALVING_FACTOR 定案。亮度表初值沿用 v2 BRIGHTNESS_MAP，v3 自帶與 v2 完全脫鉤；盤面未載亮度的星曜 ×1.0。空劫作用範圍 2026-07-13 定案＝三方四正（void_scope_relations），衰減因子 = 1 − (1 − void_k) × w_關係（w 取自 sampling_window.json，同宮×0.45/對宮×0.56/三合×0.725）；多重命中取最強單刀不疊乘。kind_s_weights 2026-07-14 定案＝取樣層類別權重：S 貢獻 = E × w × 類權，四化通道不乘；同日三修＝勢歸零實驗（力 1.0／勢 0／消散勢 0）：勢退出 S 加總、S總=S力+S化，勢只留各宮分解層分析值（調回非零即復原）。sihua_field 2026-07-14 二定案＝四化場：每筆四化＝場源，場強 = E_化星 × g_化 × w場（gains 與通道 k 完全分家；weights 為獨立空間表，初值照抄取樣窗），落 S化 欄、S總 = S力+S勢+S化；欠欄降級為衍生註解＝S化的對宮忌分量，忌欠k（chong_k）已退役刪除。2026-07-18 夾宮/暗合移除：取樣窗與 sihua_field.weights 同步精簡為 主/對/三方 三級。sihua_layer_scope 2026-07-19 定案＝四化層別作用域：{層: [允許關係]}，流年/小限四化（通道與場一體適用）僅作用其所在宮位（main）；未列出的層（生年/大限）不限縮走取樣窗全幾何；刪除該層鍵即復原。",
+  "brightness_factors": {
+    "P3": 1.30,
+    "P2": 1.20,
+    "P1": 1.10,
+    "P0": 1.05,
+    "N1": 1.00,
+    "N2": 0.90,
+    "N3": 0.80
+  },
+  "sihua_k": {
+    "FO": 1.2,
+    "PW": 1.4,
+    "HO": 1.0,
+    "BI": 1.6
+  },
+  "sihua_field": {
+    "gains": {
+      "FO": 1.0,
+      "PW": 1.2,
+      "HO": 1.2,
+      "BI": 0.5
+    },
+    "weights": {
+      "main": 1.0,
+      "opposite": 0.8,
+      "trine": 0.5
+    }
+  },
+  "kind_s_weights": {
+    "major": 1.0,
+    "pair": 0.0,
+    "solo": 0.0,
+    "void": 0.0
+  },
+  "sihua_layer_scope": {
+    "year": ["main"],
+    "small": ["main"]
+  },
+  "void_k": 0.45,
+  "void_stars": ["EVO", "MAE", "INT"],
+  "void_scope": "tri_square",
+  "void_scope_relations": ["main", "opposite", "trine"],
+  "void_sihua_exempt": true
+}

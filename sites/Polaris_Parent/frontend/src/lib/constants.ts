@@ -1,1 +1,1 @@
-export * from '../../../../../packages/ui/src/lib/constants';
+export * from '@ows/ui/lib/constants';

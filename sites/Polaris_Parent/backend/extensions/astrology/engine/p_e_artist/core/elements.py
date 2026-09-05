@@ -64,6 +64,7 @@ class ImageEl:
     h: float
     cls: str = ""
     title: str = ""
+    ink: str = ""        # 單色圖示的上色（空＝沿用渲染時傳入的預設 ink）
 
 
 @dataclass
@@ -75,11 +76,14 @@ class GroupEl:
 
 @dataclass
 class PalaceStarItem:
-    """v2 命盤宮位內的單顆星曜（主／副）。"""
+    """v2 命盤宮位內的單顆星曜（主／副／流曜）。"""
     code: str
     label: str           # 顯示字（中文名或編碼）
     href: str            # SVG 圖檔路徑
-    sihua: str = ""      # FO/PW/HO/BI（空字串代表無）
+    sihua: str = ""      # FO/PW/HO/BI（空字串代表無；非疊盤模式的角標用）
+    ink: str = ""        # 圖示上色（流曜帶層色；空＝預設 star_ink）
+    badges: List = field(default_factory=list)  # 疊盤模式：[(四化碼, ink)]，本命在前各層在後
+    scale: float = 1.0   # 圖示縮放（小星曜/流曜=small_star_scale；1.0=一般副星）
 
 
 @dataclass
@@ -100,6 +104,10 @@ class PalaceEl:
     subs: List = field(default_factory=list)          # PalaceStarItem
     minor_labels: List = field(default_factory=list)  # str
     cls: str = ""
+    # ── 疊盤（overlay）──
+    overlay: bool = False                              # True 時 writer 走疊盤版面
+    layer_names: List = field(default_factory=list)    # [(該層宮名, ink)]，表頭並列
+    flow_items: List = field(default_factory=list)     # PalaceStarItem（各層流曜，帶層色）
 
 
 # 整張圖的佈局結果

@@ -1,8 +1,8 @@
 'use client';
 
-import AdminLayout from '@/components/admin/AdminLayout';
+import AdminLayout from '@/components/platform/admin/AdminLayout';
 import { rbacApi, userApi } from '@/lib/api';
-import { RolesManager, type RolesManagerApi } from '@/components/admin/shared';
+import { RolesManager, type RolesManagerApi } from '@/components/platform/admin/shared';
 
 const api: RolesManagerApi = {
   getPermissions: () => rbacApi.getPermissions(),

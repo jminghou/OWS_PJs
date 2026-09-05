@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 import { submissionApi } from '@/lib/api';
 
 // 多語言內容

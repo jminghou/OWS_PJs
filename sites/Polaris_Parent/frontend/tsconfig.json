@@ -28,6 +28,12 @@
       "@/*": [
         "./src/*"
       ],
+      "@ows/ui": [
+        "../../../packages/ui/src/index.ts"
+      ],
+      "@ows/ui/*": [
+        "../../../packages/ui/src/*"
+      ],
       "@ows/ziwei-chart": [
         "../../../packages/ziwei-chart/src/index.ts"
       ],

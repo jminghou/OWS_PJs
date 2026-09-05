@@ -1,8 +1,8 @@
 'use client';
 
 import { Category, Tag } from '@/types';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import Button from '@/components/platform/ui/Button';
+import Input from '@/components/platform/ui/Input';
 import { Globe } from 'lucide-react';
 
 interface I18nSettings {

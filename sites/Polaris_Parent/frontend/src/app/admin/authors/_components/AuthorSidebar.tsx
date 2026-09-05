@@ -2,7 +2,7 @@
 
 import { User } from '@/types';
 import { Search, Plus, Trash2 } from 'lucide-react';
-import { AdminPagination } from '@/components/admin/shared';
+import { AdminPagination } from '@/components/platform/admin/shared';
 
 interface AuthorSidebarProps {
   users: User[];

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { astrologyApi } from '@/lib/api';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 
 /**
  * 設定會員密碼頁（一鍵建檔後寄出的「設定密碼信」連結目標）。

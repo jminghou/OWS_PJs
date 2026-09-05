@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 import type { MediaFolder } from '@/lib/api/strapi';
 
 // =============================================================================

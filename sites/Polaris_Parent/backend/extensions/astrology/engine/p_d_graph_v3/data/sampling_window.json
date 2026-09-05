@@ -1,0 +1,27 @@
+{
+  "_description": "v3 取樣鏡頭權重表 w — 唯一權威表（合併取代 v2 的 SpatialCalculator 七級表與 SpatialPropagation 衰減值）",
+  "_note": "偏移 = (星所在宮序 - 中心宮序) mod 12。關係不疊加：一顆星只取優先序最高的單一關係。疾位（偏移+5，命疾同論）已於 2026-07-13 移除。夾宮（偏移±1）與暗合（地支六合）已於 2026-07-18 移除——取樣窗精簡為 主/對/三方 三級，偏移±1 與六合宮位一律落回其他（w=0）。空劫衰減縮放（§3.3）亦以本表 main/opposite/trine 權重為真源（盤別作用域不影響空劫射程——E 出廠層跨盤別一致）。chart_scope 2026-07-19 定案＝盤別取樣作用域：{盤別: [允許關係]}，流年/小限盤**全星曜與四化**僅取樣 主宮/對宮（三方退出）；未列出的盤別（本命/大限）走全窗；盤別由引擎自運限四化 T-token 層別推斷；刪鍵即復原。",
+  "_source": "使用者定案 2026-07-19（五修：流年/小限盤別作用域）",
+  "weights": {
+    "main": 1.0,
+    "opposite": 0.8,
+    "trine": 0.5,
+    "other": 0.0
+  },
+  "offsets": {
+    "main": [0],
+    "opposite": [6],
+    "trine": [4, 8]
+  },
+  "priority": ["main", "opposite", "trine", "other"],
+  "chart_scope": {
+    "year": ["main", "opposite"],
+    "small": ["main", "opposite"]
+  },
+  "labels_zh": {
+    "main": "主宮",
+    "opposite": "對宮",
+    "trine": "三方",
+    "other": "其他"
+  }
+}

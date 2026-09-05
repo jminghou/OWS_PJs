@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { productApi, categoryApi, tagApi } from '@/lib/api';
 import { ProductAdmin, Category, Tag } from '@/types';
-import AdminLayout from '@/components/admin/AdminLayout';
-import { AdminListLayout, AdminEmptyState } from '@/components/admin/shared';
+import AdminLayout from '@/components/platform/admin/AdminLayout';
+import { AdminListLayout, AdminEmptyState } from '@/components/platform/admin/shared';
 import { ProductSidebar, ProductForm } from './_components';
 import type { CreateFormData, EditFormData } from './_components';
 import { Package } from 'lucide-react';

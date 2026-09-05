@@ -36,6 +36,17 @@ export type {
   MyChart,
   MyPerson,
   MyFavorite,
+  StarKind,
+  VoidState,
+  StarEnergyStep,
+  StarEnergyCounterfactual,
+  StarEnergyCard,
+  StarEnergyPayload,
+  RelationCode,
+  ReadingContributor,
+  ReadingFieldSource,
+  PalaceReading,
+  PalaceReadingsPayload,
 } from './api/index';
 export type {
   ExternalProduct,

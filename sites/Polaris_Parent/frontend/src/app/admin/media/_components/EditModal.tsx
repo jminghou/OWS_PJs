@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 import { mediaApi, tagApi as mediaTagApi } from '@/lib/api/media';
 import type { MediaItem, MediaFolder, MediaTag } from '@/lib/api/strapi';
 import { getImageUrl } from '@/lib/utils';

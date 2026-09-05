@@ -1,6 +1,6 @@
-import PublicHeader from '@/components/public/PublicHeader';
-import PublicFooter from '@/components/public/PublicFooter';
-import JsonLd from '@/components/seo/JsonLd';
+import PublicHeader from '@/components/platform/public/PublicHeader';
+import PublicFooter from '@/components/platform/public/PublicFooter';
+import JsonLd from '@/components/platform/seo/JsonLd';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 
 export default function PublicLayout({

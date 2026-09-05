@@ -9,7 +9,7 @@ import {
   clearPendingChart,
 } from '@/lib/pendingChart';
 import type { RegisterChartPayload } from '@/lib/api/auth';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 
 /**
  * 公眾會員「登入／註冊」合一頁。
@@ -49,15 +49,18 @@ function LoginContent() {
     clearError();
   };
 
-  // 登入成功後：若有剛排的命盤，補存到帳號（best-effort，不擋導頁）
-  const attachPendingChart = async (memberEmail: string) => {
+  // 登入成功後：若有剛排的命盤，補存到帳號（best-effort，不擋導頁）。
+  // 成功時回傳 chart_id，讓導頁直接落在該命盤的詳情頁。
+  const attachPendingChart = async (memberEmail: string): Promise<string | null> => {
     const chart = loadPendingChart();
-    if (!chart) return;
+    if (!chart) return null;
     try {
-      await astrologyApi.saveAndRegister({ ...chart, email: memberEmail });
+      const res = await astrologyApi.saveAndRegister({ ...chart, email: memberEmail });
       clearPendingChart();
+      return res.chart_id || null;
     } catch {
       /* 存盤失敗不擋登入；會員可回排盤頁重排 */
+      return null;
     }
   };
 
@@ -66,8 +69,9 @@ function LoginContent() {
     setLocalErr('');
     try {
       await login({ username: email.trim(), password });
-      await attachPendingChart(email.trim().toLowerCase());
-      router.push('/account');
+      const chartId = await attachPendingChart(email.trim().toLowerCase());
+      // 有剛排的命盤 → 直接開啟該命盤詳情頁（互動命盤），否則回會員中心
+      router.push(chartId ? `/account/charts/${chartId}` : '/account');
     } catch {
       /* 錯誤訊息由 store.error 顯示 */
     }
@@ -88,7 +92,8 @@ function LoginContent() {
         setChartWarning(res.chart_warning);
         return;
       }
-      router.push('/account');
+      // 剛排的命盤已歸戶 → 直接開啟該命盤詳情頁（互動命盤），否則回會員中心
+      router.push(res.chart_id ? `/account/charts/${res.chart_id}` : '/account');
     } catch {
       /* 錯誤訊息由 store.error 顯示 */
     }

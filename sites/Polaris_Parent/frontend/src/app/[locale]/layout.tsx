@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Noto_Sans_SC } from 'next/font/google';
-import PublicHeader from '@/components/public/PublicHeader';
-import PublicFooter from '@/components/public/PublicFooter';
+import PublicHeader from '@/components/platform/public/PublicHeader';
+import PublicFooter from '@/components/platform/public/PublicFooter';
 
 const notoSansSC = Noto_Sans_SC({
   subsets: ['latin'],

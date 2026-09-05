@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { AdminUploadZone } from '@/components/admin/shared';
+import { AdminUploadZone } from '@/components/platform/admin/shared';
 import { mediaApi } from '@/lib/api/media';
 
 // =============================================================================

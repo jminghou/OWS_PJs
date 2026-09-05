@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { productApi } from '@/lib/api';
 import { Product } from '@/types';
 import ProductDetailContent from './ProductDetailContent';
-import JsonLd from '@/components/seo/JsonLd';
+import JsonLd from '@/components/platform/seo/JsonLd';
 import { buildProductJsonLd, absoluteUrl } from '@/lib/seo';
 
 interface ProductDetailPageProps {

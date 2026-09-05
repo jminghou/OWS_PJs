@@ -1,0 +1,87 @@
+dim,name,name_zh,kind,stars,can_sihua,description
+0,major_pol,排序力,major,POL,1,紫微・尊・秩序與位階的能量
+1,major_hpi,運算力,major,HPI,1,天機・善・計算與推演的能量
+2,major_sun,作用力,major,SUN,1,太陽・貴・照耀與施予的能量
+3,major_mar,兌換力,major,MAR,1,武曲・財・交換與果斷的能量
+4,major_har,分享力,major,HAR,1,天同・福・和諧與共享的能量
+5,major_mag,掌控力,major,MAG,1,廉貞・囚・掌握與治理的能量
+6,major_tre,承載力,major,TRE,1,天府・令・容納與調度的能量
+7,major_moo,涵養力,major,MOO,1,太陰・富・滋養與積累的能量
+8,major_awo,擴張力,major,AWO,1,貪狼・桃花・吸引與交際的能量
+9,major_gga,分界力,major,GGA,1,巨門・暗・試煉與質疑的能量
+10,major_min,授權力,major,MIN,1,天相・印・認證與委託的能量
+11,major_ble,系統力,major,BLE,1,天梁・蔭・保護與成全的能量
+12,major_van,決斷力,major,VAN,1,七殺・權・執行與突破的能量
+13,major_bre,重生力,major,BRE,1,破軍・破・重塑與開拓的能量
+14,pair_lr,左右,pair,LHA|RHA,1,左輔右弼・助・協同搭手（2026-07-18 前名：輔佐勢）
+15,pair_kk,魁鉞,pair,CPA|CAI|dCP|dCA|sCP|sCA|yCP|yCA,0,天魁天鉞・貴・提拔接引（含大限/小限/流年魁鉞，同組疊加；前名：提攜勢）
+16,pair_cc,昌曲,pair,AAC|AAR,1,文昌文曲・文・言說表述（前名：表述勢）
+17,solo_div,祿存,solo,DIV|dDI|sDI|yDI,0,祿存・祿・資源積存（含大限/小限/流年祿，同組疊加；前名：儲備勢）
+18,solo_hho,天馬,solo,HHO|dHH|sHH|yHH,0,天馬・動・位移不滯（含大限/小限/流年馬，同組疊加；前名：機動勢）
+19,solo_sha,煞星,solo,GLA|STO|FSP|CHI|dGL|dST|sGL|sST|yGL|yST,0,擎羊陀羅火星鈴星・煞・四煞共用維（含大限/小限/流年羊陀，同組疊加；2026-07-18 銳進勢/迂迴勢/爆發勢/城府勢四維合併）
+20,trio_void,空劫,void,EVO|MAE|INT,0,地空地劫截空・空・消解之場（三星共用維，E 相加；讀數歸 S輔；空劫衰減的施加者；前名：消散勢）
+21,solo_peach,桃花,solo,RPH|HJO|dRP|dHJ|sRP|sHJ|yRP|yHJ,0,紅鸞天喜・桃花・八星共用維（含大限/小限/流年鸞喜，同組疊加；本命盤亦佔維；前名：桃花勢）
+22,major_pol_fo,排序力·化祿,channel,POL,0,排序力的化祿通道（通道值 = E × k_FO）
+23,major_pol_pw,排序力·化權,channel,POL,0,排序力的化權通道（通道值 = E × k_PW）
+24,major_pol_ho,排序力·化科,channel,POL,0,排序力的化科通道（通道值 = E × k_HO）
+25,major_pol_bi,排序力·化忌,channel,POL,0,排序力的化忌通道（通道值 = E × k_BI）
+26,major_hpi_fo,運算力·化祿,channel,HPI,0,運算力的化祿通道（通道值 = E × k_FO）
+27,major_hpi_pw,運算力·化權,channel,HPI,0,運算力的化權通道（通道值 = E × k_PW）
+28,major_hpi_ho,運算力·化科,channel,HPI,0,運算力的化科通道（通道值 = E × k_HO）
+29,major_hpi_bi,運算力·化忌,channel,HPI,0,運算力的化忌通道（通道值 = E × k_BI）
+30,major_sun_fo,作用力·化祿,channel,SUN,0,作用力的化祿通道（通道值 = E × k_FO）
+31,major_sun_pw,作用力·化權,channel,SUN,0,作用力的化權通道（通道值 = E × k_PW）
+32,major_sun_ho,作用力·化科,channel,SUN,0,作用力的化科通道（通道值 = E × k_HO）
+33,major_sun_bi,作用力·化忌,channel,SUN,0,作用力的化忌通道（通道值 = E × k_BI）
+34,major_mar_fo,兌換力·化祿,channel,MAR,0,兌換力的化祿通道（通道值 = E × k_FO）
+35,major_mar_pw,兌換力·化權,channel,MAR,0,兌換力的化權通道（通道值 = E × k_PW）
+36,major_mar_ho,兌換力·化科,channel,MAR,0,兌換力的化科通道（通道值 = E × k_HO）
+37,major_mar_bi,兌換力·化忌,channel,MAR,0,兌換力的化忌通道（通道值 = E × k_BI）
+38,major_har_fo,分享力·化祿,channel,HAR,0,分享力的化祿通道（通道值 = E × k_FO）
+39,major_har_pw,分享力·化權,channel,HAR,0,分享力的化權通道（通道值 = E × k_PW）
+40,major_har_ho,分享力·化科,channel,HAR,0,分享力的化科通道（通道值 = E × k_HO）
+41,major_har_bi,分享力·化忌,channel,HAR,0,分享力的化忌通道（通道值 = E × k_BI）
+42,major_mag_fo,掌控力·化祿,channel,MAG,0,掌控力的化祿通道（通道值 = E × k_FO）
+43,major_mag_pw,掌控力·化權,channel,MAG,0,掌控力的化權通道（通道值 = E × k_PW）
+44,major_mag_ho,掌控力·化科,channel,MAG,0,掌控力的化科通道（通道值 = E × k_HO）
+45,major_mag_bi,掌控力·化忌,channel,MAG,0,掌控力的化忌通道（通道值 = E × k_BI）
+46,major_tre_fo,承載力·化祿,channel,TRE,0,承載力的化祿通道（通道值 = E × k_FO）
+47,major_tre_pw,承載力·化權,channel,TRE,0,承載力的化權通道（通道值 = E × k_PW）
+48,major_tre_ho,承載力·化科,channel,TRE,0,承載力的化科通道（通道值 = E × k_HO）
+49,major_tre_bi,承載力·化忌,channel,TRE,0,承載力的化忌通道（通道值 = E × k_BI）
+50,major_moo_fo,涵養力·化祿,channel,MOO,0,涵養力的化祿通道（通道值 = E × k_FO）
+51,major_moo_pw,涵養力·化權,channel,MOO,0,涵養力的化權通道（通道值 = E × k_PW）
+52,major_moo_ho,涵養力·化科,channel,MOO,0,涵養力的化科通道（通道值 = E × k_HO）
+53,major_moo_bi,涵養力·化忌,channel,MOO,0,涵養力的化忌通道（通道值 = E × k_BI）
+54,major_awo_fo,擴張力·化祿,channel,AWO,0,擴張力的化祿通道（通道值 = E × k_FO）
+55,major_awo_pw,擴張力·化權,channel,AWO,0,擴張力的化權通道（通道值 = E × k_PW）
+56,major_awo_ho,擴張力·化科,channel,AWO,0,擴張力的化科通道（通道值 = E × k_HO）
+57,major_awo_bi,擴張力·化忌,channel,AWO,0,擴張力的化忌通道（通道值 = E × k_BI）
+58,major_gga_fo,分界力·化祿,channel,GGA,0,分界力的化祿通道（通道值 = E × k_FO）
+59,major_gga_pw,分界力·化權,channel,GGA,0,分界力的化權通道（通道值 = E × k_PW）
+60,major_gga_ho,分界力·化科,channel,GGA,0,分界力的化科通道（通道值 = E × k_HO）
+61,major_gga_bi,分界力·化忌,channel,GGA,0,分界力的化忌通道（通道值 = E × k_BI）
+62,major_min_fo,授權力·化祿,channel,MIN,0,授權力的化祿通道（通道值 = E × k_FO）
+63,major_min_pw,授權力·化權,channel,MIN,0,授權力的化權通道（通道值 = E × k_PW）
+64,major_min_ho,授權力·化科,channel,MIN,0,授權力的化科通道（通道值 = E × k_HO）
+65,major_min_bi,授權力·化忌,channel,MIN,0,授權力的化忌通道（通道值 = E × k_BI）
+66,major_ble_fo,系統力·化祿,channel,BLE,0,系統力的化祿通道（通道值 = E × k_FO）
+67,major_ble_pw,系統力·化權,channel,BLE,0,系統力的化權通道（通道值 = E × k_PW）
+68,major_ble_ho,系統力·化科,channel,BLE,0,系統力的化科通道（通道值 = E × k_HO）
+69,major_ble_bi,系統力·化忌,channel,BLE,0,系統力的化忌通道（通道值 = E × k_BI）
+70,major_van_fo,決斷力·化祿,channel,VAN,0,決斷力的化祿通道（通道值 = E × k_FO）
+71,major_van_pw,決斷力·化權,channel,VAN,0,決斷力的化權通道（通道值 = E × k_PW）
+72,major_van_ho,決斷力·化科,channel,VAN,0,決斷力的化科通道（通道值 = E × k_HO）
+73,major_van_bi,決斷力·化忌,channel,VAN,0,決斷力的化忌通道（通道值 = E × k_BI）
+74,major_bre_fo,重生力·化祿,channel,BRE,0,重生力的化祿通道（通道值 = E × k_FO）
+75,major_bre_pw,重生力·化權,channel,BRE,0,重生力的化權通道（通道值 = E × k_PW）
+76,major_bre_ho,重生力·化科,channel,BRE,0,重生力的化科通道（通道值 = E × k_HO）
+77,major_bre_bi,重生力·化忌,channel,BRE,0,重生力的化忌通道（通道值 = E × k_BI）
+78,pair_lr_fo,左右·化祿,channel,LHA|RHA,0,左右的化祿通道（通道值 = E × k_FO）
+79,pair_lr_pw,左右·化權,channel,LHA|RHA,0,左右的化權通道（通道值 = E × k_PW）
+80,pair_lr_ho,左右·化科,channel,LHA|RHA,0,左右的化科通道（通道值 = E × k_HO）
+81,pair_lr_bi,左右·化忌,channel,LHA|RHA,0,左右的化忌通道（通道值 = E × k_BI）
+82,pair_cc_fo,昌曲·化祿,channel,AAC|AAR,0,昌曲的化祿通道（通道值 = E × k_FO）
+83,pair_cc_pw,昌曲·化權,channel,AAC|AAR,0,昌曲的化權通道（通道值 = E × k_PW）
+84,pair_cc_ho,昌曲·化科,channel,AAC|AAR,0,昌曲的化科通道（通道值 = E × k_HO）
+85,pair_cc_bi,昌曲·化忌,channel,AAC|AAR,0,昌曲的化忌通道（通道值 = E × k_BI）

@@ -1,8 +1,8 @@
 'use client';
 
 import { User } from '@/types';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import Button from '@/components/platform/ui/Button';
+import Input from '@/components/platform/ui/Input';
 import { Shield, Power, BadgeCheck } from 'lucide-react';
 
 // 作者公開檔案（E-E-A-T）。社群連結對應 schema.org Person.sameAs。

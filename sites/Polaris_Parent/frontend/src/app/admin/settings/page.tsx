@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { i18nApi } from '@/lib/api';
 import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, LANGUAGE_REGION_LABELS, LANGUAGE_REGION_ORDER, type LanguageRegion } from '@/lib/constants';
-import AdminLayout from '@/components/admin/AdminLayout';
-import Button from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import AdminLayout from '@/components/platform/admin/AdminLayout';
+import Button from '@/components/platform/ui/Button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/platform/ui/Card';
 
 export default function SettingsPage() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 import { importApi } from '@/lib/api/media';
 import type { GcsScanFile } from '@/lib/api/media';
 import type { MediaFolder } from '@/lib/api/strapi';

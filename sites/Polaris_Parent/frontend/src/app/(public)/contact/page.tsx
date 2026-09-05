@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Metadata } from 'next';
-import Button from '@/components/ui/Button';
+import Button from '@/components/platform/ui/Button';
 import { submissionApi } from '@/lib/api';
 
 export default function ContactPage() {

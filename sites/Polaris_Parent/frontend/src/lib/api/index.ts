@@ -37,6 +37,17 @@ export type {
   MyChart,
   MyPerson,
   MyFavorite,
+  StarKind,
+  VoidState,
+  StarEnergyStep,
+  StarEnergyCounterfactual,
+  StarEnergyCard,
+  StarEnergyPayload,
+  RelationCode,
+  ReadingContributor,
+  ReadingFieldSource,
+  PalaceReading,
+  PalaceReadingsPayload,
 } from './astrology';
 export { membershipApi } from './membership';
 export type {

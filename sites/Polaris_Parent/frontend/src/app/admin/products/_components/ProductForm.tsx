@@ -1,12 +1,12 @@
 'use client';
 
 import { ProductAdmin, Category, Tag } from '@/types';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import TiptapEditor from '@/components/admin/TiptapEditor';
-import ContentSelector from '@/components/admin/ContentSelector';
-import PriceManager from '@/components/admin/PriceManager';
-import ProductLanguageManager from '@/components/admin/ProductLanguageManager';
+import Button from '@/components/platform/ui/Button';
+import Input from '@/components/platform/ui/Input';
+import TiptapEditor from '@/components/platform/admin/TiptapEditor';
+import ContentSelector from '@/components/platform/admin/ContentSelector';
+import PriceManager from '@/components/platform/admin/PriceManager';
+import ProductLanguageManager from '@/components/platform/admin/ProductLanguageManager';
 import { Save, Plus } from 'lucide-react';
 
 // --- Create mode types ---

@@ -3,7 +3,7 @@
 import { Content } from '@/types';
 import { Search, Plus } from 'lucide-react';
 import ArticleListItem from './ArticleListItem';
-import { AdminPagination } from '@/components/admin/shared';
+import { AdminPagination } from '@/components/platform/admin/shared';
 
 interface ArticleSidebarProps {
   articles: Content[];

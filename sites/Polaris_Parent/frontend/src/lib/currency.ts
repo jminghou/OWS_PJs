@@ -1,1 +1,1 @@
-export * from '../../../../../packages/ui/src/lib/currency';
+export * from '@ows/ui/lib/currency';

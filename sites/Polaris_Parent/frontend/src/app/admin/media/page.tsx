@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import AdminLayout from '@/components/admin/AdminLayout';
-import Button from '@/components/ui/Button';
+import AdminLayout from '@/components/platform/admin/AdminLayout';
+import Button from '@/components/platform/ui/Button';
 import { mediaApi } from '@/lib/api/media';
 import { tagApi as mediaTagApi } from '@/lib/api/media';
 import type { MediaItem, MediaFolder, MediaTag } from '@/lib/api/strapi';
 import { getImageUrl } from '@/lib/utils';
-import MediaBrowser from '@/components/admin/MediaBrowser';
+import MediaBrowser from '@/components/platform/admin/MediaBrowser';
 import {
   AdminPagination,
   AdminEmptyState,
@@ -16,7 +16,7 @@ import {
   AdminBatchActions,
   AdminListLayout,
   AdminContentGrid,
-} from '@/components/admin/shared';
+} from '@/components/platform/admin/shared';
 
 import {
   getSmallUrl,

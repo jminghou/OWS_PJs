@@ -12,8 +12,8 @@ import { Content } from '@/types';
 import { formatDateTime, getImageUrl, getGcsImageUrl } from '@/lib/utils';
 import { extractToc, extractKeyTakeaways } from '@/lib/articleContent';
 import { absoluteUrl } from '@/lib/seo';
-import ShareButtons from '@/components/public/ShareButtons';
-import SaveArticleButton from '@/components/public/SaveArticleButton';
+import ShareButtons from '@/components/platform/public/ShareButtons';
+import SaveArticleButton from '@/components/platform/public/SaveArticleButton';
 
 interface PostDetailContentProps {
   post: Content;
