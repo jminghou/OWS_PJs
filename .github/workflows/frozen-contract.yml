@@ -3,11 +3,15 @@ name: Frozen Contract (Claire 不被改壞)
 # 平台模組化以 Polaris 為母體進行，Claire_Project 維持現狀不遷移。
 # 這個 workflow 是「不影響 Claire」的唯一真正保險 —— 見 docs/FROZEN_CONTRACT.md。
 #
-# 四道關卡：
+# 八道關卡：
 #   1. contract-audit  Claire 沒有長出契約外的新依賴（快，秒級）
 #   2. layering        Polaris 平台層沒有反向依賴領域層（模組化的驗收條件）
-#   3. claire-backend  Claire 後端仍能建立 Flask app（core 的 Python 契約沒破）
-#   4. claire-frontend Claire 前端型別檢查通過（packages/ui 的 export 面沒破）
+#   3. api-contract    @ows/platform-api 打的端點，core 後端都真的有
+#   4. packages       共用套件各自能脫離站台獨立編譯，且不含任何站台專屬字串
+#   5. claire-backend  Claire 後端仍能建立 Flask app（core 的 Python 契約沒破）
+#   6. manifest       平台表清單未過期（migration 產在正確的鏈）
+#   7. third-site     現場產生第三站台，驗證平台真的可複用、建置產物無他站字串
+#   8. claire-frontend Claire 前端型別檢查通過（packages/ui 的 export 面沒破）
 
 on:
   pull_request:
@@ -21,6 +25,8 @@ on:
       - 'docs/FROZEN_CONTRACT.md'
       - 'scripts/check_frozen_contract.py'
       - 'scripts/check_layering.py'
+      - 'scripts/check_api_contract.py'
+      - 'scripts/check_site_isolation.py'
       - 'sites/Polaris_Parent/frontend/src/**'
       - '.github/workflows/frozen-contract.yml'
   push:
@@ -56,8 +62,35 @@ jobs:
       - name: 平台層未依賴領域層
         run: python scripts/check_layering.py
 
+  packages-standalone:
+    name: 共用套件獨立編譯
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # 模組化的驗收條件（套件版）：每個共用套件都必須能脫離站台自行編譯。
+      # 做不到就代表它還在偷用站台的 @/ 別名 —— 第三個站台會直接踩到，
+      # 而且是在建置期才爆（packages/ui 的 TiptapEditor 就是這樣長出來的）。
+      - name: tsc --noEmit（各套件）
+        run: |
+          set -e
+          for pkg in content-kit platform-api site-kit admin-app; do
+            echo "── packages/$pkg ──"
+            (cd "packages/$pkg" && npx tsc --noEmit -p tsconfig.json)
+          done
+
+      # 共用套件的原始碼不得含任何站台的品牌、專屬路由、網域（剝掉註解後掃）。
+      # P3 抽後台時漏了「親紫之間 管理後台」與三個 Polaris 選單在共用層裡，
+      # 建置與型別檢查全過 —— 這類洩漏只有掃字串抓得到。
+      - name: 共用層無站台專屬字串
+        run: python scripts/check_site_isolation.py
+
   claire-backend:
-    name: Claire 後端冒煙
+    name: Claire 後端冒煙 + API 契約
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +102,26 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      # @ows/platform-api 打的每個端點，core 都必須真的有。
+      # 這是「後端改一次、所有前端跟著改」的那條接縫 —— 少了它，
+      # 路由漂移要等到某個站台某個頁面執行期 404 才會被發現。
+      - name: 平台 API 契約比對
+        env:
+          FLASK_CONFIG: testing
+        run: python scripts/check_api_contract.py
+
+      # 平台表清單不能過期 —— 站台鏈靠它把平台表排除在 autogenerate 之外，
+      # 清單漏一張表，那張表的 migration 就會被產在錯的鏈裡（見 docs/MIGRATIONS.md）。
+      - name: 平台表清單未過期
+        run: |
+          python - <<'PY'
+          import sys
+          from core.backend_engine.migrations_manifest import verify_manifest
+          ok, msg = verify_manifest()
+          print(("OK " if ok else "FAIL ") + msg)
+          sys.exit(0 if ok else 1)
+          PY
 
       # TestingConfig 用記憶體 SQLite 且自帶測試金鑰，不需連任何外部服務。
       # Claire 的 app 是模組層級建立的，所以 import 本身就會跑完 create_app()：
@@ -108,6 +161,89 @@ jobs:
               sys.exit(1)
           print(f'✓ C-1 / C-2 契約路由 {len(required)} 條全數存在')
           PY
+
+  third-site:
+    name: 第三站台可複用性
+    runs-on: ubuntu-latest
+    # 模組化的最終驗收：現場產生一個全新站台，確認它拿得到完整平台能力。
+    # 刻意「產生」而不是把 Demo 站台 commit 進 repo —— 這樣連產生器本身都被測到，
+    # 也不會有一個沒人用的站台在 repo 裡慢慢腐爛。
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: pip install -r requirements.txt
+
+      - name: 產生站台
+        run: python scripts/create_site.py CiDemo --port 5090
+
+      - name: 後端啟動並具備完整平台 API
+        env:
+          FLASK_CONFIG: testing
+          SECRET_KEY: ci-demo
+          JWT_SECRET_KEY: ci-demo
+        run: |
+          python - <<'PY'
+          import sys
+          from sites.CiDemo.backend.app import app
+          rules = {r.rule for r in app.url_map.iter_rules()}
+          required = [
+              '/api/v1/auth/login', '/api/v1/contents', '/api/v1/categories',
+              '/api/v1/tags', '/api/v1/products', '/api/v1/orders',
+              '/api/v1/settings/homepage', '/api/v1/submissions', '/api/v1/users',
+              '/api/v1/admin/rbac/roles', '/api/v1/media-lib/files',
+          ]
+          missing = [r for r in required if r not in rules]
+          if missing:
+              print('新站台缺少平台端點：', missing)
+              sys.exit(1)
+          # 會員系統預設必須關閉 —— 新站台不該憑空多出公開註冊端點
+          if app.config.get('MEMBER_AUTH_ENABLED'):
+              print('新站台的會員系統預設應為關閉')
+              sys.exit(1)
+          print(f'OK 新站台 {len(rules)} 條路由，平台端點齊全')
+          PY
+
+      - name: 資料庫從零建置（共用鏈 + 站台鏈）
+        env:
+          FLASK_CONFIG: development
+          SECRET_KEY: ci-demo
+          JWT_SECRET_KEY: ci-demo
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/postgres
+        run: |
+          python -m flask --app sites.CiDemo.backend.app:app db upgrade -d core/migrations
+          python -m flask --app sites.CiDemo.backend.app:app db upgrade -d sites/CiDemo/backend/migrations
+
+      - name: 漂移偵測（新站台）
+        env:
+          DRIFT_DSN: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+        run: python scripts/check_schema_drift.py --site CiDemo
+
+      - name: 前端建置（後台開箱可用）
+        run: |
+          npm install
+          npm run build --workspace=cidemo-frontend
+
+      # 新站台的建置產物不得出現別站的東西。「建置能過」抓不到這個 ——
+      # Demo 站台曾經建置、驗收全過，後台卻寫著親紫之間、選單有折扣碼。
+      - name: 建置產物無他站字串
+        run: python scripts/check_site_isolation.py --built sites/CiDemo/frontend/.next
 
   claire-frontend:
     name: Claire 前端型別檢查
