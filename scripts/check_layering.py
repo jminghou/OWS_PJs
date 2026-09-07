@@ -28,9 +28,10 @@ P1 的目標是把 Polaris 切成兩層：
 from __future__ import annotations
 
 import argparse
+import posixpath
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 REPO = Path(__file__).resolve().parent.parent
 SRC = REPO / "sites" / "Polaris_Parent" / "frontend" / "src"
@@ -41,6 +42,9 @@ DOMAIN_PREFIXES = (
     "components/domain/",
     "lib/api/astrology",
     "lib/api/membership",
+    # 打的是 membership 擴充的 /admin/order-submissions、/admin/product-types、
+    # /admin/coupon-configs —— 站台擴充的端點，不是 core 契約。
+    "lib/api/admin-commerce",
     "lib/pendingChart",
 )
 
@@ -52,8 +56,6 @@ PLATFORM_PREFIXES = (
     "lib/constants",
     "lib/currency",
     "lib/seo",
-    "lib/contentBlocks",
-    "lib/articleContent",
     "lib/relatedPosts",
     "hooks/",
     "types/",
@@ -61,11 +63,34 @@ PLATFORM_PREFIXES = (
 
 # app/ 底下的頁面是「組裝層」：允許同時碰平台與領域，那正是它的工作。
 # 例外：相容 shim（見該檔說明），不算平台實作。
+# barrel 轉出的領域符號。
+#
+# lib/api/index.ts 是組裝層（見 EXEMPT），平台檔案可以 import 它 —— 但只能拿
+# 平台的東西。實測 SaveArticleButton 就是這樣繞過稽核的：它是平台元件，
+# 卻從 barrel 拿了 membershipApi。只看 import 路徑會漏掉這類違規，要看符號。
+DOMAIN_SYMBOLS = {
+    "astrologyApi",
+    "membershipApi",
+    "adminCommerceApi",
+}
+
+API_BARREL = "lib/api"
+
 EXEMPT = {
     "components/admin/MediaBrowser.tsx",
+    # API barrel：平台與領域的組裝點，等同 app/ 下的頁面。
+    # 它本來就該同時引用兩層，見該檔案開頭的說明。
+    "lib/api/index.ts",
 }
 
 IMPORT_RE = re.compile(r"""from\s+['"]@/([\w./\-]+)['"]""")
+# 相對 import 也要看 —— lib/api 內部用的是 './astrology' 這種寫法，
+# 只掃 @/ 別名會漏掉同目錄內的平台→領域依賴。
+REL_IMPORT_RE = re.compile(r"""from\s+['"](\.{1,2}/[\w./\-]+)['"]""")
+# 具名匯入的符號清單，用來檢查「從 barrel 拿了什麼」。
+NAMED_IMPORT_RE = re.compile(
+    r"""import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+['"]@/(lib/api)['"]""", re.S
+)
 SKIP_DIRS = {"node_modules", ".next", "__pycache__"}
 
 
@@ -93,6 +118,16 @@ def layer_of(module: str) -> str:
     return "app"
 
 
+def resolve_relative(module: str, target: str) -> str:
+    """把 './astrology' 之類的相對 import 解析成 src 底下的模組路徑。
+
+    一律用 posixpath.normpath —— os.path.normpath 在 Windows 會回傳反斜線路徑，
+    前綴比對就會全部失效（而且是靜默失效，稽核照樣印綠燈）。
+    """
+    base = PurePosixPath(module).parent
+    return posixpath.normpath(str(base / target))
+
+
 def is_domain_import(target: str) -> bool:
     return target.startswith(DOMAIN_PREFIXES)
 
@@ -118,11 +153,28 @@ def main() -> int:
             continue
 
         text = path.read_text(encoding="utf-8", errors="replace")
+
         for match in IMPORT_RE.finditer(text):
             target = match.group(1)
             if is_domain_import(target):
                 lineno = text[: match.start()].count("\n") + 1
                 violations.append(f"{module}:{lineno}  →  @/{target}")
+
+        for match in NAMED_IMPORT_RE.finditer(text):
+            names = {n.strip().split(" as ")[0].strip() for n in match.group(1).split(",")}
+            for name in sorted(names & DOMAIN_SYMBOLS):
+                lineno = text[: match.start()].count("\n") + 1
+                violations.append(
+                    f"{module}:{lineno}  →  {name}（經 @/{API_BARREL} 取得的領域 API）"
+                )
+
+        for match in REL_IMPORT_RE.finditer(text):
+            resolved = resolve_relative(module, match.group(1))
+            if is_domain_import(resolved):
+                lineno = text[: match.start()].count("\n") + 1
+                violations.append(
+                    f"{module}:{lineno}  →  {match.group(1)}  （解析為 {resolved}）"
+                )
 
     if args.tree:
         for layer in ("platform", "domain", "app", "exempt"):
