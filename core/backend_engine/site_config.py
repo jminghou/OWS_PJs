@@ -1,0 +1,372 @@
+"""
+站台設定基底 —— 所有站台共用的 Flask / DB / JWT / CORS / 上傳 / 快取設定。
+
+## 為什麼需要這個模組
+
+兩站的 config.py 各約 210 行，實測只差 34 行，而那 34 行大多是站名與開發庫名稱。
+更糟的是兩邊各自演化出了**不同的正確寫法**：Claire 的上傳目錄會解析成絕對路徑、
+GCS 設定用 `or None` 避免空字串，這兩個改進從來沒回流到 Polaris。複製貼上的
+config 就是這樣慢慢分岔的。
+
+這裡把共用部分收成 `BaseSiteConfig`，並採用兩邊各自較好的那個版本。
+站台只需要繼承並覆寫自己真正不同的地方：
+
+    from core.backend_engine.site_config import (
+        BaseSiteConfig, make_config_registry,
+    )
+
+    class Config(BaseSiteConfig):
+        SITE_NAME = os.environ.get('SITE_NAME', 'Demo')
+        SITE_DIR = SITE_DIR          # 上傳目錄與 .env 的定位基準
+
+    config = make_config_registry(Config, dev_database='ows_demo_dev')
+
+## 現有站台
+
+Polaris 與 Claire 目前**仍用各自的 config.py**，沒有遷移過來。它們的正式環境
+設定已經穩定運作，而 config 的錯誤只會在部署時才顯現 —— 在沒有真實需求推動時
+去動它，風險大於收益。新站台一律用這個基底。
+"""
+
+import os
+from datetime import timedelta
+
+# SITE_DIR 是「上傳目錄」等相對路徑的定位基準。基底類別用 repo 根目錄當預設，
+# 站台在自己的 config 覆寫成站台目錄 —— 不覆寫的話上傳會落在專案根目錄。
+SITE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _require_env(key: str, fallback=None, strict: bool = False):
+    """取環境變數；strict 時缺少就拋錯（正式環境用）。"""
+    value = os.environ.get(key, fallback)
+    if strict and not value:
+        raise RuntimeError(f'Missing required environment variable: {key}')
+    return value
+
+
+def _bool_env(key: str, default: bool = False) -> bool:
+    """Parse boolean environment variable."""
+    value = os.environ.get(key, str(default)).lower()
+    return value in ['true', 'on', '1', 'yes']
+
+
+def _validate_production_cors_origins():
+    """
+    Validate and return CORS allowed origins for production.
+
+    Raises RuntimeError if CORS_ORIGINS is unset, empty, or contains '*'.
+    Wildcard origins combined with credentialed requests is unsafe; in
+    production we require an explicit allow-list.
+    """
+    raw = os.environ.get('CORS_ORIGINS', '').strip()
+    if not raw:
+        raise RuntimeError(
+            "CORS_ORIGINS environment variable is required in production. "
+            "Set it to a comma-separated list of allowed origins, "
+            "e.g. 'https://www.example.com,https://api.example.com'."
+        )
+    origins = [o.strip() for o in raw.split(',') if o.strip()]
+    if not origins:
+        raise RuntimeError(
+            "CORS_ORIGINS must contain at least one non-empty origin in production."
+        )
+    if '*' in origins:
+        raise RuntimeError(
+            "CORS_ORIGINS cannot include '*' in production "
+            "(unsafe when combined with credentialed requests)."
+        )
+    return origins
+
+
+def _get_database_url(key: str = 'DATABASE_URL', fallback=None):
+    """
+    Get database URL and convert to psycopg3 format.
+    支援 DB_URL_OVERRIDE 做為備用覆蓋。
+    """
+    val = os.environ.get('DB_URL_OVERRIDE') or os.environ.get(key)
+    url = val.strip() if val else None
+
+    if not url:
+        return fallback
+    
+    if url.startswith('postgresql://'):
+        url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
+    return url
+
+
+# =============================================================================
+# Base Configuration
+# =============================================================================
+
+class BaseSiteConfig:
+    """所有站台共用的設定。站台繼承後只覆寫自己不同的部分。"""
+
+    # 站台覆寫：站名與站台目錄
+    SITE_NAME = os.environ.get('SITE_NAME', 'OWS Site')
+
+    # -------------------------------------------------------------------------
+    # Flask Core
+    # -------------------------------------------------------------------------
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+
+    # -------------------------------------------------------------------------
+    # Database (Primary)
+    # -------------------------------------------------------------------------
+    SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Connection pool settings
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': int(os.environ.get('DB_POOL_SIZE', 10)),
+        'pool_recycle': int(os.environ.get('DB_POOL_RECYCLE', 3600)),
+        'pool_pre_ping': True,
+        'max_overflow': int(os.environ.get('DB_MAX_OVERFLOW', 20)),
+    }
+
+    # Additional database bindings (site-specific)
+    # 站台可在子類追加自己的 bind
+    SQLALCHEMY_BINDS = {}
+
+    # -------------------------------------------------------------------------
+    # JWT Authentication
+    # -------------------------------------------------------------------------
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+        hours=int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES_HOURS', 1))
+    )
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+
+    # JWT Cookie settings (for frontend integration)
+    JWT_TOKEN_LOCATION = ['cookies']
+    JWT_COOKIE_SECURE = _bool_env('JWT_COOKIE_SECURE', True)
+    JWT_COOKIE_HTTPONLY = True
+    JWT_COOKIE_SAMESITE = 'Lax'
+    JWT_COOKIE_CSRF_PROTECT = True
+    JWT_ACCESS_CSRF_HEADER_NAME = 'X-CSRF-TOKEN'
+
+    # -------------------------------------------------------------------------
+    # Mail
+    # -------------------------------------------------------------------------
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 25))
+    MAIL_USE_TLS = _bool_env('MAIL_USE_TLS', False)
+    MAIL_USE_SSL = _bool_env('MAIL_USE_SSL', False)
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+
+    # -------------------------------------------------------------------------
+    # File Uploads
+    # -------------------------------------------------------------------------
+    # 相對路徑解析成站台目錄下的絕對路徑 —— 否則上傳位置會隨行程的工作目錄漂移
+    _upload_rel = os.environ.get('UPLOAD_FOLDER', 'uploads')
+    UPLOAD_FOLDER = _upload_rel if os.path.isabs(_upload_rel) else os.path.join(SITE_DIR, 'backend', _upload_rel)
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf', 'txt', 'doc', 'docx'}
+
+    # -------------------------------------------------------------------------
+    # Storage (GCS)
+    # -------------------------------------------------------------------------
+    # `or None`：環境變數設成空字串時視同未設定，否則會被當成有效值而走錯分支
+    GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME') or None
+    GCS_CREDENTIALS_JSON = os.environ.get('GCS_CREDENTIALS_JSON') or None
+    USE_GCS = GCS_BUCKET_NAME is not None
+
+    # -------------------------------------------------------------------------
+    # Redis & Caching
+    # -------------------------------------------------------------------------
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+
+    # -------------------------------------------------------------------------
+    # CORS
+    # -------------------------------------------------------------------------
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
+
+    # -------------------------------------------------------------------------
+    # Pagination
+    # -------------------------------------------------------------------------
+    POSTS_PER_PAGE = int(os.environ.get('POSTS_PER_PAGE', 10))
+    COMMENTS_PER_PAGE = int(os.environ.get('COMMENTS_PER_PAGE', 20))
+
+    # -------------------------------------------------------------------------
+    # Session Security
+    # -------------------------------------------------------------------------
+    SESSION_COOKIE_SECURE = _bool_env('SESSION_COOKIE_SECURE', True)
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
+    # -------------------------------------------------------------------------
+    # Frontend ISR On-demand Revalidation
+    # 後台儲存首頁設定後，回呼前端 /api/revalidate 立即清除 ISR 快取。
+    # 兩者任一未設定時自動跳過（前端回到原本的 revalidate 週期）。
+    # -------------------------------------------------------------------------
+    FRONTEND_REVALIDATE_URL = os.environ.get('FRONTEND_REVALIDATE_URL')  # e.g. https://www.polaris-parent.com/api/revalidate
+    REVALIDATE_SECRET = os.environ.get('REVALIDATE_SECRET')
+
+    # -------------------------------------------------------------------------
+    # Site-Specific Settings
+    # -------------------------------------------------------------------------
+    SITE_NAME = os.environ.get('SITE_NAME', 'Polaris Parent')
+    DEFAULT_LANGUAGE = os.environ.get('DEFAULT_LANGUAGE', 'zh-TW')
+    SUPPORTED_LANGUAGES = os.environ.get('SUPPORTED_LANGUAGES', 'zh-TW,en').split(',')
+
+    # 會員系統（core 的 /api/v1/auth/member/* 端點）。
+    # core blueprint 由所有站台共用，故預設關閉、由站台明確開啟 ——
+    # 沒有會員功能的站台不應憑空多出公開註冊端點。Polaris 的會員系統已上線。
+    # 預設**關閉**。core 的 blueprint 由所有站台共用，無條件啟用會讓每個新站台
+    # 憑空多出一個公開註冊端點。要用的站台在自己的 config 或 .env 明確開啟。
+    # （這個預設值原本是 True —— 從 Polaris 的 config 抽基底時連它的決定一起帶了進來，
+    #   由第三站台的驗收抓出來。）
+    MEMBER_AUTH_ENABLED = _bool_env('MEMBER_AUTH_ENABLED', False)
+
+    # Development mode flag (for mock payments, etc.)
+    IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
+
+
+# =============================================================================
+# Development Configuration
+# =============================================================================
+
+class DevelopmentConfig(BaseSiteConfig):
+    """Development environment configuration."""
+
+    DEBUG = True
+    IS_DEV_MODE = True
+
+    # Relax security for local development
+    SESSION_COOKIE_SECURE = False
+    JWT_COOKIE_SECURE = False
+
+    # CORS for local frontend (支援 3000 與 3001，依實際啟動埠調整)
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001').split(',')
+
+    # Allow fallback values in development
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'dev-jwt-secret-key')
+
+    SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL',
+        'postgresql+psycopg://postgres:postgres@localhost:5432/ows_polaris_dev')
+
+    SQLALCHEMY_BINDS = {
+        'astrology': _get_database_url('ASTROLOGY_DATABASE_URL',
+            'postgresql+psycopg://postgres:1234567@localhost:5432/db_pcount_v2')
+    }
+
+
+# =============================================================================
+# Production Configuration
+# =============================================================================
+
+class ProductionConfig(BaseSiteConfig):
+    """Production environment configuration."""
+
+    DEBUG = False
+    IS_DEV_MODE = False
+
+    SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL')
+
+    # 站台可在子類追加自己的 bind
+    SQLALCHEMY_BINDS = {}
+
+    # Production-specific settings
+    SESSION_COOKIE_SECURE = True
+    JWT_COOKIE_SECURE = True
+
+    # Required secrets + CORS allow-list: strict in production, '*' is rejected.
+    # 只在 FLASK_CONFIG=production 時觸發驗證，避免 dev 啟動 import config 時誤觸。
+    if os.environ.get('FLASK_CONFIG') == 'production':
+        SECRET_KEY = _require_env('SECRET_KEY', strict=True)
+        JWT_SECRET_KEY = _require_env('JWT_SECRET_KEY', strict=True)
+        CORS_ORIGINS = _validate_production_cors_origins()
+    else:
+        # Legacy non-strict fallback for non-production import paths
+        SECRET_KEY = _require_env('SECRET_KEY')
+        JWT_SECRET_KEY = _require_env('JWT_SECRET_KEY')
+
+    # Cookie Domain 設定（跨子域名共享 cookie）
+    # 例如 .polaris-parent.com 讓前端和 api.polaris-parent.com 共享 cookie
+    JWT_COOKIE_DOMAIN = os.environ.get('JWT_COOKIE_DOMAIN') or None
+
+    # Cookie SameSite 設定（可透過環境變數調整）
+    # Vercel + Railway 跨域部署預設 None；同域名部署可改 Lax
+    JWT_COOKIE_SAMESITE = os.environ.get('JWT_COOKIE_SAMESITE', 'None')
+    SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'None')
+
+
+# =============================================================================
+# Testing Configuration
+# =============================================================================
+
+class TestingConfig(BaseSiteConfig):
+    """Testing environment configuration."""
+
+    TESTING = True
+    DEBUG = True
+
+    # Use in-memory SQLite for tests
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_ENGINE_OPTIONS = {}
+    SQLALCHEMY_BINDS = {}
+
+    # Disable CSRF for easier testing
+    WTF_CSRF_ENABLED = False
+    JWT_COOKIE_CSRF_PROTECT = False
+
+    # Test credentials
+    SECRET_KEY = 'testing-secret-key'
+    JWT_SECRET_KEY = 'testing-jwt-secret-key'
+
+
+# =============================================================================
+# Configuration Registry
+# =============================================================================
+
+config = {
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'testing': TestingConfig,
+    'default': DevelopmentConfig
+}
+
+
+# =============================================================================
+# Exports
+# =============================================================================
+
+__all__ = [
+    'Config',
+    'DevelopmentConfig',
+    'ProductionConfig',
+    'TestingConfig',
+    'config',
+]
+
+
+# =============================================================================
+# 設定登錄表
+# =============================================================================
+
+def make_config_registry(config_class, dev_database: str = 'ows_dev'):
+    """把站台的 Config 類別包成 app.py 需要的 {name: class} 字典。
+
+    dev_database 只影響開發環境的預設連線字串；正式環境一律走 DATABASE_URL。
+    """
+
+    class _Development(DevelopmentConfig, config_class):
+        SQLALCHEMY_DATABASE_URI = _get_database_url(
+            'DATABASE_URL',
+            f'postgresql+psycopg://postgres:postgres@localhost:5432/{dev_database}',
+        )
+
+    class _Production(ProductionConfig, config_class):
+        pass
+
+    class _Testing(TestingConfig, config_class):
+        pass
+
+    return {
+        'development': _Development,
+        'production': _Production,
+        'testing': _Testing,
+        'default': _Development,
+    }
