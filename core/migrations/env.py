@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 import logging
 import os
 from logging.config import fileConfig
@@ -7,68 +9,67 @@ from flask import current_app
 from alembic import context
 
 # =============================================================================
-# 統一資料庫架構（見 ARCHITECTURE_UNIFIED_DB.md）
-# 本站的表只在 blog/shop schema；版本表放 blog schema，與紫微系統的
-# public.alembic_version 互不干擾。include_name 嚴格限定 autogenerate 只比對
-# blog/shop，避免把 account/graph/public 既有表誤判為「待刪除」。
+# 共用平台 schema 的 migration 鏈（見 docs/MIGRATIONS.md）
 # =============================================================================
+# 這條鏈管理**所有站台共用**的資料表：
+#   - core/backend_engine/models.py 的 20 張表（內容、商品、訂單、設定、RBAC…）
+#   - packages/media_lib 的 6 張媒體庫表
+#
+# 為什麼要獨立一條鏈：
+#   在此之前 core 的表由「各站自己的 migration」建立，所以 core 模型改一個欄位
+#   就要手寫兩份 migration，沒有任何機制保證兩份一致。這正是「改一次後端、
+#   所有站台一起改」在資料庫層不成立的地方。
+#
+#   現在 core 改一次 → 這裡寫一份 migration → 所有掛載本鏈的站台都吃到同一份。
+#
+# 版本表：alembic_version_core，與站台自己的 alembic_version 互不干擾，
+# 兩條鏈可以各自演進。
+#
+# schema 名稱一律從環境變數讀，**不寫死** —— 站台可以把 core 的表放在
+# public（Claire 的做法）或 blog/shop（Polaris 的做法），同一份 migration 通用。
+# =============================================================================
+
+CORE_VERSION_TABLE = 'alembic_version_core'
+
 try:
     from packages.media_lib.config import SCHEMA_NAME as _MEDIA_LIB_SCHEMA
 except Exception:  # pragma: no cover - 未安裝媒體庫時不擋 migration
     _MEDIA_LIB_SCHEMA = None
 
-_OWNED_SCHEMAS = {s for s in (
-    os.environ.get('OWS_BLOG_SCHEMA'),
-    os.environ.get('OWS_SHOP_SCHEMA'),
-    # media_lib 也是本站擁有的 schema（表由 packages/media_lib 定義，
-    # 但實體存在本站的資料庫裡）。它原本沒列進來，導致 autogenerate 看不見
-    # 媒體庫的表 —— 這就是為什麼整個 media_lib schema 從來沒進過 migration 鏈，
-    # 而 Polaris 因此無法從零重建資料庫。見 scripts/check_schema_drift.py。
-    _MEDIA_LIB_SCHEMA,
-) if s}
-_VERSION_TABLE_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA') or None
+_BLOG_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA') or None
+_SHOP_SCHEMA = os.environ.get('OWS_SHOP_SCHEMA') or None
 
+_OWNED_SCHEMAS = {s for s in (_BLOG_SCHEMA, _SHOP_SCHEMA, _MEDIA_LIB_SCHEMA) if s}
 
-def _include_name(name, type_, parent_names):
-    """只讓 autogenerate 反射本站擁有的 schema（blog / shop / media_lib）。"""
-    if type_ == 'schema':
-        return name in _OWNED_SCHEMAS
-    return True
+# 版本表跟著 blog schema 走（未設定則落在 public），與站台鏈的慣例一致。
+_VERSION_TABLE_SCHEMA = _BLOG_SCHEMA
 
-
-# P5-C：平台資料表已移交 core/migrations（共用鏈）。
+# 由 SQL / 外部系統自管，不歸本鏈：
+#   Polaris 第二期把 blog.users 改成指向 account.app_users 的 view、RBAC 四表淘汰、
+#   member_profiles 由 init_member_profiles.sql 建立。這些表在 core models 裡有定義，
+#   但實體由站台的 SQL 決定，所以 autogenerate 不能碰。
 #
-# 這裡要把它們從**站台鏈**的 autogenerate 排除，否則改一個 core 模型欄位時，
-# `flask db migrate -d sites/.../migrations` 會把 migration 產在站台鏈裡 ——
-# 那正是 C 要消滅的情況（每站各寫一份、各自漂移）。core 的變更只能進 core 鏈。
-try:
-    from core.backend_engine.migrations_manifest import PLATFORM_TABLES as _CORE_TABLES
-except Exception:  # pragma: no cover - 匯入失敗時不擋 migration
-    _CORE_TABLES = frozenset()
-
-
-# 第二期：blog.users 改為 view、RBAC 四表淘汰、member_profiles 由 SQL 自管，
-# 這些不歸 Alembic 管理 → 從 autogenerate 排除（避免誤建/誤刪）。
-_BLOG_SCHEMA_NAME = os.environ.get('OWS_BLOG_SCHEMA')
-_BLOG_UNMANAGED_TABLES = {
-    'users', 'roles', 'permissions', 'role_permissions', 'user_roles', 'member_profiles',
+# 站台用環境變數 OWS_CORE_UNMANAGED_TABLES（逗號分隔）宣告自己的例外，
+# 預設全部納管 —— 新站台不該繼承 Polaris 的歷史包袱。
+_UNMANAGED = {
+    t.strip() for t in os.environ.get('OWS_CORE_UNMANAGED_TABLES', '').split(',') if t.strip()
 }
 
 
-def _table_managed(schema, table_name):
-    if schema not in _OWNED_SCHEMAS:
-        return False
-    if schema == _BLOG_SCHEMA_NAME and table_name in _BLOG_UNMANAGED_TABLES:
-        return False
-    # 平台表歸 core 鏈，站台鏈不碰
-    if table_name in _CORE_TABLES:
-        return False
+def _include_name(name, type_, parent_names):
+    """只反射本鏈擁有的 schema。"""
+    if type_ == 'schema':
+        return (name or 'public') in (_OWNED_SCHEMAS or {'public'})
     return True
 
 
+def _table_managed(schema, table_name):
+    if _OWNED_SCHEMAS and schema not in _OWNED_SCHEMAS:
+        return False
+    return table_name not in _UNMANAGED
+
+
 def _include_object(object_, name, type_, reflected, compare_to):
-    """只比對 blog/shop 中由 Alembic 管理的物件；media_lib / account / graph / public、
-    以及 blog 的 view/RBAC/member_profiles 一律略過，確保不誤建或誤刪其他子系統的表。"""
     if type_ == 'table':
         return _table_managed(object_.schema, object_.name)
     tbl = getattr(object_, 'table', None)
@@ -77,13 +78,18 @@ def _include_object(object_, name, type_, reflected, compare_to):
     return True
 
 
-# 本站擁有的 schema 設定（None 代表未設環境變數，退回單一 public 行為）
 _SCHEMA_KWARGS = {
     'include_schemas': True,
     'version_table_schema': _VERSION_TABLE_SCHEMA,
     'include_name': _include_name,
     'include_object': _include_object,
-} if _OWNED_SCHEMAS else {}
+} if _OWNED_SCHEMAS else {
+    'include_object': _include_object,
+}
+
+# 兩條鏈共存的關鍵：版本表名稱不同。
+_SCHEMA_KWARGS['version_table'] = CORE_VERSION_TABLE
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

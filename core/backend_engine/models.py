@@ -46,14 +46,28 @@ def _q(name: str, schema: Optional[str]) -> str:
 
 
 # 第二期身分整合（§11）：使用者外鍵的「目標」與「型別」依部署而定。
-# Polaris（_BLOG_SCHEMA 有設）→ 指向 account.app_users(BIGINT)，身分集中於紫微側；
-# 其他站（如 Claire，未設）→ 維持指向自身 users 表(Integer)，行為不變。
-# 註：Polaris 需由站專屬模型把 account.app_users 載入 metadata，FK 字串才解析得到。
-if _BLOG_SCHEMA:
-    _USER_FK_TARGET = 'account.app_users.id'
+#
+#   local     站台自己的 users 表（Integer）。預設。
+#   external  外部身分系統的表（BigInteger）。Polaris 用這個，
+#             身分集中在紫微側的 account.app_users。
+#
+# 為什麼要獨立一個環境變數：
+#   這兩個判斷原本都掛在 _BLOG_SCHEMA 上 —— 一個環境變數同時決定「表放哪個
+#   schema」和「用哪種身分模型」。那讓第三個站台無法「用 blog/shop 分流表，
+#   但保留自己的 users 表」，而那是個完全合理的組合。拆開之後兩件事各自獨立。
+#
+#   相容性：Claire 沒設 OWS_BLOG_SCHEMA 也沒設 OWS_IDENTITY_MODE → local（行為不變）；
+#   Polaris 在 .env 明確設 external（行為不變）。
+#
+# 註：external 模式下，站台需由站專屬模型把該表載入 metadata，FK 字串才解析得到。
+_IDENTITY_MODE = (os.environ.get('OWS_IDENTITY_MODE') or 'local').strip().lower()
+_EXTERNAL_USER_TABLE = os.environ.get('OWS_EXTERNAL_USER_TABLE') or 'account.app_users'
+
+if _IDENTITY_MODE == 'external':
+    _USER_FK_TARGET = f'{_EXTERNAL_USER_TABLE}.id'
     _USER_ID_TYPE = db.BigInteger
 else:
-    _USER_FK_TARGET = 'users.id'
+    _USER_FK_TARGET = _q('users.id', _BLOG_SCHEMA)
     _USER_ID_TYPE = db.Integer
 
 

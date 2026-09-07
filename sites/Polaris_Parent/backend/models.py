@@ -140,7 +140,9 @@ class OrderSubmission(db.Model):
         db.BigInteger, db.ForeignKey('shop.product_types.id'), nullable=False)
     platform = db.Column(db.Text, nullable=False)
     external_order_no = db.Column(db.Text, nullable=False)
-    status = db.Column(db.Text, nullable=False, server_default='待審核')
+    # index=True 補宣告：0002 migration 早就建了 ix_shop_order_submissions_status
+    # （審核流程按狀態查詢），但 model 沒寫，schema 漂移偵測會抓到這個落差。
+    status = db.Column(db.Text, nullable=False, server_default='待審核', index=True)
     note = db.Column(db.Text)
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     reviewed_at = db.Column(db.DateTime(timezone=True))
