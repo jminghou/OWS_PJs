@@ -1,0 +1,32 @@
+# 換行統一為 LF，且不依賴各機器的 core.autocrlf 設定。
+#
+# 這個 repo 的內容本來就全部以 LF 儲存（Windows 端靠 autocrlf=true 在 commit 時轉換）。
+# 明確宣告的目的是讓 CI（Linux）與任何沒設 autocrlf 的機器得到同樣結果，
+# 避免「同一份檔案在不同機器上 diff 出整檔差異」——那正是模組化初期比對兩站時
+# 看不出 CategorySelector.tsx 其實一模一樣的原因。
+
+* text=auto eol=lf
+
+# Windows 專用腳本保留 CRLF
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# 二進位：明確標記，避免被當文字做換行轉換
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.zip   binary
+*.whl   binary
+
+# SVG 是文字（紫微星曜圖示需要能 diff），但由腳本產生，PR 上摺疊
+*.svg   text eol=lf linguist-generated=true
+package-lock.json  text eol=lf linguist-generated=true
