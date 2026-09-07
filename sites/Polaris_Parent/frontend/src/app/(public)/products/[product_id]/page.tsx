@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { productApi } from '@/lib/api';
 import { Product } from '@/types';
 import ProductDetailContent from './ProductDetailContent';
-import JsonLd from '@/components/platform/seo/JsonLd';
-import { buildProductJsonLd, absoluteUrl } from '@/lib/seo';
+import { JsonLd } from '@ows/site-kit';
+import { buildProductJsonLd, absoluteUrl } from '@ows/site-kit';
 
 interface ProductDetailPageProps {
   params: Promise<{

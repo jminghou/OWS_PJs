@@ -11,7 +11,7 @@ const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
 
   // 轉譯 monorepo 內的套件
-  transpilePackages: ['@ows/ui', '@ows/ziwei-chart'],
+  transpilePackages: ['@ows/ui', '@ows/ziwei-chart', '@ows/platform-api', '@ows/admin-app', '@ows/content-kit', '@ows/site-kit'],
 
   // 以「路徑別名」解析 @ows/ziwei-chart（指向 monorepo 原始碼），不依賴 workspace symlink，
   // 讓 Vercel 子目錄建置也能解析（與 @ows/ui 用相對路徑的做法一致，修正長期建置失敗）。
@@ -22,6 +22,14 @@ const nextConfig = {
       '@ows/ziwei-chart/core': path.resolve(__dirname, '../../../packages/ziwei-chart/src/core/index.ts'),
       // 與 tsconfig paths 對齊。既有的六層相對路徑 import 仍可用，
       // 但新程式碼一律走 @ows/ui，之後把元件搬進 packages 時不必再改 import。
+      '@ows/site-kit$': path.resolve(__dirname, '../../../packages/site-kit/src/index.ts'),
+      '@ows/site-kit': path.resolve(__dirname, '../../../packages/site-kit/src'),
+      '@ows/admin-app$': path.resolve(__dirname, '../../../packages/admin-app/src/index.ts'),
+      '@ows/admin-app': path.resolve(__dirname, '../../../packages/admin-app/src'),
+      '@ows/content-kit$': path.resolve(__dirname, '../../../packages/content-kit/src/index.ts'),
+      '@ows/content-kit': path.resolve(__dirname, '../../../packages/content-kit/src'),
+      '@ows/platform-api$': path.resolve(__dirname, '../../../packages/platform-api/src/index.ts'),
+      '@ows/platform-api': path.resolve(__dirname, '../../../packages/platform-api/src'),
       '@ows/ui$': path.resolve(__dirname, '../../../packages/ui/src/index.ts'),
       '@ows/ui': path.resolve(__dirname, '../../../packages/ui/src'),
     };

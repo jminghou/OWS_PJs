@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { authorApi, type AuthorDetailResponse } from '@/lib/api';
 import { getImageUrl, formatDate } from '@/lib/utils';
-import JsonLd from '@/components/platform/seo/JsonLd';
+import { JsonLd } from '@ows/site-kit';
 import {
   buildPersonJsonLd,
   buildBreadcrumbJsonLd,
   absoluteUrl,
   authorPath,
-} from '@/lib/seo';
+} from '@ows/site-kit';
 
 // ISR：每小時重新驗證
 export const revalidate = 3600;

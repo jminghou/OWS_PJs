@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { SITE_URL } from '@/lib/seo';
+import { SITE_URL } from '@/siteConfig';
 
 // 不開放爬取的私有 / 交易路徑
 const disallow = ['/admin/', '/api/', '/order/', '/mock-payment/'];

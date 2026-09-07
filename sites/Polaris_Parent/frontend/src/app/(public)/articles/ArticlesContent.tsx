@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { contentApi, categoryApi } from '@/lib/api';
 import { Content, ContentListResponse, Category } from '@/types';
-import PostCard from '@/components/platform/public/PostCard';
+import { PostCard as PostCard } from '@ows/site-kit';
 import Button from '@/components/platform/ui/Button';
 
 interface ArticlesContentProps {

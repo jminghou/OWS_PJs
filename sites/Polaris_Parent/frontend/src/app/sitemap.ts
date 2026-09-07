@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 import { contentApi, productApi, authorApi } from '@/lib/api';
-import { SITE_URL as BASE_URL } from '@/lib/seo';
+import { SITE_URL as BASE_URL } from '@/siteConfig';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 靜態頁面

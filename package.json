@@ -5,6 +5,10 @@
   "workspaces": [
     "packages/ui",
     "packages/ziwei-chart",
+    "packages/platform-api",
+    "packages/admin-app",
+    "packages/content-kit",
+    "packages/site-kit",
     "sites/*/frontend"
   ],
   "scripts": {

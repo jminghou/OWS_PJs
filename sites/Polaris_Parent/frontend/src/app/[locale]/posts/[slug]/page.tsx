@@ -4,9 +4,9 @@ import { notFound } from 'next/navigation';
 import { contentApi } from '@/lib/api';
 import { Content } from '@/types';
 import PostDetailContent from '@/app/(public)/posts/[slug]/PostDetailContent';
-import JsonLd from '@/components/platform/seo/JsonLd';
-import { buildArticleJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@/lib/seo';
-import { getRelatedPosts } from '@/lib/relatedPosts';
+import { JsonLd } from '@ows/site-kit';
+import { buildArticleJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@ows/site-kit';
+import { getRelatedPosts } from '@ows/site-kit';
 
 // ISR：靜態產生 + 背景重新驗證（從邊緣快取直接送出，慢後端不卡使用者）
 export const revalidate = 3600;

@@ -1,8 +1,8 @@
 'use client';
 
 import HeroSection from '@/components/platform/public/HeroSection';
-import LatestArticlesSection from '@/components/platform/public/LatestArticlesSection';
-import FeaturesGrid from '@/components/platform/public/FeaturesGrid';
+import { LatestArticlesSection as LatestArticlesSection } from '@ows/site-kit';
+import { FeaturesGrid as FeaturesGrid } from '@ows/site-kit';
 import { Content, HomepageSettings } from '@/types';
 
 interface HomePageContentProps {

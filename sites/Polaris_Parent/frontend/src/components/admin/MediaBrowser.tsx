@@ -1,5 +1,5 @@
 /**
- * 相容 shim —— 不是實作，實作在 @/components/platform/admin/MediaBrowser。
+ * 相容 shim —— 不是實作，實作在 @ows/admin-app/components/MediaBrowser。
  *
  * 為什麼需要這個檔案：
  * packages/ui/src/editor/TiptapEditor.tsx 直接 import '@/components/admin/MediaBrowser'，
@@ -16,5 +16,5 @@
  * （prop 或 context），共用套件就不再需要知道站台的目錄長相 —— 這個 shim
  * 與 packages/ui 對 '@/lib/utils' 的反向依賴可以一起消失。
  */
-export { default } from '@/components/platform/admin/MediaBrowser';
-export * from '@/components/platform/admin/MediaBrowser';
+export { default } from '@ows/admin-app/components/MediaBrowser';
+export * from '@ows/admin-app/components/MediaBrowser';

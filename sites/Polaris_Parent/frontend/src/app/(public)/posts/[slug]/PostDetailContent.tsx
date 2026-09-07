@@ -10,10 +10,10 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSlug from 'rehype-slug';
 import { Content } from '@/types';
 import { formatDateTime, getImageUrl, getGcsImageUrl } from '@/lib/utils';
-import { extractToc, extractKeyTakeaways } from '@/lib/articleContent';
-import { absoluteUrl } from '@/lib/seo';
-import ShareButtons from '@/components/platform/public/ShareButtons';
-import SaveArticleButton from '@/components/platform/public/SaveArticleButton';
+import { extractToc, extractKeyTakeaways } from '@ows/content-kit';
+import { absoluteUrl } from '@ows/site-kit';
+import { ShareButtons as ShareButtons } from '@ows/site-kit';
+import SaveArticleButton from '@/components/domain/membership/SaveArticleButton';
 
 interface PostDetailContentProps {
   post: Content;

@@ -7,7 +7,7 @@
  *   GET/POST/PATCH/DELETE /api/v1/admin/product-types
  *   GET/POST/PATCH        /api/v1/admin/coupon-configs
  */
-import { request } from './client';
+import { request } from '@ows/platform-api/client';
 import type { ExternalProduct } from './membership';
 
 export interface AdminOrderSubmission {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import HeroCarousel from './HeroCarousel';
+import { HeroCarousel } from '@ows/site-kit';
 import { HomepageSlide } from '@/types';
 
 interface HeroSectionProps {

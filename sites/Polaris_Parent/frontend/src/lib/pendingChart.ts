@@ -3,7 +3,7 @@
  * 訪客在排盤頁按「加入會員」CTA → 暫存生辰 → 前往 /login 合一頁；
  * 註冊（隨 /astrology/register 一併歸戶）或登入（補打 save-and-register）後清除。
  */
-import type { RegisterChartPayload } from '@/lib/api/auth';
+import type { RegisterChartPayload } from '@/lib/api/astrology';
 
 const KEY = 'polaris_pending_chart';
 
