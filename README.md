@@ -172,10 +172,11 @@ flask --app "sites.Claire_Project.backend.app:app" seed-rbac
 再升級，避免重跑建表 migration：
 
 ```powershell
-# 將現有 schema 標記為 baseline（不執行 DDL，僅記錄版本）
-flask --app "sites.Polaris_Parent.backend.app:app" db stamp 0001_baseline_schema --purge -d sites/Polaris_Parent/backend/migrations
-# 之後的增量 migration 照常 upgrade
+# P5-C 起分兩條鏈：共用平台鏈 + 站台鏈。順序不能反（站台的 FK 指向平台表）。
+# 兩條 baseline 都有冪等保護，既有資料庫直接 upgrade 即可，不需要人工 stamp。
+flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d core/migrations
 flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d sites/Polaris_Parent/backend/migrations
+# 詳見 docs/MIGRATIONS.md
 ```
 
 ---
@@ -406,7 +407,7 @@ flask --app sites.Polaris_Parent.backend.app:app create-admin
 > 若該資料庫先前是用舊版 `db.create_all()` 建出來的（表已存在但 `alembic_version`
 > 缺失或為舊值），先 stamp 對齊 baseline 再 upgrade：
 > ```bash
-> flask --app sites.Polaris_Parent.backend.app:app db stamp 0001_baseline_schema --purge -d sites/Polaris_Parent/backend/migrations
+> flask --app sites.Polaris_Parent.backend.app:app db stamp 0002_member_commerce_loop --purge -d sites/Polaris_Parent/backend/migrations
 > ```
 
 #### Schema 變更時
