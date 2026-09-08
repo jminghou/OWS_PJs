@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { contentApi, homepageApi } from '@/lib/api';
 import { Content } from '@/types';
 import HomePageContent from '@/components/platform/public/HomePageContent';
-import ZiweiHomeSection from '@/components/domain/ziwei/ZiweiHomeSection';
+import { ZiweiHomeSection as ZiweiHomeSection } from '@ows/ziwei-app';
 import { localeContent } from '@/i18n/homePageData';
 
 // ISR：每 60 秒重新驗證（新文章 60 秒內出現在首頁）

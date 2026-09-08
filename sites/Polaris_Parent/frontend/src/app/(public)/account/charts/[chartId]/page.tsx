@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
-import { StarfieldSection } from '@/components/domain/ziwei/starfield';
+import { StarfieldSection } from '@ows/ziwei-app';
 import { useAuthStore } from '@/store/auth';
 import { astrologyApi, membershipApi } from '@/lib/api';
 import type { MyPerson, MyChart, ZiweiCalcResponse } from '@/lib/api/astrology';

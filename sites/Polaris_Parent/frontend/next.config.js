@@ -11,13 +11,15 @@ const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
 
   // 轉譯 monorepo 內的套件
-  transpilePackages: ['@ows/ui', '@ows/ziwei-chart', '@ows/platform-api', '@ows/admin-app', '@ows/content-kit', '@ows/site-kit'],
+  transpilePackages: ['@ows/ui', '@ows/ziwei-chart', '@ows/platform-api', '@ows/admin-app', '@ows/content-kit', '@ows/site-kit', '@ows/ziwei-app'],
 
   // 以「路徑別名」解析 @ows/ziwei-chart（指向 monorepo 原始碼），不依賴 workspace symlink，
   // 讓 Vercel 子目錄建置也能解析（與 @ows/ui 用相對路徑的做法一致，修正長期建置失敗）。
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
+      '@ows/ziwei-app$': path.resolve(__dirname, '../../../packages/ziwei-app/src/index.ts'),
+      '@ows/ziwei-app': path.resolve(__dirname, '../../../packages/ziwei-app/src'),
       '@ows/ziwei-chart$': path.resolve(__dirname, '../../../packages/ziwei-chart/src/index.ts'),
       '@ows/ziwei-chart/core': path.resolve(__dirname, '../../../packages/ziwei-chart/src/core/index.ts'),
       // 與 tsconfig paths 對齊。既有的六層相對路徑 import 仍可用，

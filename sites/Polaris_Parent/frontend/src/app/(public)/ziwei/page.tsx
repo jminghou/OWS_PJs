@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import ZiweiChartForm from '@/components/domain/ziwei/ZiweiChartForm';
+import { ZiweiChartForm as ZiweiChartForm } from '@ows/ziwei-app';
 
 export const metadata: Metadata = {
   title: '紫微斗數 線上排盤',

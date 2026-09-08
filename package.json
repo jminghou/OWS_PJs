@@ -5,6 +5,7 @@
   "workspaces": [
     "packages/ui",
     "packages/ziwei-chart",
+    "packages/ziwei-app",
     "packages/platform-api",
     "packages/admin-app",
     "packages/content-kit",

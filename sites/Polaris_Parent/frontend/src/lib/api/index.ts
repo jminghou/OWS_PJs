@@ -53,7 +53,7 @@ export type {
 } from '@ows/platform-api';
 
 // ── 領域層（本站專屬）─────────────────────────────────────────────────────
-export { astrologyApi } from './astrology';
+export { astrologyApi } from '@ows/ziwei-app/api/astrology';
 export type {
   ZiweiCalcRequest,
   ZiweiCalcResponse,
@@ -79,7 +79,7 @@ export type {
   ReadingFieldSource,
   PalaceReading,
   PalaceReadingsPayload,
-} from './astrology';
+} from '@ows/ziwei-app/api/astrology';
 
 export { membershipApi } from './membership';
 export type {
@@ -111,7 +111,7 @@ import {
   authorApi,
   rbacApi,
 } from '@ows/platform-api';
-import { astrologyApi } from './astrology';
+import { astrologyApi } from '@ows/ziwei-app/api/astrology';
 import { membershipApi } from './membership';
 import { adminCommerceApi } from './admin-commerce';
 

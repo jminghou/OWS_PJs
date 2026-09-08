@@ -64,7 +64,8 @@ FORBIDDEN: list[tuple[str, str]] = [
 # 這幾個套件是刻意的站台專屬／凍結層，不受此檢查約束：
 #   ui           凍結，只服務 Claire（docs/FROZEN_CONTRACT.md）
 #   ziwei-chart  紫微斗數的互動命盤，本來就是 Polaris 領域
-EXEMPT_PACKAGES = {"ui", "ziwei-chart"}
+#   ziwei-app    紫微斗數的站台層（表單、星場、astrology API），同上
+EXEMPT_PACKAGES = {"ui", "ziwei-chart", "ziwei-app"}
 
 SKIP_DIRS = {"node_modules", ".next", "__pycache__", "dist", "cache"}
 

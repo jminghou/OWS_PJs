@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
-import Button from '@/components/platform/ui/Button';
-import { useAuthStore } from '@/store/auth';
-import { stashPendingChart } from '@/lib/pendingChart';
+import Button from '@ows/ui/ui/Button';
+import { useAuthStore } from '@ows/platform-api';
+import { stashPendingChart } from '../pendingChart';
 import {
   astrologyApi,
   type GeoHierarchy,
   type TimeType,
   type ZiweiCalcResponse,
-} from '@/lib/api';
+} from '../api/astrology';
 
 /**
  * 紫微斗數排盤「區塊模板」：出生時辰表單 + 命盤結果。

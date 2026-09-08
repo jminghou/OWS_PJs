@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
-import { StarfieldSection } from '@/components/domain/ziwei/starfield';
+import { StarfieldSection } from '@ows/ziwei-app';
 import { useAuthStore } from '@/store/auth';
 import { astrologyApi, membershipApi } from '@/lib/api';
 import type {
@@ -14,7 +14,7 @@ import type {
   ZiweiCalcResponse,
   SaveMyChartRequest,
 } from '@/lib/api/astrology';
-import MemberChartForm from '@/components/domain/ziwei/MemberChartForm';
+import { MemberChartForm as MemberChartForm } from '@ows/ziwei-app';
 import type {
   ExternalProduct,
   OrderSubmission,
