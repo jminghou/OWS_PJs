@@ -1,7 +1,8 @@
+// 必須最先載入：注入站台識別到 @ows/site-kit（見該檔說明）
+import { SITE_URL } from '@/siteConfig';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { SITE_URL } from '@/lib/seo';
 
 // 拉丁字（英文/數字）走 Inter；中文一律走微軟正黑體（見 tailwind sans 設定）
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });

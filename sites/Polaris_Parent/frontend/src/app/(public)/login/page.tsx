@@ -8,7 +8,7 @@ import {
   loadPendingChart,
   clearPendingChart,
 } from '@/lib/pendingChart';
-import type { RegisterChartPayload } from '@/lib/api/auth';
+import type { RegisterChartPayload } from '@/lib/api/astrology';
 import Button from '@/components/platform/ui/Button';
 
 /**
@@ -87,9 +87,9 @@ function LoginContent() {
         chart: pendingChart ?? undefined,
       });
       clearPendingChart();
-      if (res.chart_warning) {
+      if (res.warning) {
         // 已註冊並登入，但命盤沒存成功 → 留在本頁顯示警告
-        setChartWarning(res.chart_warning);
+        setChartWarning(res.warning);
         return;
       }
       // 剛排的命盤已歸戶 → 直接開啟該命盤詳情頁（互動命盤），否則回會員中心

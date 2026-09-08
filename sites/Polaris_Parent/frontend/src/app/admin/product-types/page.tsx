@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { adminCommerceApi } from '@/lib/api';
 import type { ExternalProduct } from '@/lib/api/membership';
-import AdminLayout from '@/components/platform/admin/AdminLayout';
+import { AdminLayout } from '@ows/admin-app';
 import Button from '@/components/platform/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/platform/ui/Card';
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import LanguageSwitcher from './LanguageSwitcher';
+import { LanguageSwitcher } from '@ows/site-kit';
 import { useAuthStore } from '@/store/auth';
 
 // 多語言導航內容

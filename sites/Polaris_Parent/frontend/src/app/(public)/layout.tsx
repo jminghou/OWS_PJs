@@ -1,7 +1,7 @@
 import PublicHeader from '@/components/platform/public/PublicHeader';
 import PublicFooter from '@/components/platform/public/PublicFooter';
-import JsonLd from '@/components/platform/seo/JsonLd';
-import { organizationJsonLd, websiteJsonLd } from '@/lib/seo';
+import { JsonLd } from '@ows/site-kit';
+import { organizationJsonLd, websiteJsonLd } from '@ows/site-kit';
 
 export default function PublicLayout({
   children,

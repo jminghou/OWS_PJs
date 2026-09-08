@@ -34,6 +34,30 @@
       "@ows/ui/*": [
         "../../../packages/ui/src/*"
       ],
+      "@ows/admin-app": [
+        "../../../packages/admin-app/src/index.ts"
+      ],
+      "@ows/admin-app/*": [
+        "../../../packages/admin-app/src/*"
+      ],
+      "@ows/site-kit": [
+        "../../../packages/site-kit/src/index.ts"
+      ],
+      "@ows/site-kit/*": [
+        "../../../packages/site-kit/src/*"
+      ],
+      "@ows/content-kit": [
+        "../../../packages/content-kit/src/index.ts"
+      ],
+      "@ows/content-kit/*": [
+        "../../../packages/content-kit/src/*"
+      ],
+      "@ows/platform-api": [
+        "../../../packages/platform-api/src/index.ts"
+      ],
+      "@ows/platform-api/*": [
+        "../../../packages/platform-api/src/*"
+      ],
       "@ows/ziwei-chart": [
         "../../../packages/ziwei-chart/src/index.ts"
       ],

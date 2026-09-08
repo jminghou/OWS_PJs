@@ -12,18 +12,39 @@ from alembic import context
 # public.alembic_version 互不干擾。include_name 嚴格限定 autogenerate 只比對
 # blog/shop，避免把 account/graph/public 既有表誤判為「待刪除」。
 # =============================================================================
+try:
+    from packages.media_lib.config import SCHEMA_NAME as _MEDIA_LIB_SCHEMA
+except Exception:  # pragma: no cover - 未安裝媒體庫時不擋 migration
+    _MEDIA_LIB_SCHEMA = None
+
 _OWNED_SCHEMAS = {s for s in (
     os.environ.get('OWS_BLOG_SCHEMA'),
     os.environ.get('OWS_SHOP_SCHEMA'),
+    # media_lib 也是本站擁有的 schema（表由 packages/media_lib 定義，
+    # 但實體存在本站的資料庫裡）。它原本沒列進來，導致 autogenerate 看不見
+    # 媒體庫的表 —— 這就是為什麼整個 media_lib schema 從來沒進過 migration 鏈，
+    # 而 Polaris 因此無法從零重建資料庫。見 scripts/check_schema_drift.py。
+    _MEDIA_LIB_SCHEMA,
 ) if s}
 _VERSION_TABLE_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA') or None
 
 
 def _include_name(name, type_, parent_names):
-    """只讓 autogenerate 反射本站擁有的 schema（blog/shop）。"""
+    """只讓 autogenerate 反射本站擁有的 schema（blog / shop / media_lib）。"""
     if type_ == 'schema':
         return name in _OWNED_SCHEMAS
     return True
+
+
+# P5-C：平台資料表已移交 core/migrations（共用鏈）。
+#
+# 這裡要把它們從**站台鏈**的 autogenerate 排除，否則改一個 core 模型欄位時，
+# `flask db migrate -d sites/.../migrations` 會把 migration 產在站台鏈裡 ——
+# 那正是 C 要消滅的情況（每站各寫一份、各自漂移）。core 的變更只能進 core 鏈。
+try:
+    from core.backend_engine.migrations_manifest import PLATFORM_TABLES as _CORE_TABLES
+except Exception:  # pragma: no cover - 匯入失敗時不擋 migration
+    _CORE_TABLES = frozenset()
 
 
 # 第二期：blog.users 改為 view、RBAC 四表淘汰、member_profiles 由 SQL 自管，
@@ -38,6 +59,9 @@ def _table_managed(schema, table_name):
     if schema not in _OWNED_SCHEMAS:
         return False
     if schema == _BLOG_SCHEMA_NAME and table_name in _BLOG_UNMANAGED_TABLES:
+        return False
+    # 平台表歸 core 鏈，站台鏈不碰
+    if table_name in _CORE_TABLES:
         return False
     return True
 

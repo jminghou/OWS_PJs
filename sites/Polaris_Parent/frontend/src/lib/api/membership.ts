@@ -9,7 +9,7 @@
  *   POST   /api/v1/membership/saved-articles
  *   DELETE /api/v1/membership/saved-articles/:contentId
  */
-import { request } from './client';
+import { request } from '@ows/platform-api/client';
 
 export interface ExternalProduct {
   id: number;

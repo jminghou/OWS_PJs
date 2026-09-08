@@ -4,7 +4,7 @@
  *   POST /api/v1/astrology/calculate
  *   GET  /api/v1/astrology/geo-options
  */
-import { API_URL, request } from './client';
+import { API_URL, request } from '@ows/platform-api/client';
 
 export type TimeType = 'clock_time' | 'solar_time';
 
@@ -262,6 +262,25 @@ export interface SaveAndRegisterResponse {
 }
 
 /** 結構化生辰（供重繪：以此打 /calculate）。 */
+/**
+ * 註冊時附帶的命盤（註冊成功後自動歸戶）。
+ *
+ * P2 之前這個型別住在通用的 auth API client 裡，等於平台層知道「命盤」是什麼。
+ * 現在它回到領域層 —— core 的 /auth/member/register 只收 email/password，
+ * 其餘欄位原樣轉給站台登記的 signup hook。
+ */
+export interface RegisterChartPayload {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute?: number;
+  gender: string; // 男 / 女
+  name?: string;
+  place?: string;
+  relation?: string; // 預設 self
+}
+
 export interface ChartBirth {
   year: number;
   month: number;

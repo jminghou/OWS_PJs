@@ -4,9 +4,9 @@ import { notFound } from 'next/navigation';
 import { contentApi } from '@/lib/api';
 import { Content } from '@/types';
 import PostDetailContent from './PostDetailContent';
-import JsonLd from '@/components/platform/seo/JsonLd';
-import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@/lib/seo';
-import { getRelatedPosts } from '@/lib/relatedPosts';
+import { JsonLd } from '@ows/site-kit';
+import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@ows/site-kit';
+import { getRelatedPosts } from '@ows/site-kit';
 
 // ISR：靜態產生 + 每小時背景重新驗證。文章頁因此從 Vercel 邊緣快取直接送出（點擊秒開），
 // 慢的後端 API 只在「建置 / 背景重新產生」時才被呼叫，不會卡到使用者。

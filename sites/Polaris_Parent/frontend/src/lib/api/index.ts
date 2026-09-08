@@ -1,10 +1,28 @@
-export { request, API_URL } from './client';
-export type { FetchOptions } from './client';
+/**
+ * Polaris 的 API barrel —— 平台能力 + 本站領域能力的組裝點。
+ *
+ * 平台部分（內容、媒體、商品、訂單、設定、使用者、RBAC、會員身分）住在
+ * @ows/platform-api，對應 core/backend_engine 的 REST 契約，第三個站台直接複用。
+ *
+ * 領域部分（紫微排盤、會員商業循環）留在本站 lib/api 下，不進共用套件。
+ *
+ * 這個檔案是**唯一**允許同時引用兩層的地方 —— 它就是組裝層，
+ * 等同 app/ 下的頁面。平台模組本身不得反向依賴領域模組
+ * （由 scripts/check_layering.py 稽核）。
+ */
 
-export { authApi } from './auth';
-export { contentApi, categoryApi, tagApi } from './content';
-export { mediaApi, tagApi as mediaTagApi } from './media';
+// ── 平台層（@ows/platform-api）────────────────────────────────────────────
 export {
+  request,
+  API_URL,
+  RequestError,
+  configurePlatformApi,
+  authApi,
+  contentApi,
+  categoryApi,
+  tagApi,
+  mediaApi,
+  mediaTagApi,
   getOptimizedImageUrl,
   getThumbnailUrl,
   getSmallImageUrl,
@@ -13,16 +31,28 @@ export {
   getOriginalImageUrl,
   hasResponsiveFormats,
   getAvailableFormats,
-} from './imageUtils';
-export type { ImageSize } from './imageUtils';
-export { productApi } from './products';
-export { orderApi, paymentMethodApi } from './orders';
-export { i18nApi, homepageApi } from './settings';
-export type { I18nSettings } from './settings';
-export { userApi, submissionApi } from './users';
-export { authorApi } from './authors';
-export type { AuthorContentCard, AuthorDetailResponse } from './authors';
-export { rbacApi } from './rbac';
+  productApi,
+  orderApi,
+  paymentMethodApi,
+  i18nApi,
+  homepageApi,
+  userApi,
+  submissionApi,
+  authorApi,
+  rbacApi,
+} from '@ows/platform-api';
+
+export type {
+  FetchOptions,
+  ImageSize,
+  I18nSettings,
+  AuthorContentCard,
+  AuthorDetailResponse,
+  LoginResponse,
+  RegisterResponse,
+} from '@ows/platform-api';
+
+// ── 領域層（本站專屬）─────────────────────────────────────────────────────
 export { astrologyApi } from './astrology';
 export type {
   ZiweiCalcRequest,
@@ -34,6 +64,7 @@ export type {
   SaveAndRegisterResponse,
   SaveMyChartRequest,
   ChartBirth,
+  RegisterChartPayload,
   MyChart,
   MyPerson,
   MyFavorite,
@@ -49,6 +80,7 @@ export type {
   PalaceReading,
   PalaceReadingsPayload,
 } from './astrology';
+
 export { membershipApi } from './membership';
 export type {
   ExternalProduct,
@@ -57,19 +89,28 @@ export type {
   SavedArticle,
   CreateOrderSubmissionRequest,
 } from './membership';
+
 export { adminCommerceApi } from './admin-commerce';
 export type { AdminOrderSubmission, CouponConfig } from './admin-commerce';
 
-// Default export for backwards compatibility
-import { authApi } from './auth';
-import { contentApi, categoryApi, tagApi } from './content';
-import { mediaApi, tagApi as mediaTagApi } from './media';
-import { productApi } from './products';
-import { orderApi, paymentMethodApi } from './orders';
-import { i18nApi, homepageApi } from './settings';
-import { userApi, submissionApi } from './users';
-import { authorApi } from './authors';
-import { rbacApi } from './rbac';
+// ── 預設匯出（向後相容）────────────────────────────────────────────────────
+import {
+  authApi,
+  contentApi,
+  categoryApi,
+  tagApi,
+  mediaApi,
+  mediaTagApi,
+  productApi,
+  orderApi,
+  paymentMethodApi,
+  i18nApi,
+  homepageApi,
+  userApi,
+  submissionApi,
+  authorApi,
+  rbacApi,
+} from '@ows/platform-api';
 import { astrologyApi } from './astrology';
 import { membershipApi } from './membership';
 import { adminCommerceApi } from './admin-commerce';

@@ -12,15 +12,13 @@ from packages.media_lib.config import SCHEMA_NAME
 
 SCHEMA_ARGS = {'schema': SCHEMA_NAME}
 
-# 使用者外鍵目標（統一資料庫架構 §11）：
-# Polaris（OWS_BLOG_SCHEMA 有設）→ account.app_users(BIGINT)，身分集中於紫微側；
-# 其他站（未設）→ 自身 users 表(Integer)，行為不變。
-if os.environ.get('OWS_BLOG_SCHEMA'):
-    _USERS_FK = 'account.app_users.id'
-    _USERS_ID_TYPE = db.BigInteger
-else:
-    _USERS_FK = 'users.id'
-    _USERS_ID_TYPE = db.Integer
+# 使用者外鍵目標（統一資料庫架構 §11）。
+#
+# 直接沿用 core 的判斷，不要在這裡複製一份規則 —— 原本兩邊各寫一次
+# 「OWS_BLOG_SCHEMA 有設就指向 account.app_users」，等於同一個決定有兩個真相來源，
+# 改一邊忘另一邊就會產生只在 migration 階段才炸的不一致。
+from core.backend_engine.models import _USER_FK_TARGET as _USERS_FK  # noqa: E402
+from core.backend_engine.models import _USER_ID_TYPE as _USERS_ID_TYPE  # noqa: E402
 
 
 # =============================================================================
