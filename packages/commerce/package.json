@@ -1,0 +1,12 @@
+{
+  "name": "@ows/commerce",
+  "version": "0.1.0",
+  "private": true,
+  "description": "電商模組（選用）：商品／價格／訂單／付款方式的後台頁面與 API client。後端見同目錄的 Python 套件",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts", "./api": "./src/api/index.ts", "./pages/*": "./src/pages/*.tsx", "./*": "./src/*.ts" },
+  "scripts": { "typecheck": "tsc --noEmit -p tsconfig.json" },
+  "peerDependencies": { "next": "^15.0.0", "react": "^18.0.0", "react-dom": "^18.0.0" },
+  "devDependencies": { "typescript": "^5" }
+}

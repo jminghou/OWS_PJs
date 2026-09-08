@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { productApi } from '@ows/platform-api';
+import { productApi } from '../api/products';
 import { ProductTranslation } from '@ows/platform-api/types';
 
 interface ProductLanguageManagerProps {

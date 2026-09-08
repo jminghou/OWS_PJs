@@ -4,7 +4,9 @@ Revision ID: 0001_core_baseline
 Revises:
 
 管理範圍：
-    core/backend_engine/models.py 的 20 張表 + packages/media_lib 的 6 張表。
+    core/backend_engine/models.py 的 17 張表 + packages/media_lib 的 6 張表。
+    電商 5 張表（products / product_prices / product_tags / orders / payment_methods）
+    自 P-commerce 起歸 packages/commerce/migrations（選用模組，站台不掛就不建）。
     這些是**平台**的表，每個站台都需要一份；站台自己的擴充表歸站台的 migration 鏈。
 
 為什麼獨立成一條鏈：
@@ -335,24 +337,6 @@ def upgrade():
     with op.batch_alter_table('tags', schema=MEDIA_LIB) as batch_op:
         batch_op.create_index(ix(MEDIA_LIB, 'tags_slug'), ['slug'], unique=True)
 
-    op.create_table('payment_methods',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('code', sa.String(length=50), nullable=False),
-    sa.Column('name', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('description', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('supported_currencies', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('config', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('sort_order', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    schema=SHOP
-    )
-    with op.batch_alter_table('payment_methods', schema=SHOP) as batch_op:
-        batch_op.create_index(ix(SHOP, 'payment_methods_code'), ['code'], unique=True)
-        batch_op.create_index(ix(SHOP, 'payment_methods_is_active'), ['is_active'], unique=False)
-
     op.create_table('activity_logs',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', USER_ID_TYPE, nullable=True),
@@ -476,29 +460,6 @@ def upgrade():
     with op.batch_alter_table('file_variants', schema=MEDIA_LIB) as batch_op:
         batch_op.create_index(ix(MEDIA_LIB, 'file_variants_file_id'), ['file_id'], unique=False)
 
-    op.create_table('orders',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('order_no', sa.String(length=50), nullable=False),
-    sa.Column('user_id', USER_ID_TYPE, nullable=False),
-    sa.Column('amount', sa.Integer(), nullable=False),
-    sa.Column('status', sa.String(length=20), nullable=True),
-    sa.Column('items', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('language', sa.String(length=10), nullable=False),
-    sa.Column('currency', sa.String(length=10), nullable=False),
-    sa.Column('payment_method', sa.String(length=50), nullable=True),
-    sa.Column('attributes', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('paid_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], [_user_fk()], ),
-    sa.PrimaryKeyConstraint('id'),
-    schema=SHOP
-    )
-    with op.batch_alter_table('orders', schema=SHOP) as batch_op:
-        batch_op.create_index(ix(SHOP, 'orders_currency'), ['currency'], unique=False)
-        batch_op.create_index(ix(SHOP, 'orders_order_no'), ['order_no'], unique=True)
-        batch_op.create_index(ix(SHOP, 'orders_payment_method'), ['payment_method'], unique=False)
-        batch_op.create_index(ix(SHOP, 'orders_status'), ['status'], unique=False)
-
     op.create_table('comments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('content_id', sa.Integer(), nullable=False),
@@ -543,72 +504,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     schema=BLOG
     )
-    op.create_table('products',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('product_id', sa.String(length=100), nullable=False),
-    sa.Column('names', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('descriptions', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('short_descriptions', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('price', sa.Integer(), nullable=False),
-    sa.Column('original_price', sa.Integer(), nullable=True),
-    sa.Column('stock_quantity', sa.Integer(), nullable=True),
-    sa.Column('stock_status', sa.String(length=20), nullable=True),
-    sa.Column('featured_image', sa.String(length=500), nullable=True),
-    sa.Column('gallery_images', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('category_id', sa.Integer(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('is_featured', sa.Boolean(), nullable=True),
-    sa.Column('sort_order', sa.Integer(), nullable=True),
-    sa.Column('meta_title', sa.String(length=200), nullable=True),
-    sa.Column('meta_description', sa.Text(), nullable=True),
-    sa.Column('views_count', sa.Integer(), nullable=True),
-    sa.Column('sales_count', sa.Integer(), nullable=True),
-    sa.Column('detail_content_id', sa.Integer(), nullable=True),
-    sa.Column('language', sa.String(length=10), nullable=False),
-    sa.Column('original_id', sa.Integer(), nullable=True),
-    sa.Column('attributes', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('meta_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['category_id'], [q(BLOG, 'categories.id')], ),
-    sa.ForeignKeyConstraint(['detail_content_id'], [q(BLOG, 'contents.id')], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['original_id'], [q(SHOP, 'products.id')], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('product_id', 'language', name='uq_product_id_language'),
-    schema=SHOP
-    )
-    with op.batch_alter_table('products', schema=SHOP) as batch_op:
-        batch_op.create_index(ix(SHOP, 'products_category_id'), ['category_id'], unique=False)
-        batch_op.create_index(ix(SHOP, 'products_is_active'), ['is_active'], unique=False)
-        batch_op.create_index(ix(SHOP, 'products_language'), ['language'], unique=False)
-        batch_op.create_index(ix(SHOP, 'products_product_id'), ['product_id'], unique=False)
-
-    op.create_table('product_prices',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('product_id', sa.Integer(), nullable=False),
-    sa.Column('currency', sa.String(length=10), nullable=False),
-    sa.Column('price', sa.Integer(), nullable=False),
-    sa.Column('original_price', sa.Integer(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['product_id'], [q(SHOP, 'products.id')], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('product_id', 'currency', name='uq_product_currency'),
-    schema=SHOP
-    )
-    with op.batch_alter_table('product_prices', schema=SHOP) as batch_op:
-        batch_op.create_index(ix(SHOP, 'product_prices_currency'), ['currency'], unique=False)
-        batch_op.create_index(ix(SHOP, 'product_prices_is_active'), ['is_active'], unique=False)
-
-    op.create_table('product_tags',
-    sa.Column('product_id', sa.Integer(), nullable=False),
-    sa.Column('tag_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['product_id'], [q(SHOP, 'products.id')], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['tag_id'], [q(BLOG, 'tags.id')], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('product_id', 'tag_id'),
-    schema=SHOP
-    )
     # ### end Alembic commands ###
 
 
@@ -616,32 +511,12 @@ def downgrade():
     if not (set(sa.inspect(op.get_bind()).get_table_names(schema=BLOG)) & set(_CORE_TABLES)):
         return
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table('product_tags', schema=SHOP)
-    with op.batch_alter_table('product_prices', schema=SHOP) as batch_op:
-        batch_op.drop_index(ix(SHOP, 'product_prices_is_active'))
-        batch_op.drop_index(ix(SHOP, 'product_prices_currency'))
-
-    op.drop_table('product_prices', schema=SHOP)
-    with op.batch_alter_table('products', schema=SHOP) as batch_op:
-        batch_op.drop_index(ix(SHOP, 'products_product_id'))
-        batch_op.drop_index(ix(SHOP, 'products_language'))
-        batch_op.drop_index(ix(SHOP, 'products_is_active'))
-        batch_op.drop_index(ix(SHOP, 'products_category_id'))
-
-    op.drop_table('products', schema=SHOP)
     op.drop_table('menu_items', schema=BLOG)
     op.drop_table('content_tags', schema=BLOG)
     with op.batch_alter_table('comments', schema=BLOG) as batch_op:
         batch_op.drop_index(ix(BLOG, 'comments_status'))
 
     op.drop_table('comments', schema=BLOG)
-    with op.batch_alter_table('orders', schema=SHOP) as batch_op:
-        batch_op.drop_index(ix(SHOP, 'orders_status'))
-        batch_op.drop_index(ix(SHOP, 'orders_payment_method'))
-        batch_op.drop_index(ix(SHOP, 'orders_order_no'))
-        batch_op.drop_index(ix(SHOP, 'orders_currency'))
-
-    op.drop_table('orders', schema=SHOP)
     with op.batch_alter_table('file_variants', schema=MEDIA_LIB) as batch_op:
         batch_op.drop_index(ix(MEDIA_LIB, 'file_variants_file_id'))
 
@@ -669,11 +544,6 @@ def downgrade():
         batch_op.drop_index(ix(BLOG, 'activity_logs_created_at'))
 
     op.drop_table('activity_logs', schema=BLOG)
-    with op.batch_alter_table('payment_methods', schema=SHOP) as batch_op:
-        batch_op.drop_index(ix(SHOP, 'payment_methods_is_active'))
-        batch_op.drop_index(ix(SHOP, 'payment_methods_code'))
-
-    op.drop_table('payment_methods', schema=SHOP)
     with op.batch_alter_table('tags', schema=MEDIA_LIB) as batch_op:
         batch_op.drop_index(ix(MEDIA_LIB, 'tags_slug'))
 

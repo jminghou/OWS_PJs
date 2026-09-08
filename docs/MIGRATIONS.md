@@ -24,8 +24,13 @@ core 改一次，所有掛載共用鏈的站台吃到同一份 migration。
 
 | 鏈 | 位置 | 版本表 | 管什麼 |
 |---|---|---|---|
-| 共用平台鏈 | `core/migrations` | `alembic_version_core` | `core/backend_engine/models.py` 的 22 張表 + `packages/media_lib` 的 6 張 |
+| 共用平台鏈 | `core/migrations` | `alembic_version_core` | `core/backend_engine/models.py` 的 17 張表 + `packages/media_lib` 的 6 張 |
+| 電商鏈（選用） | `packages/commerce/migrations` | `alembic_version_commerce` | products / product_prices / product_tags / orders / payment_methods |
 | 站台鏈 | `sites/<站>/backend/migrations` | `alembic_version` | 該站 extension 的表 |
+
+電商是**選用模組**（`COMMERCE_ENABLED`）：既有站台（Polaris / Claire）沒設此鍵 → 預設掛載、維持現狀；
+新站台由 `BaseSiteConfig` 預設關閉，不掛就沒有這 5 張表、路由與權限。掛載時由 core factory
+的 `OPTIONAL_MODULES` 以字串載入，core 不靜態 import 電商。
 
 兩個版本表名稱不同，所以兩條鏈可以各自演進、互不干擾。
 
@@ -40,11 +45,14 @@ core 改一次，所有掛載共用鏈的站台吃到同一份 migration。
 # 1. 共用平台鏈（先）—— 站台的 FK 指向平台表，順序反了會失敗
 flask --app "sites.<站>.backend.app:app" db upgrade -d core/migrations
 
-# 2. 站台鏈（後）
+# 2. 電商鏈（只有 COMMERCE_ENABLED 的站台）—— products 的 FK 指向 core 的 categories/contents/tags
+flask --app "sites.<站>.backend.app:app" db upgrade -d packages/commerce/migrations
+
+# 3. 站台鏈（後）
 flask --app "sites.<站>.backend.app:app" db upgrade -d sites/<站>/backend/migrations
 ```
 
-兩條鏈的 baseline 都有**冪等保護**：偵測到表已存在就整條跳過、只記錄版本。
+三條鏈的 baseline 都有**冪等保護**：偵測到表已存在就整條跳過、只記錄版本。
 所以既有資料庫直接跑 upgrade 即可，**不需要人工 stamp**。
 
 ---
@@ -60,6 +68,7 @@ flask --app "sites.<站>.backend.app:app" db upgrade -d sites/<站>/backend/migr
 | `OWS_IDENTITY_MODE` | `local` | `local` = 站台自己的 `users` 表（Integer）<br>`external` = 外部身分系統（BigInteger） |
 | `OWS_EXTERNAL_USER_TABLE` | `account.app_users` | `external` 模式的目標表 |
 | `OWS_CORE_UNMANAGED_TABLES` | 空 | 由站台 SQL 自管、不歸 alembic 的表（逗號分隔） |
+| `COMMERCE_ENABLED` | 未設 → 掛載；`BaseSiteConfig` → `false` | 電商模組（表／路由／權限）是否掛載 |
 
 `OWS_IDENTITY_MODE` 是 P5-C 從 `OWS_BLOG_SCHEMA` 拆出來的。原本一個變數同時決定
 「表放哪個 schema」和「用哪種身分模型」，導致第三個站台無法「用 schema 分流表、

@@ -29,8 +29,5 @@ from core.backend_engine.blueprints.api import (
     submissions,
     users,
     authors,
-    ecommerce,
-    orders,
-    products,
     rbac_admin,
 )

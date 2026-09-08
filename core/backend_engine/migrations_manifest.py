@@ -17,7 +17,7 @@ migration，而且是靜默失效。
 
 from __future__ import annotations
 
-# core/backend_engine/models.py 定義的表
+# core/backend_engine/models.py 定義的表（電商 5 張自 P-commerce 起歸 packages/commerce）
 CORE_TABLES = frozenset({
     'activity_logs',
     'categories',
@@ -28,12 +28,7 @@ CORE_TABLES = frozenset({
     'homepage_slides',
     'menu_items',
     'menus',
-    'orders',
-    'payment_methods',
     'permissions',
-    'product_prices',
-    'product_tags',
-    'products',
     'role_permissions',
     'roles',
     'settings',

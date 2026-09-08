@@ -31,9 +31,6 @@ export {
   getOriginalImageUrl,
   hasResponsiveFormats,
   getAvailableFormats,
-  productApi,
-  orderApi,
-  paymentMethodApi,
   i18nApi,
   homepageApi,
   userApi,
@@ -41,6 +38,9 @@ export {
   authorApi,
   rbacApi,
 } from '@ows/platform-api';
+
+// 電商（選用套件）
+export { productApi, orderApi, paymentMethodApi } from '@ows/commerce';
 
 export type {
   FetchOptions,
@@ -101,9 +101,6 @@ import {
   tagApi,
   mediaApi,
   mediaTagApi,
-  productApi,
-  orderApi,
-  paymentMethodApi,
   i18nApi,
   homepageApi,
   userApi,
@@ -114,6 +111,7 @@ import {
 import { astrologyApi } from '@ows/ziwei-app/api/astrology';
 import { membershipApi } from './membership';
 import { adminCommerceApi } from './admin-commerce';
+import { productApi, orderApi, paymentMethodApi } from '@ows/commerce';
 
 const api = {
   auth: authApi,

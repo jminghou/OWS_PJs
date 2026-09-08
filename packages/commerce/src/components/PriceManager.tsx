@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { productApi } from '@ows/platform-api';
+import { productApi } from '../api/products';
 import { ProductPrice, CreateProductPriceData } from '@ows/platform-api/types';
 import { getCurrencySymbol, getCurrencyName, getSupportedCurrencies } from '@ows/ui/lib/currency';
 

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { productApi, categoryApi, tagApi } from '@ows/platform-api';
+import { categoryApi, tagApi } from '@ows/platform-api';
+import { productApi } from '../../api/products';
 import { ProductAdmin, Category, Tag } from '@ows/platform-api/types';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout from '@ows/admin-app/components/AdminLayout';
 import { AdminListLayout, AdminEmptyState } from '@ows/ui/admin';
 import { ProductSidebar, ProductForm } from './_components';
 import type { CreateFormData, EditFormData } from './_components';

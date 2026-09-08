@@ -8,8 +8,8 @@ import type {
   ProductPriceListResponse,
   CreateProductPriceData,
   ProductTranslationListResponse,
-} from './types';
-import { request, type FetchOptions } from './client';
+} from '@ows/platform-api/types';
+import { request, type FetchOptions } from '@ows/platform-api/client';
 
 export const productApi = {
   getList: async (params?: {
