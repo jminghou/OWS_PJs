@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { PalaceReadingsPayload } from '@/lib/api';
+import type { PalaceReadingsPayload } from '../../api/astrology';
 import { ChartTooltip, TipDivider, TipRow, TipTitle, useChartTooltip } from './ChartTooltip';
 
 /**

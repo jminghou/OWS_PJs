@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { StarEnergyCard, StarEnergyStep } from '@/lib/api';
+import type { StarEnergyCard, StarEnergyStep } from '../../api/astrology';
 
 /**
  * 單顆星的 E 組成瀑布圖。

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { StarEnergyCard, StarEnergyPayload } from '@/lib/api';
+import type { StarEnergyCard, StarEnergyPayload } from '../../api/astrology';
 import StarEnergyWaterfall from './StarEnergyWaterfall';
 
 /**

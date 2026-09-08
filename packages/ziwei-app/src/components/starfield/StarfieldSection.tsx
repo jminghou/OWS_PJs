@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { PalaceReadingsPayload, StarEnergyPayload } from '@/lib/api';
+import type { PalaceReadingsPayload, StarEnergyPayload } from '../../api/astrology';
 import PalaceAuxHeatmap from './PalaceAuxHeatmap';
 import PalaceChordDiagram from './PalaceChordDiagram';
 import SihuaSankey from './SihuaSankey';

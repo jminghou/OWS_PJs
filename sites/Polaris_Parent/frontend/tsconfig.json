@@ -58,6 +58,12 @@
       "@ows/platform-api/*": [
         "../../../packages/platform-api/src/*"
       ],
+      "@ows/ziwei-app": [
+        "../../../packages/ziwei-app/src/index.ts"
+      ],
+      "@ows/ziwei-app/*": [
+        "../../../packages/ziwei-app/src/*"
+      ],
       "@ows/ziwei-chart": [
         "../../../packages/ziwei-chart/src/index.ts"
       ],

@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Button from '@/components/platform/ui/Button';
+import Button from '@ows/ui/ui/Button';
 import {
   astrologyApi,
   type GeoHierarchy,
   type TimeType,
   type ZiweiCalcResponse,
   type SaveMyChartRequest,
-} from '@/lib/api';
+} from '../api/astrology';
 
 /**
  * 會員中心排盤表單：完整生辰欄位 + 「關係」「資料評級」。

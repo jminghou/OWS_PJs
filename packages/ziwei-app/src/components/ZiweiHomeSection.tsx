@@ -1,6 +1,6 @@
 'use client';
 
-import ZiweiChartForm from '@/components/domain/ziwei/ZiweiChartForm';
+import ZiweiChartForm from './ZiweiChartForm';
 
 /**
  * 首頁的「線上排盤」區塊（服務與產品 ↔ footer 之間）。
