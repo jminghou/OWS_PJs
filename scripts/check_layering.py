@@ -48,6 +48,10 @@ DOMAIN_PREFIXES = (
     "lib/pendingChart",
 )
 
+# 領域套件：平台檔案不得 import。紫微的站台層自 P-ziwei 起住在 packages/ziwei-app，
+# 「刪掉 domain/ 仍可編譯」這條驗收現在等價於「平台層不依賴這些套件」。
+DOMAIN_PACKAGES = ("@ows/ziwei-app", "@ows/ziwei-chart")
+
 # --- 平台模組：抽進 packages/* 的候選，必須自給自足 ---------------------------
 PLATFORM_PREFIXES = (
     "components/platform/",
@@ -84,6 +88,7 @@ EXEMPT = {
 }
 
 IMPORT_RE = re.compile(r"""from\s+['"]@/([\w./\-]+)['"]""")
+PKG_IMPORT_RE = re.compile(r"""from\s+['"](@ows/[\w\-]+)(?:/[\w./\-]*)?['"]""")
 # 相對 import 也要看 —— lib/api 內部用的是 './astrology' 這種寫法，
 # 只掃 @/ 別名會漏掉同目錄內的平台→領域依賴。
 REL_IMPORT_RE = re.compile(r"""from\s+['"](\.{1,2}/[\w./\-]+)['"]""")
@@ -159,6 +164,11 @@ def main() -> int:
             if is_domain_import(target):
                 lineno = text[: match.start()].count("\n") + 1
                 violations.append(f"{module}:{lineno}  →  @/{target}")
+
+        for match in PKG_IMPORT_RE.finditer(text):
+            if match.group(1) in DOMAIN_PACKAGES:
+                lineno = text[: match.start()].count("\n") + 1
+                violations.append(f"{module}:{lineno}  →  {match.group(1)}（領域套件）")
 
         for match in NAMED_IMPORT_RE.finditer(text):
             names = {n.strip().split(" as ")[0].strip() for n in match.group(1).split(",")}

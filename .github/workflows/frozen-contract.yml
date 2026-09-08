@@ -78,7 +78,7 @@ jobs:
       - name: tsc --noEmit（各套件）
         run: |
           set -e
-          for pkg in content-kit platform-api site-kit admin-app; do
+          for pkg in content-kit platform-api site-kit admin-app ziwei-app; do
             echo "── packages/$pkg ──"
             (cd "packages/$pkg" && npx tsc --noEmit -p tsconfig.json)
           done
