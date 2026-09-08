@@ -11,7 +11,7 @@ name: Frozen Contract (Claire 不被改壞)
 #   5. claire-backend  Claire 後端仍能建立 Flask app（core 的 Python 契約沒破）
 #   6. manifest       平台表清單未過期（migration 產在正確的鏈）
 #   7. third-site     現場產生第三站台，驗證平台真的可複用、建置產物無他站字串
-#   8. claire-frontend Claire 前端型別檢查通過（packages/ui 的 export 面沒破）
+#   8. claire-frontend Claire 前端型別檢查 + 完整 next build（packages/ui 的 export 面沒破、建置期無問題）
 
 on:
   pull_request:
@@ -261,3 +261,11 @@ jobs:
       - name: tsc --noEmit
         working-directory: sites/Claire_Project/frontend
         run: npx tsc --noEmit
+
+      # 完整建置，不只型別檢查。
+      # 型別檢查抓不到「建置期 fetch 拿到相對網址」這類問題 —— Claire 的 Vercel
+      # 預覽從 2026-06-08 起壞了三個月，是 Vercel 告訴我們的，不是我們自己的守門。
+      # 這裡沒有 NEXT_PUBLIC_API_URL，next.config 會退到絕對的 127.0.0.1，
+      # 建置期 fetch 快速失敗、被接住、非致命 —— 跟本機建置行為一致。
+      - name: next build
+        run: npm run build --workspace=claire-frontend
