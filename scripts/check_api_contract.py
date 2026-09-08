@@ -34,6 +34,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 PKG_SRC = REPO / "packages" / "platform-api" / "src"
+# 電商是選用套件；它的端點也必須在後端存在（基準 app 是 Claire，預設掛載電商）。
+EXTRA_SRC = [REPO / "packages" / "commerce" / "src" / "api"]
 
 API_PREFIX = "/api/v1"
 
@@ -59,7 +61,7 @@ def normalise(path: str) -> str:
 def collect_frontend_endpoints() -> dict[str, list[str]]:
     """回傳 {正規化路徑: [來源檔案:行號, ...]}。"""
     found: dict[str, list[str]] = {}
-    for file in sorted(PKG_SRC.glob("*.ts")):
+    for file in sorted(list(PKG_SRC.glob("*.ts")) + [f for d in EXTRA_SRC for f in sorted(d.glob("*.ts"))]):
         text = file.read_text(encoding="utf-8", errors="replace")
         for regex in (REQUEST_RE, REQUEST_TEMPLATE_RE, FETCH_RE):
             for match in regex.finditer(text):
@@ -111,7 +113,7 @@ def main() -> int:
     missing = {p: srcs for p, srcs in frontend.items() if p not in backend}
 
     print(f"平台 API 契約比對：")
-    print(f"  前端端點  {len(frontend):>3}（packages/platform-api）")
+    print(f"  前端端點  {len(frontend):>3}（packages/platform-api + packages/commerce）")
     print(f"  後端路由  {len(backend):>3}（core + media_lib，取自 Claire 這個純 core 站台）\n")
 
     if missing:

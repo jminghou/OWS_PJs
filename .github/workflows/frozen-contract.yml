@@ -78,7 +78,7 @@ jobs:
       - name: tsc --noEmit（各套件）
         run: |
           set -e
-          for pkg in content-kit platform-api site-kit admin-app ziwei-app; do
+          for pkg in content-kit platform-api site-kit admin-app ziwei-app commerce; do
             echo "── packages/$pkg ──"
             (cd "packages/$pkg" && npx tsc --noEmit -p tsconfig.json)
           done
@@ -205,19 +205,25 @@ jobs:
           rules = {r.rule for r in app.url_map.iter_rules()}
           required = [
               '/api/v1/auth/login', '/api/v1/contents', '/api/v1/categories',
-              '/api/v1/tags', '/api/v1/products', '/api/v1/orders',
-              '/api/v1/settings/homepage', '/api/v1/submissions', '/api/v1/users',
-              '/api/v1/admin/rbac/roles', '/api/v1/media-lib/files',
+              '/api/v1/tags', '/api/v1/settings/homepage', '/api/v1/submissions',
+              '/api/v1/users', '/api/v1/admin/rbac/roles', '/api/v1/media-lib/files',
           ]
           missing = [r for r in required if r not in rules]
           if missing:
               print('新站台缺少平台端點：', missing)
               sys.exit(1)
+          # 電商是選用模組，新站台預設不掛 —— 這些路由必須「不存在」。
+          # 存在就代表 core 又把電商帶進來了（P-commerce 要消滅的情況）。
+          leaked = [r for r in ('/api/v1/products', '/api/v1/orders', '/api/v1/admin/products',
+                                '/api/v1/payment-methods') if r in rules]
+          if leaked:
+              print('新站台未啟用電商卻出現電商端點：', leaked)
+              sys.exit(1)
           # 會員系統預設必須關閉 —— 新站台不該憑空多出公開註冊端點
           if app.config.get('MEMBER_AUTH_ENABLED'):
               print('新站台的會員系統預設應為關閉')
               sys.exit(1)
-          print(f'OK 新站台 {len(rules)} 條路由，平台端點齊全')
+          print(f'OK 新站台 {len(rules)} 條路由，平台端點齊全、電商端點未洩漏')
           PY
 
       - name: 資料庫從零建置（共用鏈 + 站台鏈）

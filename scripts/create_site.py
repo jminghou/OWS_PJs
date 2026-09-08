@@ -52,12 +52,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 # 共用後台的頁面 → 站台路由。加新頁面時這裡跟著加一行。
+# （產品管理是選用套件 @ows/commerce，新站台預設不掛；要用時見 admin/layout.tsx 的註解。）
 ADMIN_PAGES = {
     'articles': 'articles/index',
     'authors': 'authors/index',
     'categories': 'categories/index',
     'media': 'media/index',
-    'products': 'products/index',
     'dashboard': 'dashboard',
     'homepage': 'homepage',
     'login': 'login',
@@ -177,6 +177,10 @@ CORS_ORIGINS=http://localhost:{port + 3000 - 5000}
 
 # 會員系統（core 的 /api/v1/auth/member/*），預設關閉
 # MEMBER_AUTH_ENABLED=true
+
+# 電商模組（商品／訂單／付款；packages/commerce），預設關閉。
+# 打開後需多跑一條 migration 鏈：db upgrade -d packages/commerce/migrations（在 core 鏈之後、站台鏈之前）
+# COMMERCE_ENABLED=true
 ''')
 
     # 站台鏈：只管站台自己的表。平台表走 core/migrations。
@@ -263,7 +267,10 @@ configureAdminApp({{
   modules: ALL_MODULES,
   getImageUrl,
   getGcsImageUrl,
-  // 站台自己的後台頁面掛這裡，會出現在側邊選單
+  // 站台自己的後台頁面掛這裡，會出現在側邊選單。
+  // 要啟用電商：後端 COMMERCE_ENABLED=true、新增 app/admin/products/page.tsx
+  //   （export {{ default }} from '@ows/commerce/pages/products/index'）、並在此掛入
+  //   import {{ commerceNav }} from '@ows/commerce' → extraNav: [commerceNav]
   extraNav: [],
 }});
 
