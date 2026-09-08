@@ -3,8 +3,8 @@
 import { ProductAdmin, Category, Tag } from '@ows/platform-api/types';
 import Button from '@ows/ui/ui/Button';
 import Input from '@ows/ui/ui/Input';
-import TiptapEditor from '../../../components/TiptapEditor';
-import ContentSelector from '../../../components/ContentSelector';
+import TiptapEditor from '@ows/admin-app/components/TiptapEditor';
+import ContentSelector from '@ows/admin-app/components/ContentSelector';
 import PriceManager from '../../../components/PriceManager';
 import ProductLanguageManager from '../../../components/ProductLanguageManager';
 import { Save, Plus } from 'lucide-react';

@@ -2,7 +2,7 @@
  * @ows/platform-api —— OWS 平台 API client
  *
  * 對應 core/backend_engine 提供的 REST 契約：內容、分類、標籤、作者、媒體庫、
- * 商品、訂單、設定、使用者、RBAC、會員身分。**與任何領域無關** ——
+ * 設定、使用者、RBAC、會員身分。（商品／訂單自 P-commerce 起歸選用套件 @ows/commerce。）**與任何領域無關** ——
  * 紫微斗數（排盤、命盤）、會員商業循環等站台功能，留在各自站台的 lib/api 下。
  *
  * 這是模組化的關鍵接縫：後端 core 改一次 API，所有站台前端跟著改一次。
@@ -33,8 +33,6 @@ export {
 } from './imageUtils';
 export type { ImageSize } from './imageUtils';
 
-export { productApi } from './products';
-export { orderApi, paymentMethodApi } from './orders';
 export { i18nApi, homepageApi } from './settings';
 export type { I18nSettings } from './settings';
 export { userApi, submissionApi } from './users';

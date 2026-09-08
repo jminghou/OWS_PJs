@@ -1,1 +1,1 @@
-export { default } from '@ows/admin-app/pages/products/index';
+export { default } from '@ows/commerce/pages/products/index';

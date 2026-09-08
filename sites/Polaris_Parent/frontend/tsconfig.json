@@ -46,6 +46,12 @@
       "@ows/site-kit/*": [
         "../../../packages/site-kit/src/*"
       ],
+      "@ows/commerce": [
+        "../../../packages/commerce/src/index.ts"
+      ],
+      "@ows/commerce/*": [
+        "../../../packages/commerce/src/*"
+      ],
       "@ows/content-kit": [
         "../../../packages/content-kit/src/index.ts"
       ],

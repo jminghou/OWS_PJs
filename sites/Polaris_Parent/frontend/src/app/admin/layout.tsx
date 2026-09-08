@@ -13,6 +13,7 @@
  */
 
 import { AdminShell, configureAdminApp, ALL_MODULES } from '@ows/admin-app';
+import { commerceNav } from '@ows/commerce';
 import { getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
 const icon = (d: string) => (
@@ -27,6 +28,8 @@ configureAdminApp({
   getImageUrl,
   getGcsImageUrl,
   extraNav: [
+    // 電商（選用套件 @ows/commerce）
+    commerceNav,
     {
       href: '/admin/order-reviews',
       label: '訂單審核',

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", "lib": ["dom", "dom.iterable", "esnext"], "allowJs": true, "skipLibCheck": true,
+    "strict": true, "noEmit": true, "esModuleInterop": true, "module": "esnext", "moduleResolution": "bundler",
+    "resolveJsonModule": true, "isolatedModules": true, "jsx": "react-jsx", "incremental": true,
+    "paths": {
+      "@ows/ui": ["../ui/src/index.ts"], "@ows/ui/*": ["../ui/src/*"],
+      "@ows/platform-api": ["../platform-api/src/index.ts"], "@ows/platform-api/*": ["../platform-api/src/*"],
+      "@ows/admin-app": ["../admin-app/src/index.ts"], "@ows/admin-app/*": ["../admin-app/src/*"],
+      "@ows/content-kit": ["../content-kit/src/index.ts"], "@ows/content-kit/*": ["../content-kit/src/*"]
+    }
+  },
+  "include": ["src/**/*"], "exclude": ["node_modules"]
+}

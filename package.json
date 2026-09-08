@@ -8,6 +8,7 @@
     "packages/ziwei-app",
     "packages/platform-api",
     "packages/admin-app",
+    "packages/commerce",
     "packages/content-kit",
     "packages/site-kit",
     "sites/*/frontend"

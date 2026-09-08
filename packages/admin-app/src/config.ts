@@ -42,7 +42,8 @@ export interface AdminNavItem {
 /**
  * 後台的平台模組。每一項對應一組頁面與側邊欄項目。
  *
- * 站台用 `modules` 決定要開哪些 —— 純部落格站台不需要「產品管理」，
+ * 站台用 `modules` 決定要開哪些。（產品管理自 P-commerce 起是選用套件 @ows/commerce，
+ * 由站台 extraNav 掛入，不在此清單。）純部落格站台不需要的模組，
  * 關掉它不只是拿掉選單，AdminShell 也會把該模組的路徑導回儀表板，
  * 使用者不會靠猜網址走進一個這個站沒有的功能。
  *
@@ -54,7 +55,6 @@ export const ADMIN_MODULES = {
   content: { label: '內容', paths: ['/admin/articles', '/admin/categories', '/admin/homepage', '/admin/editor', '/admin/posts'] },
   media: { label: '媒體庫', paths: ['/admin/media'] },
   authors: { label: '作者', paths: ['/admin/authors'] },
-  products: { label: '產品', paths: ['/admin/products'] },
   submissions: { label: '投稿', paths: ['/admin/submissions'] },
   settings: { label: '設定', paths: ['/admin/settings'] },
   rbac: { label: '權限', paths: ['/admin/roles'] },
