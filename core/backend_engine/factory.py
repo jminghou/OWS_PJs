@@ -62,6 +62,29 @@ CORE_BLUEPRINTS: List[BlueprintConfig] = [
 
 
 # =============================================================================
+# Optional Modules
+# =============================================================================
+# (設定鍵, 預設值, 模組路徑, 註冊函式)。
+#
+# 預設值的意義：既有站台（Polaris / Claire）的 config 沒有這些鍵，沿用預設 → 維持
+# 現狀；新站台由 BaseSiteConfig 明確關閉，要用再打開。這樣 Claire 一行不改也不會
+# 失去 /api/v1/products（docs/FROZEN_CONTRACT.md C-1）。
+OPTIONAL_MODULES = [
+    ('COMMERCE_ENABLED', True, 'packages.commerce', 'register_commerce'),
+]
+
+
+def _register_optional_modules(app: Flask) -> None:
+    for key, default, module_path, func_name in OPTIONAL_MODULES:
+        if not app.config.get(key, default):
+            continue
+        module = import_module(module_path)
+        getattr(module, func_name)(app, db)
+        app.logger.info(f'Registered optional module: {module_path} ({key})')
+
+
+
+# =============================================================================
 # Application Factory
 # =============================================================================
 
@@ -128,6 +151,10 @@ def create_app(
 
     # Register core blueprints
     _register_core_blueprints(app, skip_blueprints or [])
+
+    # 選用模組：core 不靜態 import 它們，靠字串載入 —— 站台不啟用就完全不會被載入
+    # （沒有 model 進 metadata、沒有路由、沒有權限）。
+    _register_optional_modules(app)
 
     # Register site extensions
     if site_extensions:

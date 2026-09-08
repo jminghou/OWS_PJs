@@ -21,10 +21,11 @@ from sqlalchemy.orm import joinedload, subqueryload
 from sqlalchemy import or_, func
 
 from core.backend_engine.factory import db, cache
-from core.backend_engine.blueprints.api import bp
+from packages.commerce.blueprint import commerce_bp as bp
 from core.backend_engine.blueprints.api.utils import skip_public_cache
-from core.backend_engine.models import Product, User, Category, Tag, ProductPrice
-from core.backend_engine.schemas.ecommerce import ProductSchema
+from core.backend_engine.models import User, Category, Tag
+from packages.commerce.models import Product, ProductPrice
+from packages.commerce.schemas import ProductSchema
 from core.backend_engine.services.rbac import require_permission
 
 product_schema = ProductSchema()

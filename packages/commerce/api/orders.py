@@ -13,9 +13,10 @@ from datetime import datetime
 import uuid
 
 from core.backend_engine.factory import db
-from core.backend_engine.blueprints.api import bp
-from core.backend_engine.models import Order, User, Product
-from core.backend_engine.schemas.ecommerce import OrderSchema
+from packages.commerce.blueprint import commerce_bp as bp
+from core.backend_engine.models import User
+from packages.commerce.models import Order, Product
+from packages.commerce.schemas import OrderSchema
 
 order_schema = OrderSchema()
 orders_schema = OrderSchema(many=True)

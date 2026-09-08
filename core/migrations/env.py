@@ -63,8 +63,18 @@ def _include_name(name, type_, parent_names):
     return True
 
 
+try:
+    from packages.commerce.migrations_manifest import COMMERCE_TABLES as _COMMERCE_TABLES
+except Exception:  # pragma: no cover
+    _COMMERCE_TABLES = frozenset()
+
+
 def _table_managed(schema, table_name):
     if _OWNED_SCHEMAS and schema not in _OWNED_SCHEMAS:
+        return False
+    # 電商表歸 packages/commerce/migrations（選用模組），core 鏈不碰 ——
+    # 否則站台掛了電商時，core 的 autogenerate 會把 shop.products 當成自己漏建的表。
+    if table_name in _COMMERCE_TABLES:
         return False
     return table_name not in _UNMANAGED
 

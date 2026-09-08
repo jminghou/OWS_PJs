@@ -21,10 +21,6 @@ PERMISSIONS: List[Tuple[str, str, str, str, str]] = [
     ('contents.delete',  'contents', 'delete',  '刪除內容', 'Delete Content'),
     ('contents.publish', 'contents', 'publish', '發布內容', 'Publish Content'),
     # Products
-    ('products.create',  'products', 'create',  '建立產品', 'Create Product'),
-    ('products.read',    'products', 'read',    '閱讀產品', 'Read Product'),
-    ('products.update',  'products', 'update',  '更新產品', 'Update Product'),
-    ('products.delete',  'products', 'delete',  '刪除產品', 'Delete Product'),
     # Users
     ('users.create',     'users',    'create',  '建立用戶', 'Create User'),
     ('users.read',       'users',    'read',    '閱讀用戶', 'Read User'),
@@ -38,8 +34,6 @@ PERMISSIONS: List[Tuple[str, str, str, str, str]] = [
     ('settings.read',    'settings', 'read',    '閱讀設定', 'Read Settings'),
     ('settings.update',  'settings', 'update',  '更新設定', 'Update Settings'),
     # Orders
-    ('orders.read',      'orders',   'read',    '閱讀訂單', 'Read Orders'),
-    ('orders.update',    'orders',   'update',  '更新訂單', 'Update Orders'),
     # Member commerce loop（會員訂單登錄審核 / 外部商品 / 折扣碼）
     ('order_submissions.review', 'order_submissions', 'review', '審核訂單登錄', 'Review Order Submissions'),
     ('product_types.manage',     'product_types',     'manage', '維護外部商品', 'Manage Product Types'),
@@ -49,14 +43,30 @@ PERMISSIONS: List[Tuple[str, str, str, str, str]] = [
     ('submissions.update', 'submissions', 'update', '更新表單提交', 'Update Submissions'),
     ('submissions.delete', 'submissions', 'delete', '刪除表單提交', 'Delete Submissions'),
     # Payment methods
-    ('payment_methods.read',   'payment_methods', 'read',   '閱讀付款方式', 'Read Payment Methods'),
-    ('payment_methods.update', 'payment_methods', 'update', '管理付款方式', 'Manage Payment Methods'),
 ]
 
 
 # =============================================================================
 # Role definitions. permissions == '*' 表示全部權限。
 # =============================================================================
+
+# 選用模組（例如 packages/commerce）在掛載時登記自己的權限。
+# ROLE_DEFS 裡若引用了未登記的權限碼（例如電商未掛載時的 products.read），
+# seed_rbac 會靜默略過 —— 所以角色預設不必隨模組增減而改。
+EXTRA_PERMISSIONS: List[Tuple[str, str, str, str, str]] = []
+
+
+def register_permissions(entries) -> None:
+    """選用模組登記權限（去重）。"""
+    known = {c for (c, *_r) in PERMISSIONS} | {c for (c, *_r) in EXTRA_PERMISSIONS}
+    for e in entries:
+        if e[0] not in known:
+            EXTRA_PERMISSIONS.append(tuple(e)); known.add(e[0])
+
+
+def all_permissions():
+    return list(PERMISSIONS) + list(EXTRA_PERMISSIONS)
+
 
 ROLE_DEFS: Dict[str, dict] = {
     'admin': {
@@ -110,7 +120,7 @@ def seed_rbac(db, sync_legacy_users: bool = True) -> dict:
 
     # --- Permissions: upsert by code ---
     perm_by_code = {p.code: p for p in Permission.query.all()}
-    for code, module, action, name_zh, name_en in PERMISSIONS:
+    for code, module, action, name_zh, name_en in all_permissions():
         p = perm_by_code.get(code)
         name = {'zh-TW': name_zh, 'en': name_en}
         if p is None:
@@ -123,7 +133,7 @@ def seed_rbac(db, sync_legacy_users: bool = True) -> dict:
             p.module, p.action, p.name = module, action, name
     db.session.flush()
 
-    all_perm_codes = [c for (c, *_rest) in PERMISSIONS]
+    all_perm_codes = [c for (c, *_rest) in all_permissions()]
 
     # --- Roles + role_permissions: upsert ---
     role_by_code = {r.code: r for r in Role.query.all()}

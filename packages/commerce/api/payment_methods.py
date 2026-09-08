@@ -11,9 +11,10 @@ from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from core.backend_engine.factory import db
-from core.backend_engine.blueprints.api import bp
-from core.backend_engine.models import PaymentMethod, User
-from core.backend_engine.schemas.ecommerce import PaymentMethodSchema
+from packages.commerce.blueprint import commerce_bp as bp
+from core.backend_engine.models import User
+from packages.commerce.models import PaymentMethod
+from packages.commerce.schemas import PaymentMethodSchema
 from core.backend_engine.services.rbac import require_permission
 
 pm_schema = PaymentMethodSchema()

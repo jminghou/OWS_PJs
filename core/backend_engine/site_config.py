@@ -219,6 +219,11 @@ class BaseSiteConfig:
     #   由第三站台的驗收抓出來。）
     MEMBER_AUTH_ENABLED = _bool_env('MEMBER_AUTH_ENABLED', False)
 
+    # 電商模組（packages/commerce）預設**關閉**：新站台不該憑空多出商品／訂單／付款的
+    # 表、路由與後台頁面。要用再打開。既有站台（Polaris / Claire）的 config 沒有這個鍵，
+    # core factory 對它們沿用預設「掛載」，維持現狀。
+    COMMERCE_ENABLED = _bool_env('COMMERCE_ENABLED', False)
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 
