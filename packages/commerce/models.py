@@ -9,6 +9,7 @@ Category.products / Tag.products 兩個反向關聯改由這裡的 backref 提�
 否則 core 的 mapper 會在電商未載入時因找不到 'Product' 而失敗。
 """
 from datetime import datetime
+from typing import Any, Dict
 
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -342,32 +343,6 @@ class PaymentMethod(db.Model):
 # =============================================================================
 
 __all__ = [
-    # Utility
-    'validate_password',
-    # RBAC
-    'Role',
-    'Permission',
-    'RolePermission',
-    'UserRole',
-    # Core
-    'User',
-    'Category',
-    'Content',
-    'Tag',
-    'content_tags',
-    'Comment',
-    # Menu
-    'Menu',
-    'MenuItem',
-    # Settings
-    'Setting',
-    'HomepageSlide',
-    'HomepageSettings',
-    # Activity
-    'ActivityLog',
-    # Submission
-    'Submission',
-    # E-commerce
     'Product',
     'product_tags',
     'ProductPrice',
