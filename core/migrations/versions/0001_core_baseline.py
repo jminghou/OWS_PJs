@@ -68,7 +68,12 @@ def ix(schema, rest):
 # 建表時解不開，所以 folders 先不帶 thumbnail_id 的 FK，等 files 建好再補。
 _FOLDER_THUMB_FK = 'folders_thumbnail_id_fkey'
 
-_CORE_TABLES = ('contents', 'categories', 'settings', 'users')
+# 冪等判定用的「哨兵表」—— 必須是在**所有**部署都一定是真表的那幾張。
+# 刻意不用 users：Polaris 第二期把 blog.users 改成指向 account.app_users 的 view，
+# 而 inspector.get_table_names() 不列 view，放 users 進來會在正式庫誤判成
+# 「平台表只有部分存在」而中止。本機漂移測試抓不到這點，因為那裡 core 鏈
+# 自己把 users 建成了真表。
+_CORE_TABLES = ('contents', 'categories', 'settings', 'tags')
 
 if _IDENTITY_MODE == 'external':
     USER_ID_TYPE = sa.BigInteger()
