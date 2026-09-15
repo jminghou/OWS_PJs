@@ -214,6 +214,10 @@ class Config:
     # 沒有會員功能的站台不應憑空多出公開註冊端點。Polaris 的會員系統已上線。
     MEMBER_AUTH_ENABLED = _bool_env('MEMBER_AUTH_ENABLED', True)
 
+    # Studio（內容與知識管理，packages/studio）：本站啟用。
+    # 多跑一條 migration 鏈：packages/studio/migrations（見 docs/MIGRATIONS.md）。
+    STUDIO_ENABLED = _bool_env('STUDIO_ENABLED', True)
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 

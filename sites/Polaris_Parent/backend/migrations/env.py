@@ -49,6 +49,10 @@ try:
     from packages.commerce.migrations_manifest import COMMERCE_TABLES as _COMMERCE_TABLES
 except Exception:  # pragma: no cover
     _COMMERCE_TABLES = frozenset()
+try:
+    from packages.studio.migrations_manifest import STUDIO_TABLES as _STUDIO_TABLES
+except Exception:  # pragma: no cover
+    _STUDIO_TABLES = frozenset()
 
 
 # 第二期：blog.users 改為 view、RBAC 四表淘汰、member_profiles 由 SQL 自管，
@@ -69,6 +73,9 @@ def _table_managed(schema, table_name):
         return False
     # 電商表歸 packages/commerce 鏈，站台鏈也不碰
     if table_name in _COMMERCE_TABLES:
+        return False
+    # Studio 表歸 packages/studio 鏈（與 core 表同住 blog schema，靠表名區分）
+    if table_name in _STUDIO_TABLES:
         return False
     return True
 

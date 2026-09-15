@@ -141,7 +141,7 @@ class RBACService:
     def _app_user_permissions(cls, user_id) -> Set[str]:
         """Polaris：從 account.app_users 取權限（role + permissions JSONB）。
 
-        - role='admin' → 擁有全部 blog 權限碼（取自 rbac_seed.PERMISSIONS）
+        - role='admin' → 擁有全部平台權限碼（core PERMISSIONS + 選用模組登記的權限）
         - role='editor' → 編輯者預設集；'user'/'member' → 讀者集
         - 另外併入 permissions JSONB 內的明確權限碼（與紫微 page:* 等共存無妨）
         """
@@ -154,8 +154,11 @@ class RBACService:
             return set()
         role, raw_perms = row[0], row[1]
         if role == 'admin':
-            from core.backend_engine.services.rbac_seed import PERMISSIONS
-            return {p[0] for p in PERMISSIONS}
+            # all_permissions() = core PERMISSIONS + 選用模組登記的 EXTRA_PERMISSIONS
+            # （commerce 的 products.*、studio 的 studio.*）。只取 PERMISSIONS 會讓
+            # Polaris 的 admin 看不到選用模組的選單、打 API 也 403。
+            from core.backend_engine.services.rbac_seed import all_permissions
+            return {p[0] for p in all_permissions()}
         perms: Set[str] = set()
         if role == 'editor':
             perms |= _EDITOR_PERMS

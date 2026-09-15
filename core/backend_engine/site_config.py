@@ -224,6 +224,9 @@ class BaseSiteConfig:
     # core factory 對它們沿用預設「掛載」，維持現狀。
     COMMERCE_ENABLED = _bool_env('COMMERCE_ENABLED', False)
 
+    # Studio 模組（packages/studio，內容與知識管理）預設**關閉**，要用的站台明確開啟。
+    STUDIO_ENABLED = _bool_env('STUDIO_ENABLED', False)
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 

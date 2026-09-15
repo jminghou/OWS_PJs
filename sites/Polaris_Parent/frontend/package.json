@@ -19,6 +19,7 @@
     "@ows/content-kit": "*",
     "@ows/platform-api": "*",
     "@ows/site-kit": "*",
+    "@ows/studio": "*",
     "@ows/ui": "*",
     "@ows/ziwei-app": "*",
     "@tiptap/extension-bubble-menu": "^3.17.1",

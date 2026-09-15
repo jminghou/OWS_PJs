@@ -1,12 +1,16 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  // 深色模式由後台外殼在根節點加 `dark` class 切換（AdminLabeledShell），不跟系統偏好走。
+  // 公開站目前沒有任何 dark: 變體，所以這個設定只影響後台。
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-    // 共用套件
-    '../../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
+    // 共用套件：所有 @ows/* 都要掃，否則只出現在套件裡的 class 不會被產進 CSS
+    //（P3 把後台外殼抽到 admin-app 後，側欄寬度／深色底就是這樣消失的）
+    '../../../packages/*/src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {

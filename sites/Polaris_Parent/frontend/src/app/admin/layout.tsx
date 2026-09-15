@@ -4,16 +4,18 @@
  * 後台路由外殼。
  *
  * 實作在 @ows/admin-app —— 這裡只做站台專屬的事：
- *   1. 注入站名、圖片 URL 規則
+ *   1. 注入站名、產品名、圖片 URL 規則
  *   2. 決定啟用哪些平台模組（本站全開）
- *   3. 掛上本站自己的後台頁面（打的是 membership 擴充的 API，不進共用套件）
+ *   3. 外殼用 labeled（頂列 + 文字標籤分組側欄），Studio 群組在前、平台後台收成一組
+ *   4. 掛上本站自己的後台頁面（打的是 membership 擴充的 API，不進共用套件）
  *
  * 圖片 URL 規則必須由站台提供：Polaris 用後綴（name_thumbnail.jpg）、
  * Claire 用前綴（thumbnail_name.jpg），兩邊都對，就是不一樣。
  */
 
-import { AdminShell, configureAdminApp, ALL_MODULES } from '@ows/admin-app';
+import { AdminShell, configureAdminApp, ALL_MODULES, PLATFORM_NAV } from '@ows/admin-app';
 import { commerceNav } from '@ows/commerce';
+import { studioNavGroups, StudioSearchBar, QuickCollectButton } from '@ows/studio';
 import { getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
 const icon = (d: string) => (
@@ -22,33 +24,51 @@ const icon = (d: string) => (
   </svg>
 );
 
+// 本站自己的後台頁面（打 membership 擴充 API）
+const siteNav = [
+  {
+    href: '/admin/order-reviews',
+    label: '訂單審核',
+    permission: 'order_submissions.review',
+    icon: icon('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'),
+  },
+  {
+    href: '/admin/product-types',
+    label: '外部商品',
+    permission: 'product_types.manage',
+    icon: icon('M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2'),
+  },
+  {
+    href: '/admin/coupons',
+    label: '折扣碼',
+    permission: 'coupons.manage',
+    icon: icon('M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'),
+  },
+];
+
 configureAdminApp({
   siteName: '親紫之間',
+  productName: '親紫內容庫',
   modules: ALL_MODULES,
   getImageUrl,
   getGcsImageUrl,
-  extraNav: [
-    // 電商（選用套件 @ows/commerce）
-    commerceNav,
+  shell: 'labeled',
+  homePath: '/admin/studio/today',
+  globalSearch: <StudioSearchBar />,
+  quickAction: <QuickCollectButton />,
+  navGroups: [
+    // Studio：內容與知識管理（選用套件 @ows/studio，後端 STUDIO_ENABLED）
+    ...studioNavGroups,
+    // 平台後台（文章、媒體、電商…）：預設收合，需要時展開
     {
-      href: '/admin/order-reviews',
-      label: '訂單審核',
-      permission: 'order_submissions.review',
-      icon: icon('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'),
-    },
-    {
-      href: '/admin/product-types',
-      label: '外部商品',
-      permission: 'product_types.manage',
-      icon: icon('M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2'),
-    },
-    {
-      href: '/admin/coupons',
-      label: '折扣碼',
-      permission: 'coupons.manage',
-      icon: icon('M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'),
+      label: '平台後台',
+      collapsible: true,
+      defaultCollapsed: true,
+      items: [...PLATFORM_NAV, commerceNav, ...siteNav],
     },
   ],
+  // rail 外殼的相容清單（shell 改回 'rail' 時仍可用）
+  extraNav: [commerceNav, ...siteNav],
 });
 
 export default function AdminRouteLayout({ children }: { children: React.ReactNode }) {

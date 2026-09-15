@@ -73,9 +73,15 @@ SITES = {
     "Polaris_Parent": {
         # P5-C 起分成兩條鏈：平台表走共用的 core 鏈，站台擴充表走自己的鏈。
         # 順序不能反 —— 站台的 FK 指向平台表。
-        "chains": ["core/migrations", "packages/commerce/migrations", "sites/Polaris_Parent/backend/migrations"],
+        "chains": [
+            "core/migrations",
+            "packages/commerce/migrations",
+            "packages/studio/migrations",
+            "sites/Polaris_Parent/backend/migrations",
+        ],
         "env": {
             "COMMERCE_ENABLED": "true",
+            "STUDIO_ENABLED": "true",
             "OWS_BLOG_SCHEMA": "blog",
             "OWS_SHOP_SCHEMA": "shop",
             "OWS_IDENTITY_MODE": "external",
@@ -120,6 +126,7 @@ GLOBAL_IGNORE = {
     "alembic_version", "blog.alembic_version", "public.alembic_version",
     "alembic_version_core", "blog.alembic_version_core",
     "alembic_version_commerce", "blog.alembic_version_commerce", "shop.alembic_version_commerce",
+    "alembic_version_studio", "blog.alembic_version_studio", "public.alembic_version_studio",
 }
 
 
@@ -142,7 +149,7 @@ def discover_sites() -> dict:
             continue
         found[path.name] = {
             "chains": ["core/migrations", f"sites/{path.name}/backend/migrations"],
-            "env": {"COMMERCE_ENABLED": "false"},   # 產生器的預設
+            "env": {"COMMERCE_ENABLED": "false", "STUDIO_ENABLED": "false"},   # 產生器的預設
             "prelude": [],
             "ignore": set(),
         }
@@ -248,6 +255,9 @@ def worker_main() -> int:
     # 不掛就不 import —— 它的表不在 metadata，比對時自然不會被要求存在。
     if (os.environ.get("COMMERCE_ENABLED") or "true").strip().lower() not in ("0", "false", "no", "off"):
         import packages.commerce.models  # noqa: F401
+    # Studio 預設不掛（與 factory 同一條規則：明確 true 才掛）。
+    if (os.environ.get("STUDIO_ENABLED") or "false").strip().lower() in ("1", "true", "yes", "on"):
+        import packages.studio.models  # noqa: F401
     # 站台專屬 models（有才匯入）
     try:
         import_module(f"sites.{site}.backend.models")

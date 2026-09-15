@@ -52,6 +52,12 @@
       "@ows/commerce/*": [
         "../../../packages/commerce/src/*"
       ],
+      "@ows/studio": [
+        "../../../packages/studio/src/index.ts"
+      ],
+      "@ows/studio/*": [
+        "../../../packages/studio/src/*"
+      ],
       "@ows/content-kit": [
         "../../../packages/content-kit/src/index.ts"
       ],

@@ -15,8 +15,9 @@
  * 三個後台頁面留在站台，因為它們打的是站台擴充的 API。
  */
 
-export { configureAdminApp, getAdminConfig, isModuleEnabled, isPathDisabled, ADMIN_MODULES, ALL_MODULES } from './config';
-export type { AdminAppConfig, AdminNavItem, AdminModule } from './config';
+export { configureAdminApp, getAdminConfig, getHomePath, isModuleEnabled, isPathDisabled, ADMIN_MODULES, ALL_MODULES } from './config';
+export type { AdminAppConfig, AdminNavItem, AdminNavGroup, AdminModule } from './config';
+export { PLATFORM_NAV } from './platformNav';
 
 export { default as AdminShell } from './pages/AdminShell';
 export { default as AdminLayout } from './components/AdminLayout';

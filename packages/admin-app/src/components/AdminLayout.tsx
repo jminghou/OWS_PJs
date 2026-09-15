@@ -4,8 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@ows/platform-api';
-import { getAdminConfig, isModuleEnabled } from '../config';
-import type { AdminModule } from '../config';
+import { getAdminConfig } from '../config';
+import { PLATFORM_NAV } from '../platformNav';
+import AdminLabeledShell from './AdminLabeledShell';
+import { useVisibleItems } from './useVisibleNav';
 
 /** extraNav 項目沒提供圖示時的通用圖示。 */
 function GenericNavIcon() {
@@ -21,6 +23,14 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+  if (getAdminConfig().shell === 'labeled') {
+    return <AdminLabeledShell>{children}</AdminLabeledShell>;
+  }
+  return <AdminRailLayout>{children}</AdminRailLayout>;
+}
+
+/** 原本的 72px 圖示長條外殼（shell 未設或 'rail' 時使用，行為與改版前一致）。 */
+function AdminRailLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -31,127 +41,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push('/admin/login');
   };
 
-  const allNavigation = [
-    {
-      name: '儀表板',
-      href: '/admin/dashboard',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2v0" />
-        </svg>
-      ),
-    },
-    {
-      name: '文章管理',
-      href: '/admin/articles',
-      module: 'content' as const,
-      permission: 'contents.read',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-        </svg>
-      ),
-    },
-    {
-      name: '分類標籤',
-      href: '/admin/categories',
-      module: 'content' as const,
-      permission: 'contents.read',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-        </svg>
-      ),
-    },
-    {
-      name: '媒體庫',
-      href: '/admin/media',
-      module: 'media' as const,
-      permission: 'media.read',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      ),
-    },
-    {
-      name: '首頁設定',
-      href: '/admin/homepage',
-      module: 'content' as const,
-      permission: 'contents.update',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-      ),
-    },
-    {
-      name: '作者管理',
-      href: '/admin/authors',
-      module: 'authors' as const,
-      permission: 'users.read',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-        </svg>
-      ),
-    },
-    {
-      name: '匿名提問',
-      href: '/admin/submissions',
-      module: 'submissions' as const,
-      permission: 'submissions.read',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      name: '語系設定',
-      href: '/admin/settings',
-      module: 'settings' as const,
-      permission: 'settings.read',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-        </svg>
-      ),
-    },
-    {
-      name: '權限管理',
-      href: '/admin/roles',
-      module: 'rbac' as const,
-      permission: 'users.update',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-      ),
-    },
-  ];
-
-  const { siteName, extraNav = [] } = getAdminConfig();
+  const { siteName, extraNav = [], globalSearch } = getAdminConfig();
 
   // 站台自己的後台頁面（例如 Polaris 的訂單審核 / 折扣碼）從設定注入，
   // 不寫死在共用套件裡 —— 否則每個站台的後台都會看到別站的功能。
-  const siteNavigation = extraNav.map((item) => ({
+  // 三層過濾（模組 × 權限）在 useVisibleItems。
+  const navigation = useVisibleItems([
+    ...PLATFORM_NAV.map((n) => ({ ...n, divider: false })),
+    ...extraNav,
+  ]).map((item) => ({
+    ...item,
     name: item.label,
-    href: item.href,
-    permission: item.permission,
-    module: undefined as AdminModule | undefined,
     icon: item.icon ?? <GenericNavIcon />,
   }));
-
-  // 三層過濾：
-  //   1. 模組：站台沒啟用的平台模組整組不顯示（儀表板無 module，永遠顯示）
-  //   2. 權限：無 permission 的項目永遠顯示；有的需使用者具備該權限
-  const userPermissions = user?.permissions ?? [];
-  const navigation = [...allNavigation, ...siteNavigation].filter(
-    (item) =>
-      (!item.module || isModuleEnabled(item.module)) &&
-      (!item.permission || userPermissions.includes(item.permission))
-  );
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -177,8 +79,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 return (
                   <Link
                     key={item.name}
+                    data-divider={item.divider ? '' : undefined}
                     href={item.href}
                     className={`group relative flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-200 ${
+                      item.divider ? 'mt-3 before:absolute before:-top-2 before:left-2 before:right-2 before:border-t before:border-gray-700' : ''
+                    } ${
                       isActive
                         ? 'bg-blue-600 text-white'
                         : 'text-gray-400 hover:bg-[#32324d] hover:text-white'
@@ -200,6 +105,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* User Area */}
           <div className="py-4 border-t border-gray-700">
             <div className="flex flex-col items-center space-y-3">
+              {/* 全域搜尋（由站台 config 注入，例如 Studio 的 ⌘K） */}
+              {globalSearch}
               {/* User Avatar */}
               <div className="group relative">
                 <div className="flex items-center justify-center w-10 h-10 bg-gray-600 rounded-full cursor-pointer">

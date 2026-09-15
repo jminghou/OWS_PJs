@@ -71,6 +71,8 @@ CORE_BLUEPRINTS: List[BlueprintConfig] = [
 # 失去 /api/v1/products（docs/FROZEN_CONTRACT.md C-1）。
 OPTIONAL_MODULES = [
     ('COMMERCE_ENABLED', True, 'packages.commerce', 'register_commerce'),
+    # Studio（內容與知識管理）是新功能，沒有「現狀」要維持 → 預設不掛，站台明確打開才有。
+    ('STUDIO_ENABLED', False, 'packages.studio', 'register_studio'),
 ]
 
 

@@ -8,10 +8,10 @@
  * 每個站台都一樣，不該各寫一份。
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@ows/platform-api';
-import { isPathDisabled } from '../config';
+import { getHomePath, isPathDisabled } from '../config';
 
 export default function AdminShell({
   children,
@@ -25,27 +25,32 @@ export default function AdminShell({
   // 後台僅限管理者 / 編輯者；一般會員（member/user）即使已登入也不得進入。
   const isStaff = !!user && (user.role === 'admin' || user.role === 'editor');
 
+  // 冷載入（新分頁直接開深層網址）時，persist 尚未 hydrate、checkAuth 也還沒回來，
+  // store 是預設的 isAuthenticated=false / isLoading=false —— 若此刻就判斷，會被誤導到
+  // 登入頁再彈回首頁，深層網址就丟了。所以第一次 checkAuth 完成前不做任何導向。
+  const [checked, setChecked] = useState(false);
+
   useEffect(() => {
-    checkAuth();
+    checkAuth().finally(() => setChecked(true));
   }, [checkAuth]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (!checked || isLoading) return;
     if (!isAuthenticated) {
       if (pathname !== '/admin/login') router.push('/admin/login');
     } else if (!isStaff) {
       // 已登入但非後台人員 → 導回會員中心
       router.push('/account');
     } else if (pathname === '/admin/login') {
-      router.push('/admin/dashboard');
+      router.push(getHomePath());
     } else if (isPathDisabled(pathname)) {
       // 這個站台沒啟用的平台模組：不只藏選單，直接猜網址也進不去。
       // 否則「關掉商品模組」只是視覺上的，功能其實還在。
-      router.replace('/admin/dashboard');
+      router.replace(getHomePath());
     }
-  }, [isAuthenticated, isStaff, isLoading, pathname, router]);
+  }, [checked, isAuthenticated, isStaff, isLoading, pathname, router]);
 
-  if (isLoading) {
+  if (!checked || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

@@ -37,6 +37,22 @@ export interface AdminNavItem {
   permission?: string;
   /** 側邊欄圖示（24×24 的 SVG 元素）。不給就用通用圖示。 */
   icon?: ReactNode;
+  /** 在此項目前面畫一條分隔線（rail 模式用來區隔一組選單，例如 Studio）。 */
+  divider?: boolean;
+  /** 項目右側的徽章（例如收集箱待整理數）。labeled 模式顯示。 */
+  badge?: ReactNode;
+  /** 屬於哪個平台模組（未啟用的模組整組不顯示）。站台 extraNav 通常不設。 */
+  module?: AdminModule;
+}
+
+/** labeled 外殼的側欄群組。 */
+export interface AdminNavGroup {
+  /** 群組標題（小字灰）；不給就不顯示標題。 */
+  label?: string;
+  items: AdminNavItem[];
+  /** 可收合（收合狀態記在 localStorage）。 */
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
 }
 
 /**
@@ -87,6 +103,31 @@ export interface AdminAppConfig {
 
   /** 站台專屬的後台頁面，附加在共用選單之後。 */
   extraNav?: AdminNavItem[];
+
+  /** 全域搜尋插槽：rail 模式放側欄底部（例如 StudioSearchButton）、labeled 模式放頂列中間（例如 StudioSearchBar）。不給就不顯示。 */
+  globalSearch?: ReactNode;
+
+  /**
+   * 外殼樣式。
+   *   rail    ＝ 72px 圖示長條（預設，零改動時行為不變）
+   *   labeled ＝ 頂列 + 240px 文字標籤分組側欄，支援深淺色切換
+   */
+  shell?: 'rail' | 'labeled';
+
+  /** labeled 頂列左側的產品名，預設 = siteName。 */
+  productName?: string;
+
+  /**
+   * labeled 模式的側欄群組。未給時自動組成：一組平台項目（PLATFORM_NAV）+ 一組 extraNav。
+   * 站台想把平台項目收進「平台後台」群組，就把 PLATFORM_NAV 塞進自己的群組。
+   */
+  navGroups?: AdminNavGroup[];
+
+  /** labeled 頂列右側的常駐按鈕（例如 Studio 的「＋ 快速收集」）。 */
+  quickAction?: ReactNode;
+
+  /** 登入後與 /admin 的預設落點（AdminShell 用）。預設 /admin/dashboard。 */
+  homePath?: string;
 }
 
 /**
@@ -100,6 +141,8 @@ const DEFAULT_CONFIG: AdminAppConfig = {
   getImageUrl: (imagePath?: string) => imagePath || '/placeholder.jpg',
   getGcsImageUrl: (imagePath: string) => imagePath || '/placeholder.jpg',
   extraNav: [],
+  shell: 'rail',
+  homePath: '/admin/dashboard',
 };
 
 let config: AdminAppConfig = DEFAULT_CONFIG;
@@ -112,6 +155,11 @@ export function configureAdminApp(options: Partial<AdminAppConfig>): void {
 /** 套件內部取用設定。 */
 export function getAdminConfig(): AdminAppConfig {
   return config;
+}
+
+/** 登入後／/admin 的落點。 */
+export function getHomePath(): string {
+  return config.homePath || '/admin/dashboard';
 }
 
 /** 便利轉呼叫，讓搬進來的元件維持原本的 import 形狀。 */

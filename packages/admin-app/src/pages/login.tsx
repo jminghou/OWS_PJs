@@ -1,5 +1,7 @@
 'use client';
 
+import { getHomePath } from '../config';
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
@@ -18,7 +20,7 @@ export default function LoginPage() {
   // 如果已經登入，直接導向後台
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/admin/dashboard');
+      router.replace(getHomePath());
     }
   }, [isAuthenticated, router]);
   

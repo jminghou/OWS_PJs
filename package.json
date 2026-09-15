@@ -9,6 +9,7 @@
     "packages/platform-api",
     "packages/admin-app",
     "packages/commerce",
+    "packages/studio",
     "packages/content-kit",
     "packages/site-kit",
     "sites/*/frontend"

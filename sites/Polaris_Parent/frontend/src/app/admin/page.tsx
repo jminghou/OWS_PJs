@@ -7,8 +7,8 @@ export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // 自動重導向到後台儀表板
-    router.replace('/admin/dashboard');
+    // 後台首頁 = Studio 的「今天」（舊儀表板仍在「平台後台」群組）
+    router.replace('/admin/studio/today');
   }, [router]);
 
   return (

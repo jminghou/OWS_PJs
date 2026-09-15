@@ -1,0 +1,18 @@
+{
+  "name": "@ows/studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Studio（選用）：個人內容與知識管理 —— 內容專案／收集箱／知識卡片／寫作工作區／發布中心／標籤／全域搜尋的後台頁面與 API client。後端見同目錄的 Python 套件",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api/index.ts",
+    "./pages/*": "./src/pages/*.tsx",
+    "./components/*": "./src/components/*.tsx",
+    "./*": "./src/*"
+  },
+  "scripts": { "typecheck": "tsc --noEmit -p tsconfig.json" },
+  "peerDependencies": { "next": "^15.0.0", "react": "^18.0.0", "react-dom": "^18.0.0" },
+  "devDependencies": { "typescript": "^5" }
+}

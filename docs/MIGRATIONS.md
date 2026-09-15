@@ -26,13 +26,18 @@ core 改一次，所有掛載共用鏈的站台吃到同一份 migration。
 |---|---|---|---|
 | 共用平台鏈 | `core/migrations` | `alembic_version_core` | `core/backend_engine/models.py` 的 17 張表 + `packages/media_lib` 的 6 張 |
 | 電商鏈（選用） | `packages/commerce/migrations` | `alembic_version_commerce` | products / product_prices / product_tags / orders / payment_methods |
+| Studio 鏈（選用） | `packages/studio/migrations` | `alembic_version_studio` | `studio_*` 十張表（內容專案／文件／版本／知識卡片／收集箱／標籤），與 core 表同住 BLOG schema，靠 `studio_` 前綴區分 |
 | 站台鏈 | `sites/<站>/backend/migrations` | `alembic_version` | 該站 extension 的表 |
 
 電商是**選用模組**（`COMMERCE_ENABLED`）：既有站台（Polaris / Claire）沒設此鍵 → 預設掛載、維持現狀；
 新站台由 `BaseSiteConfig` 預設關閉，不掛就沒有這 5 張表、路由與權限。掛載時由 core factory
 的 `OPTIONAL_MODULES` 以字串載入，core 不靜態 import 電商。
 
-兩個版本表名稱不同，所以兩條鏈可以各自演進、互不干擾。
+Studio（`STUDIO_ENABLED`）是**新功能**，沒有現狀要維持 → 預設一律關閉，Polaris 的 config 明確打開。
+它的 migration 鏈只認 `STUDIO_TABLES` 裡的表名（`packages/studio/migrations_manifest.py`），
+不會把同 schema 的 core 表當成要刪的東西。
+
+版本表名稱各不相同，所以各條鏈可以各自演進、互不干擾。
 
 **Claire_Project 不在此架構內。** 它在模組化期間凍結（見 [FROZEN_CONTRACT.md](FROZEN_CONTRACT.md)），
 維持原本「一條鏈建全部」的做法。等它解凍再遷移。
@@ -48,11 +53,14 @@ flask --app "sites.<站>.backend.app:app" db upgrade -d core/migrations
 # 2. 電商鏈（只有 COMMERCE_ENABLED 的站台）—— products 的 FK 指向 core 的 categories/contents/tags
 flask --app "sites.<站>.backend.app:app" db upgrade -d packages/commerce/migrations
 
-# 3. 站台鏈（後）
+# 3. Studio 鏈（只有 STUDIO_ENABLED 的站台）—— studio_documents 的 FK 指向 core 的 contents、media_lib.files
+flask --app "sites.<站>.backend.app:app" db upgrade -d packages/studio/migrations
+
+# 4. 站台鏈（後）
 flask --app "sites.<站>.backend.app:app" db upgrade -d sites/<站>/backend/migrations
 ```
 
-三條鏈的 baseline 都有**冪等保護**：偵測到表已存在就整條跳過、只記錄版本。
+每條鏈的 baseline 都有**冪等保護**：偵測到表已存在就整條跳過、只記錄版本。
 所以既有資料庫直接跑 upgrade 即可，**不需要人工 stamp**。
 
 ---
@@ -69,6 +77,7 @@ flask --app "sites.<站>.backend.app:app" db upgrade -d sites/<站>/backend/migr
 | `OWS_EXTERNAL_USER_TABLE` | `account.app_users` | `external` 模式的目標表 |
 | `OWS_CORE_UNMANAGED_TABLES` | 空 | 由站台 SQL 自管、不歸 alembic 的表（逗號分隔） |
 | `COMMERCE_ENABLED` | 未設 → 掛載；`BaseSiteConfig` → `false` | 電商模組（表／路由／權限）是否掛載 |
+| `STUDIO_ENABLED` | 未設 → `false`（Polaris config 預設 `true`） | Studio 模組（表／路由／權限）是否掛載 |
 
 `OWS_IDENTITY_MODE` 是 P5-C 從 `OWS_BLOG_SCHEMA` 拆出來的。原本一個變數同時決定
 「表放哪個 schema」和「用哪種身分模型」，導致第三個站台無法「用 schema 分流表、
