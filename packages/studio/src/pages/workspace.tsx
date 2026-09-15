@@ -167,7 +167,7 @@ function WorkspaceContent() {
             ) : <span className="text-xs text-muted-foreground">寫作工作區</span>}
           </div>
           <div className="flex-1 overflow-y-auto py-2">
-            {doc && [doc, ...siblings].sort((a, b) => a.platform.localeCompare(b.platform)).map((d) => (
+            {doc && [doc, ...siblings.filter((s) => s.id !== doc.id)].sort((a, b) => a.platform.localeCompare(b.platform)).map((d) => (
               <Link key={d.id} href={STUDIO_ROUTES.workspace(d.id)}
                 className={`flex items-center gap-2 px-3 py-2 text-sm ${d.id === doc.id ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30 text-admin-accent-800 dark:text-admin-accent-100' : 'text-foreground/80 hover:bg-muted'}`}>
                 <PlatformBadge platform={d.platform} />
