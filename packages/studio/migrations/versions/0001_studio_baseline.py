@@ -50,6 +50,21 @@ def _user_fk():
     return USER_FK if USER_FK else q(BLOG, 'users.id')
 
 
+def _media_fk(bind):
+    """指向 media_lib.files 的外鍵需要該表的 REFERENCES 權限。正式庫的受限帳號（blog_app）沒有，
+    這時退成純整數欄位（不建 FK），功能不受影響，只少了刪檔時自動清空的保護。
+    之後以 superuser 執行 GRANT USAGE ON SCHEMA media_lib TO blog_app; GRANT REFERENCES ON media_lib.files TO blog_app;
+    再手動 ALTER TABLE ... ADD FOREIGN KEY 即可補上。"""
+    # 沒有 schema USAGE 時，連 has_table_privilege 都會因為看不到表而報錯，所以分兩步問
+    ok = bind.execute(sa.text("SELECT has_schema_privilege(current_user, :s, 'USAGE')"), {'s': MEDIA}).scalar()
+    if ok:
+        ok = bind.execute(sa.text("SELECT has_table_privilege(current_user, :t, 'REFERENCES')"),
+                          {'t': f'{MEDIA}.files'}).scalar()
+    if not ok:
+        print(f'[studio] 目前帳號沒有 {MEDIA}.files 的 REFERENCES 權限，file_id 欄位不建外鍵。')
+    return ok
+
+
 _SENTINELS = ('studio_projects', 'studio_tags')
 _ALL_TABLES = (
     'studio_taggings', 'studio_tags', 'studio_sources', 'studio_inbox_items',
@@ -60,8 +75,10 @@ _ALL_TABLES = (
 
 def upgrade():
     bind = op.get_bind()
-    if BLOG:
-        op.execute(f'CREATE SCHEMA IF NOT EXISTS {BLOG}')
+    # 正式庫用的是受限帳號（blog_app）：即使 schema 已存在，CREATE SCHEMA IF NOT EXISTS 仍需要
+    # 資料庫層級的 CREATE 權限而失敗。所以先查 pg_namespace，真的不存在才建。
+    if BLOG and not bind.execute(sa.text('SELECT 1 FROM pg_namespace WHERE nspname = :n'), {'n': BLOG}).scalar():
+        op.execute(f'CREATE SCHEMA {BLOG}')
     existing = set(sa.inspect(bind).get_table_names(schema=BLOG))
     present = existing & set(_SENTINELS)
     if present == set(_SENTINELS):
@@ -70,6 +87,7 @@ def upgrade():
         raise RuntimeError(f"Studio 表只有部分存在：{sorted(present)}；請人工確認後再繼續。")
 
     JSONB = postgresql.JSONB(astext_type=sa.Text())
+    media_fk = _media_fk(bind)
 
     op.create_table('studio_projects',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -194,7 +212,7 @@ def upgrade():
     sa.Column('card_id', sa.Integer(), nullable=True),
     sa.Column('created_by', USER_ID_TYPE, nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['file_id'], [f'{MEDIA}.files.id'], ondelete='SET NULL'),
+    *([sa.ForeignKeyConstraint(['file_id'], [f'{MEDIA}.files.id'], ondelete='SET NULL')] if media_fk else []),
     sa.ForeignKeyConstraint(['project_id'], [q(BLOG, 'studio_projects.id')], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['card_id'], [q(BLOG, 'studio_cards.id')], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['created_by'], [_user_fk()], ),
@@ -215,7 +233,7 @@ def upgrade():
     sa.Column('inbox_item_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['project_id'], [q(BLOG, 'studio_projects.id')], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['file_id'], [f'{MEDIA}.files.id'], ondelete='SET NULL'),
+    *([sa.ForeignKeyConstraint(['file_id'], [f'{MEDIA}.files.id'], ondelete='SET NULL')] if media_fk else []),
     sa.ForeignKeyConstraint(['inbox_item_id'], [q(BLOG, 'studio_inbox_items.id')], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id'),
     schema=BLOG

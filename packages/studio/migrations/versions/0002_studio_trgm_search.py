@@ -43,11 +43,17 @@ _INDEXES = [
 
 def upgrade():
     bind = op.get_bind()
-    try:
-        bind.execute(sa.text('CREATE EXTENSION IF NOT EXISTS pg_trgm'))
-    except Exception as exc:  # noqa: BLE001
-        print(f'[studio] pg_trgm 擴充無法建立（{exc}），略過 trgm 索引；搜尋改走全表 ILIKE。')
-        return
+    installed = bind.execute(sa.text("SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm'")).scalar()
+    if not installed:
+        # 用 SAVEPOINT 包住：失敗時不能讓整個 migration 交易進入 aborted 狀態，
+        # 否則 alembic 連版本號都寫不進去。
+        try:
+            with bind.begin_nested():
+                bind.execute(sa.text('CREATE EXTENSION pg_trgm'))
+        except Exception as exc:  # noqa: BLE001
+            print(f'[studio] pg_trgm 擴充無法建立（{str(exc).splitlines()[0]}），略過 trgm 索引；搜尋改走全表 ILIKE。'
+                  '（之後以 superuser 執行 CREATE EXTENSION pg_trgm 再重跑 downgrade/upgrade 即可補上索引）')
+            return
     for name, table, column in _INDEXES:
         op.execute(
             f'CREATE INDEX IF NOT EXISTS {name} ON {q(table)} USING gin ({column} gin_trgm_ops)'

@@ -71,6 +71,27 @@ Studio 的標籤（`studio_tags`）與公開站的 `blog.tags` 分離：前者�
 捕捉＝`collect`（數字含收集箱待整理）、整理＝`organize`+`ideate`、寫作＝`write`+`edit`、
 改編＝有任何非 blog 版本的專案、發布＝`scheduled`+`published`。點任一步 → `/admin/studio/projects?flow=<step>`。
 
+## 本機後台直接連正式庫（單一資料來源）
+
+本機與 Railway 之間**不做同步**。要在本機後台寫正式資料，用 `railway run` 把正式服務的環境變數注入本機後端（密碼不落地）：
+
+```powershell
+railway link -p graceful-dream -e production -s polaris-backend   # 一次性
+railway run -- python scripts/dev_on_prod.py                       # 本機後端連正式庫，port 5000
+railway run -- python scripts/dev_on_prod.py --check               # 只印連到哪
+railway run -- python scripts/dev_on_prod.py --upgrade packages/studio/migrations   # 對正式庫跑某條鏈
+```
+
+腳本只覆蓋三樣：`FLASK_CONFIG=development`（本機 http 才登得進）、`CORS_ORIGINS` 改 localhost、`OWS_IDENTITY_MODE=external`
+（正式庫 `blog.users` 是 view，FK 要指 `account.app_users`）。前端不用改，照常 `npm run dev:polaris`。
+本機的 `db_pcount_v3` 只留作 migration 驗證（[[local-first-db-workflow]]）。
+
+正式庫已知限制（帳號 `blog_app` 是受限角色，2026-09-16 跑 studio 鏈時確認）：
+- 沒有 `media_lib` schema 的 USAGE / REFERENCES → `studio_inbox_items.file_id`、`studio_sources.file_id` 在正式庫**沒有外鍵**（migration 會自動略過並印提示）。
+- 不能 `CREATE EXTENSION pg_trgm` → 正式庫沒有 trgm 索引，全域搜尋走全表 ILIKE。
+- 要補上：以 superuser 執行 `GRANT USAGE ON SCHEMA media_lib TO blog_app; GRANT REFERENCES ON media_lib.files TO blog_app; CREATE EXTENSION pg_trgm;`，
+  再 `--upgrade` 前先 `flask db downgrade -d packages/studio/migrations 0001_studio_baseline` 讓 0002 重跑。
+
 ## 驗證
 
 - `python scripts/check_schema_drift.py --site Polaris_Parent`：四條鏈從零跑完、與 models 一致。
