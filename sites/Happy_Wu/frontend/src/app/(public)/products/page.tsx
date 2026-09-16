@@ -6,10 +6,10 @@ import ProductsContent from './ProductsContent';
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: '服務與產品 | Happy Wu',
+  title: '服務與產品',
   description: '瀏覽 Happy Wu 提供的服務與產品。',
   openGraph: {
-    title: '服務與產品 | Happy Wu',
+    title: '服務與產品',
     description: '瀏覽 Happy Wu 提供的服務與產品。',
     type: 'website',
   },

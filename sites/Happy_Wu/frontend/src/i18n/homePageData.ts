@@ -26,7 +26,7 @@ export const localeContent: Record<string, {
   feature3Desc: string;
 }> = {
   'zh-TW': {
-    title: 'Happy Wu - 首頁',
+    title: '首頁',
     description: 'Happy Wu 的個人專欄：分享生活、觀察與想法。',
     heroBrand: 'Happy Wu',
     heroTitle: '把日常的觀察，寫成值得留下的文字',
@@ -57,7 +57,7 @@ export const localeContent: Record<string, {
     feature3Desc: '將累積的方法整理成系統化的課程內容。',
   },
   'zh-CN': {
-    title: 'Happy Wu - 首页',
+    title: '首页',
     description: 'Happy Wu 的个人专栏：分享生活、观察与想法。',
     heroBrand: 'Happy Wu',
     heroTitle: '把日常的观察，写成值得留下的文字',
@@ -88,7 +88,7 @@ export const localeContent: Record<string, {
     feature3Desc: '将累积的方法整理成系统化的课程内容。',
   },
   'en': {
-    title: 'Happy Wu - Home',
+    title: 'Home',
     description: 'A personal column by Happy Wu: life, observations and ideas.',
     heroBrand: 'Happy Wu',
     heroTitle: 'Turning everyday observations into writing worth keeping',
@@ -119,7 +119,7 @@ export const localeContent: Record<string, {
     feature3Desc: 'Accumulated methods organised into structured course content.',
   },
   'ja': {
-    title: 'Happy Wu - ホーム',
+    title: 'ホーム',
     description: 'Happy Wu の個人コラム：暮らし、気づき、考えを綴ります。',
     heroBrand: 'Happy Wu',
     heroTitle: '日々の気づきを、残しておきたい文章に',

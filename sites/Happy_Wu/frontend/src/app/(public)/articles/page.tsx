@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import ArticlesContent from './ArticlesContent';
 
 export const metadata: Metadata = {
-  title: '專欄文章 - Happy Wu',
+  title: '專欄文章',
   description: '專業的親子教養文章，發掘孩子天賦，理解星性特質',
 };
 

@@ -8,7 +8,7 @@ import { localeContent } from '@/i18n/homePageData';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: 'Happy Wu - 首頁',
+  title: '首頁',
   description: 'Happy Wu 的個人專欄：分享生活、觀察與想法。',
   alternates: { canonical: '/' },
 };

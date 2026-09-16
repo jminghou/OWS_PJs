@@ -5,22 +5,22 @@ import ArticlesContent from '@/app/(public)/articles/ArticlesContent';
 // 多語言標題和描述
 const localeContent: Record<string, { title: string; pageTitle: string; description: string }> = {
   'zh-TW': {
-    title: '專欄文章 - Happy Wu',
+    title: '專欄文章',
     pageTitle: '專欄文章',
     description: '分享生活、觀察與想法的個人專欄',
   },
   'zh-CN': {
-    title: '专栏文章 - Happy Wu',
+    title: '专栏文章',
     pageTitle: '专栏文章',
     description: '分享生活、观察与想法的个人专栏',
   },
   'en': {
-    title: 'Articles - Happy Wu',
+    title: 'Articles',
     pageTitle: 'Articles',
     description: 'A personal column sharing life, observations and ideas',
   },
   'ja': {
-    title: '記事 - Happy Wu',
+    title: '記事',
     pageTitle: '記事',
     description: '暮らしや気づき、考えを綴る個人コラム',
   },

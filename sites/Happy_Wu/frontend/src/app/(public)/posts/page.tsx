@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import PostsContent from './PostsContent';
 
 export const metadata: Metadata = {
-  title: 'Happy Wu - 專欄文章',
+  title: '專欄文章',
   description: '瀏覽 Happy Wu 的專欄文章',
 };
 
