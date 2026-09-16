@@ -40,6 +40,8 @@ COPY core /app/core
 COPY packages/media_lib /app/packages/media_lib
 # 電商模組（COMMERCE_ENABLED=true）：factory 以字串 import packages.commerce，映像檔必須帶上
 COPY packages/commerce /app/packages/commerce
+# Studio 模組（STUDIO_ENABLED=true）
+COPY packages/studio /app/packages/studio
 
 # Copy site backend
 COPY sites/__init__.py /app/sites/__init__.py

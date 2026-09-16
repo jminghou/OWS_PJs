@@ -65,10 +65,11 @@ cp sites/Happy_Wu/.env.example sites/Happy_Wu/.env          # 填 DATABASE_URL �
 # 2. 建獨立資料庫（沒有 psql 時可用 pgAdmin 或任何 SQL 工具執行同一句）
 psql -U postgres -c "CREATE DATABASE ows_happy_wu;"
 
-# 3. 三條 migration 鏈，順序不能反：平台 → 電商 → 站台
+# 3. 四條 migration 鏈，順序不能反：平台 → 電商 → Studio → 站台
 $app = "sites.Happy_Wu.backend.app:app"
 flask --app $app db upgrade -d core/migrations
 flask --app $app db upgrade -d packages/commerce/migrations
+flask --app $app db upgrade -d packages/studio/migrations
 flask --app $app db upgrade -d sites/Happy_Wu/backend/migrations
 
 # 4. 建後台管理員並種下權限
@@ -220,13 +221,14 @@ flask --app "sites.Claire_Project.backend.app:app" seed-rbac
 
 Happy_Wu 走 P5-C 的分鏈架構（見 `docs/MIGRATIONS.md`）：平台鏈 → 電商鏈 → 站台鏈，順序不能反。
 `.env` 已設 `OWS_BLOG_SCHEMA=blog`、`OWS_SHOP_SCHEMA=shop`、`OWS_IDENTITY_MODE=local`、
-`COMMERCE_ENABLED=true`、`MEMBER_AUTH_ENABLED=true`；不掛 Studio、不掛任何排盤。
+`COMMERCE_ENABLED=true`、`MEMBER_AUTH_ENABLED=true`、`STUDIO_ENABLED=true`；不掛任何排盤。
 
 ```powershell
 psql -U postgres -c "CREATE DATABASE ows_happy_wu;"
 $app = "sites.Happy_Wu.backend.app:app"
 flask --app $app db upgrade -d core/migrations
 flask --app $app db upgrade -d packages/commerce/migrations
+flask --app $app db upgrade -d packages/studio/migrations
 flask --app $app db upgrade -d sites/Happy_Wu/backend/migrations
 flask --app $app create-admin
 flask --app $app seed-rbac
@@ -404,6 +406,7 @@ OWS_SHOP_SCHEMA=shop
 OWS_IDENTITY_MODE=local
 COMMERCE_ENABLED=true
 MEMBER_AUTH_ENABLED=true
+STUDIO_ENABLED=true
 ```
 
 ### Vercel（Frontend × 2）

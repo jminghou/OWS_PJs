@@ -193,6 +193,7 @@ services:
       OWS_IDENTITY_MODE: local
       COMMERCE_ENABLED: "true"
       MEMBER_AUTH_ENABLED: "true"
+      STUDIO_ENABLED: "true"
     volumes:
       - happy_wu_uploads:/app/sites/Happy_Wu/backend/uploads
       - ./sites/Happy_Wu/backend/logs:/app/logs

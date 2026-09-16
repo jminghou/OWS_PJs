@@ -19,6 +19,7 @@
     "@ows/content-kit": "*",
     "@ows/platform-api": "*",
     "@ows/site-kit": "*",
+    "@ows/studio": "*",
     "@ows/ui": "*",
     "@tiptap/extension-bubble-menu": "^3.17.1",
     "@tiptap/extension-code-block-lowlight": "^3.19.0",

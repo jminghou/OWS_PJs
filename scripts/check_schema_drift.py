@@ -120,16 +120,17 @@ SITES = {
         },
     },
     "Happy_Wu": {
-        # 平台鏈 + 電商鏈 + 站台鏈；blog/shop 分流、身分 local（自己的 users 表）。
-        # 不掛 Studio、不掛任何排盤。
+        # 平台鏈 + 電商鏈 + Studio 鏈 + 站台鏈；blog/shop 分流、身分 local（自己的 users 表）。
+        # 不掛任何排盤。
         "chains": [
             "core/migrations",
             "packages/commerce/migrations",
+            "packages/studio/migrations",
             "sites/Happy_Wu/backend/migrations",
         ],
         "env": {
             "COMMERCE_ENABLED": "true",
-            "STUDIO_ENABLED": "false",
+            "STUDIO_ENABLED": "true",
             "OWS_BLOG_SCHEMA": "blog",
             "OWS_SHOP_SCHEMA": "shop",
             "OWS_IDENTITY_MODE": "local",
