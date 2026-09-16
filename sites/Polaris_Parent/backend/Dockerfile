@@ -38,6 +38,9 @@ COPY core /app/core
 
 # Copy shared packages
 COPY packages/media_lib /app/packages/media_lib
+# 選用模組：factory 以字串 import，映像檔必須帶上（Polaris 掛 commerce + studio）
+COPY packages/commerce /app/packages/commerce
+COPY packages/studio /app/packages/studio
 
 # Copy site backend
 COPY sites/__init__.py /app/sites/__init__.py

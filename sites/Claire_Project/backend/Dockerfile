@@ -38,6 +38,8 @@ COPY --from=builder /install /usr/local
 # 複製應用程式碼
 COPY core /app/core
 COPY packages/media_lib /app/packages/media_lib
+# 選用模組：factory 以字串 import，映像檔必須帶上（Claire 沿用預設掛載 commerce）
+COPY packages/commerce /app/packages/commerce
 COPY sites/__init__.py /app/sites/__init__.py
 COPY sites/Claire_Project/__init__.py /app/sites/Claire_Project/__init__.py
 COPY sites/Claire_Project/backend /app/sites/Claire_Project/backend
