@@ -120,6 +120,13 @@ def run_migrations_online():
 
     connectable = get_engine()
     with connectable.connect() as connection:
+        # 版本表若被指到 blog 等自訂 schema，alembic 會在跑任何 migration **之前**先建
+        # 版本表 —— 那時 baseline 裡的 CREATE SCHEMA 還沒執行，全新資料庫會直接失敗。
+        # 既有站台的 schema 都已存在，這裡的 IF NOT EXISTS 對它們是 no-op。
+        if _VERSION_TABLE_SCHEMA:
+            connection.exec_driver_sql(f'CREATE SCHEMA IF NOT EXISTS {_VERSION_TABLE_SCHEMA}')
+            connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
