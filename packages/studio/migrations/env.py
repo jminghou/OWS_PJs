@@ -123,8 +123,18 @@ def run_migrations_online():
         # 版本表若被指到 blog 等自訂 schema，alembic 會在跑任何 migration **之前**先建
         # 版本表 —— 那時 baseline 裡的 CREATE SCHEMA 還沒執行，全新資料庫會直接失敗。
         # 既有站台的 schema 都已存在，這裡的 IF NOT EXISTS 對它們是 no-op。
+        # 先查存在與否再建：Postgres 對 CREATE SCHEMA IF NOT EXISTS 仍會檢查資料庫的 CREATE
+        # 權限，正式環境的應用角色（如 Polaris 的 blog_app）沒有這個權限，schema 明明存在
+        # 也會被拒絕。只有全新資料庫（schema 真的不存在）才需要建。
         if _VERSION_TABLE_SCHEMA:
-            connection.exec_driver_sql(f'CREATE SCHEMA IF NOT EXISTS {_VERSION_TABLE_SCHEMA}')
+            exists = connection.exec_driver_sql(
+                'SELECT 1 FROM information_schema.schemata WHERE schema_name = %s',
+                (_VERSION_TABLE_SCHEMA,),
+            ).first()
+            if not exists:
+                connection.exec_driver_sql(f'CREATE SCHEMA {_VERSION_TABLE_SCHEMA}')
+            # 一定要結束這裡自動開啟的交易，否則接下來 alembic 的 migration 會跑在同一個
+            # 交易裡而永遠不 commit（表建了又整個回滾）。
             connection.commit()
 
         context.configure(
