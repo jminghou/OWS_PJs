@@ -206,7 +206,7 @@ class BaseSiteConfig:
     # -------------------------------------------------------------------------
     # Site-Specific Settings
     # -------------------------------------------------------------------------
-    SITE_NAME = os.environ.get('SITE_NAME', 'Polaris Parent')
+    SITE_NAME = os.environ.get('SITE_NAME', 'OWS Site')
     DEFAULT_LANGUAGE = os.environ.get('DEFAULT_LANGUAGE', 'zh-TW')
     SUPPORTED_LANGUAGES = os.environ.get('SUPPORTED_LANGUAGES', 'zh-TW,en').split(',')
 
@@ -252,13 +252,14 @@ class DevelopmentConfig(BaseSiteConfig):
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'dev-jwt-secret-key')
 
+    # 開發庫名由 make_config_registry(dev_database=...) 決定，這裡只放通用預設
     SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL',
-        'postgresql+psycopg://postgres:postgres@localhost:5432/ows_polaris_dev')
+        'postgresql+psycopg://postgres:postgres@localhost:5432/ows_dev')
 
-    SQLALCHEMY_BINDS = {
-        'astrology': _get_database_url('ASTROLOGY_DATABASE_URL',
-            'postgresql+psycopg://postgres:1234567@localhost:5432/db_pcount_v2')
-    }
+    # 站台可在子類追加自己的 bind。基底不預設任何 bind ——
+    # 先前這裡帶著 Polaris 的 astrology 排盤庫，導致每個新站台的開發環境都憑空多一條
+    # 指向紫微庫的連線，而且 MRO 上 DevelopmentConfig 在站台 Config 之前，站台蓋不掉。
+    SQLALCHEMY_BINDS = {}
 
 
 # =============================================================================

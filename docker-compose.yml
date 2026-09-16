@@ -168,6 +168,45 @@ services:
       - ows_network
 
   # ===========================================================================
+  # Happy_Wu Site
+  # ===========================================================================
+
+  # Happy_Wu Backend (Flask)
+  happy_wu_backend:
+    build:
+      context: .
+      dockerfile: sites/Happy_Wu/backend/Dockerfile
+    container_name: ows_happy_wu_backend
+    restart: unless-stopped
+    environment:
+      FLASK_CONFIG: ${FLASK_CONFIG:-production}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ows_happy_wu
+      REDIS_URL: redis://redis:6379/2
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      CORS_ORIGINS: ${HAPPY_WU_CORS_ORIGINS:-http://localhost:3010}
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+      GCS_CREDENTIALS_JSON: ${GCS_CREDENTIALS_JSON:-}
+      SITE_NAME: Happy Wu
+      OWS_BLOG_SCHEMA: blog
+      OWS_SHOP_SCHEMA: shop
+      OWS_IDENTITY_MODE: local
+      COMMERCE_ENABLED: "true"
+      MEMBER_AUTH_ENABLED: "true"
+    volumes:
+      - happy_wu_uploads:/app/sites/Happy_Wu/backend/uploads
+      - ./sites/Happy_Wu/backend/logs:/app/logs
+    ports:
+      - "${HAPPY_WU_BACKEND_PORT:-5010}:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ows_network
+
+  # ===========================================================================
   # Optional Services
   # ===========================================================================
 
@@ -208,4 +247,6 @@ volumes:
   polaris_uploads:
     driver: local
   claire_uploads:
+    driver: local
+  happy_wu_uploads:
     driver: local

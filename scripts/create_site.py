@@ -98,13 +98,16 @@ import os
 
 from dotenv import load_dotenv
 
-from core.backend_engine.site_config import BaseSiteConfig, make_config_registry
-
 SITE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# .env 必須在 import 基底設定**之前**載入：BaseSiteConfig 的欄位在類別定義時就讀
+# os.environ，先 import 再 load_dotenv 會讓 .env 裡除了 DATABASE_URL 以外的值全部失效
+#（COMMERCE_ENABLED / REDIS_URL / CORS_ORIGINS …）。
 # 不加 override=True：平台（Railway / Vercel 等）設定的環境變數應該優先於檔案，
 # 否則映像檔裡帶著的 .env 會蓋掉正式環境的設定。
 load_dotenv(os.path.join(SITE_DIR, '.env'))
+
+from core.backend_engine.site_config import BaseSiteConfig, make_config_registry  # noqa: E402
 
 
 class Config(BaseSiteConfig):
@@ -172,8 +175,9 @@ CORS_ORIGINS=http://localhost:{port + 3000 - 5000}
 # OWS_BLOG_SCHEMA=blog
 # OWS_SHOP_SCHEMA=shop
 
-# 身分模型：local = 自己的 users 表；external = 外部身分系統
-# OWS_IDENTITY_MODE=local
+# 身分模型：local = 自己的 users 表；external = 外部身分系統。
+# 新站台**明確**寫 local —— 未設時若有 OWS_BLOG_SCHEMA 會被當成 external（Polaris 相容規則）。
+OWS_IDENTITY_MODE=local
 
 # 會員系統（core 的 /api/v1/auth/member/*），預設關閉
 # MEMBER_AUTH_ENABLED=true

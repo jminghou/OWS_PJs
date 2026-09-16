@@ -119,6 +119,25 @@ SITES = {
             "account.app_users",
         },
     },
+    "Happy_Wu": {
+        # 平台鏈 + 電商鏈 + 站台鏈；blog/shop 分流、身分 local（自己的 users 表）。
+        # 不掛 Studio、不掛任何排盤。
+        "chains": [
+            "core/migrations",
+            "packages/commerce/migrations",
+            "sites/Happy_Wu/backend/migrations",
+        ],
+        "env": {
+            "COMMERCE_ENABLED": "true",
+            "STUDIO_ENABLED": "false",
+            "OWS_BLOG_SCHEMA": "blog",
+            "OWS_SHOP_SCHEMA": "shop",
+            "OWS_IDENTITY_MODE": "local",
+        },
+        # env.py 現在會自己建版本表所在的 schema，不再需要 prelude。
+        "prelude": [],
+        "ignore": set(),
+    },
 }
 
 # 所有站台都要忽略的：alembic 自己的版本表不是應用 schema。

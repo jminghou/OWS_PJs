@@ -29,7 +29,21 @@ from core.backend_engine.factory import db
 
 # 第二期身分整合（§11）：Polaris 的權限來源是 account.app_users（role + permissions JSONB），
 # 不再用 blog 自有 RBAC 四表。其他站（Claire，未設 OWS_BLOG_SCHEMA）維持 RBAC 四表邏輯。
-_BLOG_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA')
+# P5-C 把「表放哪個 schema」(OWS_BLOG_SCHEMA) 和「用哪種身分模型」(OWS_IDENTITY_MODE) 拆開了，
+# 這裡必須跟著看身分模型 —— 否則任何把表放進 blog schema 的新站台（身分明明是 local、
+# 有自己的 users 與 RBAC 四表）都會被當成 Polaris 去查不存在的 account.app_users 而 500。
+# Polaris 的 .env 明確設 external；Claire 兩個都沒設 → local。行為都不變。
+#
+# 相容規則：OWS_IDENTITY_MODE **未設** 但有 OWS_BLOG_SCHEMA → 仍視為 external。
+# 正式環境的 Polaris（Railway）只設了 OWS_BLOG_SCHEMA / OWS_SHOP_SCHEMA，沒設 IDENTITY_MODE；
+# 若在這裡直接改成只看 IDENTITY_MODE，下一次部署 Polaris 的後台權限就會整個壞掉。
+# 新站台一律明確寫 OWS_IDENTITY_MODE=local（scripts/create_site.py 的 .env.example 已預設）。
+_IDENTITY_MODE = (os.environ.get('OWS_IDENTITY_MODE') or '').strip().lower()
+_EXTERNAL_IDENTITY = (
+    _IDENTITY_MODE == 'external'
+    or (not _IDENTITY_MODE and bool(os.environ.get('OWS_BLOG_SCHEMA')))
+)
+_EXTERNAL_USER_TABLE = os.environ.get('OWS_EXTERNAL_USER_TABLE') or 'account.app_users'
 
 # 各 legacy role 對應的預設權限（與舊邏輯一致，供 Polaris 分支沿用）
 _EDITOR_PERMS = {
@@ -75,7 +89,7 @@ class RBACService:
         # =====================================================================
         # Polaris（統一資料庫）：權限來源 = account.app_users.role + permissions JSONB
         # =====================================================================
-        if _BLOG_SCHEMA:
+        if _EXTERNAL_IDENTITY:
             perms = cls._app_user_permissions(user_id)
             cls._permissions_cache[cache_key] = perms
             return perms
@@ -147,7 +161,7 @@ class RBACService:
         """
         from sqlalchemy import text
         row = db.session.execute(
-            text("SELECT role, permissions FROM account.app_users WHERE id = :uid"),
+            text(f"SELECT role, permissions FROM {_EXTERNAL_USER_TABLE} WHERE id = :uid"),
             {"uid": user_id},
         ).fetchone()
         if not row:

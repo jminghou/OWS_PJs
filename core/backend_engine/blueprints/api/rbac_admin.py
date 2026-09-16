@@ -26,7 +26,21 @@ from core.backend_engine.services.rbac import require_permission, RBACService
 # 統一身分模型（§11）：Polaris 用 account.app_users.role（單一）+ permissions JSONB，
 # 無自有 RBAC 四表。以下提供與前端相容的「固定角色/權限」視圖，並把使用者角色
 # 的讀/寫對應到 app_users.role（經 blog.users view）。其他站（Claire）維持原 RBAC。
-_BLOG_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA')
+# P5-C 把「表放哪個 schema」(OWS_BLOG_SCHEMA) 和「用哪種身分模型」(OWS_IDENTITY_MODE) 拆開了，
+# 這裡必須跟著看身分模型 —— 否則任何把表放進 blog schema 的新站台（身分明明是 local、
+# 有自己的 users 與 RBAC 四表）都會被當成 Polaris 去查不存在的 account.app_users 而 500。
+# Polaris 的 .env 明確設 external；Claire 兩個都沒設 → local。行為都不變。
+#
+# 相容規則：OWS_IDENTITY_MODE **未設** 但有 OWS_BLOG_SCHEMA → 仍視為 external。
+# 正式環境的 Polaris（Railway）只設了 OWS_BLOG_SCHEMA / OWS_SHOP_SCHEMA，沒設 IDENTITY_MODE；
+# 若在這裡直接改成只看 IDENTITY_MODE，下一次部署 Polaris 的後台權限就會整個壞掉。
+# 新站台一律明確寫 OWS_IDENTITY_MODE=local（scripts/create_site.py 的 .env.example 已預設）。
+_IDENTITY_MODE = (os.environ.get('OWS_IDENTITY_MODE') or '').strip().lower()
+_EXTERNAL_IDENTITY = (
+    _IDENTITY_MODE == 'external'
+    or (not _IDENTITY_MODE and bool(os.environ.get('OWS_BLOG_SCHEMA')))
+)
+_EXTERNAL_USER_TABLE = os.environ.get('OWS_EXTERNAL_USER_TABLE') or 'account.app_users'
 # 設定單一角色時的優先序（前端可能傳多個碼，統一模型取其一）
 _ROLE_PRIORITY = ['admin', 'editor', 'member', 'user']
 
@@ -90,7 +104,7 @@ def _role_to_dict(role):
 @require_permission('users.update')
 def rbac_list_permissions():
     """List all permissions grouped by module."""
-    if _BLOG_SCHEMA:
+    if _EXTERNAL_IDENTITY:
         return jsonify({'modules': _polaris_permissions_payload()}), 200
     perms = Permission.query.order_by(Permission.module, Permission.action).all()
     grouped = {}
@@ -108,7 +122,7 @@ def rbac_list_permissions():
 @require_permission('users.update')
 def rbac_list_roles():
     """List all roles with their permission codes."""
-    if _BLOG_SCHEMA:
+    if _EXTERNAL_IDENTITY:
         return jsonify({'roles': _polaris_roles_payload()}), 200
     roles = Role.query.order_by(Role.id).all()
     return jsonify({'roles': [_role_to_dict(r) for r in roles]}), 200
@@ -119,7 +133,7 @@ def rbac_list_roles():
 @require_permission('users.update')
 def rbac_create_role():
     """Create a new (custom) role."""
-    if _BLOG_SCHEMA:
+    if _EXTERNAL_IDENTITY:
         return jsonify(_POLARIS_ROLE_UNSUPPORTED[0]), _POLARIS_ROLE_UNSUPPORTED[1]
     data = request.get_json() or {}
     code = (data.get('code') or '').strip()
@@ -147,7 +161,7 @@ def rbac_create_role():
 @require_permission('users.update')
 def rbac_update_role(role_id):
     """Update a role's name/description/active/permissions."""
-    if _BLOG_SCHEMA:
+    if _EXTERNAL_IDENTITY:
         return jsonify(_POLARIS_ROLE_UNSUPPORTED[0]), _POLARIS_ROLE_UNSUPPORTED[1]
     role = Role.query.get_or_404(role_id)
     data = request.get_json() or {}
@@ -171,7 +185,7 @@ def rbac_update_role(role_id):
 @require_permission('users.update')
 def rbac_delete_role(role_id):
     """Delete a custom role (system roles cannot be deleted)."""
-    if _BLOG_SCHEMA:
+    if _EXTERNAL_IDENTITY:
         return jsonify(_POLARIS_ROLE_UNSUPPORTED[0]), _POLARIS_ROLE_UNSUPPORTED[1]
     role = Role.query.get_or_404(role_id)
     if role.is_system:
@@ -202,7 +216,7 @@ def _set_role_permissions(role, permission_codes):
 @require_permission('users.update')
 def rbac_get_user_roles(user_id):
     """Get the role codes assigned to a user."""
-    if _BLOG_SCHEMA:
+    if _EXTERNAL_IDENTITY:
         u = User.query.get_or_404(user_id)
         return jsonify({'roles': [u.role] if u.role else []}), 200
     User.query.get_or_404(user_id)
@@ -220,7 +234,7 @@ def rbac_set_user_roles(user_id):
     data = request.get_json() or {}
     codes = set(data.get('roles', []))
 
-    if _BLOG_SCHEMA:
+    if _EXTERNAL_IDENTITY:
         # 統一模型：單一 app_users.role（依優先序取一），經 view trigger 寫入
         chosen = next((r for r in _ROLE_PRIORITY if r in codes), None) or 'user'
         user.role = chosen

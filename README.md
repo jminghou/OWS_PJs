@@ -1,6 +1,6 @@
 # OWS Multi-Site Platform
 
-多站點核心分離架構，採用類似 WordPress 的「核心 (Core) 與 內容 (Sites) 分離」模式，目前包含 **Polaris Parent**（北極星親子）與 **Claire Project** 兩個站點。
+多站點核心分離架構，採用類似 WordPress 的「核心 (Core) 與 內容 (Sites) 分離」模式，目前包含 **Polaris Parent**（北極星親子）、**Claire Project** 與 **Happy_Wu** 三個站點。
 
 部署方式：**Backend → Railway**，**Frontend → Vercel**，push 到 GitHub `main` 分支即自動部署。
 
@@ -43,7 +43,59 @@ npm run dev:claire
 
 → 前端 `http://localhost:3002`、API `http://localhost:5002/api/v1`
 
-> 兩個 Site 可同時運作，Port 不會衝突。首次使用請先參考下方「[初次設定](#初次設定)」。
+### Happy_Wu
+
+**第一次啟動**（只做一次：建庫、跑 migration、建 admin）：
+
+```powershell
+# 0. 依賴（在 repo 根目錄）
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+npm install
+
+# 1. 環境變數：後端 sites/Happy_Wu/.env、前端 sites/Happy_Wu/frontend/.env.local
+cp sites/Happy_Wu/.env.example sites/Happy_Wu/.env          # 填 DATABASE_URL 的帳密
+#   前端 .env.local 內容：
+#     NEXT_PUBLIC_API_URL=http://localhost:5010/api/v1
+#     NEXT_PUBLIC_BACKEND_URL=http://localhost:5010
+#     NEXT_PUBLIC_SITE_URL=http://localhost:3010
+#     NEXT_PUBLIC_SITE_NAME=Happy Wu
+#     REVALIDATE_SECRET=（與後端 .env 相同）
+
+# 2. 建獨立資料庫（沒有 psql 時可用 pgAdmin 或任何 SQL 工具執行同一句）
+psql -U postgres -c "CREATE DATABASE ows_happy_wu;"
+
+# 3. 三條 migration 鏈，順序不能反：平台 → 電商 → 站台
+$app = "sites.Happy_Wu.backend.app:app"
+flask --app $app db upgrade -d core/migrations
+flask --app $app db upgrade -d packages/commerce/migrations
+flask --app $app db upgrade -d sites/Happy_Wu/backend/migrations
+
+# 4. 建後台管理員並種下權限
+flask --app $app create-admin        # 互動輸入 username / email / 密碼（8 碼含大小寫與數字）
+flask --app $app seed-rbac
+```
+
+**每次啟動**（3 個終端機）：
+
+```powershell
+# 終端機 1：Redis（若尚未啟動）
+docker-compose up -d redis
+
+# 終端機 2：後端
+.\.venv\Scripts\Activate.ps1
+flask --app "sites.Happy_Wu.backend.app:app" run --port 5010
+
+# 終端機 3：前端
+npm run dev:happy-wu
+```
+
+→ 前端 `http://localhost:3010`、後台 `http://localhost:3010/admin/login`、API `http://localhost:5010/api/v1`
+
+**驗證**：`curl.exe http://localhost:5010/health` 回 `{"status":"healthy"}`；後台用 create-admin 建的帳號登入。
+Redis 沒開只會讓快取退回記憶體並在 log 印警告，不影響功能。
+
+> 三個 Site 可同時運作，Port 不會衝突。首次使用請先參考下方「[初次設定](#初次設定)」。
 
 ---
 
@@ -53,6 +105,7 @@ npm run dev:claire
 |------|-------------------|-------------------|
 | Polaris Parent | https://polaris-parent.com | https://api.polaris-parent.com |
 | Claire Project | https://clairelab.tw | https://api.clairelab.tw |
+| Happy_Wu | （待設定） | （待設定） |
 
 **Push 到 GitHub `main` 分支會自動觸發部署。**
 
@@ -72,9 +125,12 @@ OWS_PJs/
 │   ├── Polaris_Parent/         # Site A — 北極星親子（含 astrology extension）
 │   │   ├── backend/            # Flask + Dockerfile（部署 Railway）
 │   │   └── frontend/           # Next.js 15（部署 Vercel）
-│   └── Claire_Project/         # Site B — Claire Project（乾淨基底）
-│       ├── backend/            # Flask + Dockerfile（部署 Railway）
-│       └── frontend/           # Next.js 15（部署 Vercel）
+│   ├── Claire_Project/         # Site B — Claire Project（乾淨基底，凍結中）
+│   │   ├── backend/            # Flask + Dockerfile（部署 Railway）
+│   │   └── frontend/           # Next.js 15（部署 Vercel）
+│   └── Happy_Wu/               # Site C — 由 scripts/create_site.py 產生；平台 + 電商 + 會員
+│       ├── backend/            # 只有 app.py / config.py / Dockerfile / 站台鏈
+│       └── frontend/           # 後台頁面全部 re-export 自 @ows/admin-app、@ows/commerce
 └── docker-compose.yml          # 本機開發用 compose（僅 Redis）
 ```
 
@@ -82,6 +138,7 @@ OWS_PJs/
 |------|--------|--------------------|---------------------|
 | Polaris Parent | `ows_polaris` | 5000 | 3000 |
 | Claire Project | `ows_claire` | 5002 | 3002 |
+| Happy_Wu | `ows_happy_wu` | 5010 | 3010 |
 
 每個 Site 擁有獨立的資料庫、`.env` 配置與前後端，可透過 Extensions 擴展 Core 功能。
 
@@ -130,6 +187,7 @@ npm install          # 安裝所有 workspace 依賴
 ```bash
 cp sites/Polaris_Parent/.env.example sites/Polaris_Parent/.env
 cp sites/Claire_Project/.env.example sites/Claire_Project/.env
+cp sites/Happy_Wu/.env.example sites/Happy_Wu/.env
 ```
 
 ### 4. 資料庫初始化（本機）
@@ -158,6 +216,23 @@ flask --app "sites.Claire_Project.backend.app:app" create-admin
 flask --app "sites.Claire_Project.backend.app:app" seed-rbac
 ```
 
+#### Happy_Wu
+
+Happy_Wu 走 P5-C 的分鏈架構（見 `docs/MIGRATIONS.md`）：平台鏈 → 電商鏈 → 站台鏈，順序不能反。
+`.env` 已設 `OWS_BLOG_SCHEMA=blog`、`OWS_SHOP_SCHEMA=shop`、`OWS_IDENTITY_MODE=local`、
+`COMMERCE_ENABLED=true`、`MEMBER_AUTH_ENABLED=true`；不掛 Studio、不掛任何排盤。
+
+```powershell
+psql -U postgres -c "CREATE DATABASE ows_happy_wu;"
+$app = "sites.Happy_Wu.backend.app:app"
+flask --app $app db upgrade -d core/migrations
+flask --app $app db upgrade -d packages/commerce/migrations
+flask --app $app db upgrade -d sites/Happy_Wu/backend/migrations
+flask --app $app create-admin
+flask --app $app seed-rbac
+python scripts/check_schema_drift.py --site Happy_Wu   # 從零重建驗證（不碰線上庫）
+```
+
 > **RBAC（權限）指令**：
 > - `flask --app <site> seed-rbac` — 冪等地建立 / 補齊權限、角色與對應，並把既有使用者的
 >   legacy `role` 同步到 user_roles。新增權限後重跑即可補上，不會覆蓋自訂。
@@ -181,26 +256,28 @@ flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d sites/Polaris_P
 
 ---
 
-## 同時啟動兩個 Site
+## 同時啟動多個 Site
 
-兩個 Site 可同時運作，需要 **5 個終端機**：
+各 Site 可同時運作，每個 Site 一個後端 + 一個前端終端機，Redis 共用：
 
 ```
 終端機 1：Redis（共用）
-終端機 2：Polaris 後端  → port 5000
-終端機 3：Polaris 前端  → port 3000
-終端機 4：Claire 後端   → port 5002
-終端機 5：Claire 前端   → port 3002
+終端機 2：Polaris 後端   → port 5000
+終端機 3：Polaris 前端   → port 3000
+終端機 4：Claire 後端    → port 5002
+終端機 5：Claire 前端    → port 3002
+終端機 6：Happy_Wu 後端  → port 5010
+終端機 7：Happy_Wu 前端  → port 3010
 ```
 
 ### Port 與 Redis 分配總覽
 
-| 服務 | Polaris Parent | Claire Project |
-|------|---------------|----------------|
-| Backend API | `5000` | `5002` |
-| Frontend | `3000` | `3002` |
-| 資料庫 | `ows_polaris` | `ows_claire` |
-| Redis DB | `redis://localhost:6379/0` | `redis://localhost:6379/1` |
+| 服務 | Polaris Parent | Claire Project | Happy_Wu |
+|------|---------------|----------------|----------|
+| Backend API | `5000` | `5002` | `5010` |
+| Frontend | `3000` | `3002` | `3010` |
+| 資料庫 | `ows_polaris` | `ows_claire` | `ows_happy_wu` |
+| Redis DB | `redis://localhost:6379/0` | `redis://localhost:6379/1` | `redis://localhost:6379/2` |
 
 > **注意**：每個 Site 的前端 `.env.local` 中 `NEXT_PUBLIC_API_URL` 必須指向對應的後端 Port。
 
@@ -213,6 +290,8 @@ npm run dev:polaris       # 啟動 Polaris 前端（port 3000）
 npm run dev:claire        # 啟動 Claire 前端（port 3002）
 npm run build:polaris     # 建置 Polaris 前端
 npm run build:claire      # 建置 Claire 前端
+npm run dev:happy-wu      # 啟動 Happy_Wu 前端（port 3010）
+npm run build:happy-wu    # 建置 Happy_Wu 前端
 npm run install:all       # 安裝所有 workspace 依賴
 ```
 
@@ -298,6 +377,7 @@ app = create_app(
 |---------|-----------------|---------------|
 | polaris-backend | `/sites/Polaris_Parent/backend/Dockerfile` | `api.polaris-parent.com` |
 | claire-backend | `/sites/Claire_Project/backend/Dockerfile` | `api.clairelab.tw` |
+| happy-wu-backend | `/sites/Happy_Wu/backend/Dockerfile` | （待設定） |
 
 **設定要點**：
 - Source → Branch: `main`，Auto deploys: **ON**
@@ -317,6 +397,13 @@ JWT_COOKIE_DOMAIN     # 跨域 cookie 設定（例如 .polaris-parent.com）
 ADMIN_EMAIL           # 初次建立 admin 用
 ADMIN_PASSWORD
 ADMIN_USERNAME        # 預設 admin
+
+# Happy_Wu 另需（見 sites/Happy_Wu/.env.example）：
+OWS_BLOG_SCHEMA=blog
+OWS_SHOP_SCHEMA=shop
+OWS_IDENTITY_MODE=local
+COMMERCE_ENABLED=true
+MEMBER_AUTH_ENABLED=true
 ```
 
 ### Vercel（Frontend × 2）
@@ -327,6 +414,7 @@ ADMIN_USERNAME        # 預設 admin
 |---------|---------------|---------------|
 | polaris-frontend | `sites/Polaris_Parent/frontend` | `polaris-parent.com` |
 | claire-frontend | `sites/Claire_Project/frontend` | `clairelab.tw` |
+| happy-wu-frontend | `sites/Happy_Wu/frontend` | （待設定） |
 
 **設定要點**：
 - Framework Preset: **Next.js**
@@ -384,6 +472,11 @@ packages/**
 
 # claire-backend Watch Paths
 sites/Claire_Project/**
+core/**
+packages/**
+
+# happy-wu-backend Watch Paths
+sites/Happy_Wu/**
 core/**
 packages/**
 ```

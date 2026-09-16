@@ -44,21 +44,26 @@ REPO = Path(__file__).resolve().parent.parent
 PACKAGES = REPO / "packages"
 
 # (字串, 說明)。說明要講清楚「這是誰的、什麼」—— 清單本身就是文件。
-FORBIDDEN: list[tuple[str, str]] = [
+FORBIDDEN: list[tuple[str, str, str]] = [
+    # (字串, 擁有它的站台目錄名, 說明)。--built 檢查某站台自己的產物時，會略過屬於該站的字串 ——
+    # 站台的建置裡當然有自己的站名，要抓的是「別站」的東西。
     # ── Polaris_Parent ──────────────────────────────────────────────────
-    ("親紫",                    "Polaris 品牌（親紫之間）"),
-    ("polaris-parent.com",      "Polaris 網域"),
-    ("折扣碼",                  "Polaris membership 擴充的後台頁面標籤"),
-    ("訂單審核",                "Polaris membership 擴充的後台頁面標籤"),
-    ("外部商品",                "Polaris membership 擴充的後台頁面標籤"),
-    ("/admin/coupons",          "Polaris membership 擴充的路由"),
-    ("/admin/order-reviews",    "Polaris membership 擴充的路由"),
-    ("/admin/product-types",    "Polaris membership 擴充的路由"),
-    ("/api/v1/astrology",       "Polaris 紫微擴充的 API 前綴"),
-    ("/api/v1/membership",      "Polaris membership 擴充的 API 前綴"),
+    ("親紫",                    "Polaris_Parent", "Polaris 品牌（親紫之間）"),
+    ("polaris-parent.com",      "Polaris_Parent", "Polaris 網域"),
+    ("折扣碼",                  "Polaris_Parent", "Polaris membership 擴充的後台頁面標籤"),
+    ("訂單審核",                "Polaris_Parent", "Polaris membership 擴充的後台頁面標籤"),
+    ("外部商品",                "Polaris_Parent", "Polaris membership 擴充的後台頁面標籤"),
+    ("/admin/coupons",          "Polaris_Parent", "Polaris membership 擴充的路由"),
+    ("/admin/order-reviews",    "Polaris_Parent", "Polaris membership 擴充的路由"),
+    ("/admin/product-types",    "Polaris_Parent", "Polaris membership 擴充的路由"),
+    ("/api/v1/astrology",       "Polaris_Parent", "Polaris 紫微擴充的 API 前綴"),
+    ("/api/v1/membership",      "Polaris_Parent", "Polaris membership 擴充的 API 前綴"),
     # ── Claire_Project ──────────────────────────────────────────────────
-    ("clairelab.tw",            "Claire 網域"),
-    ("Claire Project",          "Claire 站名"),
+    ("clairelab.tw",            "Claire_Project", "Claire 網域"),
+    ("Claire Project",          "Claire_Project", "Claire 站名"),
+    # ── Happy_Wu ────────────────────────────────────────────────────────
+    ("Happy Wu",                "Happy_Wu", "Happy_Wu 站名"),
+    ("Happy_Wu",                "Happy_Wu", "Happy_Wu 站台識別字"),
 ]
 
 # 這幾個套件是刻意的站台專屬／凍結層，不受此檢查約束：
@@ -79,8 +84,10 @@ def strip_comments(text: str) -> str:
     return _LINE_COMMENT.sub("", text)
 
 
-def scan_text(text: str, where: str, hits: list[str]) -> None:
-    for needle, why in FORBIDDEN:
+def scan_text(text: str, where: str, hits: list[str], own_site: str | None = None) -> None:
+    for needle, site, why in FORBIDDEN:
+        if own_site and site == own_site:
+            continue
         start = 0
         while True:
             idx = text.find(needle, start)
@@ -114,6 +121,9 @@ def scan_built(root: Path) -> list[str]:
     hits: list[str] = []
     if not root.exists():
         return [f"{root} 不存在 —— 先建置再檢查"]
+    # 從路徑推出這是哪個站台的產物（sites/<Name>/…），該站自己的字串不算洩漏
+    parts = root.resolve().parts
+    own_site = parts[parts.index("sites") + 1] if "sites" in parts else None
     for path in root.rglob("*"):
         if not path.is_file() or path.suffix not in (".js", ".html", ".json", ".rsc", ".body"):
             continue
@@ -123,7 +133,7 @@ def scan_built(root: Path) -> list[str]:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        scan_text(text, path.relative_to(REPO).as_posix() if path.is_relative_to(REPO) else str(path), hits)
+        scan_text(text, path.relative_to(REPO).as_posix() if path.is_relative_to(REPO) else str(path), hits, own_site)
     return hits
 
 
@@ -136,8 +146,8 @@ def main() -> int:
 
     if args.list:
         print("共用層禁止出現的站台專屬字串：")
-        for needle, why in FORBIDDEN:
-            print(f"  {needle:26} {why}")
+        for needle, site, why in FORBIDDEN:
+            print(f"  {needle:26} [{site}] {why}")
         print(f"\n豁免的套件：{', '.join(sorted(EXEMPT_PACKAGES))}")
         return 0
 
