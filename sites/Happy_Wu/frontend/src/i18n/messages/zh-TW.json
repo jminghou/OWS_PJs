@@ -1,0 +1,50 @@
+{
+  "common": {
+    "home": "首頁",
+    "articles": "文章",
+    "posts": "貼文",
+    "about": "關於",
+    "contact": "聯絡我們",
+    "search": "搜尋",
+    "readMore": "閱讀更多",
+    "loading": "載入中...",
+    "error": "發生錯誤",
+    "notFound": "找不到頁面",
+    "back": "返回",
+    "language": "語言"
+  },
+  "article": {
+    "author": "作者",
+    "publishedAt": "發布於",
+    "updatedAt": "更新於",
+    "views": "瀏覽",
+    "likes": "讚",
+    "tags": "標籤",
+    "category": "分類",
+    "relatedArticles": "相關文章",
+    "noArticles": "暫無文章"
+  },
+  "footer": {
+    "copyright": "版權所有",
+    "allRightsReserved": "保留所有權利"
+  },
+  "meta": {
+    "siteName": "Happy Wu",
+    "description": "Happy Wu 是一個分享生活、觀察與想法的個人專欄。"
+  },
+  "aboutPage": {
+    "title": "Happy Wu - 關於我們",
+    "description": "Happy Wu 是一個分享生活、觀察與想法的個人專欄。",
+    "aboutMe": "關於我",
+    "story": "我是 Happy Wu 的作者。這個網站是我整理想法的地方：把日常裡觀察到的事、讀過的書、做過的專案，慢慢寫成一篇篇文章。",
+    "siteOriginTitle": "這個網站的由來",
+    "quote": "「寫下來，才算真的想過。」",
+    "quoteAuthor": "— Happy Wu",
+    "siteOrigin": "起初只是想有個地方好好放自己的筆記。後來發現，公開寫作會逼自己把想法整理清楚，也讓志同道合的人有機會找到彼此。於是有了這個專欄。",
+    "missionTitle": "我們在做什麼",
+    "mission": "這裡沒有速成的答案，只有一篇篇認真整理過的想法。主題涵蓋生活觀察、閱讀筆記與工作方法，目標是長期累積成一個可以回頭查閱的知識庫。",
+    "exploreTitle": "一起探索",
+    "exploreDescription": "如果你對這裡的內容有興趣，或想交流想法，歡迎透過聯絡頁面找到我。",
+    "contactBtn": "聯絡我們"
+  }
+}

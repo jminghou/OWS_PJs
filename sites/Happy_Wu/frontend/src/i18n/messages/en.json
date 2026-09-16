@@ -1,0 +1,50 @@
+{
+  "common": {
+    "home": "Home",
+    "articles": "Articles",
+    "posts": "Posts",
+    "about": "About",
+    "contact": "Contact",
+    "search": "Search",
+    "readMore": "Read More",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "notFound": "Page not found",
+    "back": "Back",
+    "language": "Language"
+  },
+  "article": {
+    "author": "Author",
+    "publishedAt": "Published on",
+    "updatedAt": "Updated on",
+    "views": "Views",
+    "likes": "Likes",
+    "tags": "Tags",
+    "category": "Category",
+    "relatedArticles": "Related Articles",
+    "noArticles": "No articles available"
+  },
+  "footer": {
+    "copyright": "Copyright",
+    "allRightsReserved": "All rights reserved"
+  },
+  "meta": {
+    "siteName": "Happy Wu",
+    "description": "Happy Wu is a personal column sharing life, observations and ideas."
+  },
+  "aboutPage": {
+    "title": "About Us - Happy Wu",
+    "description": "Happy Wu is a personal column sharing life, observations and ideas.",
+    "aboutMe": "About Me",
+    "story": "I write Happy Wu. This site is where I organise my thinking: everyday observations, books I have read and projects I have worked on, slowly turned into articles.",
+    "siteOriginTitle": "The Origin of This Website",
+    "quote": "\"It only counts as thinking once it is written down.\"",
+    "quoteAuthor": "— Happy Wu",
+    "siteOrigin": "At first I just wanted somewhere to keep my notes. Then I noticed that writing in public forces me to think clearly, and lets like-minded people find each other. That is how this column began.",
+    "missionTitle": "What We Do",
+    "mission": "No quick answers here, just carefully organised thoughts. Topics cover everyday observation, reading notes and ways of working, with the aim of building a knowledge base worth returning to.",
+    "exploreTitle": "Explore With Us",
+    "exploreDescription": "If you are interested in what you read here, or would like to exchange ideas, please reach out through the contact page.",
+    "contactBtn": "Contact Us"
+  }
+}
