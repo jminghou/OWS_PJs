@@ -55,8 +55,9 @@ _SENTINELS = ('products', 'payment_methods')
 
 def upgrade():
     bind = op.get_bind()
-    if SHOP:
-        op.execute(f'CREATE SCHEMA IF NOT EXISTS {SHOP}')
+    # 同 studio baseline：受限帳號下 CREATE SCHEMA IF NOT EXISTS 會被拒，先查再建。
+    if SHOP and not bind.execute(sa.text('SELECT 1 FROM pg_namespace WHERE nspname = :n'), {'n': SHOP}).scalar():
+        op.execute(f'CREATE SCHEMA {SHOP}')
     existing = set(sa.inspect(bind).get_table_names(schema=SHOP))
     present = existing & set(_SENTINELS)
     if present == set(_SENTINELS):

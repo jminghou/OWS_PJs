@@ -92,8 +92,11 @@ def _user_fk():
 
 def upgrade():
     bind = op.get_bind()
+    # 正式庫用的是受限帳號（Polaris 的 blog_app）：CREATE SCHEMA IF NOT EXISTS 即使 schema
+    # 已存在仍要資料庫層級的 CREATE 權限。先查 pg_namespace，真的不存在才建。
     for schema in {BLOG, SHOP, MEDIA_LIB} - {None}:
-        op.execute(f'CREATE SCHEMA IF NOT EXISTS {schema}')
+        if not bind.execute(sa.text('SELECT 1 FROM pg_namespace WHERE nspname = :n'), {'n': schema}).scalar():
+            op.execute(f'CREATE SCHEMA {schema}')
 
     # 冪等保護：Polaris / Claire 的平台表早在這條鏈存在之前就建好了（由各自的
     # 站台鏈）。偵測到就整條跳過、只記錄版本 —— 讓部署流程不需要「記得先 stamp」
