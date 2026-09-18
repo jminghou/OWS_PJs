@@ -73,6 +73,8 @@ OPTIONAL_MODULES = [
     ('COMMERCE_ENABLED', True, 'packages.commerce', 'register_commerce'),
     # Studio（內容與知識管理）是新功能，沒有「現狀」要維持 → 預設不掛，站台明確打開才有。
     ('STUDIO_ENABLED', False, 'packages.studio', 'register_studio'),
+    # Newsletter（電子報訂閱名單）同樣是新功能 → 預設不掛。
+    ('NEWSLETTER_ENABLED', False, 'packages.newsletter', 'register_newsletter'),
 ]
 
 

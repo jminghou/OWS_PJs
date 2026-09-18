@@ -77,11 +77,13 @@ SITES = {
             "core/migrations",
             "packages/commerce/migrations",
             "packages/studio/migrations",
+            "packages/newsletter/migrations",
             "sites/Polaris_Parent/backend/migrations",
         ],
         "env": {
             "COMMERCE_ENABLED": "true",
             "STUDIO_ENABLED": "true",
+            "NEWSLETTER_ENABLED": "true",
             "OWS_BLOG_SCHEMA": "blog",
             "OWS_SHOP_SCHEMA": "shop",
             "OWS_IDENTITY_MODE": "external",
@@ -147,6 +149,7 @@ GLOBAL_IGNORE = {
     "alembic_version_core", "blog.alembic_version_core",
     "alembic_version_commerce", "blog.alembic_version_commerce", "shop.alembic_version_commerce",
     "alembic_version_studio", "blog.alembic_version_studio", "public.alembic_version_studio",
+    "alembic_version_newsletter", "blog.alembic_version_newsletter", "public.alembic_version_newsletter",
 }
 
 
@@ -169,7 +172,7 @@ def discover_sites() -> dict:
             continue
         found[path.name] = {
             "chains": ["core/migrations", f"sites/{path.name}/backend/migrations"],
-            "env": {"COMMERCE_ENABLED": "false", "STUDIO_ENABLED": "false"},   # 產生器的預設
+            "env": {"COMMERCE_ENABLED": "false", "STUDIO_ENABLED": "false", "NEWSLETTER_ENABLED": "false"},   # 產生器的預設
             "prelude": [],
             "ignore": set(),
         }
@@ -278,6 +281,9 @@ def worker_main() -> int:
     # Studio 預設不掛（與 factory 同一條規則：明確 true 才掛）。
     if (os.environ.get("STUDIO_ENABLED") or "false").strip().lower() in ("1", "true", "yes", "on"):
         import packages.studio.models  # noqa: F401
+    # Newsletter 同樣預設不掛。
+    if (os.environ.get("NEWSLETTER_ENABLED") or "false").strip().lower() in ("1", "true", "yes", "on"):
+        import packages.newsletter.models  # noqa: F401
     # 站台專屬 models（有才匯入）
     try:
         import_module(f"sites.{site}.backend.models")
