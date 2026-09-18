@@ -215,33 +215,57 @@ def _configure_cors(app: Flask) -> None:
     )
 
 
+def _probe_redis(redis_url: str, timeout: float = 0.5):
+    """用短逾時實際 ping 一次 Redis；連得上回傳 client，連不上回 None。
+
+    為什麼要先 ping：flask-caching 的 RedisCache 初始化時不會連線，設了 REDIS_URL 但
+    Redis 沒開的話不會有任何錯誤，而是「每個請求」在 get/set 時各等一次連線逾時
+    （Windows 上實測約 4 秒一次），整站看起來像卡住。這裡在啟動時就決定好用哪個後端。
+    回傳的 client 也帶了逾時，Redis 中途掛掉時最多只拖 timeout 秒，不會拖 4 秒。
+    """
+    try:
+        import redis
+        client = redis.from_url(
+            redis_url,
+            socket_connect_timeout=timeout,
+            socket_timeout=timeout,
+        )
+        client.ping()
+        return client
+    except Exception as e:  # 連線失敗、套件缺失、URL 格式錯都退回 SimpleCache
+        logging.getLogger(__name__).warning(f"Redis unavailable ({e.__class__.__name__}: {e}); falling back")
+        return None
+
+
 def _configure_cache(app: Flask) -> None:
-    """Configure caching (Redis if available, else SimpleCache)."""
+    """Configure caching (Redis if reachable, else SimpleCache)."""
     redis_url = app.config.get('REDIS_URL')
     # KEY_PREFIX 讓 cache.clear() 只刪我們的回應快取，不會誤清同一個 Redis 上的
     # rate-limiter / 其他資料（否則 RedisCache.clear() 會 flushdb 整顆 DB）。
-    if redis_url:
-        try:
-            cache.init_app(app, config={
-                'CACHE_TYPE': 'RedisCache',
-                'CACHE_REDIS_URL': redis_url,
-                'CACHE_DEFAULT_TIMEOUT': 300,
-                'CACHE_KEY_PREFIX': 'ows_cache:',
-            })
-            app.logger.info("Cache initialized with Redis backend")
-        except Exception as e:
-            app.logger.warning(f"Redis cache failed, falling back to SimpleCache: {e}")
-            cache.init_app(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_KEY_PREFIX': 'ows_cache:'})
+    client = _probe_redis(redis_url) if redis_url else None
+    app.config['REDIS_AVAILABLE'] = client is not None
+    if client is not None:
+        # 直接交 client 物件給 cachelib（CACHE_REDIS_HOST 可接 client），才能帶上逾時設定
+        cache.init_app(app, config={
+            'CACHE_TYPE': 'RedisCache',
+            'CACHE_REDIS_HOST': client,
+            'CACHE_DEFAULT_TIMEOUT': 300,
+            'CACHE_KEY_PREFIX': 'ows_cache:',
+        })
+        app.logger.info("Cache initialized with Redis backend")
     else:
         cache.init_app(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_KEY_PREFIX': 'ows_cache:'})
-        app.logger.info("Cache initialized with SimpleCache backend")
+        if redis_url:
+            app.logger.warning("REDIS_URL is set but Redis is unreachable; using in-memory SimpleCache")
+        else:
+            app.logger.info("Cache initialized with SimpleCache backend")
 
 
 def _configure_rate_limiter(app: Flask) -> None:
-    """Configure rate limiter with Redis backend if available."""
+    """Configure rate limiter with Redis backend if reachable (else in-memory)."""
     redis_url = app.config.get('REDIS_URL')
     limiter.init_app(app)
-    if redis_url:
+    if redis_url and app.config.get('REDIS_AVAILABLE'):
         limiter._storage_uri = redis_url
 
 

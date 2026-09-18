@@ -27,6 +27,19 @@
     "deploy:down": "docker compose -f deploy/docker-compose.yml down",
     "deploy:logs": "docker compose -f deploy/docker-compose.yml logs -f",
     "dev:happy-wu": "npm run dev --workspace=happy-wu-frontend",
-    "build:happy-wu": "npm run build --workspace=happy-wu-frontend"
+    "build:happy-wu": "npm run build --workspace=happy-wu-frontend",
+    "dev:polaris:api": "node scripts/dev-backend.mjs polaris",
+    "dev:claire:api": "node scripts/dev-backend.mjs claire",
+    "dev:happy-wu:api": "node scripts/dev-backend.mjs happy-wu",
+    "dev:polaris:all": "node scripts/dev-preflight.mjs 5000 3000 && concurrently -k -n polaris-api,polaris-web -c blue,cyan \"npm:dev:polaris:api\" \"npm:dev:polaris\"",
+    "dev:claire:all": "node scripts/dev-preflight.mjs 5002 3002 && concurrently -k -n claire-api,claire-web -c magenta,red \"npm:dev:claire:api\" \"npm:dev:claire\"",
+    "dev:happy-wu:all": "node scripts/dev-preflight.mjs 5010 3010 && concurrently -k -n hw-api,hw-web -c green,yellow \"npm:dev:happy-wu:api\" \"npm:dev:happy-wu\"",
+    "dev:everything": "node scripts/dev-preflight.mjs 5000 3000 5002 3002 5010 3010 && concurrently -k -n polaris-api,polaris-web,claire-api,claire-web,hw-api,hw-web -c blue,cyan,magenta,red,green,yellow \"npm:dev:polaris:api\" \"npm:dev:polaris\" \"npm:dev:claire:api\" \"npm:dev:claire\" \"npm:dev:happy-wu:api\" \"npm:dev:happy-wu\"",
+    "polaris": "npm run dev:polaris:all",
+    "claire": "npm run dev:claire:all",
+    "happy-wu": "npm run dev:happy-wu:all"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }

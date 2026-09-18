@@ -19,7 +19,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import { createArticleBaseExtensions } from './articleExtensions';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
@@ -1572,10 +1572,7 @@ export function TiptapEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-        codeBlock: false,
-      }),
+      ...createArticleBaseExtensions(),
       CodeBlockLowlight.configure({
         lowlight,
       }).extend({

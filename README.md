@@ -8,44 +8,67 @@
 
 ## 🚀 本機啟動
 
-啟動任一個 Site 需要 **3 個終端機**（Redis + Backend + Frontend）。
-
-### Polaris Parent
+**一個站台一行指令、一個終端機。** 在 repo 根目錄執行：
 
 ```powershell
-# 終端機 1：Redis
-docker-compose up -d redis
+npm run polaris      # Polaris Parent：後端 5000 + 前端 3000
+npm run claire       # Claire Project：後端 5002 + 前端 3002
+npm run happy-wu     # Happy_Wu：      後端 5010 + 前端 3010
 
-# 1. 先啟用虛擬環境（建議用 .venv）
-.\.venv\Scripts\Activate.ps1
-
-# 2. 再啟動 Flask
-flask --app "sites.Polaris_Parent.backend.app:app" run --port 5000
-
-# 終端機 3：前端
-npm run dev:polaris
+npm run dev:everything   # 三站六個程序全開，仍然只佔一個終端機
 ```
 
-→ 前端 `http://localhost:3000`、API `http://localhost:5000/api/v1`
+| 站台 | 前端 | 後台登入 | API | 健康檢查 |
+|------|------|----------|-----|----------|
+| Polaris Parent | http://localhost:3000 | http://localhost:3000/admin/login | http://localhost:5000/api/v1 | http://localhost:5000/health |
+| Claire Project | http://localhost:3002 | http://localhost:3002/admin/login | http://localhost:5002/api/v1 | http://localhost:5002/health |
+| Happy_Wu | http://localhost:3010 | http://localhost:3010/admin/login | http://localhost:5010/api/v1 | http://localhost:5010/health |
 
-### Claire Project
+### 你會看到什麼
+
+前後端的 log 合併在同一個視窗，每行開頭有帶顏色的標籤分辨來源：
+
+```
+[hw-api] [dev-backend] happy-wu → http://localhost:5010  (D:/…/venv/Scripts/flask.exe)
+[hw-api]  * Running on http://127.0.0.1:5010
+[hw-web]    ▲ Next.js 15 (Turbopack)  - Local: http://localhost:3010
+```
+
+**成功訊號**：後端那行出現 `Running on http://127.0.0.1:<port>`，前端那行出現 `Local: http://localhost:<port>`；
+或直接 `curl.exe http://localhost:5010/health` 回 `{"status":"healthy"}`。
+
+### 怎麼關
+
+在該終端機按一次 **Ctrl+C**，整組（後端＋前端）一起結束，不會留下佔 port 的殘留程序。
+其中一個程序掛掉時另一個也會跟著停，不會出現「前端活著、後端早就死了」的狀況。
+
+### 不需要先做的事
+
+- **不用先 Activate 虛擬環境**。啟動器 `scripts/dev-backend.mjs` 會自己找 `venv/` 或 `.venv/` 裡的 flask
+  （要指定別的資料夾就設環境變數 `OWS_VENV`）。
+- **不用先開 Redis**。沒開只會讓快取退回記憶體並在 log 印一行警告，不影響功能。
+  想用的話跑一次 `docker-compose up -d redis` 就會常駐。
+
+### 只想開其中一邊
 
 ```powershell
-# 終端機 1：Redis（若尚未啟動）
-docker-compose up -d redis
-
-# 終端機 2：後端
-flask --app "sites.Claire_Project.backend.app:app" run --port 5002
-
-# 終端機 3：前端
-npm run dev:claire
+npm run dev:happy-wu:api   # 只開 Happy_Wu 後端（polaris / claire 同理）
+npm run dev:happy-wu       # 只開 Happy_Wu 前端
 ```
 
-→ 前端 `http://localhost:3002`、API `http://localhost:5002/api/v1`
+### 常見問題
 
-### Happy_Wu
+| 症狀 | 原因與處理 |
+|------|-----------|
+| 後台登入顯示 **Failed to fetch** | 前端連不到後端，或被 CORS 擋下，**不是帳密錯**。先確認後端有起來（打 `/health`）；再確認沒有人在 **repo 根目錄放 `.env`**。Flask CLI 會先載入當前目錄的 `.env`，把站台自己的 `CORS_ORIGINS` 蓋掉。用上面的 npm 指令啟動會自動避開（啟動器設了 `FLASK_SKIP_DOTENV=1`），手動下 `flask run` 才會踩到。 |
+| 後台登入顯示 **Invalid credentials** | 帳密真的不符。登入欄位填的是 **username 不是 email**；另外注意瀏覽器密碼管理員以 `localhost` 為單位存密碼、不分 port，可能自動填入別站的 admin 密碼，請手動輸入。 |
+| `找不到虛擬環境裡的 flask` | 還沒建 venv：`python -m venv venv` 後 `venv\Scripts\pip install -r requirements.txt`。 |
+| 啟動時出現 **✖ 無法啟動：以下 port 已經被佔用** | 上一次開的終端機還沒關。訊息會列出佔用的 PID；回到舊終端機按 Ctrl+C，或照訊息提示 `taskkill /PID <pid> /T /F`，再重跑指令。**特別注意**：只關掉後端、留著舊前端時，瀏覽器登入會顯示 Failed to fetch，因為後端其實不在了。 |
 
-**第一次啟動**（只做一次：建庫、跑 migration、建 admin）：
+### 第一次啟動某個站台
+
+資料表由 migration 建立，第一次要先建庫、跑 migration、建管理員，見下方「[初次設定](#初次設定)」。
+以 Happy_Wu 為例（只做一次）：
 
 ```powershell
 # 0. 依賴（在 repo 根目錄）
@@ -77,26 +100,7 @@ flask --app $app create-admin        # 互動輸入 username / email / 密碼（
 flask --app $app seed-rbac
 ```
 
-**每次啟動**（3 個終端機）：
-
-```powershell
-# 終端機 1：Redis（若尚未啟動）
-docker-compose up -d redis
-
-# 終端機 2：後端
-.\.venv\Scripts\Activate.ps1
-flask --app "sites.Happy_Wu.backend.app:app" run --port 5010
-
-# 終端機 3：前端
-npm run dev:happy-wu
-```
-
-→ 前端 `http://localhost:3010`、後台 `http://localhost:3010/admin/login`、API `http://localhost:5010/api/v1`
-
-**驗證**：`curl.exe http://localhost:5010/health` 回 `{"status":"healthy"}`；後台用 create-admin 建的帳號登入。
-Redis 沒開只會讓快取退回記憶體並在 log 印警告，不影響功能。
-
-> 三個 Site 可同時運作，Port 不會衝突。首次使用請先參考下方「[初次設定](#初次設定)」。
+> 三個 Site 可同時運作，Port 不會衝突。
 
 ---
 
@@ -260,16 +264,13 @@ flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d sites/Polaris_P
 
 ## 同時啟動多個 Site
 
-各 Site 可同時運作，每個 Site 一個後端 + 一個前端終端機，Redis 共用：
+各 Site 可同時運作。要幾站就開幾個終端機各跑一行，或一次全開：
 
-```
-終端機 1：Redis（共用）
-終端機 2：Polaris 後端   → port 5000
-終端機 3：Polaris 前端   → port 3000
-終端機 4：Claire 後端    → port 5002
-終端機 5：Claire 前端    → port 3002
-終端機 6：Happy_Wu 後端  → port 5010
-終端機 7：Happy_Wu 前端  → port 3010
+```powershell
+npm run polaris          # 終端機 A
+npm run happy-wu         # 終端機 B
+# 或
+npm run dev:everything   # 一個終端機跑全部，log 以 [polaris-api] [claire-web] [hw-api] … 標籤區分
 ```
 
 ### Port 與 Redis 分配總覽
@@ -288,13 +289,27 @@ flask --app "sites.Polaris_Parent.backend.app:app" db upgrade -d sites/Polaris_P
 ## npm Scripts
 
 ```bash
-npm run dev:polaris       # 啟動 Polaris 前端（port 3000）
-npm run dev:claire        # 啟動 Claire 前端（port 3002）
-npm run build:polaris     # 建置 Polaris 前端
-npm run build:claire      # 建置 Claire 前端
-npm run dev:happy-wu      # 啟動 Happy_Wu 前端（port 3010）
-npm run build:happy-wu    # 建置 Happy_Wu 前端
-npm run install:all       # 安裝所有 workspace 依賴
+# 一鍵啟動（後端 + 前端，同一個終端機）
+npm run polaris              # = dev:polaris:all
+npm run claire               # = dev:claire:all
+npm run happy-wu             # = dev:happy-wu:all
+npm run dev:everything       # 三站全開
+
+# 只開後端（scripts/dev-backend.mjs：自動找 venv、設 FLASK_SKIP_DOTENV=1）
+npm run dev:polaris:api      # port 5000
+npm run dev:claire:api       # port 5002
+npm run dev:happy-wu:api     # port 5010
+
+# 只開前端
+npm run dev:polaris          # port 3000
+npm run dev:claire           # port 3002
+npm run dev:happy-wu         # port 3010
+
+# 建置
+npm run build:polaris
+npm run build:claire
+npm run build:happy-wu
+npm run install:all          # 安裝所有 workspace 依賴
 ```
 
 ---

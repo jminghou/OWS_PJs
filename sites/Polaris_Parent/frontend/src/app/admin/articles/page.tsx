@@ -1,1 +1,1 @@
-export { default } from '@ows/admin-app/pages/articles/index';
+export { default } from '@ows/studio/pages/articles';

@@ -6,7 +6,8 @@ from flask import jsonify, request
 from core.backend_engine.blueprints.api.contents import _revalidate_content_pages
 from core.backend_engine.blueprints.api.utils import invalidate_public_cache
 from core.backend_engine.factory import db
-from core.backend_engine.models import Content
+from core.backend_engine.models import Content, Tag
+from core.backend_engine.services.rbac import RBACService
 from packages.studio.blueprint import studio_bp as bp
 from packages.studio.constants import (
     AUTOSAVE_KEEP, PLATFORMS, PLATFORMS_BOUND_TO_CONTENT, STAGES,
@@ -98,7 +99,8 @@ def _document_detail(document: StudioDocument) -> dict:
         .order_by(StudioRevision.created_at.desc(), StudioRevision.id.desc()).first()
     )
     data['latest_revision'] = latest.to_dict() if latest else None
-    return data
+    from packages.studio.api.languages import decorate_document
+    return decorate_document(document, data)
 
 
 # ==================== Documents ====================
@@ -126,18 +128,19 @@ def create_document(project_id):
         return bad_request('Invalid platform')
     title = (data.get('title') or project.title).strip()
     body = data.get('body') or ''
+    from packages.studio.api.languages import language_options
+    options = language_options()
+    language = data.get('language') or options['default_language']
+    if language not in options['languages']:
+        return bad_request('This language is not enabled')
+    if data.get('stage', 'write') not in STAGES or data.get('stage') in ('published', 'scheduled'):
+        return bad_request('Create a draft before publishing')
     content = None
 
     if platform in PLATFORMS_BOUND_TO_CONTENT:
         content_id = data.get('content_id')
         if content_id:
-            content = Content.query.get(content_id)
-            if not content:
-                return bad_request('Content not found', 404)
-            if StudioDocument.query.filter_by(content_id=content.id).first():
-                return bad_request('This article is already bound to a document', 409)
-            title = content.title
-            body = content.content or ''
+            return bad_request('Use the article adoption endpoint to preserve its language family', 409)
         else:
             content = Content(
                 title=title,
@@ -147,7 +150,7 @@ def create_document(project_id):
                 status='draft',
                 content_type='article',
                 author_id=current_user_id(),
-                language=data.get('language') or 'zh-TW',
+                language=language,
             )
             db.session.add(content)
             db.session.flush()
@@ -155,6 +158,7 @@ def create_document(project_id):
     document = StudioDocument(
         project_id=project.id,
         platform=platform,
+        language=language,
         title=title,
         body=body,
         stage=data.get('stage') or 'write',
@@ -187,6 +191,9 @@ def update_document(document_id):
     """明確儲存（非自動）：更新欄位，不產生版本。"""
     document = StudioDocument.query.get_or_404(document_id)
     data = json_body()
+    if document.content_id and any(k in data for k in ('stage', 'scheduled_at', 'published_at')):
+        if 'scheduled_at' in data or 'published_at' in data or data.get('stage') in ('published','scheduled') or document.content.status == 'published':
+            return bad_request('Use publication actions for website articles')
     if 'title' in data:
         document.title = (data.get('title') or '').strip() or document.title
     if 'body' in data:
@@ -200,7 +207,7 @@ def update_document(document_id):
     if 'published_url' in data:
         document.published_url = data['published_url']
     if 'attributes' in data:
-        document.attributes = data['attributes'] or {}
+        return bad_request('Use dedicated article settings and translation review actions')
     if 'tag_ids' in data:
         set_tags('document', document.id, data.get('tag_ids') or [])
     db.session.commit()
@@ -212,6 +219,8 @@ def update_document(document_id):
 @with_session
 def delete_document(document_id):
     document = StudioDocument.query.get_or_404(document_id)
+    if document.content_id or StudioDocument.query.filter_by(translation_source_id=document.id).first():
+        return bad_request('Archive this document; website articles and translation sources cannot be deleted')
     StudioCardRef.query.filter_by(target_type='document', target_id=document.id).delete()
     db.session.delete(document)   # 綁定的 contents 不刪：文章是公開站的資產
     db.session.commit()
@@ -358,42 +367,62 @@ def load_from_content(document_id):
 @studio_write
 @with_session
 def sync_to_content(document_id):
-    """把工作草稿寫進 contents。mode=save 只更新內容；mode=publish 一併發布並記正式版。"""
+    """Publish one language explicitly; autosaves never mutate the public article."""
+    from packages.studio.api.languages import article_settings, validate_settings
     document = StudioDocument.query.get_or_404(document_id)
     if not document.content:
         return bad_request('Document is not bound to an article')
     data = json_body()
-    mode = data.get('mode') or 'save'
-    if 'title' in data and data['title']:
-        document.title = data['title']
-    if 'body' in data:
-        document.body = data['body']
-
+    mode = data.get('mode', 'save')
+    if mode not in ('save', 'publish', 'schedule', 'unpublish'):
+        return bad_request('Invalid publication action')
+    permission = 'contents.update' if mode == 'save' else 'contents.publish'
+    if not RBACService.has_any_permission(current_user_id(), [permission]):
+        return bad_request('Permission denied', 403)
     content = document.content
+    if mode == 'save' and content.status == 'published':
+        return bad_request('The working draft is saved separately; publish to update the website', 409)
+    if mode in ('publish', 'schedule'):
+        if (document.attributes or {}).get('translation_review_pending'):
+            return bad_request('Review this translation before publishing')
+        if not (document.body or '').strip():
+            return bad_request('Article body is required')
+    published_at = datetime.utcnow()
+    if mode == 'schedule':
+        published_at = parse_dt(data.get('published_at'))
+        if not published_at or published_at <= datetime.utcnow():
+            return bad_request('Choose a future publication time')
     old_slug = content.slug
-    content.title = document.title or content.title
-    content.content = document.body or ''
-    if data.get('summary') is not None:
-        content.summary = data['summary']
-
-    if mode == 'publish':
-        content.status = 'published'
-        published_at = parse_dt(data.get('published_at')) or datetime.utcnow()
-        content.published_at = published_at
-        document.published_at = published_at
-        document.stage = 'published' if published_at <= datetime.utcnow() else 'scheduled'
-        document.scheduled_at = published_at if document.stage == 'scheduled' else document.scheduled_at
-        rev = _snapshot(document, 'published', label=f'發布 {published_at:%Y-%m-%d %H:%M}')
-        document.current_revision_id = rev.id
+    rev = None
+    if mode == 'unpublish':
+        content.status = 'draft'
+        content.published_at = None
+        document.stage = 'write'
+        document.published_at = None
+        document.scheduled_at = None
     else:
-        rev = None
-    # 同步後工作草稿與文章一致 → 記下文章此刻的 updated_at，content-status 才不會回報「文章較新」
+        try:
+            settings = validate_settings(document, article_settings(document))
+        except (ValueError, TypeError) as exc:
+            return bad_request(str(exc))
+        content.title = document.title or content.title
+        content.content = document.body or ''
+        for key, value in settings.items():
+            if key == 'tag_ids':
+                content.tags = Tag.query.filter(Tag.id.in_(value)).all()
+            else:
+                setattr(content, key, value)
+        if mode in ('publish', 'schedule'):
+            content.status = 'published'
+            content.published_at = published_at
+            document.published_at = published_at
+            document.stage = 'scheduled' if mode == 'schedule' else 'published'
+            document.scheduled_at = published_at if mode == 'schedule' else None
+            rev = _snapshot(document, 'published', label=f'{mode} {published_at:%Y-%m-%d %H:%M}')
+            document.current_revision_id = rev.id
     _mark_synced(document)
     db.session.commit()
     invalidate_public_cache()
     _revalidate_content_pages(old_slug, content.slug)
-    return jsonify({
-        'message': 'Published to article' if mode == 'publish' else 'Saved to article',
-        'document': _document_detail(document),
-        'revision': rev.to_dict() if rev else None,
-    })
+    return jsonify({'message': mode, 'document': _document_detail(document),
+                    'revision': rev.to_dict() if rev else None})

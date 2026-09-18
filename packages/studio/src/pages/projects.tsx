@@ -173,7 +173,7 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
               <li key={d.id}>
                 <Link href={STUDIO_ROUTES.workspace(d.id)} className="block rounded-lg border border-border p-3 hover:border-admin-accent-500 hover:bg-admin-accent-50/50 dark:bg-admin-accent-800/20 transition">
                   <div className="flex items-center gap-2">
-                    <PlatformBadge platform={d.platform} />
+                    <PlatformBadge platform={d.platform} /><span className="text-xs">{d.language}</span>
                     <span className="text-sm font-medium text-foreground truncate flex-1">{d.title || '（無標題）'}</span>
                     <StageBadge stage={d.stage} />
                   </div>
@@ -248,6 +248,9 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
   projectId: number; projectTitle: string; existing: Platform[]; onClose: () => void; onCreated: (id: number) => void;
 }) {
   const [platform, setPlatform] = useState<Platform>('blog');
+  const [language, setLanguage] = useState('');
+  const [languages, setLanguages] = useState<string[]>([]);
+  useEffect(()=>{documentApi.options().then(o=>{setLanguages(o.languages);setLanguage(o.default_language);}).catch(()=>{});},[]);
   const [title, setTitle] = useState(projectTitle);
   const [mode, setMode] = useState<'new' | 'bind'>('new');
   const [articles, setArticles] = useState<Array<{ id: number; title: string; status: string; slug: string }>>([]);
@@ -268,8 +271,11 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
   const submit = async () => {
     setBusy(true);
     try {
+      if (platform === 'blog' && mode === 'bind' && contentId) {
+        const adopted = await documentApi.adopt(contentId); onCreated(adopted.id); return;
+      }
       const res = await documentApi.create(projectId, {
-        platform, title,
+        platform, title, language: language || undefined,
         content_id: platform === 'blog' && mode === 'bind' && contentId ? contentId : undefined,
       });
       onCreated(res.id);
@@ -280,7 +286,7 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div className="w-full max-w-lg bg-card text-card-foreground border border-border rounded-xl shadow-xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-foreground">新增平台版本</h3>
+        <h3 className="text-base font-semibold text-foreground">新增作品</h3><label className="text-xs">原始語言 <select value={language} onChange={e=>setLanguage(e.target.value)} className="bg-card border rounded p-1">{languages.map(l=><option key={l}>{l}</option>)}</select></label>
         <div className="grid grid-cols-3 gap-2">
           {PLATFORMS.map((p) => (
             <button key={p} type="button" onClick={() => setPlatform(p)}
@@ -293,12 +299,12 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
         {platform === 'blog' && (
           <div className="flex gap-1 text-xs">
             <button type="button" onClick={() => setMode('new')} className={`px-2 py-1 rounded ${mode === 'new' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>建立新文章草稿</button>
-            <button type="button" onClick={() => setMode('bind')} className={`px-2 py-1 rounded ${mode === 'bind' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>綁定既有文章</button>
+            <button type="button" onClick={() => setMode('bind')} className={`px-2 py-1 rounded ${mode === 'bind' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>開啟／接管既有文章</button>
           </div>
         )}
         {platform === 'blog' && mode === 'bind' ? (
           <div>
-            <input value={articleQ} onChange={(e) => setArticleQ(e.target.value)} placeholder="搜尋文章…" className={inputCls} />
+            <input value={articleQ} onChange={(e) => setArticleQ(e.target.value)} placeholder="搜尋文章（保留原專案，未接管文章會建立專案）…" className={inputCls} />
             <ul className="mt-2 max-h-48 overflow-y-auto border border-border/60 rounded-lg divide-y divide-border/40">
               {articles.length === 0 && <li className="p-3 text-xs text-muted-foreground text-center">沒有文章</li>}
               {articles.map((a) => (

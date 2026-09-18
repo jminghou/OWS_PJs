@@ -61,10 +61,10 @@ configureAdminApp({
     ...studioNavGroups,
     // 平台後台（文章、媒體、電商…）：預設收合，需要時展開
     {
-      label: '平台後台',
+      label: '網站管理',
       collapsible: true,
       defaultCollapsed: true,
-      items: [...PLATFORM_NAV, commerceNav, ...siteNav],
+      items: [...PLATFORM_NAV.filter(item => item.href !== '/admin/articles'), commerceNav, ...siteNav],
     },
   ],
   // rail 外殼的相容清單（shell 改回 'rail' 時仍可用）

@@ -125,5 +125,9 @@
       "d:\\P_Polaris_Parent\\1_run\\P_Union\\p01_count\\03_uploader",
       "d:\\P_Polaris_Parent\\1_run\\P_Union\\p12_sql"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "graphify-ows"
+  ],
+  "enableAllProjectMcpServers": true
 }

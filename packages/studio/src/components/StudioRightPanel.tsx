@@ -20,6 +20,8 @@ interface Props {
   onInsertCard?: (card: Card) => void;
   historyKey?: number;
   onClose: () => void;
+  beforeAction?: () => Promise<void>;
+  onSettings?: () => void;
 }
 
 const TABS: Array<{ key: Tab; label: string; icon: React.ReactNode }> = [
@@ -29,7 +31,7 @@ const TABS: Array<{ key: Tab; label: string; icon: React.ReactNode }> = [
   { key: 'history', label: '歷史版本', icon: <History size={13} /> },
 ];
 
-export function StudioRightPanel({ document, siblings, current, onRestored, onInsertCard, historyKey, onClose }: Props) {
+export function StudioRightPanel({ document, siblings, current, onRestored, onInsertCard, historyKey, onClose, beforeAction, onSettings }: Props) {
   const [tab, setTab] = useState<Tab>('cards');
   const [cards, setCards] = useState<Card[]>([]);
   const [projectCards, setProjectCards] = useState<Card[]>([]);
@@ -140,11 +142,11 @@ export function StudioRightPanel({ document, siblings, current, onRestored, onIn
             {document.content && (
               <div>
                 <p className="text-[11px] text-muted-foreground mb-1.5">綁定的文章</p>
-                <Link href={STUDIO_ROUTES.article(document.content.id)} className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs bg-card border border-border hover:border-admin-accent-500">
+                <button onClick={onSettings} className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs bg-card border border-border hover:border-admin-accent-500">
                   <ExternalLink size={12} className="text-muted-foreground" />
                   <span className="truncate flex-1">{document.content.title}</span>
                   <span className="text-muted-foreground">{document.content.status}</span>
-                </Link>
+                </button>
               </div>
             )}
             <div>
@@ -154,7 +156,7 @@ export function StudioRightPanel({ document, siblings, current, onRestored, onIn
         )}
 
         {tab === 'history' && (
-          <VersionHistory documentId={document.id} current={current} onRestored={onRestored} refreshKey={historyKey} />
+          <VersionHistory documentId={document.id} current={current} onRestored={onRestored} refreshKey={historyKey} beforeAction={beforeAction} />
         )}
       </div>
 

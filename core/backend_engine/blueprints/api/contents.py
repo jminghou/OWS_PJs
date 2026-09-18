@@ -109,12 +109,15 @@ def _decorate_content(content, data):
     # 翻譯群組：原本會重複 query original 兩次、並多次存取 lazy='dynamic' 的 translations（N+1）。
     # 這裡只查一次：找出群組「原文」，把它的 translations 一次性 list() 出來，再從同一份資料
     # 同時推導 available_languages 與 translations_info。
+    can_preview = _can_read_unpublished()
+    visible = lambda c: can_preview or (c.status == 'published' and (c.published_at is None or c.published_at <= datetime.utcnow()))
+    data['translations'] = [{'id':c.id,'title':c.title,'slug':c.slug,'language':c.language} for c in content.translations if visible(c)]
     if is_i18n_enabled():
         if content.original_id:
             group_root = Content.query.get(content.original_id) or content
         else:
             group_root = content
-        group = [group_root] + list(group_root.translations)  # 一次查詢
+        group = [c for c in [group_root] + list(group_root.translations) if visible(c)]  # 一次查詢
 
         data['available_languages'] = list({c.language for c in group})
         data['translations_info'] = [
@@ -126,6 +129,25 @@ def _decorate_content(content, data):
 
 
 # ==================== Contents ====================
+
+def _can_read_unpublished():
+    """Reader/member tokens and a preview query parameter are not editorial access."""
+    if not is_authenticated():
+        return False
+    user_id = int(get_jwt_identity())
+    from core.backend_engine.services.identity import identity_model
+    user = db.session.get(identity_model(), user_id)
+    return bool(user and user.is_active and RBACService.has_any_permission(user_id, [
+        'contents.create', 'contents.update', 'contents.publish',
+        'studio.read', 'studio.write',
+    ]))
+
+
+def _public_content_filter():
+    return (Content.status == 'published') & (
+        Content.published_at.is_(None) | (Content.published_at <= datetime.utcnow())
+    )
+
 
 @bp.route('/contents', methods=['GET'])
 @cache.cached(timeout=120, query_string=True, unless=skip_public_cache)
@@ -163,11 +185,8 @@ def api_contents():
 
     if status:
         query = query.filter_by(status=status)
-        if status == 'published' and not is_authenticated():
-            query = query.filter(
-                (Content.published_at.is_(None)) |
-                (Content.published_at <= datetime.utcnow())
-            )
+    if not _can_read_unpublished():
+        query = query.filter(_public_content_filter())
 
     if content_type:
         query = query.filter_by(content_type=content_type)
@@ -233,10 +252,7 @@ def api_content_detail(content_id):
         joinedload(Content.category),
         subqueryload(Content.tags)
     ).get_or_404(content_id)
-    is_preview = request.args.get('preview') == 'true'
-    is_logged_in = is_authenticated()
-
-    if not is_preview and not is_logged_in:
+    if not _can_read_unpublished():
         if content.status != 'published' or (content.published_at and content.published_at > datetime.utcnow()):
             return jsonify({'error': 'Not found'}), 404
         record_view(content.id)  # 記到 Redis（best-effort），不在讀取路徑寫 DB
@@ -264,10 +280,7 @@ def api_content_by_slug(slug):
     if not content:
         return jsonify({'error': 'Not found'}), 404
 
-    is_preview = request.args.get('preview') == 'true'
-    is_logged_in = is_authenticated()
-
-    if not is_preview and not is_logged_in:
+    if not _can_read_unpublished():
         if content.status != 'published' or (content.published_at and content.published_at > datetime.utcnow()):
             return jsonify({'error': 'Not found'}), 404
         record_view(content.id)  # 記到 Redis（best-effort），不在讀取路徑寫 DB

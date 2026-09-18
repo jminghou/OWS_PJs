@@ -33,7 +33,7 @@ export function useAutosave({
   const pendingRef = useRef<{ title: string; body: string } | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const heartbeatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inFlight = useRef(false);
+  const inFlight = useRef<Promise<void> | null>(null);
   const onSavedRef = useRef(onSaved);
   onSavedRef.current = onSaved;
 
@@ -46,38 +46,42 @@ export function useAutosave({
   }, []);
 
   const flush = useCallback(async () => {
-    if (!documentId || !pendingRef.current || inFlight.current) return;
-    const payload = pendingRef.current;
-    pendingRef.current = null;
-    if (heartbeatTimer.current) { clearTimeout(heartbeatTimer.current); heartbeatTimer.current = null; }
-    inFlight.current = true;
-    setStatus('saving');
-    try {
-      const res = await documentApi.autosave(documentId, payload);
-      lastSavedRef.current = JSON.stringify({ t: payload.title, b: payload.body });
-      setSavedAt(res.saved_at);
-      setStatus(pendingRef.current ? 'dirty' : 'saved');
-      setError(null);
-      onSavedRef.current?.(res.revision, res.saved_at);
-    } catch (e: any) {
-      pendingRef.current = pendingRef.current ?? payload;   // 失敗保留，下次再送
-      setStatus('error');
-      setError(e?.message || '自動儲存失敗');
-    } finally {
-      inFlight.current = false;
+    if (inFlight.current) await inFlight.current;
+    if (!documentId) return;
+    while (pendingRef.current) {
+      const payload = pendingRef.current;
+      pendingRef.current = null;
+      if (heartbeatTimer.current) { clearTimeout(heartbeatTimer.current); heartbeatTimer.current = null; }
+      setStatus('saving');
+      const saving = (async () => {
+        try {
+          const res = await documentApi.autosave(documentId, payload);
+          lastSavedRef.current = JSON.stringify({ t: payload.title, b: payload.body });
+          setSavedAt(res.saved_at);
+          setStatus(pendingRef.current ? 'dirty' : 'saved');
+          setError(null);
+          onSavedRef.current?.(res.revision, res.saved_at);
+        } catch (e: any) {
+          pendingRef.current = pendingRef.current ?? payload;
+          setStatus('error'); setError(e?.message || '自動儲存失敗');
+          throw e;
+        }
+      })();
+      inFlight.current = saving;
+      try { await saving; } finally { if (inFlight.current === saving) inFlight.current = null; }
     }
   }, [documentId]);
 
   useEffect(() => {
     if (!enabled || !documentId) return;
     const snapshot = JSON.stringify({ t: title, b: body });
-    if (snapshot === lastSavedRef.current) return;
+    if (snapshot === lastSavedRef.current && !inFlight.current) { pendingRef.current = null; return; }
     pendingRef.current = { title, body };
     setStatus('dirty');
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(flush, debounceMs);
+    debounceTimer.current = setTimeout(() => { void flush().catch(() => {}); }, debounceMs);
     if (!heartbeatTimer.current) {
-      heartbeatTimer.current = setTimeout(flush, heartbeatMs);
+      heartbeatTimer.current = setTimeout(() => { void flush().catch(() => {}); }, heartbeatMs);
     }
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, [title, body, documentId, enabled, debounceMs, heartbeatMs, flush]);

@@ -17,22 +17,29 @@ logger = logging.getLogger(__name__)
 
 _PENDING_KEY = 'pending_views'  # Redis hash：{content_id: 累積瀏覽數}
 _client = None
+_UNAVAILABLE = object()  # 已探測過且連不上：之後直接回 None，不再每次請求重試
 
 
 def _redis():
-    """取得（並快取）Redis client；無 REDIS_URL 或連不上時回 None。"""
+    """取得（並快取）Redis client；無 REDIS_URL、啟動時探測失敗或連不上時回 None。"""
     global _client
+    if _client is _UNAVAILABLE:
+        return None
     if _client is not None:
         return _client
     try:
-        import redis  # flask-caching 的 RedisCache 已帶此依賴
         url = current_app.config.get('REDIS_URL')
-        if not url:
+        # factory._configure_cache 啟動時已 ping 過；那時連不上就不要在讀取路徑上再等逾時
+        if not url or not current_app.config.get('REDIS_AVAILABLE', True):
+            _client = _UNAVAILABLE
             return None
-        _client = redis.from_url(url, decode_responses=True)
+        import redis  # flask-caching 的 RedisCache 已帶此依賴
+        _client = redis.from_url(url, decode_responses=True,
+                                 socket_connect_timeout=0.5, socket_timeout=0.5)
         return _client
     except Exception as e:  # 連線/匯入失敗都不該影響讀取
         logger.warning(f'view_counter: redis unavailable: {e}')
+        _client = _UNAVAILABLE
         return None
 
 
