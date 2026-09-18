@@ -7,7 +7,7 @@ import { ExternalLink } from 'lucide-react';
 import { documentApi, publishingApi } from '../api';
 import { PLATFORMS, PLATFORM_META, STAGE_META, STUDIO_ROUTES } from '../constants';
 import type { Document, Platform, Stage } from '../types';
-import { Empty, PageHeader, Pill, PlatformBadge, StageBadge, StudioPage, formatDate, fromLocalInput, selectCls, toLocalInput } from '../components/ui';
+import { Empty, LanguageBadge, PageHeader, Pill, PlatformBadge, StageBadge, StudioPage, formatDate, fromLocalInput, selectCls, toLocalInput } from '../components/ui';
 
 const STAGE_FILTERS: Array<{ key: Stage | 'all'; label: string }> = [
   { key: 'all', label: '全部' }, { key: 'write', label: '撰寫' }, { key: 'edit', label: '編輯' },
@@ -75,7 +75,7 @@ export default function PublishingPage() {
                 <tr><td colSpan={7}><Empty text="沒有符合的內容。" /></td></tr>
               ) : items.map((d) => (
                 <tr key={d.id} className="hover:bg-muted/60">
-                  <td className="px-3 py-2"><PlatformBadge platform={d.platform} /><span className="text-xs block">{d.language}</span></td>
+                  <td className="px-3 py-2"><span className="inline-flex items-center gap-1"><PlatformBadge platform={d.platform} /><LanguageBadge language={d.language} /></span></td>
                   <td className="px-3 py-2 min-w-[14rem]">
                     <Link href={STUDIO_ROUTES.workspace(d.id)} className="font-medium text-foreground hover:text-admin-accent-600">{d.title || '（無標題）'}</Link>
                     <div className="text-[11px] text-muted-foreground">{d.project?.title}</div>

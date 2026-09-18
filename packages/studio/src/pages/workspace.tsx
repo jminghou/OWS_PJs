@@ -15,8 +15,9 @@ import { useAutosave } from '../hooks/useAutosave';
 import { ArticleSettingsPanel } from '../components/ArticleSettingsPanel';
 import { DocumentEditor } from '../components/DocumentEditor';
 import { StudioRightPanel } from '../components/StudioRightPanel';
+import { PlatformIcon } from '../components/PlatformIcon';
 import { TagChips } from '../components/TagChips';
-import { EmptyState, PlatformBadge, StageBadge, StageSelect, btnGhost, btnPrimary, formatDate, relativeTime, stripHtml } from '../components/ui';
+import { EmptyState, LanguageBadge, PlatformBadge, StageBadge, StageSelect, btnGhost, btnPrimary, formatDate, relativeTime, stripHtml } from '../components/ui';
 
 function WorkspaceContent({docId}: {docId: number | null}) {
   const router = useRouter();
@@ -223,7 +224,7 @@ function WorkspaceContent({docId}: {docId: number | null}) {
             {doc && [doc, ...siblings.filter((s) => s.id !== doc.id)].sort((a, b) => a.platform.localeCompare(b.platform)).map((d) => (
               <Link key={d.id} href={STUDIO_ROUTES.workspace(d.id)}
                 className={`flex items-center gap-2 px-3 py-2 text-sm ${d.id === doc.id ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30 text-admin-accent-800 dark:text-admin-accent-100' : 'text-foreground/80 hover:bg-muted'}`}>
-                <PlatformBadge platform={d.platform} /><span className="text-xs">{d.language}</span>
+                <PlatformBadge platform={d.platform} /><LanguageBadge language={d.language} />
                 <span className="truncate flex-1">{d.title || '（無標題）'}</span>
               </Link>
             ))}
@@ -235,7 +236,7 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                 content={
                   <div className="w-44 py-1">
                     {PLATFORMS.map((p) => (
-                      <button key={p} type="button" onClick={() => addSibling(p)} className="w-full text-left px-3 py-1.5 text-sm text-foreground/80 hover:bg-muted">{PLATFORM_META[p].label}</button>
+                      <button key={p} type="button" onClick={() => addSibling(p)} className="w-full flex items-center gap-2 text-left px-3 py-1.5 text-sm text-foreground/80 hover:bg-muted"><PlatformIcon platform={p} />{PLATFORM_META[p].label}</button>
                     ))}
                   </div>
                 } />
@@ -257,7 +258,7 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                     {recent.map((d) => (
                       <li key={d.id}>
                         <Link href={STUDIO_ROUTES.workspace(d.id)} className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition">
-                          <PlatformBadge platform={d.platform} /><span className="text-xs">{d.language}</span>
+                          <PlatformBadge platform={d.platform} /><LanguageBadge language={d.language} />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium truncate">{d.title || '（無標題）'}</div>
                             <div className="text-xs text-muted-foreground truncate">{d.project?.title} · {relativeTime(d.updated_at)}</div>
@@ -280,7 +281,7 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                 <TagChips targetType="document" targetId={doc.id} tags={doc.tags || []} onChange={(tags) => setDoc({ ...doc, tags })} />
                 <div className="ml-auto flex items-center gap-2">
                   <SaveIndicator />
-                  {isBlog && <button className={btnGhost} onClick={() => setSettingsOpen(!settingsOpen)}>文章設定</button>}
+                  {isBlog && <button className={`${btnGhost} relative ${settingsOpen ? 'ring-1 ring-admin-accent-500 text-admin-accent-700 dark:text-admin-accent-200' : ''}`} aria-pressed={settingsOpen} onClick={() => setSettingsOpen(!settingsOpen)}>文章設定{settings && !settings.featured_image && <span title="尚未設定文章主圖" className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-500" />}</button>}
                   <button className={btnGhost} onClick={() => setPreview(!preview)}>{preview?'繼續編輯':'預覽'}</button>
                   <button className={btnGhost} disabled={syncing} onClick={() => sync('save')}>儲存草稿</button>
                   <Popover open={publishOpen} onOpenChange={setPublishOpen} placement="bottom-end"
@@ -289,6 +290,12 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                       <div className="w-56 py-1 text-sm">
                         {isBlog ? (
                           <>
+                            {settings && !settings.featured_image && (
+                              <div className="mx-2 mb-1 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900 dark:bg-amber-900/30 dark:text-amber-100">
+                                尚未設定文章主圖，文章卡片與社群分享會沒有圖片。
+                                <button type="button" className="ml-1 underline" onClick={() => { setSettingsOpen(true); setPublishOpen(false); }}>去設定</button>
+                              </div>
+                            )}
                             <button type="button" disabled={syncing} onClick={() => sync('save')} className="w-full text-left px-4 py-2 hover:bg-muted disabled:opacity-50">儲存工作草稿</button>
                             <button type="button" disabled={syncing} onClick={() => sync('publish')} className="w-full text-left px-4 py-2 hover:bg-muted disabled:opacity-50 font-medium">立即發布文章</button>
                             <label className="block px-4 py-2 text-xs">預定時間<input aria-label="預定發布時間" type="datetime-local" value={schedule} onChange={e=>setSchedule(e.target.value)} className="w-full text-foreground bg-card" /></label>
@@ -324,7 +331,6 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                 <button className="underline ml-2" onClick={async()=>{try {await saveDraft();const r=await documentApi.reviewed(doc.id);setDoc(r.document);}catch(e:any){alert(e.message);}}}>已完成翻譯校對</button>
               </div>}
               {contentStatus?.content_newer && <div className="p-2 text-xs bg-amber-50 text-amber-900">網站文章有外部修改。<button onClick={loadFromContent} className="underline">備份並載入網站內容</button></div>}
-              {settingsOpen && settings && options && <ArticleSettingsPanel value={settings} options={options} onChange={setSettings} />}
 
               <div className="flex-1 overflow-y-auto">
                 {preview ? <iframe title="此語言的內容預覽" sandbox="" className="w-full h-full min-h-[500px]" srcDoc={`<!doctype html><html lang="${doc.language}"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: http: data:; style-src 'unsafe-inline'"><style>body{font:18px/1.8 sans-serif;max-width:780px;margin:40px auto;padding:20px}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:8px}</style><h1>${title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</h1>${PLATFORM_META[doc.platform].editor==='rich'?body:'<pre>'+body.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</pre>'}</html>`} /> : <DocumentEditor key={doc.id} platform={doc.platform} title={title} body={body} onTitleChange={setTitle} onBodyChange={setBody} />}
@@ -334,7 +340,10 @@ function WorkspaceContent({docId}: {docId: number | null}) {
         </div>
 
         {/* 右：資訊欄 */}
-        {doc && rightOpen && (
+        {doc && settingsOpen && settings && options ? (
+          <ArticleSettingsPanel value={settings} options={options} onChange={setSettings} onClose={() => setSettingsOpen(false)}
+            dirty={JSON.stringify(settings) !== JSON.stringify(doc.article_settings)} />
+        ) : doc && rightOpen && (
           <StudioRightPanel document={doc} siblings={siblings} current={{ title, body }} onRestored={applyDoc}
             beforeAction={saveDraft} onSettings={()=>setSettingsOpen(true)} onInsertCard={insertCard} historyKey={historyKey} onClose={() => setRightOpen(false)} />
         )}

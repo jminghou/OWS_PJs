@@ -8,13 +8,14 @@ import { ExternalLink, FolderOpen, Link2, Plus, Trash2, X } from 'lucide-react';
 import { contentApi } from '@ows/platform-api';
 import { cardApi, documentApi, projectApi } from '../api';
 import { FLOW_STEPS, PLATFORMS, PLATFORM_META, STAGE_META, STUDIO_ROUTES } from '../constants';
+import { PlatformIcon } from '../components/PlatformIcon';
 import type { FlowStep } from '../constants';
 import type { Card, Platform, Project, ProjectDetail, Stage } from '../types';
 import { CardPicker } from '../components/CardPicker';
 import { NewProjectDialog } from '../components/NewProjectDialog';
 import { TagChips } from '../components/TagChips';
 import {
-  Empty, EmptyState, KindBadge, PlatformBadge, Section, SidebarItem, SidebarSearch, StageBadge, StageSelect, StudioSplit,
+  Empty, EmptyState, KindBadge, LanguageBadge, PlatformBadge, Section, SidebarItem, SidebarSearch, StageBadge, StageSelect, StudioSplit,
   btnDanger, btnGhost, btnPrimary, inputCls, relativeTime, selectCls, stripHtml,
 } from '../components/ui';
 
@@ -80,7 +81,7 @@ function ProjectsPageContent() {
                     <StageBadge stage={p.stage} />
                   </div>
                   <div className="flex items-center gap-1 mt-1 text-[11px] text-muted-foreground">
-                    {Object.entries(p.document_counts || {}).map(([pl, n]) => <span key={pl}>{PLATFORM_META[pl as Platform]?.short} {n}</span>)}
+                    {Object.entries(p.document_counts || {}).map(([pl, n]) => <span key={pl} className="inline-flex items-center gap-1" title={PLATFORM_META[pl as Platform]?.label}><PlatformIcon platform={pl as Platform} size={11} />{n}</span>)}
                     <span className="ml-auto">{relativeTime(p.updated_at)}</span>
                   </div>
                 </SidebarItem>
@@ -173,7 +174,7 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
               <li key={d.id}>
                 <Link href={STUDIO_ROUTES.workspace(d.id)} className="block rounded-lg border border-border p-3 hover:border-admin-accent-500 hover:bg-admin-accent-50/50 dark:bg-admin-accent-800/20 transition">
                   <div className="flex items-center gap-2">
-                    <PlatformBadge platform={d.platform} /><span className="text-xs">{d.language}</span>
+                    <PlatformBadge platform={d.platform} /><LanguageBadge language={d.language} />
                     <span className="text-sm font-medium text-foreground truncate flex-1">{d.title || '（無標題）'}</span>
                     <StageBadge stage={d.stage} />
                   </div>
@@ -291,7 +292,7 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
           {PLATFORMS.map((p) => (
             <button key={p} type="button" onClick={() => setPlatform(p)}
               className={`rounded-lg border px-3 py-2 text-sm text-left ${platform === p ? 'border-admin-accent-500 bg-admin-accent-50 dark:bg-admin-accent-800/30 text-admin-accent-800 dark:text-admin-accent-100' : 'border-border hover:border-border'}`}>
-              <div className="font-medium">{PLATFORM_META[p].label}</div>
+              <div className="font-medium flex items-center gap-1.5"><PlatformIcon platform={p} />{PLATFORM_META[p].label}</div>
               {existing.includes(p) && <div className="text-[10px] text-muted-foreground">已有 {existing.filter((x) => x === p).length} 個</div>}
             </button>
           ))}

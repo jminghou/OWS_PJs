@@ -71,3 +71,11 @@ export const STUDIO_ROUTES = {
   tag: (id: number) => `/admin/studio/tags?id=${id}`,
   article: (id: number) => `/admin/articles?id=${id}`,
 };
+
+/**
+ * 列表縮圖（contents.cover_image）的固定比例：3:4 直式。
+ * 來源是前台卡片 —— site-kit PostCard 的首頁圖磚固定 aspect-[3/4]；
+ * 站台的文章列表頁傳 <PostCard imageAspect='3/4' /> 後，列表卡片也用同一比例（Happy_Wu 已設）。
+ * 改這裡之前請先確認前台卡片比例，兩邊要一致。
+ */
+export const COVER_ASPECT = { w: 3, h: 4 } as const;

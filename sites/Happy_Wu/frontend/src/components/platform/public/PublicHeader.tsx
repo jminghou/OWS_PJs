@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LanguageSwitcher } from '@ows/site-kit';
-import { useAuthStore } from '@/store/auth';
 
 // 多語言導航內容
 const navContent: Record<string, {
@@ -15,8 +14,6 @@ const navContent: Record<string, {
   products: string;
   contact: string;
   openMenu: string;
-  login: string;
-  logout: string;
 }> = {
   'zh-TW': {
     siteName: 'Happy Wu',
@@ -26,8 +23,6 @@ const navContent: Record<string, {
     products: '服務與產品',
     contact: '聯絡我們',
     openMenu: '打開主選單',
-    login: '登入',
-    logout: '登出',
   },
   'zh-CN': {
     siteName: 'Happy Wu',
@@ -37,8 +32,6 @@ const navContent: Record<string, {
     products: '服务与产品',
     contact: '联系我们',
     openMenu: '打开主菜单',
-    login: '登录',
-    logout: '登出',
   },
   'en': {
     siteName: 'Happy Wu',
@@ -48,8 +41,6 @@ const navContent: Record<string, {
     products: 'Products',
     contact: 'Contact',
     openMenu: 'Open main menu',
-    login: 'Login',
-    logout: 'Logout',
   },
   'ja': {
     siteName: 'Happy Wu',
@@ -59,8 +50,6 @@ const navContent: Record<string, {
     products: '製品',
     contact: 'お問い合わせ',
     openMenu: 'メニューを開く',
-    login: 'ログイン',
-    logout: 'ログアウト',
   },
 };
 
@@ -71,18 +60,7 @@ export default function PublicHeader() {
   const [i18nEnabled, setI18nEnabled] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, checkAuth, logout } = useAuthStore();
-
-  // 載入時確認登入狀態（讓頂部導覽顯示登入/登出）
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  const handleLogout = async () => {
-    await logout();
-    setIsMenuOpen(false);
-    router.push('/');
-  };
+  // 本站沒有公眾會員系統：頁首不放登入／登出（後台管理者走 /admin/login）。
 
   // 從路徑獲取當前語言
   const getCurrentLocale = () => {
@@ -171,21 +149,6 @@ export default function PublicHeader() {
             >
               {content.products}
             </button>
-            {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="text-gray-500 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                {content.logout}
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                className="text-brand-purple-700 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                {content.login}
-              </Link>
-            )}
             {i18nEnabled && <LanguageSwitcher />}
           </nav>
 
@@ -241,23 +204,6 @@ export default function PublicHeader() {
             >
               {content.products}
             </button>
-            <div className="border-t border-warm-100 my-1" />
-            {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="text-gray-500 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              >
-                {content.logout}
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setIsMenuOpen(false)}
-                className="text-brand-purple-700 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              >
-                {content.login}
-              </Link>
-            )}
           </div>
         </div>
       )}

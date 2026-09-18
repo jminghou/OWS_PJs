@@ -120,6 +120,43 @@ def generate_variants(
     return results
 
 
+def crop_image(file_data: bytes, mime_type: str, box: Tuple[float, float, float, float]):
+    """
+    依「比例座標」裁切圖片。
+
+    box = (x, y, width, height)，皆為 0~1、相對於**已套用 EXIF 方向**的圖片
+    （瀏覽器顯示的就是轉正後的樣子，前端量到的座標也是以它為準）。
+
+    Returns:
+        (data, width, height, ext, content_type)；無法處理時回 None。
+    """
+    try:
+        from PIL import ImageOps
+        img = Image.open(io.BytesIO(file_data))
+        img = ImageOps.exif_transpose(img)
+        w, h = img.size
+        x, y, bw, bh = box
+        left, top = round(x * w), round(y * h)
+        right, bottom = round((x + bw) * w), round((y + bh) * h)
+        left, top = max(0, left), max(0, top)
+        right, bottom = min(w, right), min(h, bottom)
+        if right - left < 2 or bottom - top < 2:
+            return None
+        cropped = img.crop((left, top, right, bottom))
+
+        pil_format, ext, content_type = _get_output_format(mime_type)
+        if pil_format == 'GIF':  # 動圖裁切後只剩一格，改存 PNG 比較誠實
+            pil_format, ext, content_type = 'PNG', '.png', 'image/png'
+        if pil_format == 'JPEG' and cropped.mode in ('RGBA', 'P', 'LA'):
+            cropped = cropped.convert('RGB')
+        buf = io.BytesIO()
+        save_kwargs = {'quality': 92, 'optimize': True} if pil_format in ('JPEG', 'WEBP') else {}
+        cropped.save(buf, format=pil_format, **save_kwargs)
+        return buf.getvalue(), cropped.size[0], cropped.size[1], ext, content_type
+    except Exception:
+        return None
+
+
 def _get_output_format(mime_type: str) -> Tuple[str, str, str]:
     """
     根據 MIME type 決定輸出格式。
@@ -136,4 +173,4 @@ def _get_output_format(mime_type: str) -> Tuple[str, str, str]:
     return mapping.get(mime_type, ('JPEG', '.jpg', 'image/jpeg'))
 
 
-__all__ = ['is_image', 'get_image_dimensions', 'generate_variants']
+__all__ = ['is_image', 'get_image_dimensions', 'generate_variants', 'crop_image']

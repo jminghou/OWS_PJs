@@ -25,6 +25,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@tiptap/extension-table": "3.19.0"
+    "@tiptap/extension-table": "3.19.0",
+    "highlight.js": "^11.11.1"
   }
 }

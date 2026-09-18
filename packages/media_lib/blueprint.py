@@ -41,7 +41,7 @@ from core.backend_engine.services.rbac import RBACService
 from packages.media_lib.models import MLFile, MLFileVariant, MLFolder, MLTag, MLFileMetadata
 from packages.media_lib.schemas import MLFileSchema, MLFolderSchema, MLTagSchema, MLFileMetadataSchema
 from packages.media_lib.storage import MediaStorage
-from packages.media_lib.image_processor import is_image, get_image_dimensions, generate_variants
+from packages.media_lib.image_processor import is_image, get_image_dimensions, generate_variants, crop_image
 from packages.media_lib.utils import slugify
 from packages.media_lib.config import (
     ALLOWED_EXTENSIONS,
@@ -273,6 +273,104 @@ def upload_file():
         # 細節只寫進後端 log，避免把 exception（可能含憑證等敏感資訊）回傳給前端
         current_app.logger.exception('Upload failed')
         return jsonify({'error': 'Upload failed. Please try again later.'}), 500
+
+
+@media_lib_bp.route('/files/<int:file_id>/crop', methods=['POST'])
+@jwt_required()
+def crop_file(file_id):
+    """
+    把既有圖片裁成指定範圍，**另存成一個新檔**（原圖不動），並照常產生變體。
+
+    為什麼在後端裁：前端用 canvas 裁需要圖片來源送 CORS 標頭（本機 /uploads、正式 GCS
+    都沒有），否則 canvas 會被汙染而無法輸出。後端直接讀原檔用 Pillow 裁，沒有這個限制。
+
+    Body:
+        {
+          "x": 0.1, "y": 0.0, "width": 0.8, "height": 1.0,   // 0~1，相對於轉正後的原圖
+          "aspect": "3:4"                                     // 選填：要求的寬高比，後端會驗證
+        }
+    """
+    user, err = _require_editor()
+    if err:
+        return err
+
+    source = MLFile.query.get_or_404(file_id)
+    if not is_image(source.mime_type):
+        return jsonify({'error': 'Only images can be cropped'}), 400
+
+    data = request.get_json(silent=True) or {}
+    try:
+        box = tuple(float(data[k]) for k in ('x', 'y', 'width', 'height'))
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'error': 'x, y, width, height are required numbers'}), 400
+    x, y, bw, bh = box
+    eps = 1e-6
+    if not (x >= -eps and y >= -eps and bw > 0 and bh > 0 and x + bw <= 1 + eps and y + bh <= 1 + eps):
+        return jsonify({'error': 'Crop box must be inside the image'}), 400
+
+    gcs = MediaStorage.get_instance()
+    original = gcs.read_bytes(source.gcs_path)
+    if original is None:
+        return jsonify({'error': 'Source file is missing from storage'}), 404
+
+    result = crop_image(original, source.mime_type, box)
+    if result is None:
+        return jsonify({'error': 'Unable to crop this image'}), 422
+    cropped, width, height, ext, content_type = result
+
+    aspect_label = ''
+    aspect = data.get('aspect')
+    if aspect:
+        try:
+            aw, ah = (float(n) for n in str(aspect).split(':'))
+            if aw <= 0 or ah <= 0 or abs((width / height) - (aw / ah)) / (aw / ah) > 0.02:
+                return jsonify({'error': f'Cropped image is not {aspect}'}), 422
+            aspect_label = f'-{int(aw)}x{int(ah)}' if aw == int(aw) and ah == int(ah) else ''
+        except (ValueError, ZeroDivisionError):
+            return jsonify({'error': 'aspect must look like "3:4"'}), 400
+
+    stem = os.path.splitext(source.original_filename or source.filename)[0]
+    new_name = f'{stem}{aspect_label or "-crop"}{ext}'
+
+    try:
+        import io as _io
+        public_url, gcs_path, unique_name = gcs.upload(_io.BytesIO(cropped), new_name, content_type=content_type)
+
+        ml_file = MLFile(
+            filename=unique_name,
+            original_filename=new_name,
+            gcs_path=gcs_path,
+            public_url=public_url,
+            file_size=len(cropped),
+            mime_type=content_type,
+            width=width,
+            height=height,
+            alt_text=source.alt_text,
+            folder_id=source.folder_id,
+            uploaded_by=user.id,
+            attributes={'cropped_from': source.id, 'crop_box': list(box), 'aspect': aspect or None},
+        )
+        db.session.add(ml_file)
+        db.session.flush()
+        db.session.add(MLFileMetadata(file_id=ml_file.id))
+
+        for v in generate_variants(cropped, content_type):
+            base_path = os.path.dirname(gcs_path)
+            variant_gcs_path = f'{base_path}/{v["variant_type"]}_{unique_name}'
+            if v['ext'] != os.path.splitext(unique_name)[1]:
+                variant_gcs_path = os.path.splitext(variant_gcs_path)[0] + v['ext']
+            variant_url = gcs.upload_bytes(v['data'], variant_gcs_path, v['content_type'])
+            db.session.add(MLFileVariant(
+                file_id=ml_file.id, variant_type=v['variant_type'], gcs_path=variant_gcs_path,
+                public_url=variant_url, width=v['width'], height=v['height'], file_size=v['file_size'],
+            ))
+
+        db.session.commit()
+        return jsonify(file_schema.dump(ml_file)), 201
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Crop failed')
+        return jsonify({'error': 'Crop failed. Please try again later.'}), 500
 
 
 @media_lib_bp.route('/files/<int:file_id>', methods=['PUT'])
