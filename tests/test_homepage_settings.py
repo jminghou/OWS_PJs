@@ -71,5 +71,27 @@ class HomepageSettingsTests(unittest.TestCase):
         self.assertEqual(result['button_text'], {'zh-TW': 'Read'})
 
 
+    def test_hero_intro_round_trip_trims_and_drops_unknown_keys(self):
+        self.assertEqual(self.read()['hero_intro'], {'locales': {}})
+        saved = {'image_url': '/media/hero.jpg', 'junk': 1, 'locales': {
+            'zh-TW': {'headline': '  看懂孩子  ', 'body': '內文', 'eyebrow': '', 'onclick': 'x'},
+            'en': {'headline': 'Understand your child'},
+        }}
+        self.assertEqual(self.save({'hero_intro': saved})[1], 200)
+        self.assertEqual(self.read()['hero_intro'], {'image_url': '/media/hero.jpg', 'locales': {
+            'zh-TW': {'headline': '看懂孩子', 'body': '內文'},
+            'en': {'headline': 'Understand your child'},
+        }})
+        self.slides.query.all.assert_not_called()
+
+    def test_invalid_hero_intro_cannot_write(self):
+        for value in [None, [], {'locales': []}, {'locales': {'../x': {}}}, {'locales': {'en': 'text'}},
+                      {'locales': {'en': {'headline': 5}}}, {'locales': {'en': {'headline': 'x' * 201}}},
+                      {'locales': {}, 'image_url': 'javascript:alert(1)'}, {'locales': {}, 'image_url': 7}]:
+            with self.subTest(value=value):
+                self.assertEqual(self.save({'hero_intro': value})[1], 400)
+        self.db.session.commit.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()

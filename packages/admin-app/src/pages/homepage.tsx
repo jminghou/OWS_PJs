@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { homepageApi, i18nApi } from '@ows/platform-api';
-import { HomepageSlide, HomepageSettings } from '@ows/platform-api/types';
+import { HomepageSlide, HomepageSettings, HeroIntro } from '@ows/platform-api/types';
 import { I18nSettings } from '@ows/platform-api';
 import AdminLayout from '../components/AdminLayout';
 import HomepageArticleWall from '../components/HomepageArticleWall';
+import HomepageHeroIntro from '../components/HomepageHeroIntro';
 import Button from '@ows/ui/ui/Button';
 import { AdminListLayout, AdminImagePicker } from '@ows/ui/admin';
 import TiptapEditor from '../components/TiptapEditor';
@@ -458,7 +459,16 @@ export default function HomepagePage() {
   return <HomepageSettingsPage />;
 }
 
-export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults }: { enableArticleWall?: boolean; aboutDefaults?: HomepageSettings['about_section'] }) {
+interface HomepageSettingsPageProps {
+  enableArticleWall?: boolean;
+  aboutDefaults?: HomepageSettings['about_section'];
+  /** 文字型 Hero（首頁不用輪播的站台）：開啟後多一個「Hero 介紹」分頁 */
+  enableHeroIntro?: boolean;
+  heroIntroDefaults?: HeroIntro['locales'];
+}
+
+export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults, enableHeroIntro = false, heroIntroDefaults }: HomepageSettingsPageProps) {
+  const [heroIntro, setHeroIntro] = useState<HeroIntro>({ image_url: '', locales: {} });
   const [articleWall, setArticleWall] = useState<NonNullable<HomepageSettings['article_wall']>>({ mode: 'latest', article_ids: [] });
   const [slides, setSlides] = useState<HomepageSlide[]>([]);
   const [buttonText, setButtonText] = useState<Record<string, string>>({});
@@ -475,8 +485,8 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults 
   const [pendingField, setPendingField] = useState<'image_url' | 'video_url'>('image_url');
   const [isAboutImageBrowserOpen, setIsAboutImageBrowserOpen] = useState(false);
 
-  type SectionKey = 'slides' | 'button_text' | 'about_section' | 'carousel_settings' | 'article_wall';
-  const [activeSection, setActiveSection] = useState<SectionKey>('slides');
+  type SectionKey = 'slides' | 'button_text' | 'about_section' | 'carousel_settings' | 'article_wall' | 'hero_intro';
+  const [activeSection, setActiveSection] = useState<SectionKey>(enableHeroIntro ? 'hero_intro' : 'slides');
 
   const enabledLanguages = i18nSettings?.languages || [];
   const languageNames = i18nSettings?.language_names || {};
@@ -509,6 +519,7 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults 
       ]);
       setSlides(homepageData.slides || []);
       setArticleWall(homepageData.article_wall || { mode: 'latest', article_ids: [] });
+      setHeroIntro({ image_url: '', locales: {}, ...homepageData.hero_intro });
       setButtonText(homepageData.button_text || {});
       const savedAbout = homepageData.about_section || {};
       const languages = new Set([...Object.keys(aboutDefaults || {}), ...Object.keys(savedAbout)]);
@@ -612,6 +623,7 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults 
       await homepageApi.updateSettings({
         slides,
         ...(enableArticleWall ? { article_wall: articleWall } : {}),
+        ...(enableHeroIntro ? { hero_intro: heroIntro } : {}),
         button_text: buttonText,
         about_section: aboutSection,
         pause_on_hover: pauseOnHover,
@@ -634,6 +646,7 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults 
   };
 
   const sectionItems: { key: SectionKey; label: string }[] = [
+    ...(enableHeroIntro ? [{ key: 'hero_intro' as const, label: 'Hero 介紹' }] : []),
     { key: 'slides', label: '幻燈片管理' },
     { key: 'carousel_settings', label: '輪播全域設定' },
     { key: 'button_text', label: '按鈕文字設定' },
@@ -679,6 +692,8 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults 
                 {activeSection === 'carousel_settings' && '設定輪播的全域行為（hover 暫停、延遲載入）'}
                 {activeSection === 'button_text' && '設定首頁主視覺按鈕文字；單張幻燈片的 CTA 文字優先，未設定 CTA 網址時捲動到文章牆'}
                 {activeSection === 'about_section' && '管理首頁「關於我們」區塊的多語言內容'}
+                {activeSection === 'hero_intro' && '首頁第一屏的文字介紹（多語言）'}
+                {activeSection === 'article_wall' && '選擇首頁要顯示的文章與順序'}
               </p>
             </div>
             <Button
@@ -706,6 +721,9 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults 
           )}
 
           {activeSection === 'article_wall' && !loading && <HomepageArticleWall value={articleWall} onChange={setArticleWall} />}
+          {activeSection === 'hero_intro' && !loading && (
+            <HomepageHeroIntro value={heroIntro} onChange={setHeroIntro} languages={enabledLanguages} languageNames={languageNames} defaults={heroIntroDefaults} />
+          )}
 
           {/* ── 幻燈片管理 ─────────────────────────────────────────── */}
           {activeSection === 'slides' && (

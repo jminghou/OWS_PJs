@@ -12,6 +12,7 @@ Provides endpoints for system settings:
 from flask import jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import json
+import re
 from datetime import datetime
 
 from core.backend_engine.factory import db
@@ -149,6 +150,12 @@ def _homepage_settings_response(include_all=False):
     except (ValueError, TypeError):
         article_wall = {'mode': 'latest', 'article_ids': []}
 
+    hero_setting = Setting.query.filter_by(key='homepage_hero_intro').first()
+    try:
+        hero_intro = validate_hero_intro(json.loads(hero_setting.value)) if hero_setting and hero_setting.value else {'locales': {}}
+    except (ValueError, TypeError):
+        hero_intro = {'locales': {}}
+
     homepage_settings = HomepageSettings.query.first()
     button_text = homepage_settings.button_text if homepage_settings else {}
     # Features 7 & 9: global carousel settings
@@ -166,6 +173,7 @@ def _homepage_settings_response(include_all=False):
         'slides': [s.to_dict() for s in slides],
         'button_text': button_text,
         'article_wall': article_wall,
+        'hero_intro': hero_intro,
         'about_section': about_section,
         'banner_section': banner_section,
         'pause_on_hover': pause_on_hover,
@@ -182,6 +190,35 @@ def validate_article_wall(value):
     if not isinstance(ids, list) or len(ids) > 24 or any(type(i) is not int or i <= 0 for i in ids):
         raise ValueError('Article wall requires up to 24 positive integer IDs')
     return {'mode': value['mode'], 'article_ids': list(dict.fromkeys(ids))}
+
+
+# 文字型首頁 Hero（取代輪播的站台用）：每語系一組文案 + 一張共用的選填圖片。
+_HERO_INTRO_FIELDS = {'eyebrow': 200, 'headline': 200, 'body': 2000, 'newsletter_note': 300, 'proof_line': 300}
+_LOCALE_RE = re.compile(r'^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$')
+
+
+def validate_hero_intro(value):
+    """Keep only known string fields within length caps; unknown keys are dropped, not rejected."""
+    if not isinstance(value, dict) or not isinstance(value.get('locales', {}), dict):
+        raise ValueError('Invalid hero intro')
+    if len(value.get('locales', {})) > 12:
+        raise ValueError('Too many hero intro locales')
+    locales = {}
+    for locale, fields in value.get('locales', {}).items():
+        if not isinstance(locale, str) or not _LOCALE_RE.match(locale) or not isinstance(fields, dict):
+            raise ValueError('Invalid hero intro locale')
+        cleaned = {}
+        for name, limit in _HERO_INTRO_FIELDS.items():
+            text = fields.get(name, '')
+            if not isinstance(text, str) or len(text) > limit:
+                raise ValueError(f'Hero intro {name} must be text up to {limit} characters')
+            if text.strip():
+                cleaned[name] = text.strip()
+        locales[locale] = cleaned
+    image_url = value.get('image_url') or ''
+    if not isinstance(image_url, str) or len(image_url) > 500 or (image_url and not image_url.startswith(('/', 'http://', 'https://'))):
+        raise ValueError('Hero intro image_url must be a site path or http(s) URL')
+    return {'image_url': image_url, 'locales': locales}
 
 
 def _parse_datetime(value):
@@ -212,6 +249,16 @@ def api_update_homepage_settings():
             setting = Setting(key='homepage_article_wall')
             db.session.add(setting)
         setting.value = json.dumps(wall)
+    if 'hero_intro' in data:
+        try:
+            hero_intro = validate_hero_intro(data['hero_intro'])
+        except ValueError as error:
+            return jsonify({'message': str(error)}), 400
+        setting = Setting.query.filter_by(key='homepage_hero_intro').first()
+        if not setting:
+            setting = Setting(key='homepage_hero_intro')
+            db.session.add(setting)
+        setting.value = json.dumps(hero_intro, ensure_ascii=False)
 
     # 1. 處理關於我們 (使用 Setting 表，這是最穩定的做法)
     if 'about_section' in data:
