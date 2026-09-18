@@ -58,6 +58,12 @@
       "@ows/studio/*": [
         "../../../packages/studio/src/*"
       ],
+      "@ows/newsletter": [
+        "../../../packages/newsletter/src/index.ts"
+      ],
+      "@ows/newsletter/*": [
+        "../../../packages/newsletter/src/*"
+      ],
       "@ows/content-kit": [
         "../../../packages/content-kit/src/index.ts"
       ],

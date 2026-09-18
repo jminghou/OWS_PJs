@@ -10,6 +10,7 @@
     "packages/admin-app",
     "packages/commerce",
     "packages/studio",
+    "packages/newsletter",
     "packages/content-kit",
     "packages/site-kit",
     "sites/*/frontend"
