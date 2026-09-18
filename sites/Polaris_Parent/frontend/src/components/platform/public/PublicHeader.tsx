@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LanguageSwitcher } from '@ows/site-kit';
+import LanguageSwitcher from '@ows/site-kit/components/LanguageSwitcher';
 import { useAuthStore } from '@/store/auth';
 
 // 多語言導航內容
@@ -88,6 +88,11 @@ export default function PublicHeader() {
     checkAuth();
   }, [checkAuth]);
 
+  // 換頁後收起手機選單
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
+
   const handleLogout = async () => {
     await logout();
     setIsMenuOpen(false);
@@ -95,35 +100,19 @@ export default function PublicHeader() {
   };
 
   // 從路徑獲取當前語言
-  const getCurrentLocale = () => {
-    const pathLocale = pathname.split('/')[1];
-    if (locales.includes(pathLocale)) {
-      return pathLocale;
-    }
-    return 'zh-TW';
-  };
-
-  const currentLocale = getCurrentLocale();
+  const pathLocale = pathname.split('/')[1];
+  const currentLocale = locales.includes(pathLocale) ? pathLocale : 'zh-TW';
   const content = navContent[currentLocale] || navContent['zh-TW'];
   const basePath = currentLocale === 'zh-TW' ? '' : `/${currentLocale}`;
 
-  // 判斷是否在首頁
-  const isHomePage = pathname === '/' || pathname === `/${currentLocale}` || pathname === `/${currentLocale}/`;
-
-  // 錨點跳轉處理
-  const scrollToSection = useCallback((sectionId: string) => {
-    if (isHomePage) {
-      // 在首頁：直接滾動到該區塊
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    } else {
-      // 不在首頁：先跳轉到首頁，然後滾動
-      router.push(`${basePath || '/'}#${sectionId}`);
-    }
-    setIsMenuOpen(false);
-  }, [isHomePage, basePath, router]);
+  // 導覽一律是真正的頁面連結（首頁由站名連回）
+  const navItems = [
+    { href: `${basePath}/articles`, label: content.articles },
+    { href: `${basePath}/about`, label: content.about },
+    { href: `${basePath}/products`, label: content.products },
+    { href: `${basePath}/ziwei`, label: content.ziwei },
+  ];
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   // 檢查 i18n 是否啟用
   useEffect(() => {
@@ -148,45 +137,27 @@ export default function PublicHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14">
           <div className="flex items-center">
-            <button
-              onClick={() => scrollToSection('hero')}
+            <Link
+              href={basePath || '/'}
               className="text-2xl font-bold text-brand-purple-700 hover:text-brand-purple-600 transition-colors"
             >
               {content.siteName}
-            </button>
+            </Link>
           </div>
 
           <nav className="hidden md:flex items-center space-x-4">
-            <button
-              onClick={() => scrollToSection('hero')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.home}
-            </button>
-            <button
-              onClick={() => scrollToSection('about')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.about}
-            </button>
-            <button
-              onClick={() => scrollToSection('articles')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.articles}
-            </button>
-            <button
-              onClick={() => scrollToSection('products')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.products}
-            </button>
-            <button
-              onClick={() => scrollToSection('ziwei')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.ziwei}
-            </button>
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-brand-purple-600 ${
+                  isActive(item.href) ? 'text-brand-purple-700' : 'text-gray-900'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
             {isAuthenticated ? (
               <>
                 <Link
@@ -217,6 +188,8 @@ export default function PublicHeader() {
             {i18nEnabled && <LanguageSwitcher />}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-expanded={isMenuOpen}
+              aria-controls="public-mobile-menu"
               className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-purple-500 p-2 rounded-md"
             >
               <span className="sr-only">{content.openMenu}</span>
@@ -226,6 +199,7 @@ export default function PublicHeader() {
                 viewBox="0 0 24 24"
                 strokeWidth="1.5"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 {isMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -239,44 +213,25 @@ export default function PublicHeader() {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden">
+        <div className="md:hidden" id="public-mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
-            <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('hero')}
-            >
-              {content.home}
-            </button>
-            <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('about')}
-            >
-              {content.about}
-            </button>
-            <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('articles')}
-            >
-              {content.articles}
-            </button>
-            <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('products')}
-            >
-              {content.products}
-            </button>
-            <button
-              onClick={() => scrollToSection('ziwei')}
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-            >
-              {content.ziwei}
-            </button>
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                className={`hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium ${
+                  isActive(item.href) ? 'text-brand-purple-700' : 'text-gray-900'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
             <div className="border-t border-warm-100 my-1" />
             {isAuthenticated ? (
               <>
                 <Link
                   href="/account"
-                  onClick={() => setIsMenuOpen(false)}
                   className="text-brand-purple-700 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
                 >
                   {content.account}
@@ -291,7 +246,6 @@ export default function PublicHeader() {
             ) : (
               <Link
                 href="/login"
-                onClick={() => setIsMenuOpen(false)}
                 className="text-brand-purple-700 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
               >
                 {content.login}

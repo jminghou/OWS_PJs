@@ -21,7 +21,7 @@ export const heroIntroDefaults: HeroIntro['locales'] = {
     newsletter_note: '订阅电子报，第一时间收到新的亲子紫微文章与观察。',
   },
   en: {
-    eyebrow: 'Polaris Parent',
+    eyebrow: 'Qin Zi Blog',
     headline: "Understand your child's gifts through Zi Wei Dou Shu and data",
     body:
       'Every child arrives with their own "factory spec sheet". We read Zi Wei Dou Shu as a body of data that can be tested. It is not about fate. It is about tendencies and traits.\n\n' +
@@ -29,10 +29,10 @@ export const heroIntroDefaults: HeroIntro['locales'] = {
     newsletter_note: 'Subscribe to get new articles and observations on parenting with Zi Wei Dou Shu.',
   },
   ja: {
-    eyebrow: '親紫之間',
+    eyebrow: '親紫の間',
     headline: '紫微斗数とデータで、子どもの才能を読み解く',
     body:
-      '子どもは誰でも、自分だけの「仕様書」を持って生まれてきます。親紫之間は紫微斗数を、検証できるデータベースとして読み解きます。宿命ではなく、傾向と特性の話です。\n\n' +
+      '子どもは誰でも、自分だけの「仕様書」を持って生まれてきます。親紫の間は紫微斗数を、検証できるデータベースとして読み解きます。宿命ではなく、傾向と特性の話です。\n\n' +
       '子どもの才能を理解し、親である自分との違いを受け止め、その子に届く言葉を見つけるお手伝いをします。',
     newsletter_note: 'ニュースレターに登録すると、紫微斗数と子育ての新しい記事や気づきが届きます。',
   },

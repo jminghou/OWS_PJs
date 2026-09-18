@@ -1,5 +1,8 @@
 import { ReactNode } from 'react';
 import { Noto_Sans_SC } from 'next/font/google';
+// 子路徑匯入：從 barrel 匯入會連帶把 HeroCarousel（與 Swiper 的 CSS）拉進每一頁
+import JsonLd from '@ows/site-kit/components/JsonLd';
+import { organizationJsonLd, websiteJsonLd } from '@ows/site-kit/seo';
 import PublicHeader from '@/components/platform/public/PublicHeader';
 import PublicFooter from '@/components/platform/public/PublicFooter';
 
@@ -27,6 +30,8 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <div className={`min-h-screen flex flex-col ${isZhCN ? notoSansSC.className : ''}`}>
+      {/* 全站實體資料：與 (public)/layout.tsx 一致，語系頁面也要有 */}
+      <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
       <PublicHeader />
       <main className="flex-1 pt-14">
         {children}
