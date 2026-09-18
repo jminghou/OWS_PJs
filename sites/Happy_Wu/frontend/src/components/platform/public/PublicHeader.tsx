@@ -1,212 +1,32 @@
 'use client';
-
-import { useState, useEffect, useCallback } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { LanguageSwitcher } from '@ows/site-kit';
-
-// 多語言導航內容
-const navContent: Record<string, {
-  siteName: string;
-  home: string;
-  about: string;
-  articles: string;
-  products: string;
-  contact: string;
-  openMenu: string;
-}> = {
-  'zh-TW': {
-    siteName: 'Happy Wu',
-    home: '首頁',
-    about: '關於我們',
-    articles: '專欄文章',
-    products: '服務與產品',
-    contact: '聯絡我們',
-    openMenu: '打開主選單',
-  },
-  'zh-CN': {
-    siteName: 'Happy Wu',
-    home: '首页',
-    about: '关于我们',
-    articles: '专栏文章',
-    products: '服务与产品',
-    contact: '联系我们',
-    openMenu: '打开主菜单',
-  },
-  'en': {
-    siteName: 'Happy Wu',
-    home: 'Home',
-    about: 'About',
-    articles: 'Articles',
-    products: 'Products',
-    contact: 'Contact',
-    openMenu: 'Open main menu',
-  },
-  'ja': {
-    siteName: 'Happy Wu',
-    home: 'ホーム',
-    about: '私たちについて',
-    articles: '記事',
-    products: '製品',
-    contact: 'お問い合わせ',
-    openMenu: 'メニューを開く',
-  },
-};
-
-const locales = ['zh-TW', 'zh-CN', 'en', 'ja'];
-
 export default function PublicHeader() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [i18nEnabled, setI18nEnabled] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
-  // 本站沒有公眾會員系統：頁首不放登入／登出（後台管理者走 /admin/login）。
-
-  // 從路徑獲取當前語言
-  const getCurrentLocale = () => {
-    const pathLocale = pathname.split('/')[1];
-    if (locales.includes(pathLocale)) {
-      return pathLocale;
-    }
-    return 'zh-TW';
-  };
-
-  const currentLocale = getCurrentLocale();
-  const content = navContent[currentLocale] || navContent['zh-TW'];
-  const basePath = currentLocale === 'zh-TW' ? '' : `/${currentLocale}`;
-
-  // 判斷是否在首頁
-  const isHomePage = pathname === '/' || pathname === `/${currentLocale}` || pathname === `/${currentLocale}/`;
-
-  // 錨點跳轉處理
-  const scrollToSection = useCallback((sectionId: string) => {
-    if (isHomePage) {
-      // 在首頁：直接滾動到該區塊
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    } else {
-      // 不在首頁：先跳轉到首頁，然後滾動
-      router.push(`${basePath || '/'}#${sectionId}`);
-    }
-    setIsMenuOpen(false);
-  }, [isHomePage, basePath, router]);
-
-  // 檢查 i18n 是否啟用
-  useEffect(() => {
-    const checkI18n = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/settings/i18n`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setI18nEnabled(data.enabled);
-        }
-      } catch (error) {
-        console.error('Failed to fetch i18n settings:', error);
-      }
-    };
-    checkI18n();
-  }, []);
-
-  return (
-    <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14">
-          <div className="flex items-center">
-            <button
-              onClick={() => scrollToSection('hero')}
-              className="text-2xl font-bold text-brand-purple-700 hover:text-brand-purple-600 transition-colors"
-            >
-              {content.siteName}
-            </button>
-          </div>
-
-          <nav className="hidden md:flex items-center space-x-4">
-            <button
-              onClick={() => scrollToSection('hero')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.home}
-            </button>
-            <button
-              onClick={() => scrollToSection('about')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.about}
-            </button>
-            <button
-              onClick={() => scrollToSection('articles')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.articles}
-            </button>
-            <button
-              onClick={() => scrollToSection('products')}
-              className="text-gray-900 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {content.products}
-            </button>
-            {i18nEnabled && <LanguageSwitcher />}
-          </nav>
-
-          <div className="md:hidden flex items-center gap-2">
-            {i18nEnabled && <LanguageSwitcher />}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-purple-500 p-2 rounded-md"
-            >
-              <span className="sr-only">{content.openMenu}</span>
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-              >
-                {isMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                )}
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {isMenuOpen && (
-        <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
-            <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('hero')}
-            >
-              {content.home}
-            </button>
-            <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('about')}
-            >
-              {content.about}
-            </button>
-            <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('articles')}
-            >
-              {content.articles}
-            </button>
-            <button
-              className="text-gray-900 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => scrollToSection('products')}
-            >
-              {content.products}
-            </button>
-          </div>
-        </div>
-      )}
-    </header>
-  );
+    const pathname = usePathname();
+    const [open, setOpen] = useState(false);
+    const [i18nEnabled, setI18nEnabled] = useState(false);
+    const locale = ['zh-CN', 'en', 'ja'].includes(pathname.split('/')[1]) ? pathname.split('/')[1] : 'zh-TW';
+    const base = locale === 'zh-TW' ? '' : `/${locale}`;
+    const labels = locale === 'en' ? ['Home', 'About', 'Journal', 'Services'] : locale === 'ja' ? ['ホーム', '私について', '記事', 'サービス'] : locale === 'zh-CN' ? ['首页', '关于我', '生活专栏', '服务与产品'] : ['首頁', '關於我', '生活專欄', '服務與產品'];
+    const links = [`${base || '/'}#hero`, `${base || '/'}#about`, `${base || '/'}#articles`, `${base || '/'}#products`];
+    useEffect(() => { setOpen(false); }, [pathname]);
+    useEffect(() => {
+        const controller = new AbortController();
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5010/api'}/settings/i18n`, { signal: controller.signal })
+            .then(r => r.ok ? r.json() : null).then(data => setI18nEnabled(Boolean(data?.enabled))).catch(() => { });
+        return () => controller.abort();
+    }, []);
+    const navLink = (index: number) => <Link key={index} href={links[index]} onClick={() => setOpen(false)}>{labels[index]}</Link>;
+    return <header className="hw-header">
+    <div className="hw-topline"><span>A LITTLE SPACE FOR YOURSELF</span><span>工作・育兒・生活，還有我自己</span></div>
+    <div className="hw-nav">
+      <nav className="hw-nav-side" aria-label="主要導覽">{[0, 1].map(navLink)}</nav>
+      <Link className="hw-logo" href={base || '/'} aria-label="職場媽媽崩潰啥？ 首頁"><span className="hw-logo-flower" aria-hidden="true">✳</span><strong>職場媽媽崩潰啥？</strong><small>HAPPY WU · LIFE JOURNAL</small></Link>
+      <nav className="hw-nav-side hw-nav-right" aria-label="內容導覽">{[2, 3].map(navLink)}{i18nEnabled && <LanguageSwitcher />}</nav>
+      <button className="hw-menu-button" aria-expanded={open} aria-controls="hw-mobile-nav" aria-label={open ? '關閉選單' : '開啟選單'} onClick={() => setOpen(!open)}>{open ? '✕' : '☰'}</button>
+    </div>
+    {open && <nav id="hw-mobile-nav" className="hw-mobile-nav" aria-label="手機導覽">{[0, 1, 2, 3].map(navLink)}{i18nEnabled && <LanguageSwitcher />}</nav>}
+  </header>;
 }

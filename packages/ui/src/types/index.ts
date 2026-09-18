@@ -217,7 +217,13 @@ export interface HomepageSlide {
 export interface HomepageSettings {
   slides: HomepageSlide[];
   button_text: Record<string, string>; // {zh-TW: "關於我們", en: "About Us", ...}
+  article_wall?: { mode: 'latest' | 'manual'; article_ids: number[] };
   about_section?: Record<string, {
+    eyebrow?: string;
+    description?: string;
+    image_caption?: string;
+    button_text?: string;
+    button_url?: string;
     title: string;
     philosophy: string;
     quote: string;

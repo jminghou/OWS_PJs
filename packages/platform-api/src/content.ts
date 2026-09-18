@@ -11,6 +11,7 @@ import { request, type FetchOptions } from './client';
 
 export const contentApi = {
   getList: async (params?: {
+    ids?: string;
     page?: number;
     per_page?: number;
     category_id?: number;

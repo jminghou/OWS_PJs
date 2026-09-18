@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
+import type { Swiper as SwiperInstance } from 'swiper';
 import { Autoplay, Pagination, EffectFade } from 'swiper/modules';
 import { HomepageSlide } from '@ows/platform-api/types';
 import { getImageUrl } from '../config';
@@ -13,6 +14,8 @@ import 'swiper/css/effect-fade';
 
 interface HeroCarouselProps {
   slides: HomepageSlide[];
+  /** Optional parent hover state, including text/CTA overlays above the carousel. */
+  externalPaused?: boolean;
   currentLanguage: string;
   onSlideChange?: (slideIndex: number) => void;
   pauseOnHover?: boolean;  // Feature 7
@@ -104,9 +107,9 @@ function SlideMedia({
         onError={(e) => {
           const t = e.target as HTMLImageElement;
           // If medium variant fails, fall back to original
-          if (t.src !== rawUrl) {
-            t.src = rawUrl;
-          }
+          if (!t.hasAttribute('srcset')) return;
+          t.removeAttribute('srcset');
+          t.src = rawUrl;
         }}
       />
       {/* Feature 5: per-slide overlay opacity */}
@@ -122,8 +125,15 @@ export default function HeroCarousel({
   onSlideChange,
   pauseOnHover = true,
   lazyLoading = true,
+  externalPaused,
 }: HeroCarouselProps) {
   const [mounted, setMounted] = useState(false);
+  const [swiperInstance, setSwiperInstance] = useState<SwiperInstance | null>(null);
+  useEffect(() => {
+    if (externalPaused === undefined || !swiperInstance || swiperInstance.destroyed) return;
+    if (externalPaused) swiperInstance.autoplay.stop();
+    else swiperInstance.autoplay.start();
+  }, [externalPaused, swiperInstance]);
 
   useEffect(() => {
     setMounted(true);
@@ -143,6 +153,7 @@ export default function HeroCarousel({
   return (
     <div className="relative w-full h-full">
       <Swiper
+        onSwiper={setSwiperInstance}
         modules={[Autoplay, Pagination, EffectFade]}
         spaceBetween={0}
         slidesPerView={1}
@@ -152,7 +163,7 @@ export default function HeroCarousel({
         autoplay={{
           delay: 6000,                     // global default
           disableOnInteraction: false,
-          pauseOnMouseEnter: pauseOnHover,  // Feature 7: hover pause
+          pauseOnMouseEnter: externalPaused === undefined && pauseOnHover,  // Feature 7: hover pause
         }}
         pagination={{
           clickable: true,

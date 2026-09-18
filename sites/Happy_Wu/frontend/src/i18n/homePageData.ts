@@ -27,10 +27,10 @@ export const localeContent: Record<string, {
 }> = {
   'zh-TW': {
     title: '首頁',
-    description: 'Happy Wu 的個人專欄：分享生活、觀察與想法。',
-    heroBrand: 'Happy Wu',
-    heroTitle: '把日常的觀察，寫成值得留下的文字',
-    heroSubtitle: '分享生活、觀察與想法的個人專欄',
+    description: '職場媽媽崩潰啥？ 的個人專欄：分享生活、觀察與想法。',
+    heroBrand: '職場媽媽崩潰啥？',
+    heroTitle: '在忙碌的日子裡，留一點自己。',
+    heroSubtitle: '聊工作、聊育兒，也聊那些笑著笑著就崩潰的日常。',
     aboutBtn: '開始閱讀',
     bannerHeading: '慢慢寫，慢慢讀',
     bannerDescription: '這裡沒有速成的答案，只有一篇篇認真整理過的想法。',
@@ -38,7 +38,7 @@ export const localeContent: Record<string, {
     featuredDescription: '最新發表的文章',
     viewMore: '查看更多文章',
     noContent: '暫無內容，請稍後再來。',
-    aboutTitle: '關於我們',
+    aboutTitle: '嗨，我是 Happy Wu',
     aboutPhilosophy: '寫作是整理思緒的方式。把觀察到的事、讀過的書、走過的路記下來，久了就成了一條看得見的軌跡。',
     aboutQuote: '寫下來，才算真的想過',
     aboutMissionPoints: [
@@ -58,8 +58,8 @@ export const localeContent: Record<string, {
   },
   'zh-CN': {
     title: '首页',
-    description: 'Happy Wu 的个人专栏：分享生活、观察与想法。',
-    heroBrand: 'Happy Wu',
+    description: '職場媽媽崩潰啥？ 的个人专栏：分享生活、观察与想法。',
+    heroBrand: '職場媽媽崩潰啥？',
     heroTitle: '把日常的观察，写成值得留下的文字',
     heroSubtitle: '分享生活、观察与想法的个人专栏',
     aboutBtn: '开始阅读',
@@ -89,8 +89,8 @@ export const localeContent: Record<string, {
   },
   'en': {
     title: 'Home',
-    description: 'A personal column by Happy Wu: life, observations and ideas.',
-    heroBrand: 'Happy Wu',
+    description: 'A personal column by 職場媽媽崩潰啥？: life, observations and ideas.',
+    heroBrand: '職場媽媽崩潰啥？',
     heroTitle: 'Turning everyday observations into writing worth keeping',
     heroSubtitle: 'A personal column sharing life, observations and ideas',
     aboutBtn: 'Start Reading',
@@ -120,8 +120,8 @@ export const localeContent: Record<string, {
   },
   'ja': {
     title: 'ホーム',
-    description: 'Happy Wu の個人コラム：暮らし、気づき、考えを綴ります。',
-    heroBrand: 'Happy Wu',
+    description: '職場媽媽崩潰啥？ の個人コラム：暮らし、気づき、考えを綴ります。',
+    heroBrand: '職場媽媽崩潰啥？',
     heroTitle: '日々の気づきを、残しておきたい文章に',
     heroSubtitle: '暮らしや気づき、考えを綴る個人コラム',
     aboutBtn: '読み始める',

@@ -7,10 +7,10 @@ export const revalidate = 1800;
 
 export const metadata: Metadata = {
   title: '服務與產品',
-  description: '瀏覽 Happy Wu 提供的服務與產品。',
+  description: '瀏覽 職場媽媽崩潰啥？ 提供的服務與產品。',
   openGraph: {
     title: '服務與產品',
-    description: '瀏覽 Happy Wu 提供的服務與產品。',
+    description: '瀏覽 職場媽媽崩潰啥？ 提供的服務與產品。',
     type: 'website',
   },
 };

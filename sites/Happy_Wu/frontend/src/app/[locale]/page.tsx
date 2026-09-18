@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
-import { contentApi, homepageApi } from '@/lib/api';
-import { Content } from '@/types';
+import { getHomePageData } from '@/lib/homepage';
 import HomePageContent from '@/components/platform/public/HomePageContent';
 import { localeContent } from '@/i18n/homePageData';
 
@@ -20,36 +19,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-async function getLatestPosts(locale: string): Promise<Content[]> {
-  try {
-    const response = await contentApi.getList({
-      status: 'published',
-      type: 'article',
-      per_page: 12, // 首頁文章牆上限 12 篇
-      language: locale,
-    });
-    return response.contents;
-  } catch (error: any) {
-    console.error('Error fetching latest posts:', error.message || error);
-    return [];
-  }
-}
-
-async function getHomepageSettings() {
-  try {
-    const settings = await homepageApi.getSettings();
-    return settings;
-  } catch (error: any) {
-    console.error('Error fetching homepage settings:', error.message || error);
-    return { slides: [], button_text: {}, updated_at: '' };
-  }
-}
-
 export default async function LocaleHomePage({ params }: PageProps) {
   const { locale } = await params;
   const content = localeContent[locale] || localeContent['zh-TW'];
-  const latestPosts = await getLatestPosts(locale);
-  const homepageSettings = await getHomepageSettings();
+  const { latestPosts, homepageSettings } = await getHomePageData(locale);
 
   return (
     <HomePageContent

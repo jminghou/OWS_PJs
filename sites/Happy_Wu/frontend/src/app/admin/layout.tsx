@@ -13,7 +13,7 @@ import { studioNavGroups, StudioSearchBar, QuickCollectButton } from '@ows/studi
 import { getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
 configureAdminApp({
-  siteName: 'Happy Wu',
+  siteName: '職場媽媽崩潰啥？',
   modules: ALL_MODULES,
   getImageUrl,
   getGcsImageUrl,

@@ -105,6 +105,18 @@ def api_add_language():
 @bp.route('/settings/homepage', methods=['GET'])
 def api_get_homepage_settings():
     """Get homepage slideshow settings (public API, no login required)"""
+    return _homepage_settings_response()
+
+
+@bp.route('/settings/homepage/admin', methods=['GET'])
+@jwt_required()
+@require_permission('contents.update')
+def api_get_admin_homepage_settings():
+    """Editors must retain scheduled and inactive slides when saving."""
+    return _homepage_settings_response(include_all=True)
+
+
+def _homepage_settings_response(include_all=False):
     from sqlalchemy import or_
     now = datetime.utcnow()
 
@@ -114,6 +126,8 @@ def api_get_homepage_settings():
         or_(HomepageSlide.start_date == None, HomepageSlide.start_date <= now),
         or_(HomepageSlide.end_date == None, HomepageSlide.end_date >= now),
     ).order_by(HomepageSlide.sort_order).all()
+    if include_all:
+        slides = HomepageSlide.query.order_by(HomepageSlide.sort_order).all()
 
     # 改用 Setting 表讀取
     about_setting = Setting.query.filter_by(key='homepage_about_section').first()
@@ -128,6 +142,12 @@ def api_get_homepage_settings():
         banner_section = json.loads(banner_setting.value) if banner_setting and banner_setting.value else {}
     except (json.JSONDecodeError, TypeError, ValueError):
         banner_section = {}
+
+    wall_setting = Setting.query.filter_by(key='homepage_article_wall').first()
+    try:
+        article_wall = validate_article_wall(json.loads(wall_setting.value)) if wall_setting and wall_setting.value else {'mode': 'latest', 'article_ids': []}
+    except (ValueError, TypeError):
+        article_wall = {'mode': 'latest', 'article_ids': []}
 
     homepage_settings = HomepageSettings.query.first()
     button_text = homepage_settings.button_text if homepage_settings else {}
@@ -145,12 +165,23 @@ def api_get_homepage_settings():
     return jsonify({
         'slides': [s.to_dict() for s in slides],
         'button_text': button_text,
+        'article_wall': article_wall,
         'about_section': about_section,
         'banner_section': banner_section,
         'pause_on_hover': pause_on_hover,
         'lazy_loading': lazy_loading,
         'updated_at': updated_at
     }), 200
+
+
+def validate_article_wall(value):
+    """Bound and normalize the ordered IDs; an empty manual wall stays empty."""
+    if not isinstance(value, dict) or value.get('mode') not in ('latest', 'manual'):
+        raise ValueError('Invalid article wall mode')
+    ids = value.get('article_ids')
+    if not isinstance(ids, list) or len(ids) > 24 or any(type(i) is not int or i <= 0 for i in ids):
+        raise ValueError('Article wall requires up to 24 positive integer IDs')
+    return {'mode': value['mode'], 'article_ids': list(dict.fromkeys(ids))}
 
 
 def _parse_datetime(value):
@@ -169,6 +200,18 @@ def _parse_datetime(value):
 def api_update_homepage_settings():
     """Update homepage slideshow settings (requires contents.update)"""
     data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({'message': 'Expected a settings object'}), 400
+    if 'article_wall' in data:
+        try:
+            wall = validate_article_wall(data['article_wall'])
+        except ValueError as error:
+            return jsonify({'message': str(error)}), 400
+        setting = Setting.query.filter_by(key='homepage_article_wall').first()
+        if not setting:
+            setting = Setting(key='homepage_article_wall')
+            db.session.add(setting)
+        setting.value = json.dumps(wall)
 
     # 1. 處理關於我們 (使用 Setting 表，這是最穩定的做法)
     if 'about_section' in data:
@@ -203,61 +246,62 @@ def api_update_homepage_settings():
     homepage_settings.updated_at = datetime.utcnow()
 
     # 3. 處理幻燈片
-    slides_data = data.get('slides', [])
-    existing_slide_ids = [slide.slide_id for slide in HomepageSlide.query.all()]
-    new_slide_ids = [slide_data.get('id') for slide_data in slides_data if slide_data.get('id')]
-    slides_to_delete = set(existing_slide_ids) - set(new_slide_ids)
-    if slides_to_delete:
-        HomepageSlide.query.filter(HomepageSlide.slide_id.in_(slides_to_delete)).delete(synchronize_session=False)
+    if 'slides' in data:
+        slides_data = data.get('slides', [])
+        existing_slide_ids = [slide.slide_id for slide in HomepageSlide.query.all()]
+        new_slide_ids = [slide_data.get('id') for slide_data in slides_data if slide_data.get('id')]
+        slides_to_delete = set(existing_slide_ids) - set(new_slide_ids)
+        if slides_to_delete:
+            HomepageSlide.query.filter(HomepageSlide.slide_id.in_(slides_to_delete)).delete(synchronize_session=False)
 
-    for slide_data in slides_data:
-        slide_id = slide_data.get('id')
-        if not slide_id:
-            continue
-        slide = HomepageSlide.query.filter_by(slide_id=slide_id).first()
-        if slide:
-            slide.image_url = slide_data.get('image_url', slide.image_url)
-            slide.alt_text = slide_data.get('alt_text', '')
-            slide.sort_order = slide_data.get('sort_order', 0)
-            slide.subtitles = slide_data.get('subtitles', {})
-            # Feature 1: CTA
-            slide.cta_url = slide_data.get('cta_url', '')
-            slide.cta_text = slide_data.get('cta_text', {})
-            slide.cta_new_tab = slide_data.get('cta_new_tab', False)
-            # Feature 2: per-slide autoplay delay
-            slide.autoplay_delay = slide_data.get('autoplay_delay')  # None preserved
-            # Feature 3: video
-            slide.video_url = slide_data.get('video_url', '')
-            slide.media_type = slide_data.get('media_type', 'image')
-            # Feature 4: focal point
-            slide.focal_point = slide_data.get('focal_point', 'center center')
-            # Feature 5: overlay opacity
-            slide.overlay_opacity = slide_data.get('overlay_opacity', 40)
-            # Feature 6: per-slide title
-            slide.titles = slide_data.get('titles', {})
-            # Feature 8: scheduling
-            slide.start_date = _parse_datetime(slide_data.get('start_date'))
-            slide.end_date = _parse_datetime(slide_data.get('end_date'))
-            slide.updated_at = datetime.utcnow()
-        else:
-            db.session.add(HomepageSlide(
-                slide_id=slide_id,
-                image_url=slide_data.get('image_url', ''),
-                alt_text=slide_data.get('alt_text', ''),
-                sort_order=slide_data.get('sort_order', 0),
-                subtitles=slide_data.get('subtitles', {}),
-                cta_url=slide_data.get('cta_url', ''),
-                cta_text=slide_data.get('cta_text', {}),
-                cta_new_tab=slide_data.get('cta_new_tab', False),
-                autoplay_delay=slide_data.get('autoplay_delay'),
-                video_url=slide_data.get('video_url', ''),
-                media_type=slide_data.get('media_type', 'image'),
-                focal_point=slide_data.get('focal_point', 'center center'),
-                overlay_opacity=slide_data.get('overlay_opacity', 40),
-                titles=slide_data.get('titles', {}),
-                start_date=_parse_datetime(slide_data.get('start_date')),
-                end_date=_parse_datetime(slide_data.get('end_date')),
-            ))
+        for slide_data in slides_data:
+            slide_id = slide_data.get('id')
+            if not slide_id:
+                continue
+            slide = HomepageSlide.query.filter_by(slide_id=slide_id).first()
+            if slide:
+                slide.image_url = slide_data.get('image_url', slide.image_url)
+                slide.alt_text = slide_data.get('alt_text', '')
+                slide.sort_order = slide_data.get('sort_order', 0)
+                slide.subtitles = slide_data.get('subtitles', {})
+                # Feature 1: CTA
+                slide.cta_url = slide_data.get('cta_url', '')
+                slide.cta_text = slide_data.get('cta_text', {})
+                slide.cta_new_tab = slide_data.get('cta_new_tab', False)
+                # Feature 2: per-slide autoplay delay
+                slide.autoplay_delay = slide_data.get('autoplay_delay')  # None preserved
+                # Feature 3: video
+                slide.video_url = slide_data.get('video_url', '')
+                slide.media_type = slide_data.get('media_type', 'image')
+                # Feature 4: focal point
+                slide.focal_point = slide_data.get('focal_point', 'center center')
+                # Feature 5: overlay opacity
+                slide.overlay_opacity = slide_data.get('overlay_opacity', 40)
+                # Feature 6: per-slide title
+                slide.titles = slide_data.get('titles', {})
+                # Feature 8: scheduling
+                slide.start_date = _parse_datetime(slide_data.get('start_date'))
+                slide.end_date = _parse_datetime(slide_data.get('end_date'))
+                slide.updated_at = datetime.utcnow()
+            else:
+                db.session.add(HomepageSlide(
+                    slide_id=slide_id,
+                    image_url=slide_data.get('image_url', ''),
+                    alt_text=slide_data.get('alt_text', ''),
+                    sort_order=slide_data.get('sort_order', 0),
+                    subtitles=slide_data.get('subtitles', {}),
+                    cta_url=slide_data.get('cta_url', ''),
+                    cta_text=slide_data.get('cta_text', {}),
+                    cta_new_tab=slide_data.get('cta_new_tab', False),
+                    autoplay_delay=slide_data.get('autoplay_delay'),
+                    video_url=slide_data.get('video_url', ''),
+                    media_type=slide_data.get('media_type', 'image'),
+                    focal_point=slide_data.get('focal_point', 'center center'),
+                    overlay_opacity=slide_data.get('overlay_opacity', 40),
+                    titles=slide_data.get('titles', {}),
+                    start_date=_parse_datetime(slide_data.get('start_date')),
+                    end_date=_parse_datetime(slide_data.get('end_date')),
+                ))
 
     try:
         db.session.commit()

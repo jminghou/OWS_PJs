@@ -180,6 +180,14 @@ def api_contents():
     else:
         query = query.filter(Content.original_id.is_(None))
 
+    # Explicit homepage selection uses the list API: never count a wall impression
+    # as an article view. Preserve the usual public visibility/language filters.
+    if 'ids' in request.args:
+        raw_ids = request.args.get('ids', '').split(',')
+        if len(raw_ids) > 24 or any(not value.isdecimal() or int(value) <= 0 for value in raw_ids):
+            return jsonify({'message': 'ids requires 1-24 positive integer IDs'}), 400
+        query = query.filter(Content.id.in_([int(value) for value in raw_ids]))
+
     if category_id:
         query = query.filter_by(category_id=category_id)
 

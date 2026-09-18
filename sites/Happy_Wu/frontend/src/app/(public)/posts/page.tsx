@@ -4,7 +4,7 @@ import PostsContent from './PostsContent';
 
 export const metadata: Metadata = {
   title: '專欄文章',
-  description: '瀏覽 Happy Wu 的專欄文章',
+  description: '瀏覽 職場媽媽崩潰啥？ 的專欄文章',
 };
 
 export default function PostsPage() {

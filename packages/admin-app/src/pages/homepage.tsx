@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { homepageApi, i18nApi } from '@ows/platform-api';
-import { HomepageSlide } from '@ows/platform-api/types';
+import { HomepageSlide, HomepageSettings } from '@ows/platform-api/types';
 import { I18nSettings } from '@ows/platform-api';
 import AdminLayout from '../components/AdminLayout';
+import HomepageArticleWall from '../components/HomepageArticleWall';
 import Button from '@ows/ui/ui/Button';
 import { AdminListLayout, AdminImagePicker } from '@ows/ui/admin';
 import TiptapEditor from '../components/TiptapEditor';
@@ -454,12 +455,18 @@ function SortableSlideItem({
 
 // ─── 主頁面 ────────────────────────────────────────────────────────────────────
 export default function HomepagePage() {
+  return <HomepageSettingsPage />;
+}
+
+export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults }: { enableArticleWall?: boolean; aboutDefaults?: HomepageSettings['about_section'] }) {
+  const [articleWall, setArticleWall] = useState<NonNullable<HomepageSettings['article_wall']>>({ mode: 'latest', article_ids: [] });
   const [slides, setSlides] = useState<HomepageSlide[]>([]);
   const [buttonText, setButtonText] = useState<Record<string, string>>({});
   const [aboutSection, setAboutSection] = useState<Record<string, any>>({});
   const [pauseOnHover, setPauseOnHover] = useState(true);
   const [lazyLoading, setLazyLoading] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [i18nSettings, setI18nSettings] = useState<I18nSettings | null>(null);
@@ -468,7 +475,7 @@ export default function HomepagePage() {
   const [pendingField, setPendingField] = useState<'image_url' | 'video_url'>('image_url');
   const [isAboutImageBrowserOpen, setIsAboutImageBrowserOpen] = useState(false);
 
-  type SectionKey = 'slides' | 'button_text' | 'about_section' | 'carousel_settings';
+  type SectionKey = 'slides' | 'button_text' | 'about_section' | 'carousel_settings' | 'article_wall';
   const [activeSection, setActiveSection] = useState<SectionKey>('slides');
 
   const enabledLanguages = i18nSettings?.languages || [];
@@ -497,15 +504,21 @@ export default function HomepagePage() {
     try {
       setLoading(true);
       const [homepageData, i18nData] = await Promise.all([
-        homepageApi.getSettings(),
+        homepageApi.getAdminSettings(),
         i18nApi.getSettings(),
       ]);
       setSlides(homepageData.slides || []);
+      setArticleWall(homepageData.article_wall || { mode: 'latest', article_ids: [] });
       setButtonText(homepageData.button_text || {});
-      setAboutSection(homepageData.about_section || {});
+      const savedAbout = homepageData.about_section || {};
+      const languages = new Set([...Object.keys(aboutDefaults || {}), ...Object.keys(savedAbout)]);
+      setAboutSection(Object.fromEntries([...languages].map(lang => [lang, {
+        ...aboutDefaults?.[lang], ...savedAbout[lang],
+      }])));
       setPauseOnHover(homepageData.pause_on_hover ?? true);
       setLazyLoading(homepageData.lazy_loading ?? true);
       setI18nSettings(i18nData);
+      setLoaded(true);
     } catch (error: any) {
       console.error('獲取設定失敗:', error);
       setMessage({ type: 'error', text: error.message || '載入設定失敗' });
@@ -592,11 +605,13 @@ export default function HomepagePage() {
   };
 
   const handleSave = async () => {
+    if (!loaded) return;
     try {
       setSaving(true);
       setMessage(null);
       await homepageApi.updateSettings({
         slides,
+        ...(enableArticleWall ? { article_wall: articleWall } : {}),
         button_text: buttonText,
         about_section: aboutSection,
         pause_on_hover: pauseOnHover,
@@ -623,6 +638,7 @@ export default function HomepagePage() {
     { key: 'carousel_settings', label: '輪播全域設定' },
     { key: 'button_text', label: '按鈕文字設定' },
     { key: 'about_section', label: '關於我們區塊設定' },
+    ...(enableArticleWall ? [{ key: 'article_wall' as const, label: '首頁文章牆' }] : []),
   ];
 
   const sidebar = (
@@ -661,13 +677,13 @@ export default function HomepagePage() {
               <p className="text-gray-600 mt-2">
                 {activeSection === 'slides' && '最多上傳 5 張圖片，拖拉調整順序，每張可設定媒體、文字、CTA、排程'}
                 {activeSection === 'carousel_settings' && '設定輪播的全域行為（hover 暫停、延遲載入）'}
-                {activeSection === 'button_text' && '設定首頁 Hero Section 進入「關於我們」按鈕的多語言文字'}
+                {activeSection === 'button_text' && '設定首頁主視覺按鈕文字；單張幻燈片的 CTA 文字優先，未設定 CTA 網址時捲動到文章牆'}
                 {activeSection === 'about_section' && '管理首頁「關於我們」區塊的多語言內容'}
               </p>
             </div>
             <Button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || loading || !loaded}
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
@@ -688,6 +704,8 @@ export default function HomepagePage() {
               <span>{message.text}</span>
             </div>
           )}
+
+          {activeSection === 'article_wall' && !loading && <HomepageArticleWall value={articleWall} onChange={setArticleWall} />}
 
           {/* ── 幻燈片管理 ─────────────────────────────────────────── */}
           {activeSection === 'slides' && (
@@ -839,6 +857,22 @@ export default function HomepagePage() {
                       key={lang}
                       className={`space-y-4 ${activeLanguage === lang ? 'block' : 'hidden'}`}
                     >
+                      {aboutDefaults && <div className="space-y-4">
+                        <p className="text-sm text-gray-600">這些欄位對應首頁「關於我」區塊；金句顯示於上方橫幅。尚未設定時帶入目前版型文案，儲存後套用至前台。清空文字欄位可隱藏該內容。</p>
+                        {[
+                          ['eyebrow', '英文小標'],
+                          ['description', '補充介紹'],
+                          ['image_caption', '未選圖片時的插畫文字'],
+                          ['button_text', '按鈕文字'],
+                          ['button_url', '按鈕連結（站內路徑或 https 網址）'],
+                        ].map(([field, label]) => <div key={field}>
+                          <label htmlFor={`about-${lang}-${field}`} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                          <textarea id={`about-${lang}-${field}`} rows={field === 'description' || field === 'image_caption' ? 3 : 1}
+                            value={aboutSection[lang]?.[field] ?? ''}
+                            onChange={e => setAboutSection(previous => ({ ...previous, [lang]: { ...previous[lang], [field]: e.target.value } }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                        </div>)}
+                      </div>}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="space-y-4">
                           <div>
@@ -866,7 +900,7 @@ export default function HomepagePage() {
                                 setAboutSection(n);
                               }}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                              placeholder="例如：我們不是算命，是在跑數據"
+                              placeholder={aboutDefaults ? "輸入想與讀者分享的一句話" : "例如：我們不是算命，是在跑數據"}
                             />
                           </div>
                         </div>
