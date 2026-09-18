@@ -15,7 +15,7 @@ export const STAGE_META: Record<Stage, { label: string; className: string }> = {
   archived:  { label: '封存',   className: 'bg-gray-100 text-gray-400' },
 };
 
-export const PLATFORMS: Platform[] = ['blog', 'facebook', 'instagram', 'threads', 'newsletter', 'video_script'];
+export const PLATFORMS: Platform[] = ['blog', 'facebook', 'instagram', 'threads', 'linkedin', 'newsletter', 'video_script'];
 
 export interface PlatformMeta {
   label: string;
@@ -32,6 +32,7 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
   facebook:     { label: 'Facebook', short: 'FB', editor: 'plain', maxChars: 63206, hint: '建議 600 字內，前 3 行決定點開率' },
   instagram:    { label: 'Instagram', short: 'IG', editor: 'plain', maxChars: 2200, hint: '上限 2,200 字，hashtag 最多 30 個' },
   threads:      { label: 'Threads', short: 'Threads', editor: 'plain', maxChars: 500, hint: '單則上限 500 字' },
+  linkedin:     { label: 'LinkedIn', short: 'LinkedIn', editor: 'plain', maxChars: 3000, hint: '上限 3,000 字；約前 200 字後會被「…顯示更多」收起，重點放最前面' },
   newsletter:   { label: '電子報', short: 'Email', editor: 'rich', hint: '主旨行放在標題欄' },
   video_script: { label: '影片腳本', short: 'Script', editor: 'script', hint: '開場鉤子 → 主體 → 收尾 CTA' },
 };

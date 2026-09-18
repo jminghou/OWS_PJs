@@ -3,7 +3,7 @@
 export type Stage =
   | 'collect' | 'organize' | 'ideate' | 'write' | 'edit' | 'scheduled' | 'published' | 'archived';
 
-export type Platform = 'blog' | 'facebook' | 'instagram' | 'threads' | 'newsletter' | 'video_script';
+export type Platform = 'blog' | 'facebook' | 'instagram' | 'threads' | 'linkedin' | 'newsletter' | 'video_script';
 
 /** 卡片類型代碼；清單可在後台「卡片類型」設定，預設五種見 cardKinds.ts。 */
 export type CardKind = string;

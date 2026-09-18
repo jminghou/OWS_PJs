@@ -21,6 +21,7 @@ PLATFORMS = (
     'facebook',
     'instagram',
     'threads',
+    'linkedin',
     'newsletter',
     'video_script',
 )

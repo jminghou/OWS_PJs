@@ -20,7 +20,7 @@ const SCRIPT_SECTIONS = ['開場鉤子', '主體', '收尾 CTA'];
 /**
  * 依平台切換編輯器：
  *   blog / newsletter → TipTap（HTML）
- *   facebook / instagram / threads → 純文字 + 字數計
+ *   facebook / instagram / threads / linkedin → 純文字 + 字數計
  *   video_script → 純文字，附分段提示
  */
 export function DocumentEditor({ platform, title, body, onTitleChange, onBodyChange }: Props) {
