@@ -32,6 +32,8 @@ export default function WheelColumn<T extends string | number>({
   const scroller = useRef<HTMLDivElement | null>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useRef(false);
+  // 程式捲動（外部改值、鍵盤、點選）的目標位置；抵達前的捲動事件不是使用者的選擇，不解讀
+  const programmaticTarget = useRef<number | null>(null);
   const index = Math.max(0, options.findIndex((o) => o.value === value));
 
   // 外部改值（或選項變動，例如月份改變後日數變少）→ 捲到對應位置
@@ -41,6 +43,7 @@ export default function WheelColumn<T extends string | number>({
     const top = index * ITEM_HEIGHT;
     if (Math.abs(el.scrollTop - top) > 1) {
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      programmaticTarget.current = top;
       el.scrollTo({ top, behavior: mounted.current && !reduceMotion ? 'smooth' : 'auto' });
     }
     mounted.current = true;
@@ -69,9 +72,19 @@ export default function WheelColumn<T extends string | number>({
 
   // 捲動停下來後，取最靠近中線的那一列
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    lastScrollTop.current = event.currentTarget.scrollTop;
+    const { scrollTop } = event.currentTarget;
+    if (programmaticTarget.current !== null) {
+      // 動畫途中若瀏覽器卡頓，中間位置會被當成「停下來了」而把值彈回去 —— 所以到站前一律略過
+      if (Math.abs(scrollTop - programmaticTarget.current) <= 1) programmaticTarget.current = null;
+      return;
+    }
+    lastScrollTop.current = scrollTop;
     if (settleTimer.current) clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(commit, 120);
+  };
+
+  const releaseProgrammatic = () => {
+    programmaticTarget.current = null;
   };
 
   const select = (next: number) => {
@@ -109,6 +122,10 @@ export default function WheelColumn<T extends string | number>({
         aria-activedescendant={`${id}-${index}`}
         tabIndex={0}
         onScroll={handleScroll}
+        // 使用者親手介入（觸控、滑鼠、滾輪）就交還控制權
+        onPointerDown={releaseProgrammatic}
+        onTouchStart={releaseProgrammatic}
+        onWheel={releaseProgrammatic}
         onKeyDown={handleKeyDown}
         className="relative h-full snap-y snap-mandatory overflow-y-scroll overscroll-contain rounded-lg outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-brand-purple-500 [&::-webkit-scrollbar]:hidden"
         style={{
