@@ -10,13 +10,16 @@ import type { ApiError } from './types';
  */
 let baseUrlOverride: string | null = null;
 
-const getBaseUrl = () => {
+export const getBaseUrl = () => {
   if (baseUrlOverride) return baseUrlOverride;
-  // 如果有環境變數就用環境變數，否則預設連向本地 5000
+  // SSR / Node：直連後端（本機 port 或 Railway）
   if (typeof window === 'undefined') {
     return process.env.NEXT_SERVER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api/v1';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api/v1';
+  // 瀏覽器一律走目前網域的 /api/v1，由 next.config.js rewrite 轉到後端。
+  // 若直接打 Railway 網域，JWT cookie 會變成第三方 cookie，Chrome 會擋下來，
+  // 後台看起來已登入（localStorage 有 user），但 POST 會回「Request does not contain an access token」。
+  return `${window.location.origin}/api/v1`;
 };
 
 /** 站台啟動時覆寫 API base URL（不呼叫則沿用環境變數）。 */
