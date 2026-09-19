@@ -5,7 +5,7 @@
  * 所有請求經由 client.ts 的 request()，自動帶上 JWT cookie + CSRF。
  */
 
-import { request } from './client';
+import { getBaseUrl, request } from './client';
 import type { MediaItem, MediaFolder, MediaTag, FileMetadata } from './strapi';
 
 // =============================================================================
@@ -172,7 +172,7 @@ export const mediaApi = {
       formData.append('folder_id', folderId.toString());
     }
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api/v1';
+    const API_URL = getBaseUrl();
 
     if (onProgress) {
       return new Promise((resolve, reject) => {
