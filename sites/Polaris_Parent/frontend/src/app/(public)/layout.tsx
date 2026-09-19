@@ -1,7 +1,8 @@
 import PublicHeader from '@/components/platform/public/PublicHeader';
 import PublicFooter from '@/components/platform/public/PublicFooter';
-import { JsonLd } from '@ows/site-kit';
-import { organizationJsonLd, websiteJsonLd } from '@ows/site-kit';
+// 子路徑匯入：從 barrel 匯入會連帶把 HeroCarousel（與 Swiper 的 CSS）拉進每一頁
+import JsonLd from '@ows/site-kit/components/JsonLd';
+import { organizationJsonLd, websiteJsonLd } from '@ows/site-kit/seo';
 
 export default function PublicLayout({
   children,

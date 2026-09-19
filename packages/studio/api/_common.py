@@ -13,11 +13,22 @@ from packages.studio.models import StudioTag, StudioTagging
 
 def studio_read(f):
     """@jwt_required + studio.read（或 studio.write 亦可）。"""
-    return jwt_required()(require_permission('studio.read', 'studio.write')(f))
+    return jwt_required()(_active_user(require_permission('studio.read', 'studio.write')(f)))
 
 
 def studio_write(f):
-    return jwt_required()(require_permission('studio.write')(f))
+    return jwt_required()(_active_user(require_permission('studio.write')(f)))
+
+
+def _active_user(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        from core.backend_engine.services.identity import identity_model
+        user = db.session.get(identity_model(), int(get_jwt_identity()))
+        if not user or not user.is_active:
+            return jsonify({'message': 'Active account required'}), 403
+        return f(*args, **kwargs)
+    return wrapped
 
 
 def current_user_id() -> int:

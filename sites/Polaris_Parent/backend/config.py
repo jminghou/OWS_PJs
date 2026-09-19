@@ -218,6 +218,12 @@ class Config:
     # 多跑一條 migration 鏈：packages/studio/migrations（見 docs/MIGRATIONS.md）。
     STUDIO_ENABLED = _bool_env('STUDIO_ENABLED', True)
 
+    # Newsletter（電子報訂閱名單，packages/newsletter）：本站啟用，首頁的主要行動就是訂閱。
+    # 多跑一條 migration 鏈：packages/newsletter/migrations（見 docs/MIGRATIONS.md）。
+    # 確認信的連結以 FRONTEND_URL 為基底；信中的品牌名稱用 NEWSLETTER_BRAND_NAME。
+    NEWSLETTER_ENABLED = _bool_env('NEWSLETTER_ENABLED', True)
+    NEWSLETTER_BRAND_NAME = os.environ.get('NEWSLETTER_BRAND_NAME', '親紫之間')
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 

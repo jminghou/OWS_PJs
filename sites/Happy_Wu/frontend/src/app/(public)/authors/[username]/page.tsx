@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: AuthorPageProps): Promise<Met
   const description =
     author.bio ||
     [author.title, author.name].filter(Boolean).join('，') ||
-    `${author.name} 在 Happy Wu 的文章`;
+    `${author.name} 在 職場媽媽崩潰啥？ 的文章`;
 
   return {
     title: author.name,

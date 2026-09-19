@@ -1,55 +1,22 @@
 import { Metadata } from 'next';
-import { contentApi, homepageApi } from '@/lib/api';
-import { Content } from '@/types';
-import HomePageContent from '@/components/platform/public/HomePageContent';
-import { ZiweiHomeSection as ZiweiHomeSection } from '@ows/ziwei-app';
+import { buildStaticPageAlternates } from '@ows/site-kit/seo';
+import HomeLanding from '@/components/home/HomeLanding';
 import { localeContent } from '@/i18n/homePageData';
+import { getHomepageSettings } from '@/lib/homepage';
 
-// ISR: 每 60 秒重新驗證（新文章發佈後最多 60 秒內出現在首頁，不需手動 redeploy）
+// ISR: 每 60 秒重新驗證（後台改 Hero 文案時另有 on-demand revalidate）
 export const revalidate = 60;
 
+const LOCALE = 'zh-TW';
+const content = localeContent[LOCALE];
+
 export const metadata: Metadata = {
-  title: '親紫之間 - 首頁',
-  description: '透過紫微斗數與數據分析，幫助家長理解孩子，成為孩子穩定的弓，讓孩子如箭般飛向遠方',
-  alternates: { canonical: '/' },
+  // absolute：首頁不套 layout 的「%s | 親紫之間」模板，避免站名重複
+  title: { absolute: `${content.heroBrand}｜${content.heroTitle}` },
+  description: content.description,
+  alternates: buildStaticPageAlternates('/', LOCALE),
 };
 
-async function getLatestPosts(): Promise<Content[]> {
-  try {
-    const response = await contentApi.getList({
-      status: 'published',
-      type: 'article',
-      per_page: 12, // 首頁文章牆上限 12 篇
-    });
-    return response.contents;
-  } catch (error: any) {
-    console.error('Error fetching latest posts:', error.message || error);
-    return [];
-  }
-}
-
-async function getHomepageSettings() {
-  try {
-    const settings = await homepageApi.getSettings();
-    return settings;
-  } catch (error: any) {
-    console.error('Error fetching homepage settings:', error.message || error);
-    return { slides: [], button_text: {}, updated_at: '' };
-  }
-}
-
 export default async function HomePage() {
-  const latestPosts = await getLatestPosts();
-  const homepageSettings = await getHomepageSettings();
-  const content = localeContent['zh-TW'];
-
-  return (
-    <HomePageContent
-      domainSection={<ZiweiHomeSection />}
-      locale="zh-TW"
-      content={content}
-      latestPosts={latestPosts}
-      homepageSettings={homepageSettings}
-    />
-  );
+  return <HomeLanding locale={LOCALE} homepageSettings={await getHomepageSettings()} />;
 }

@@ -51,6 +51,7 @@ export const i18nApi = {
 };
 
 export const homepageApi = {
+  getAdminSettings: async (): Promise<HomepageSettings> => request<HomepageSettings>('/settings/homepage/admin', { cache: 'no-store' }),
   getSettings: async (options: FetchOptions = {}): Promise<HomepageSettings> => {
     return request<HomepageSettings>('/settings/homepage', options);
   },

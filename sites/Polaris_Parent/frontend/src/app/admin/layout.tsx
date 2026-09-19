@@ -15,6 +15,7 @@
 
 import { AdminShell, configureAdminApp, ALL_MODULES, PLATFORM_NAV } from '@ows/admin-app';
 import { commerceNav } from '@ows/commerce';
+import { newsletterNav } from '@ows/newsletter';
 import { studioNavGroups, StudioSearchBar, QuickCollectButton } from '@ows/studio';
 import { getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
@@ -61,14 +62,14 @@ configureAdminApp({
     ...studioNavGroups,
     // 平台後台（文章、媒體、電商…）：預設收合，需要時展開
     {
-      label: '平台後台',
+      label: '網站管理',
       collapsible: true,
       defaultCollapsed: true,
-      items: [...PLATFORM_NAV, commerceNav, ...siteNav],
+      items: [...PLATFORM_NAV.filter(item => item.href !== '/admin/articles'), commerceNav, newsletterNav, ...siteNav],
     },
   ],
   // rail 外殼的相容清單（shell 改回 'rail' 時仍可用）
-  extraNav: [commerceNav, ...siteNav],
+  extraNav: [commerceNav, newsletterNav, ...siteNav],
 });
 
 export default function AdminRouteLayout({ children }: { children: React.ReactNode }) {

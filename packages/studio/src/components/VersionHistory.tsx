@@ -12,6 +12,7 @@ interface Props {
   current: { title: string; body: string };
   onRestored: (doc: Document) => void;
   refreshKey?: number;
+  beforeAction?: () => Promise<void>;
 }
 
 const KIND_LABEL: Record<Revision['kind'], string> = { autosave: '自動', named: '命名', published: '正式' };
@@ -19,7 +20,7 @@ const KIND_CLS: Record<Revision['kind'], string> = {
   autosave: 'bg-muted text-muted-foreground', named: 'bg-admin-accent-50 dark:bg-admin-accent-800/30 text-admin-accent-700 dark:text-admin-accent-200', published: 'bg-emerald-50 text-emerald-700',
 };
 
-export function VersionHistory({ documentId, current, onRestored, refreshKey }: Props) {
+export function VersionHistory({ documentId, current, onRestored, refreshKey, beforeAction }: Props) {
   const [revisions, setRevisions] = useState<Revision[]>([]);
   const [filter, setFilter] = useState<'all' | 'named'>('all');
   const [label, setLabel] = useState('');
@@ -36,10 +37,11 @@ export function VersionHistory({ documentId, current, onRestored, refreshKey }: 
     if (!label.trim()) return;
     setBusy(true);
     try {
+      await beforeAction?.();
       await documentApi.createRevision(documentId, { label: label.trim(), title: current.title, body: current.body });
       setLabel('');
       load();
-    } finally { setBusy(false); }
+    } catch(e: any) { alert(e.message || "版本操作失敗"); } finally { setBusy(false); }
   };
 
   const rename = async (rev: Revision) => {
@@ -53,11 +55,12 @@ export function VersionHistory({ documentId, current, onRestored, refreshKey }: 
     if (!confirm(`還原到「${rev.label || formatDate(rev.created_at, true)}」？目前內容會先自動備份成一個版本。`)) return;
     setBusy(true);
     try {
+      await beforeAction?.();
       const res = await documentApi.restoreRevision(rev.id);
       onRestored(res.document);
       setPreview(null);
       load();
-    } finally { setBusy(false); }
+    } catch(e: any) { alert(e.message || "版本操作失敗"); } finally { setBusy(false); }
   };
 
   const open = async (rev: Revision) => {

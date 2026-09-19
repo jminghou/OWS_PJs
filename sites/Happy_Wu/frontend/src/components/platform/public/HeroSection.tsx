@@ -27,11 +27,12 @@ export default function HeroSection({
   pauseOnHover = true,
   lazyLoading = true,
 }: HeroSectionProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   // 獲取當前幻燈片（按 sort_order 排序後）
   const sortedSlides = [...backgroundSlides].sort((a, b) => a.sort_order - b.sort_order);
-  const currentSlide = sortedSlides[currentSlideIndex];
+  const currentSlide = sortedSlides[currentSlideIndex] || sortedSlides[0];
 
   // Feature 6: per-slide title override (fallback to global title prop)
   const displayTitle =
@@ -63,7 +64,7 @@ export default function HeroSection({
   };
 
   return (
-    <section id="hero" className="relative h-[350px] overflow-hidden">
+    <section id="hero" className="hw-hero relative overflow-hidden" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       {/* Background - HeroCarousel for slides */}
       {backgroundSlides.length > 0 ? (
         <div className="absolute inset-0">
@@ -72,21 +73,22 @@ export default function HeroSection({
             currentLanguage={locale}
             onSlideChange={setCurrentSlideIndex}
             pauseOnHover={pauseOnHover}
+            externalPaused={pauseOnHover && isHovered}
             lazyLoading={lazyLoading}
           />
         </div>
       ) : (
         <>
           {/* 暖紫漸層：紫為品牌核心，收尾帶暖金，破除冷感 */}
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-purple-700 via-brand-purple-500 to-warm-400" />
+          <div className="hw-hero-art absolute inset-0" />
           {/* 只壓暗底部、保留上方通透，文字仍清晰 */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/15 to-transparent z-[1]" />
+          <div className="hw-hero-shade absolute inset-0 z-[1]" />
         </>
       )}
 
       {/* Content overlay - centered vertically and horizontally（含 CTA，統一置中、間距用 margin 控制）*/}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-        <div className="text-center pointer-events-auto px-4">
+        <div className="hw-hero-frame text-center pointer-events-auto px-4">
           {/* 品牌眉標（小字，在描述性 H1 上方） */}
           {eyebrow && (
             <p className="text-sm md:text-base font-medium tracking-widest text-white/80 mb-2 drop-shadow">
@@ -122,7 +124,7 @@ export default function HeroSection({
                 {ctaText}
               </a>
             ) : (
-              // Global fallback: scroll to #banner section
+              // Without a per-slide URL, the CTA opens the configured article wall.
               <button
                 onClick={handleScrollToSection}
                 className="inline-flex items-center px-6 py-2.5 text-sm bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-banner transition-all shadow-lg hover:shadow-xl transform hover:scale-105"

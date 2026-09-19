@@ -227,6 +227,9 @@ class BaseSiteConfig:
     # Studio 模組（packages/studio，內容與知識管理）預設**關閉**，要用的站台明確開啟。
     STUDIO_ENABLED = _bool_env('STUDIO_ENABLED', False)
 
+    # Newsletter 模組（packages/newsletter，電子報訂閱名單）預設**關閉**，要用的站台明確開啟。
+    NEWSLETTER_ENABLED = _bool_env('NEWSLETTER_ENABLED', False)
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 

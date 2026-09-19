@@ -21,6 +21,11 @@
     "zustand": "^4.0.0 || ^5.0.0"
   },
   "devDependencies": {
+    "jsdom": "26.1.0",
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@tiptap/extension-table": "3.19.0",
+    "highlight.js": "^11.11.1"
   }
 }

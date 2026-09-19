@@ -167,6 +167,8 @@ def update_project_stage(project_id):
 @with_session
 def delete_project(project_id):
     project = StudioProject.query.get_or_404(project_id)
+    if any(d.content_id for d in project.documents.all()):
+        return bad_request('Archive projects containing website articles instead of deleting them')
     StudioCardRef.query.filter_by(target_type='project', target_id=project.id).delete()
     doc_ids = [d.id for d in project.documents.all()]
     if doc_ids:

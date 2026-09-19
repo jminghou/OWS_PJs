@@ -18,6 +18,7 @@
     "@ows/commerce": "*",
     "@ows/content-kit": "*",
     "@ows/platform-api": "*",
+    "@ows/newsletter": "*",
     "@ows/site-kit": "*",
     "@ows/studio": "*",
     "@ows/ui": "*",

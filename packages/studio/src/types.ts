@@ -3,7 +3,7 @@
 export type Stage =
   | 'collect' | 'organize' | 'ideate' | 'write' | 'edit' | 'scheduled' | 'published' | 'archived';
 
-export type Platform = 'blog' | 'facebook' | 'instagram' | 'threads' | 'newsletter' | 'video_script';
+export type Platform = 'blog' | 'facebook' | 'instagram' | 'threads' | 'linkedin' | 'newsletter' | 'video_script';
 
 /** 卡片類型代碼；清單可在後台「卡片類型」設定，預設五種見 cardKinds.ts。 */
 export type CardKind = string;
@@ -58,7 +58,23 @@ export interface ContentSummary {
   language?: string;
 }
 
+export interface ArticleSettings {
+  summary: string | null; slug: string; featured_image: string | null; cover_image: string | null;
+  meta_title: string | null; meta_description: string | null; author_id: number | null;
+  category_id: number | null; tag_ids: number[];
+}
+export interface EditorOptions {
+  default_language: string; enabled: boolean; languages: string[]; language_names: Record<string,string>;
+  authors: {id:number;name:string}[]; categories: {id:number;name:string}[]; tags: {id:number;name:string}[];
+}
 export interface Document {
+  work_id: string;
+  language: string;
+  translation_source_id?: number | null;
+  language_versions?: Document[];
+  source_changed?: boolean;
+  source_title?: string | null;
+  article_settings?: ArticleSettings | null;
   id: number;
   project_id: number;
   platform: Platform;

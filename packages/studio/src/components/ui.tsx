@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { PLATFORM_META, STAGE_META } from '../constants';
 import { kindMeta, useCardKinds } from '../cardKinds';
 import type { CardKind, Platform, Stage } from '../types';
+import { PlatformIcon } from './PlatformIcon';
 
 /*
  * Studio 共用骨架與樣式常數。
@@ -21,10 +22,38 @@ export function StageBadge({ stage, className = '' }: { stage: Stage; className?
 }
 
 export function PlatformBadge({ platform, className = '' }: { platform: Platform; className?: string }) {
-  const meta = PLATFORM_META[platform] ?? { short: platform };
+  const meta = PLATFORM_META[platform] ?? { label: platform, short: platform };
+  // 只顯示平台圖示；名稱放在 title / aria-label（滑鼠停留與報讀器都讀得到）
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded border border-border bg-card text-[11px] font-medium text-muted-foreground ${className}`}>
-      {meta.short}
+    <span role="img" aria-label={meta.label} title={meta.label}
+      className={`inline-flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded-md border border-border bg-card ${className}`}>
+      <PlatformIcon platform={platform} size={13} />
+    </span>
+  );
+}
+
+/**
+ * 語系徽章：用該語言自己的一個字標示（繁／简／EN／日…），一眼可辨、不佔寬度。
+ * 刻意不用國旗 —— 語言不等於國家（zh-TW／zh-CN、en 都會有爭議或歧義），文字字形最不會誤會。
+ * 完整語系代碼放在 title / aria-label。
+ */
+const LANGUAGE_GLYPH: Record<string, { glyph: string; name: string; className: string }> = {
+  'zh-TW': { glyph: '繁', name: '繁體中文', className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200' },
+  'zh-CN': { glyph: '简', name: '简体中文', className: 'bg-rose-50 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200' },
+  en:      { glyph: 'EN', name: 'English', className: 'bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200' },
+  ja:      { glyph: '日', name: '日本語', className: 'bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200' },
+  ko:      { glyph: '한', name: '한국어', className: 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200' },
+};
+
+export function LanguageBadge({ language, className = '' }: { language?: string | null; className?: string }) {
+  if (!language) return null;
+  const meta = LANGUAGE_GLYPH[language] ?? LANGUAGE_GLYPH[language.split('-')[0]];
+  const glyph = meta?.glyph ?? language.split('-')[0].slice(0, 2).toUpperCase();
+  const label = meta ? `${meta.name}（${language}）` : language;
+  return (
+    <span role="img" aria-label={label} title={label}
+      className={`inline-flex h-[22px] min-w-[22px] flex-shrink-0 items-center justify-center rounded-md px-1 text-[11px] font-semibold leading-none ${meta?.className ?? 'bg-muted text-muted-foreground'} ${className}`}>
+      {glyph}
     </span>
   );
 }

@@ -2,6 +2,7 @@
 from datetime import datetime
 
 from flask import jsonify, request
+from sqlalchemy import and_, or_, not_
 
 from core.backend_engine.factory import db
 from packages.studio.blueprint import studio_bp as bp
@@ -29,6 +30,8 @@ def list_publishing():
     date_from = parse_dt(request.args.get('from'))
     date_to = parse_dt(request.args.get('to'))
     query = db.session.query(StudioDocument, StudioProject).join(StudioProject, StudioProject.id == StudioDocument.project_id)
+    if request.args.get('language'):
+        query = query.filter(StudioDocument.language == request.args['language'])
     if platform and platform != 'all':
         if platform not in PLATFORMS:
             return bad_request('Invalid platform')
@@ -36,7 +39,14 @@ def list_publishing():
     if stage and stage != 'all':
         if stage not in STAGES:
             return bad_request('Invalid stage')
-        query = query.filter(StudioDocument.stage == stage)
+        due = and_(StudioDocument.content_id.isnot(None), StudioDocument.stage == 'scheduled',
+                   StudioDocument.scheduled_at.isnot(None), StudioDocument.scheduled_at <= datetime.utcnow())
+        if stage == 'published':
+            query = query.filter(or_(StudioDocument.stage == 'published', due))
+        elif stage == 'scheduled':
+            query = query.filter(StudioDocument.stage == 'scheduled', not_(due))
+        else:
+            query = query.filter(StudioDocument.stage == stage)
     else:
         query = query.filter(StudioDocument.stage != 'archived')
     if project_id:
@@ -59,6 +69,8 @@ def update_publishing(document_id):
     """更新發布欄位。stage 改成 published 時寫一筆正式版快照。"""
     doc = StudioDocument.query.get_or_404(document_id)
     data = json_body()
+    if doc.content_id:
+        return bad_request('Manage website publication in the writing workspace', 409)
     if 'scheduled_at' in data:
         doc.scheduled_at = parse_dt(data['scheduled_at'])
     if 'published_at' in data:

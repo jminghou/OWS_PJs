@@ -227,6 +227,22 @@ export const mediaApi = {
   },
 
   /**
+   * 把既有圖片裁成指定範圍，後端另存成新檔並回傳（原圖不動）。
+   * rect 為 0~1 的比例座標（相對於原圖）；aspect 例如 '3:4'，後端會驗證裁出來的比例。
+   */
+  cropMedia: async (
+    id: number,
+    rect: { x: number; y: number; width: number; height: number },
+    aspect?: string
+  ): Promise<MediaItem> => {
+    const result = await request<any>(`/media-lib/files/${id}/crop`, {
+      method: 'POST',
+      body: JSON.stringify({ ...rect, aspect }),
+    });
+    return apiFileToMediaItem(result);
+  },
+
+  /**
    * 更新檔案的結構化 metadata
    */
   updateMetadata: async (

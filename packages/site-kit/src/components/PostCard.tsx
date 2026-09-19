@@ -15,9 +15,14 @@ interface PostCardProps {
   post: Content;
   /** 'default' = 完整卡片；'tile' = IG 式方形圖磚（圖片為主 + 標題疊字） */
   variant?: 'default' | 'tile';
+  /**
+   * default 樣式的圖片比例。預設 '1/1'（既有站台的封面是方圖）。
+   * 首頁圖磚（tile）固定 3:4；封面統一用 3:4 的站台在列表頁傳 '3/4'，兩處就一致。
+   */
+  imageAspect?: '1/1' | '3/4';
 }
 
-export default function PostCard({ post, variant = 'default' }: PostCardProps) {
+export default function PostCard({ post, variant = 'default', imageAspect = '1/1' }: PostCardProps) {
   // 優先使用封面圖片 (1:1)，沒有的話使用精選圖片 (16:9)
   const displayImage = post.cover_image || post.featured_image;
   const [imgSrc, setImgSrc] = useState(getGcsImageUrl(displayImage || '', 'medium'));
@@ -57,7 +62,7 @@ export default function PostCard({ post, variant = 'default' }: PostCardProps) {
   return (
     <article className="group bg-white rounded-banner border border-warm-200/70 overflow-hidden shadow-[0_8px_30px_rgba(139,92,246,0.06)] hover:shadow-[0_14px_40px_rgba(139,92,246,0.14)] hover:-translate-y-1 transition-all duration-300">
       {displayImage && (
-        <div className="aspect-square relative overflow-hidden">
+        <div className={`${imageAspect === '3/4' ? 'aspect-[3/4]' : 'aspect-square'} relative overflow-hidden`}>
           <Image
             src={imgSrc}
             alt={post.title}

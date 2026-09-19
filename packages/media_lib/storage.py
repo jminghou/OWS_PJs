@@ -225,6 +225,24 @@ class MediaStorage:
             return f'{self.url_prefix}/{storage_path}'
 
     # -------------------------------------------------------------------------
+    # Read Bytes (for server-side crop)
+    # -------------------------------------------------------------------------
+
+    def read_bytes(self, storage_path: str) -> Optional[bytes]:
+        """讀回已上傳檔案的原始 bytes（storage_path 即 MLFile.gcs_path）。找不到回 None。"""
+        try:
+            if self.is_gcs:
+                blob = self.bucket.blob(storage_path)
+                return blob.download_as_bytes() if blob.exists() else None
+            full_path = os.path.abspath(os.path.join(self.base_path, storage_path))
+            if not full_path.startswith(os.path.abspath(self.base_path)) or not os.path.isfile(full_path):
+                return None
+            with open(full_path, 'rb') as f:
+                return f.read()
+        except Exception:
+            return None
+
+    # -------------------------------------------------------------------------
     # Delete
     # -------------------------------------------------------------------------
 

@@ -1,147 +1,58 @@
 'use client';
-
-import HeroSection from '@/components/platform/public/HeroSection';
-import { LatestArticlesSection as LatestArticlesSection } from '@ows/site-kit';
-import { FeaturesGrid as FeaturesGrid } from '@ows/site-kit';
+import Link from 'next/link';
+import { Briefcase, Heart, Coffee, ArrowUpRight, BookOpen } from 'lucide-react';
+import HeroSection from './HeroSection';
+import HomepageArticleTile from './HomepageArticleTile';
+import { JsonLd, buildItemListJsonLd } from '@ows/site-kit';
 import { Content, HomepageSettings } from '@/types';
-
-interface HomePageContentProps {
-  /**
-   * 首頁末段的站台專屬區塊（在「服務與產品」與 footer 之間）。
-   *
-   * 這裡刻意做成 slot 而非寫死內容：HomePageContent 是平台元件，未來會抽進
-   * packages/site-kit 供所有站台共用，不該知道紫微斗數的存在。領域區塊由
-   * 頁面組裝後傳進來 —— 見 app/(public)/page.tsx。
-   */
-  domainSection?: React.ReactNode;
-  locale: string;
-  content: {
-    heroBrand: string;
-    heroTitle: string;
-    heroSubtitle: string;
-    aboutBtn: string;
-    bannerHeading: string;
-    bannerDescription: string;
-    featuredTitle: string;
-    featuredDescription: string;
-    viewMore: string;
-    noContent: string;
-    aboutTitle: string;
-    aboutPhilosophy: string;
-    aboutQuote: string;
-    aboutMissionPoints: string[];
-    learnMoreBtn: string;
-    featuresTitle: string;
-    featuresDescription: string;
-    feature1Title: string;
-    feature1Desc: string;
-    feature2Title: string;
-    feature2Desc: string;
-    feature3Title: string;
-    feature3Desc: string;
-  };
-  latestPosts: Content[];
-  homepageSettings: HomepageSettings;
+import { localeContent } from '@/i18n/homePageData';
+import { resolveAbout, safeAboutLink } from '@/i18n/aboutDefaults';
+import { getImageUrl } from '@/lib/utils';
+interface Props {
+    domainSection?: React.ReactNode;
+    locale: string;
+    content: typeof localeContent[string];
+    latestPosts: Content[];
+    homepageSettings: HomepageSettings;
 }
-
-// Feature Icons
-const ReportIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-    />
-  </svg>
-);
-
-const ConsultIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
-    />
-  </svg>
-);
-
-const CourseIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-    />
-  </svg>
-);
-
-export default function HomePageContent({
-  domainSection,
-  locale,
-  content,
-  latestPosts,
-  homepageSettings,
-}: HomePageContentProps) {
-  const basePath = locale === 'zh-TW' ? '' : `/${locale}`;
-
-  // Prepare features data
-  const features = [
-    {
-      icon: <ReportIcon className="w-7 h-7 text-brand-purple-600" />,
-      title: content.feature1Title,
-      description: content.feature1Desc,
-      comingSoon: true,
-    },
-    {
-      icon: <ConsultIcon className="w-7 h-7 text-brand-purple-600" />,
-      title: content.feature2Title,
-      description: content.feature2Desc,
-      comingSoon: true,
-    },
-    {
-      icon: <CourseIcon className="w-7 h-7 text-brand-purple-600" />,
-      title: content.feature3Title,
-      description: content.feature3Desc,
-      comingSoon: true,
-    },
-  ];
-
-  return (
-    <>
-      {/* 1. Hero Section - Full viewport（品牌眉標 + 描述性 H1） */}
-      <HeroSection
-        eyebrow={content.heroBrand}
-        title={content.heroTitle}
-        subtitle={content.heroSubtitle}
-        buttonText={homepageSettings.button_text?.[locale] || content.aboutBtn}
-        buttonLink={`${basePath}/about`}
-        backgroundSlides={homepageSettings.slides}
-        locale={locale}
-        pauseOnHover={homepageSettings.pause_on_hover ?? true}
-        lazyLoading={homepageSettings.lazy_loading ?? true}
-      />
-
-      {/* 2. 最新文章牆 - 最多 12 篇 + 查看更多 */}
-      <LatestArticlesSection
-        title={content.featuredTitle}
-        description={content.featuredDescription}
-        articles={latestPosts}
-        viewMoreLink={`${basePath}/articles`}
-        viewMoreText={content.viewMore}
-        emptyMessage={content.noContent}
-      />
-
-      {/* 3. 商品 Section */}
-      <FeaturesGrid
-        title={content.featuresTitle}
-        description={content.featuresDescription}
-        features={features}
-      />
-
-      {domainSection}
-    </>
-  );
+export default function HomePageContent({ domainSection, locale, content, latestPosts, homepageSettings }: Props) {
+    const base = locale === 'zh-TW' ? '' : `/${locale}`;
+    const itemList = buildItemListJsonLd(latestPosts);
+    const zh = locale === 'zh-TW' || locale === 'zh-CN';
+    const about = resolveAbout(homepageSettings, locale);
+    const aboutLink = safeAboutLink(about.button_url);
+    const banner = homepageSettings.banner_section?.[locale] || homepageSettings.banner_section?.['zh-TW'];
+    const topics = [
+        { icon: Briefcase, title: zh ? '工作裡的我' : 'At work', desc: zh ? '在會議、待辦與期待之間，練習找到自己的步調。' : 'Finding a personal rhythm between meetings and expectations.' },
+        { icon: Heart, title: zh ? '媽媽的日常' : 'Motherhood', desc: zh ? '有愛，也有快沒電的時候。記錄育兒路上的真實心情。' : 'The love, the exhaustion, and the everyday moments in between.' },
+        { icon: Coffee, title: zh ? '留一點給自己' : 'A little me time', desc: zh ? '一杯咖啡、一本書、一段散步，把生活慢慢找回來。' : 'A cup of coffee, a book, a walk. Small ways to return to yourself.' },
+    ];
+    return <div className="hw-home">
+    {itemList && <JsonLd data={itemList}/>}
+    <HeroSection eyebrow="— A little pause in everyday life —" title={content.heroTitle} subtitle={content.heroSubtitle} buttonText={homepageSettings.button_text?.[locale] || homepageSettings.button_text?.['zh-TW'] || content.aboutBtn} buttonLink={`${base}/articles`} backgroundSlides={homepageSettings.slides} locale={locale} pauseOnHover={homepageSettings.pause_on_hover ?? true} lazyLoading={homepageSettings.lazy_loading ?? true}/>
+    <section className="hw-section hw-intro" aria-labelledby="intro-title"><div className="hw-container">
+      <p className="hw-eyebrow">THE BEAUTY OF REAL LIFE</p><h2 id="intro-title">{banner?.heading || (zh ? '生活不必完美，真實就很好。' : 'Real life. Room to breathe.')}</h2><p className="hw-section-intro">{banner?.description || (zh ? '在職場與家庭之間來回切換，也別忘了照顧那個叫「自己」的人。' : content.bannerDescription)}</p>
+      <div className="hw-topics">{topics.map(({ icon: Icon, title, desc }, i) => <div className="hw-topic" key={title}><span className="hw-topic-icon"><Icon size={28} strokeWidth={1.2}/></span><small>0{i + 1}</small><h3>{title}</h3><p>{desc}</p></div>)}</div>
+    </div></section>
+    <section id="articles" className="hw-section hw-journal" aria-labelledby="journal-title"><div className="hw-container"><div className="hw-section-heading"><div><p className="hw-eyebrow">NOTES FROM EVERYDAY</p><h2 id="journal-title">{zh ? '最近，想和你聊聊' : content.featuredTitle}</h2></div><Link className="hw-text-link" href={`${base}/articles`}>{content.viewMore} <ArrowUpRight size={17}/></Link></div>
+      {latestPosts.length ? <div className="hw-article-wall">{latestPosts.map(post => <HomepageArticleTile key={`${post.id}-${post.cover_image}-${post.featured_image}`} post={post} basePath={base} />)}</div> : <div className="hw-empty"><BookOpen size={32} strokeWidth={1}/><h3>{zh ? '故事，正在慢慢寫下。' : content.noContent}</h3><p>{zh ? '新的生活手記會出現在這裡。先坐一下，留一點時間給自己。' : content.bannerDescription}</p></div>}
+    </div></section>
+    {about.quote && <section className="hw-quote"><p className="hw-eyebrow">A GENTLE REMINDER</p><blockquote>{about.quote}</blockquote><span className="hw-quote-line"/></section>}
+    <section id="about" className="hw-section">
+      <div className="hw-container hw-about">
+        {about.image_url ? <img className="hw-about-photo" src={getImageUrl(about.image_url)} alt={about.title || ''} loading="lazy" /> :
+          <div className="hw-about-art"><span className="hw-about-caption">{about.image_caption}</span></div>}
+        <div>
+          {about.eyebrow && <p className="hw-eyebrow">{about.eyebrow}</p>}
+          {about.title && <h2>{about.title}</h2>}
+          {about.philosophy && <p className="hw-about-philosophy">{about.philosophy}</p>}
+          {about.description && <p className="hw-about-philosophy">{about.description}</p>}
+          {!!about.mission_points?.length && <ul className="hw-about-missions">{about.mission_points.filter(point => point.trim()).map((point, index) => <li key={index}>{point}</li>)}</ul>}
+          {about.button_text && aboutLink && <Link className="hw-button" href={aboutLink}>{about.button_text} <ArrowUpRight size={16}/></Link>}
+        </div>
+      </div>
+    </section>
+    <section id="products" className="hw-products"><div className="hw-container hw-section-heading"><div><p className="hw-eyebrow">MORE WAYS TO CONNECT</p><h2>{content.featuresTitle}</h2><p>{zh ? '把文字之外的想法，慢慢變成新的可能。' : content.featuresDescription}</p></div><Link className="hw-button hw-button-light" href={`${base}/products`}>{zh ? '探索服務與產品' : content.featuresTitle} <ArrowUpRight size={16}/></Link></div></section>
+    {domainSection}
+  </div>;
 }

@@ -9,6 +9,7 @@ Studio 模組的資料模型。
 模組依賴 core 與 media_lib，反向不成立：core 完全不知道 Studio 的存在。
 """
 from datetime import datetime
+from uuid import uuid4
 from typing import Any, Dict, Optional
 
 from sqlalchemy.dialects.postgresql import JSONB
@@ -100,6 +101,7 @@ class StudioProject(db.Model):
 class StudioDocument(db.Model):
     __tablename__ = 'studio_documents'
     __table_args__ = (
+        db.UniqueConstraint('work_id', 'language', name='uq_studio_document_work_language'),
         _trgm('studio_documents', 'title'),
         _trgm('studio_documents', 'body'),
         _TABLE_ARGS,
@@ -109,6 +111,10 @@ class StudioDocument(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey(_s('projects.id'), ondelete='CASCADE'),
                            nullable=False, index=True)
     platform = db.Column(db.String(20), nullable=False, index=True)
+    work_id = db.Column(db.String(36), nullable=False, default=lambda: str(uuid4()))
+    language = db.Column(db.String(10), nullable=False, default='zh-TW')
+    translation_source_id = db.Column(db.Integer, db.ForeignKey(_s('documents.id'), ondelete='SET NULL'))
+    source_fingerprint = db.Column(db.String(64))
     title = db.Column(db.String(200))
     body = db.Column(db.Text)          # 工作草稿；blog 的正式版在 contents
     stage = db.Column(db.String(20), default='write', nullable=False, index=True)
@@ -128,12 +134,18 @@ class StudioDocument(db.Model):
     content = db.relationship('Content', foreign_keys=[content_id])
 
     def to_dict(self, include_body: bool = True) -> Dict[str, Any]:
+        stage = self.stage
+        if self.content_id and stage == 'scheduled' and self.scheduled_at and self.scheduled_at <= datetime.utcnow():
+            stage = 'published'
         data = {
             'id': self.id,
             'project_id': self.project_id,
             'platform': self.platform,
+            'work_id': self.work_id,
+            'language': self.language,
+            'translation_source_id': self.translation_source_id,
             'title': self.title,
-            'stage': self.stage,
+            'stage': stage,
             'content_id': self.content_id,
             'scheduled_at': _iso(self.scheduled_at),
             'published_at': _iso(self.published_at),

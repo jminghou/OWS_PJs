@@ -214,10 +214,32 @@ export interface HomepageSlide {
   end_date?: string | null;
 }
 
+/** 文字型首頁 Hero 的單一語系文案（取代輪播的站台用）。留空的欄位由站台的靜態預設補上。 */
+export interface HeroIntroFields {
+  eyebrow?: string;
+  headline?: string;
+  body?: string;
+  newsletter_note?: string;
+  proof_line?: string;
+}
+
+export interface HeroIntro {
+  /** 各語系共用的選填圖片 */
+  image_url?: string;
+  locales: Record<string, HeroIntroFields>;
+}
+
 export interface HomepageSettings {
   slides: HomepageSlide[];
   button_text: Record<string, string>; // {zh-TW: "關於我們", en: "About Us", ...}
+  article_wall?: { mode: 'latest' | 'manual'; article_ids: number[] };
+  hero_intro?: HeroIntro;
   about_section?: Record<string, {
+    eyebrow?: string;
+    description?: string;
+    image_caption?: string;
+    button_text?: string;
+    button_url?: string;
     title: string;
     philosophy: string;
     quote: string;

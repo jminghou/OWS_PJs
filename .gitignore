@@ -216,3 +216,8 @@ Duc/Demo/
 **/graphify-out/
 .mcp.json
 .graphifyignore
+
+# 本機暫存的部署變數檔（含正式環境機密），絕不進 git
+*_vercel.env
+*.env.bak
+.env.*.bak

@@ -28,7 +28,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   return (
     <div className={`min-h-screen flex flex-col ${isZhCN ? notoSansSC.className : ''}`}>
       <PublicHeader />
-      <main className="flex-1 pt-14">
+      <main className="hw-public-main flex-1">
         {children}
       </main>
       <PublicFooter />

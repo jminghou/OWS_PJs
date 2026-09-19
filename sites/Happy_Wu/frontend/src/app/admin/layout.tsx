@@ -13,7 +13,7 @@ import { studioNavGroups, StudioSearchBar, QuickCollectButton } from '@ows/studi
 import { getImageUrl, getGcsImageUrl } from '@/lib/utils';
 
 configureAdminApp({
-  siteName: 'Happy Wu',
+  siteName: '職場媽媽崩潰啥？',
   modules: ALL_MODULES,
   getImageUrl,
   getGcsImageUrl,
@@ -26,10 +26,10 @@ configureAdminApp({
     ...studioNavGroups,
     // 平台後台（文章、媒體、電商…）：預設收合，需要時展開
     {
-      label: '平台後台',
+      label: '網站管理',
       collapsible: true,
       defaultCollapsed: true,
-      items: [...PLATFORM_NAV, commerceNav],
+      items: [...PLATFORM_NAV.filter(item => item.href !== '/admin/articles'), commerceNav],
     },
   ],
   // rail 外殼的相容清單（shell 改回 'rail' 時仍可用）

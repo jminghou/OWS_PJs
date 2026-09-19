@@ -1,6 +1,6 @@
 import { request } from '@ows/platform-api/client';
 import type {
-  Card, CardKind, CardRef, ContentStatus, Document, InboxItem, InboxStatus, Pagination, Platform,
+  ArticleSettings, EditorOptions, Card, CardKind, CardRef, ContentStatus, Document, InboxItem, InboxStatus, Pagination, Platform,
   Project, ProjectDetail, Revision, SearchResults, Source, Stage, StudioTag, TagTargetType, TodayResponse,
 } from '../types';
 
@@ -31,8 +31,14 @@ export const projectApi = {
 };
 
 export const documentApi = {
+  options: () => request<EditorOptions>(`${BASE}/editor-options`),
+  translate: (id: number, language: string, mode: 'blank' | 'copy') => request<{id:number;document:Document}>(`${BASE}/documents/${id}/translations`, {method:'POST', body:JSON.stringify({language,mode})}),
+  reviewed: (id: number) => request<{document:Document}>(`${BASE}/documents/${id}/translation-reviewed`, {method:'POST'}),
+  settings: (id: number, data: ArticleSettings) => request<{document:Document}>(`${BASE}/documents/${id}/article-settings`, {method:'PUT', body:JSON.stringify(data)}),
+  catalog: (page=1, search='') => request<{items:{id:number;title:string;language:string;status:string;document_id:number|null}[];pagination:Pagination}>(`${BASE}/articles`, {params:{page,search}}),
+  adopt: (id: number) => request<{id:number;document:Document}>(`${BASE}/articles/${id}/adopt`, {method:'POST'}),
   list: (projectId: number) => request<{ documents: Document[] }>(`${BASE}/projects/${projectId}/documents`),
-  create: (projectId: number, data: { platform: Platform; title?: string; body?: string; content_id?: number; stage?: Stage; summary?: string }) =>
+  create: (projectId: number, data: { platform: Platform; language?: string; title?: string; body?: string; content_id?: number; stage?: Stage; summary?: string }) =>
     request<{ id: number; document: Document }>(`${BASE}/projects/${projectId}/documents`, { method: 'POST', body: JSON.stringify(data) }),
   get: (id: number) => request<Document>(`${BASE}/documents/${id}`),
   update: (id: number, data: Partial<Document> & { tag_ids?: number[] }) =>
@@ -54,7 +60,7 @@ export const documentApi = {
   contentStatus: (id: number) => request<ContentStatus>(`${BASE}/documents/${id}/content-status`),
   loadFromContent: (id: number) =>
     request<{ document: Document }>(`${BASE}/documents/${id}/load-from-content`, { method: 'POST' }),
-  syncToContent: (id: number, data: { mode: 'save' | 'publish'; title?: string; body?: string; summary?: string; published_at?: string }) =>
+  syncToContent: (id: number, data: { mode: 'save' | 'publish' | 'schedule' | 'unpublish'; title?: string; body?: string; summary?: string; published_at?: string }) =>
     request<{ document: Document; revision: Revision | null }>(`${BASE}/documents/${id}/sync-to-content`, { method: 'POST', body: JSON.stringify(data) }),
 
   updatePublishing: (id: number, data: { stage?: Stage; scheduled_at?: string | null; published_at?: string | null; published_url?: string | null }) =>
@@ -117,7 +123,7 @@ export const tagApi = {
 };
 
 export const publishingApi = {
-  list: (params?: { platform?: string; stage?: string; project_id?: number; from?: string; to?: string; page?: number; per_page?: number }) =>
+  list: (params?: { platform?: string; language?: string; stage?: string; project_id?: number; from?: string; to?: string; page?: number; per_page?: number }) =>
     request<{ items: Document[]; pagination: Pagination }>(`${BASE}/publishing`, { params }),
 };
 
