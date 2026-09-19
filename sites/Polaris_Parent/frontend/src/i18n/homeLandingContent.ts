@@ -1,6 +1,6 @@
 // 首頁（文字型 landing）的站台文案。
 // heroIntroDefaults 是 Hero 的靜態預設：後台「首頁設定 → Hero 介紹」有填的欄位優先，留空的欄位退回這裡。
-// 其餘區塊（文章清單、排盤入口、結尾訂閱）目前只在這裡改。
+// 排盤、回饋牆、訂閱區塊的標題與說明目前只在這裡改。
 import type { HeroIntro, HeroIntroFields } from '@/types';
 
 export const heroIntroDefaults: HeroIntro['locales'] = {
@@ -39,56 +39,36 @@ export const heroIntroDefaults: HeroIntro['locales'] = {
 };
 
 export interface HomeLandingContent {
-  articlesHeading: string;
-  articlesViewAll: string;
-  articlesEmpty: string;
   ziweiHeading: string;
   ziweiBody: string;
-  ziweiButton: string;
-  closingHeading: string;
-  closingBody: string;
+  testimonialsHeading: string;
+  subscribeHeading: string;
 }
 
 export const homeLandingContent: Record<string, HomeLandingContent> = {
   'zh-TW': {
-    articlesHeading: '從這幾篇開始',
-    articlesViewAll: '查看全部文章',
-    articlesEmpty: '文章準備中，請稍後再來。',
     ziweiHeading: '線上排盤',
-    ziweiBody: '輸入出生資料，立即看到孩子（或你自己）的紫微命盤。免費註冊即可保存命盤。',
-    ziweiButton: '開始排盤',
-    closingHeading: '不想錯過新文章？',
-    closingBody: '留下 Email，新文章發布時我們會寄給你。',
+    ziweiBody: '滑動選擇出生年月日與時間，按下排盤，命盤會直接出現在下方。',
+    testimonialsHeading: '他們怎麼說',
+    subscribeHeading: '訂閱電子報',
   },
   'zh-CN': {
-    articlesHeading: '从这几篇开始',
-    articlesViewAll: '查看全部文章',
-    articlesEmpty: '文章准备中，请稍后再来。',
     ziweiHeading: '在线排盘',
-    ziweiBody: '输入出生资料，立即看到孩子（或你自己）的紫微命盘。免费注册即可保存命盘。',
-    ziweiButton: '开始排盘',
-    closingHeading: '不想错过新文章？',
-    closingBody: '留下 Email，新文章发布时我们会发给你。',
+    ziweiBody: '滑动选择出生年月日与时间，按下排盘，命盘会直接出现在下方。',
+    testimonialsHeading: '他们怎么说',
+    subscribeHeading: '订阅电子报',
   },
   en: {
-    articlesHeading: 'Start with these',
-    articlesViewAll: 'View all articles',
-    articlesEmpty: 'Articles are on the way. Please check back soon.',
     ziweiHeading: 'Online chart',
-    ziweiBody: "Enter a birth date and time to see your child's (or your own) Zi Wei chart right away. Register for free to save it.",
-    ziweiButton: 'Create a chart',
-    closingHeading: "Don't want to miss new articles?",
-    closingBody: "Leave your email and we'll send new articles when they are published.",
+    ziweiBody: 'Scroll to pick a birth date and time, then press the button. The chart appears right below.',
+    testimonialsHeading: 'What readers say',
+    subscribeHeading: 'Subscribe to the newsletter',
   },
   ja: {
-    articlesHeading: 'まずはこの記事から',
-    articlesViewAll: 'すべての記事を見る',
-    articlesEmpty: '記事を準備中です。しばらくしてからまたお越しください。',
     ziweiHeading: 'オンライン命盤作成',
-    ziweiBody: '生年月日と出生時刻を入力すると、お子さま（またはご自身）の紫微命盤がすぐに表示されます。無料登録で命盤を保存できます。',
-    ziweiButton: '命盤を作成する',
-    closingHeading: '新しい記事を見逃したくない方へ',
-    closingBody: 'メールアドレスを登録すると、新しい記事の公開時にお知らせします。',
+    ziweiBody: '生年月日と時刻をスクロールで選んでボタンを押すと、すぐ下に命盤が表示されます。',
+    testimonialsHeading: '読者の声',
+    subscribeHeading: 'ニュースレターに登録',
   },
 };
 

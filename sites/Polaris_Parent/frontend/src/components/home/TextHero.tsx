@@ -1,14 +1,12 @@
 import type { HeroIntroFields } from '@/types';
 import { getImageUrl } from '@/lib/utils';
-import SubscribeBlock from './SubscribeBlock';
 
 interface TextHeroProps {
-  locale: string;
   intro: HeroIntroFields & { image_url?: string };
 }
 
-/** 第一屏：用文字講清楚「我們是誰、幫誰、解決什麼」，唯一的行動是訂閱。 */
-export default function TextHero({ locale, intro }: TextHeroProps) {
+/** 第一屏的文字：用幾句話講清楚「我們是誰、幫誰、解決什麼」。行動（排盤）緊接在下方。 */
+export default function TextHero({ intro }: TextHeroProps) {
   const paragraphs = (intro.body || '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   return (
     <section id="hero" className="scroll-mt-14">
@@ -33,12 +31,6 @@ export default function TextHero({ locale, intro }: TextHeroProps) {
           <p key={index} className="whitespace-pre-line">{paragraph}</p>
         ))}
       </div>
-
-      <div id="subscribe" className="mt-10 scroll-mt-20">
-        {intro.newsletter_note && <p className="mb-4 text-base text-gray-700">{intro.newsletter_note}</p>}
-        <SubscribeBlock locale={locale} source="home-hero" />
-      </div>
-
       {intro.proof_line && <p className="mt-8 text-sm text-gray-500">{intro.proof_line}</p>}
     </section>
   );

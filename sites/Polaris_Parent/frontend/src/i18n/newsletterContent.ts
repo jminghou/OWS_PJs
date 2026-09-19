@@ -6,6 +6,8 @@ export interface NewsletterContent {
   /** 表單下方小字；{privacy} 會換成隱私權政策連結 */
   formNote: string;
   privacyLinkText: string;
+  /** 「電子報」頁面（導覽列入口） */
+  page: { title: string; description: string; intro: string };
   confirm: TokenActionLabels;
   unsubscribe: TokenActionLabels;
   backHome: string;
@@ -24,6 +26,7 @@ export const newsletterContent: Record<string, NewsletterContent> = {
     },
     formNote: '不寄垃圾信，隨時可以退訂。詳見{privacy}。',
     privacyLinkText: '隱私權政策',
+    page: { title: '電子報', description: '訂閱親紫之間電子報，第一時間收到新的親子紫微文章與觀察。', intro: '訂閱電子報，第一時間收到新的親子紫微文章與觀察。' },
     confirm: {
       title: '確認訂閱',
       working: '正在確認您的訂閱…',
@@ -56,6 +59,7 @@ export const newsletterContent: Record<string, NewsletterContent> = {
     },
     formNote: '不发垃圾邮件，随时可以退订。详见{privacy}。',
     privacyLinkText: '隐私政策',
+    page: { title: '电子报', description: '订阅亲紫之间电子报，第一时间收到新的亲子紫微文章与观察。', intro: '订阅电子报，第一时间收到新的亲子紫微文章与观察。' },
     confirm: {
       title: '确认订阅',
       working: '正在确认您的订阅…',
@@ -88,6 +92,7 @@ export const newsletterContent: Record<string, NewsletterContent> = {
     },
     formNote: 'No spam. Unsubscribe any time. See our {privacy}.',
     privacyLinkText: 'privacy policy',
+    page: { title: 'Newsletter', description: 'Subscribe to get new articles and observations on parenting with Zi Wei Dou Shu.', intro: 'Subscribe to get new articles and observations on parenting with Zi Wei Dou Shu.' },
     confirm: {
       title: 'Confirm subscription',
       working: 'Confirming your subscription…',
@@ -120,6 +125,7 @@ export const newsletterContent: Record<string, NewsletterContent> = {
     },
     formNote: '迷惑メールは送りません。いつでも配信停止できます。詳しくは{privacy}をご覧ください。',
     privacyLinkText: 'プライバシーポリシー',
+    page: { title: 'ニュースレター', description: 'ニュースレターに登録すると、紫微斗数と子育ての新しい記事や気づきが届きます。', intro: 'ニュースレターに登録すると、紫微斗数と子育ての新しい記事や気づきが届きます。' },
     confirm: {
       title: '登録の確認',
       working: '登録を確認しています…',

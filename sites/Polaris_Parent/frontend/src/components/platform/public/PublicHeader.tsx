@@ -15,6 +15,7 @@ const navContent: Record<string, {
   products: string;
   contact: string;
   ziwei: string;
+  newsletter: string;
   openMenu: string;
   login: string;
   account: string;
@@ -28,6 +29,7 @@ const navContent: Record<string, {
     products: '服務與產品',
     contact: '聯絡我們',
     ziwei: '線上排盤',
+    newsletter: '電子報',
     openMenu: '打開主選單',
     login: '登入',
     account: '會員中心',
@@ -41,6 +43,7 @@ const navContent: Record<string, {
     products: '服务与产品',
     contact: '联系我们',
     ziwei: '在线排盘',
+    newsletter: '电子报',
     openMenu: '打开主菜单',
     login: '登录',
     account: '会员中心',
@@ -54,6 +57,7 @@ const navContent: Record<string, {
     products: 'Products',
     contact: 'Contact',
     ziwei: 'Ziwei Chart',
+    newsletter: 'Newsletter',
     openMenu: 'Open main menu',
     login: 'Login',
     account: 'My Account',
@@ -67,6 +71,7 @@ const navContent: Record<string, {
     products: '製品',
     contact: 'お問い合わせ',
     ziwei: '紫微占い',
+    newsletter: 'ニュースレター',
     openMenu: 'メニューを開く',
     login: 'ログイン',
     account: 'マイページ',
@@ -107,12 +112,14 @@ export default function PublicHeader() {
 
   // 導覽一律是真正的頁面連結（首頁由站名連回）
   const navItems = [
-    { href: `${basePath}/articles`, label: content.articles },
     { href: `${basePath}/about`, label: content.about },
+    { href: `${basePath}/articles`, label: content.articles },
     { href: `${basePath}/products`, label: content.products },
     { href: `${basePath}/ziwei`, label: content.ziwei },
+    { href: `${basePath}/newsletter`, label: content.newsletter },
   ];
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) =>
+    pathname === href || (pathname.startsWith(`${href}/`) && !href.endsWith('/newsletter'));
 
   // 檢查 i18n 是否啟用
   useEffect(() => {

@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 import { buildStaticPageAlternates } from '@ows/site-kit/seo';
 import HomeLanding from '@/components/home/HomeLanding';
 import { localeContent } from '@/i18n/homePageData';
-import { getHomePageData } from '@/lib/homepage';
+import { getHomepageSettings } from '@/lib/homepage';
 
-// ISR：每 60 秒重新驗證（新文章 60 秒內出現在首頁）
+// ISR：每 60 秒重新驗證（後台改 Hero 文案時另有 on-demand revalidate）
 export const revalidate = 60;
 
 interface PageProps {
@@ -24,6 +24,5 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LocaleHomePage({ params }: PageProps) {
   const { locale } = await params;
-  const { homepageSettings, articles } = await getHomePageData(locale);
-  return <HomeLanding locale={locale} homepageSettings={homepageSettings} articles={articles} />;
+  return <HomeLanding locale={locale} homepageSettings={await getHomepageSettings()} />;
 }
