@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="_圖層_1" data-name="圖層 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72.94 72.74">
+<svg id="_圖層_1" data-name="圖層 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
   <defs>
     <style>
       .cls-1 {
@@ -7,5 +7,5 @@
       }
     </style>
   </defs>
-  <path class="cls-1" d="M4.18,60.33H69.1L36.64,6.56,4.18,60.33Zm36.74-5.64h-8.56V21.93h8.56V54.7Z"/>
+  <path class="cls-1" d="M36,9.11L3.54,62.89h64.92L36,9.11ZM31.72,57.25V24.48h8.56v32.77h-8.56Z"/>
 </svg>

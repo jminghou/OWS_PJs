@@ -4,6 +4,7 @@ p_d_graph_v3 橋接層 — 命盤編碼基礎設施（vendored 自 p_d_graph，2
 這兩個模組是「編碼 → 命盤狀態」的基礎設施，與 v2 向量架構無關：
   chart_parser.py  — encoded_array → ChartState
   palace_stems.py  — 宮位地支環補滿／五虎遁宮干／化祿反推年干
+  codes.py         — DB 編碼欄 → encoded_array（本地新增，非 vendored）
 
 Vendor 原因：讓 p_d_graph_v3 完全自立——將來 v2（p_d_graph/）退役時
 整個資料夾可直接刪除，不會斷 v3 的腿。
@@ -13,6 +14,8 @@ Vendor 原因：讓 p_d_graph_v3 完全自立——將來 v2（p_d_graph/）退�
 """
 
 from .chart_parser import ChartParser, ChartState
+from .codes import encoded_array_from_codes
 from . import palace_stems
 
-__all__ = ["ChartParser", "ChartState", "palace_stems"]
+__all__ = ["ChartParser", "ChartState", "palace_stems",
+           "encoded_array_from_codes"]

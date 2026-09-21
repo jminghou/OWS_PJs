@@ -60,6 +60,20 @@ def _aux_groups(registry):
     return out
 
 
+def _major_dims(registry):
+    """主星維度顯示序＝維度註冊表裡 kind==major 的順序（真源，不硬編）。
+
+    十四主星各佔一維，名稱是「力」不是星名（排序力／承載力／作用力…），
+    供 12 宮 × 主星維度 的熱力圖當欄位。
+    """
+    seen, out = set(), []
+    for d in registry.e_dims:
+        if d.kind == "major" and d.name_zh not in seen:
+            seen.add(d.name_zh)
+            out.append(d.name_zh)
+    return out
+
+
 def _engine():
     global _ENGINE
     if _ENGINE is None:
@@ -151,6 +165,7 @@ def build_from_result(result, engine=None) -> dict:
             "engine_version": ENGINE_VERSION,
             "vector_version": VECTOR_VERSION,
             "aux_groups": groups,
+            "major_dims": _major_dims(eng.registry),
             "notes": {
                 "flow_vs_contribution":
                     "flow＝E×w（原始流量，未乘類權）；contribution＝flow×類權。"

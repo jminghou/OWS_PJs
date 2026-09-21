@@ -12,6 +12,12 @@
 5. 保留 6 碼宮位編碼和 8 碼本命四化編碼
 6. 保持星曜代碼和地支不變（只替換宮位代碼）
 7. 不包含 9 碼大限四化編碼（已移除，待使用新方式重新計算）
+8. 巢狀大限（2026-07-29 起）：流年盤與小限盤除了帶「所在大限的四化」，
+   也帶**所在大限的流曜**——兩者同樣十年有效，沒有理由只疊一半。流曜的宮位
+   以該盤自己的命宮為基準重算（整張盤已經轉過去了），星碼仍是 d* 前綴，與該盤
+   自己的 y*／s* 流曜區分得開。
+   ⚠️ 只動流年盤與小限盤：本命盤與大限盤的編碼一個字都沒變，所以 v3 母體、
+   指紋、facet 百分位（全建在本命盤上）不受影響。
 """
 
 from pathlib import Path
@@ -87,17 +93,16 @@ def _find_star_palace(encoded_array: List[str], star_code: str) -> Optional[str]
     return None
 
 
-def _decade_stem_for_age(decade_data: Dict, age: int) -> str:
+def _decade_info_for_age(decade_data: Dict, age: int) -> Dict:
     """
-    找出某年齡所屬大限的年干（巢狀四化用）。
+    找出某年齡所屬大限的完整資料（巢狀疊加用）。
 
-    大限四化十年有效：流年/小限落在某大限之內，該大限四化須一併疊加。
-    大限歲數格式如 "3-12"；年齡小於第1大限起歲 → 沿用第1大限（童限期），
-    超過最後一個大限 → 取最後一個。
+    大限的四化**與流曜**都是十年有效：流年/小限落在某大限之內，該大限的
+    四化與流曜都須一併疊加。大限歲數格式如 "3-12"；年齡小於第1大限起歲 →
+    沿用第1大限（童限期），超過最後一個大限 → 取最後一個。
     """
     spans = []
     for info in decade_data.values():
-        stem = info.get("年干", "")
         rng = str(info.get("大限歲數", ""))
         parts = rng.split("-")
         try:
@@ -106,16 +111,21 @@ def _decade_stem_for_age(decade_data: Dict, age: int) -> str:
             end = int(parts[1]) if len(parts) > 1 else start
         except (ValueError, IndexError):
             continue
-        spans.append((order, start, end, stem))
+        spans.append((order, start, end, info))
     if not spans:
-        return ""
-    spans.sort()
-    for _order, start, end, stem in spans:
+        return {}
+    spans.sort(key=lambda x: x[0])
+    for _order, start, end, info in spans:
         if start <= age <= end:
-            return stem
+            return info
     if age < spans[0][1]:
         return spans[0][3]   # 童限期：沿用第1大限
     return spans[-1][3]      # 超齡：取最後一個大限
+
+
+def _decade_stem_for_age(decade_data: Dict, age: int) -> str:
+    """某年齡所屬大限的年干（巢狀四化用）。"""
+    return _decade_info_for_age(decade_data, age).get("年干", "")
 
 
 def generate_fortune_sihua_encodings(
@@ -764,6 +774,20 @@ def calculate_small_limit_encoding(chart_data: Dict) -> List[Dict]:
         except Exception as e:
             print(f"警告：年齡 {age} 的小限星曜編碼生成失敗 - {str(e)}")
 
+        # 巢狀流曜：所在大限的流曜（十年有效，與大限四化同理；宮位以**小限
+        # 命宮**為基準重算）
+        try:
+            nested = _decade_info_for_age(decade_data, age)
+            if nested.get("大限星曜"):
+                encoded_array.extend(generate_decade_star_encodings(
+                    int(nested.get("大限順序", "0") or 0),
+                    age_info["palace_position"],      # ★ 小限命宮
+                    nested["大限星曜"],
+                    star_codes,
+                    branch_codes))
+        except Exception as e:
+            print(f"警告：年齡 {age} 的所在大限流曜編碼生成失敗 - {str(e)}")
+
         # 巢狀四化①：所在大限的四化（十年有效，小限落在其中須疊加；layer=decade）
         try:
             encoded_array.extend(generate_fortune_sihua_encodings(
@@ -878,6 +902,20 @@ def calculate_year_flow_encoding(chart_data: Dict) -> List[Dict]:
                 encoded_array.extend(year_flow_star_encodings)
         except Exception as e:
             print(f"警告：年齡 {age} 的流年星曜編碼生成失敗 - {str(e)}")
+
+        # 巢狀流曜：所在大限的流曜（十年有效，與大限四化同理；宮位以**流年
+        # 命宮**為基準重算，因為整張盤已經轉到流年盤了）
+        try:
+            nested = _decade_info_for_age(decade_data, age)
+            if nested.get("大限星曜"):
+                encoded_array.extend(generate_decade_star_encodings(
+                    int(nested.get("大限順序", "0") or 0),
+                    age_info["palace_position"],      # ★ 流年命宮，不是大限命宮
+                    nested["大限星曜"],
+                    star_codes,
+                    branch_codes))
+        except Exception as e:
+            print(f"警告：年齡 {age} 的所在大限流曜編碼生成失敗 - {str(e)}")
 
         # 巢狀四化①：所在大限的四化（十年有效，流年落在其中須疊加；layer=decade）
         try:

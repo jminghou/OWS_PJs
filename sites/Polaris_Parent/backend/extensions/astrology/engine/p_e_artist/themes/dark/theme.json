@@ -19,6 +19,27 @@
             "star_ink": "#EAEAEA",
             "sihua_ink": "#EF5350",
             "brightness": "#0F3460"
+        },
+        "dataviz": {
+            "seq_reverse": true,
+            "colors": {
+                "surface": "#1a1a19",
+                "plane": "#0d0d0d",
+                "text_primary": "#ffffff",
+                "text_secondary": "#c3c2b7",
+                "muted": "#898781",
+                "grid": "#2c2c2a",
+                "axis": "#4a4a46",
+                "border": "rgba(255,255,255,.10)",
+                "series_1": "#3987e5",
+                "series_2": "#d95926",
+                "self": "#c3c2b7",
+                "arc_base": "#3d3d39",
+                "hua_lu": "#199e70",
+                "hua_quan": "#3987e5",
+                "hua_ke": "#c98500",
+                "hua_ji": "#d03b3b"
+            }
         }
     }
 }

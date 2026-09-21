@@ -17,6 +17,11 @@ class RectEl:
     h: float
     cls: str = ""
     rx: float = 0          # 圓角半徑（0 = 直角）
+    # 資料圖表用：格子/長條的顏色是逐格算出來的（色階映射），無法用 class 表達。
+    # 與 class 並用時 CSS 勝出 ⇒ 呈現屬性同時是「CSS 被剝掉時」的印刷保險。
+    fill_attr: str = ""         # 非空時輸出 SVG fill 呈現屬性
+    stroke_attr: str = ""       # 非空時輸出 SVG stroke
+    stroke_width: float = 0     # >0 時輸出 stroke-width（身宮外框：線寬跟著圖示算，class 表達不了）
 
 
 @dataclass
@@ -55,6 +60,22 @@ class CircleEl:
 
 
 @dataclass
+class PathEl:
+    """任意路徑（弧、貝茲）。弦圖的緞帶、桑基的流帶、環狀扇形都走這個。
+
+    `d` 是算好的 SVG path 資料字串——不要用 f-string 手拼，
+    走 `core.path.PathBuilder` 或其中的 `annular_sector()` /
+    `chord_ribbon()` / `sankey_ribbon()`，座標才會自動量化。
+    """
+    d: str
+    cls: str = ""
+    fill_attr: str = ""         # 非空時輸出 SVG fill（"none" 表示不填色）
+    stroke_attr: str = ""       # 非空時輸出 SVG stroke
+    opacity: float = 1.0        # <1 時輸出 fill-opacity（緞帶重疊需要）
+    title: str = ""             # 非空時輸出 <title>（滑鼠停留的原生提示）
+
+
+@dataclass
 class ImageEl:
     """外部圖片引用。"""
     href: str
@@ -65,6 +86,7 @@ class ImageEl:
     cls: str = ""
     title: str = ""
     ink: str = ""        # 單色圖示的上色（空＝沿用渲染時傳入的預設 ink）
+    stroke_scale: float = 1.0   # 圖示內線寬倍率（副星縮小後補回線條粗細；1＝原稿）
 
 
 @dataclass
@@ -72,6 +94,9 @@ class GroupEl:
     """元素群組。"""
     children: List = field(default_factory=list)
     cls: str = ""
+    # 語意鍵（如 "命宮|左右"）。writer 不畫它；json_writer 照原樣輸出，
+    # 讓前端能把互動（hover/點選）掛回原始資料，而不必自己重算幾何。
+    key: str = ""
 
 
 @dataclass
@@ -99,7 +124,14 @@ class PalaceEl:
     code: str                # 1~9 / A / B / C
     cn_name: str
     en_name: str
-    branch_label: str        # 顯示用干支字（中文；有宮干「癸卯」、無宮干「卯」）
+    branch_label: str        # 地支（宮格右下角）："08" 或「未」
+    stem_label: str = ""     # 宮干（宮格左下角）："J" 或「癸」；無宮干時為空
+    # 宮位圖示（assets/palace/{code}.svg）；空＝無圖檔，writer 退回文字宮名。
+    # 用圖示還是文字由主題 layout.palace_name_style 決定，composer 兩者都備好。
+    name_icon: str = ""
+    name_icon_ink: str = ""  # 宮名圖示顏色（空＝用主題 palace_name；疊盤本命層＝紅）
+    is_body: bool = False    # 身宮落在此宮（圖示模式＝加外框；文字模式＝cn_name 已帶「(身)」）
+    layer_icons: List = field(default_factory=list)   # [(半寬圖示 href, ink)]，與 layer_names 同序同長
     majors: List = field(default_factory=list)        # PalaceStarItem
     subs: List = field(default_factory=list)          # PalaceStarItem
     minor_labels: List = field(default_factory=list)  # str

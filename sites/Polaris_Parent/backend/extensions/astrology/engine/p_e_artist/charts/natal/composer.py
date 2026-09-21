@@ -15,6 +15,7 @@ from p_a_foundation.core.mapping import get_mapping
 
 from ...theme import ThemeConfig
 from ...overlay_config import layer_colors
+from ...writers.embed_assets import resolve_star_asset_path
 from ...core.base_composer import BaseComposer
 from ...core.elements import (
     RectEl, TextEl, LineEl, CircleEl, ImageEl, GroupEl, ChartLayout,
@@ -46,6 +47,28 @@ _LEGEND_HEADERS = {
 def _est_w(s: str, fs: float) -> float:
     """估算字寬：CJK ≈ 字級寬、拉丁 ≈ 0.55 字級。"""
     return sum(fs if ord(ch) > 0x2E80 else fs * 0.55 for ch in str(s))
+
+
+def _stem_letter(stem_code: str) -> str:
+    """天干碼 01–10 → A–J。碼不合法時回空字串（等同沒有宮干）。"""
+    try:
+        i = int(stem_code)
+    except (TypeError, ValueError):
+        return ""
+    return chr(ord("A") + i - 1) if 1 <= i <= 10 else ""
+
+
+def _format_gz(branch_code: str, stem_code: str, mapping, style: str):
+    """宮位干支顯示字，回 (天干, 地支) 兩段——writer 把它們分置宮格左下／右下。
+
+    style="code" → ("J", "08")；style="cn" → ("癸", "未")。
+    舊編碼的盤反推不到年干時天干為空字串，只出地支。
+    """
+    if style == "cn":
+        branch = mapping.get_branch_name(branch_code) or branch_code
+        stem = (mapping.get_stem_name(stem_code) or "") if stem_code else ""
+        return stem, branch
+    return _stem_letter(stem_code), str(branch_code or "")
 
 
 class NatalComposer(BaseComposer):
@@ -456,11 +479,15 @@ class NatalComposer(BaseComposer):
         if palace.code == self._data.body_palace:
             pname += "(身)"
 
-        # 宮位干支顯示字（中文）：有宮干顯示「癸卯」，舊資料無宮干退回「卯」
-        branch_cn = self._map.get_branch_name(palace.branch) or palace.branch
-        stem_cn = self._map.get_stem_name(palace.stem) if palace.stem else None
-        if stem_cn:
-            branch_cn = f"{stem_cn}{branch_cn}"
+        # 宮位干支顯示字。branch_label_style：
+        #   "code"（預設）＝英數代號「J08」＝天干字母＋地支兩位數
+        #   "cn"          ＝中文「癸未」
+        # 兩碼都直接用系統既有的正規代碼（p_a_foundation 的 earthly_branch_codes
+        # ／heavenly_stem_codes），不另建對照表：地支碼本來就是 01–12，天干碼
+        # 01–10 依序對應 A–J。
+        stem_label, branch_cn = _format_gz(
+            palace.branch, palace.stem, self._map,
+            self._theme.layout.get("branch_label_style", "code"))
 
         # 星曜分類
         main_stars = [s for s in palace.stars if s.code in FOURTEEN_MAIN_STAR_CODES]
@@ -474,6 +501,7 @@ class NatalComposer(BaseComposer):
         overlay = bool(self._overlay)
         bc = palace.branch
         layer_names: list = []
+        layer_icons: list = []
         flow_items: list = []
         badge_map: dict[str, list] = {}
         # 本命四化徽章（紅），排最前
@@ -488,6 +516,13 @@ class NatalComposer(BaseComposer):
                 nm = (L.get("palace_ring") or {}).get(bc, "")
                 if nm:
                     layer_names.append((nm, cols["star_ink"]))
+                    # 疊層宮位圖示走半寬版（h+宮位碼）：一格要並排三層，
+                    # 全寬版放不下。顏色用該層的色（大限綠／小限深藍／流年淺藍）。
+                    pc = (L.get("palace_ring_codes") or {}).get(bc, "")
+                    href = f"../assets/palace/h{pc}.svg" if pc else ""
+                    layer_icons.append(
+                        (href if href and resolve_star_asset_path(href) else "",
+                         cols["star_ink"]))
                 for e in (L.get("sihua") or []):
                     badge_map.setdefault(str(e.get("star_code", "")), []).append(
                         (str(e.get("sihua_code", "")), cols["sihua_ink"]))
@@ -501,11 +536,15 @@ class NatalComposer(BaseComposer):
                             scale=small_scale,  # 運限流曜一律縮小
                         ))
 
+        # 疊盤時本命層的星曜也上本命層色（紅）；單盤留空＝沿用主題 star_ink。
+        natal_star_ink = layer_colors("natal")["star_ink"] if overlay else ""
+
         def _to_item(s):
             return PalaceStarItem(
                 code=s.code,
                 label=self._star_chart_label(s.code),
                 href=f"../assets/stars/{s.code}.svg",
+                ink=natal_star_ink,
                 sihua=s.sihua or "",
                 badges=badge_map.get(s.code, []),
                 scale=small_scale if s.code in SMALL_STAR_CODES else 1.0,
@@ -526,17 +565,26 @@ class NatalComposer(BaseComposer):
             if s.code in self._star_svg_codes
         ]
 
+        # 宮位圖示：疊盤一格要並排四層，一律用半寬版（h+宮位碼）；單盤用全寬版。
+        icon_href = f"../assets/palace/{'h' if overlay else ''}{palace.code}.svg"
+        if not resolve_star_asset_path(icon_href):      # 缺半寬版→退回全寬版
+            icon_href = f"../assets/palace/{palace.code}.svg"
         return PalaceEl(
             x=cell.x, y=cell.y, w=cell.width, h=cell.height,
             code=palace.code,
+            name_icon=icon_href if resolve_star_asset_path(icon_href) else "",
+            name_icon_ink=natal_star_ink,
+            is_body=(palace.code == self._data.body_palace),
             cn_name=pname,
             en_name="",  # 英文已移除；語言切換改由 self._lang 驅動 cn_name
             branch_label=branch_cn,
+            stem_label=stem_label,
             majors=majors,
             subs=subs,
             minor_labels=minor_labels,
             cls=f"palace palace-{palace.code}",
             overlay=overlay,
             layer_names=layer_names,
+            layer_icons=layer_icons,
             flow_items=flow_items,
         )

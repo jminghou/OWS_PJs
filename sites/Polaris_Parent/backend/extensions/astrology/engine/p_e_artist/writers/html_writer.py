@@ -87,14 +87,30 @@ def _render_palace(p: PalaceEl, theme) -> str:
     # header
     cn = escape(p.cn_name)
     en = escape(p.en_name)
-    ph_inner = f'<span class="palace-name">{cn}</span>'
-    if en:
+    # 宮名圖示（與 SVG 同一規則：線寬對齊主星；身宮＝同粗細外框，見 theme.py .palace-icon-wrap）
+    lo = theme.layout
+    use_icon = bool(p.name_icon) and lo.get("palace_name_style", "icon") == "icon"
+    if use_icon:
+        icon_h = float(lo.get("palace_icon_height", 18))
+        main = lo.get("overlay_icon_main_size", 60) if p.overlay else lo["icon_main_size"]
+        stroke_px = 5.0 * main / 289.0
+        href = embed_as_data_uri(p.name_icon, theme.colors.get("palace_name"),
+                                 stroke_px / (4.5 * icon_h / 80.0))
+        body = " is-body" if p.is_body else ""
+        ph_inner = (f'<span class="palace-icon-wrap{body}">'
+                    f'<img class="palace-icon" src="{escape(href)}" alt="{cn}"></span>')
+    else:
+        ph_inner = f'<span class="palace-name">{cn}</span>'
+    if en and not use_icon:
         ph_inner += f'<span class="palace-name-en">{en}</span>'
+    # 地支不在表頭裡：與 SVG 一致擺到宮格右下角（見 theme.py .branch-name）
     branch = escape(p.branch_label)
+    branch_html = f'<span class="branch-name">{branch}</span>' if branch else ""
+    if p.stem_label:                      # 宮干在左下角（與 SVG 一致）
+        branch_html += f'<span class="stem-name">{escape(p.stem_label)}</span>'
     header = (
-        f'<div class="palace-header">'
+        f'<div class="palace-header{" ph-icon" if use_icon else ""}">'
         f'<div class="ph-left">{ph_inner}</div>'
-        f'<span class="branch-name">{branch}</span>'
         f'</div>'
     )
 
@@ -162,7 +178,7 @@ def _render_palace(p: PalaceEl, theme) -> str:
     cls = p.cls or f"palace palace-{p.code}"
     return (
         f'<div class="{cls}" style="{style}">'
-        f'{header}{stars_area}'
+        f'{header}{stars_area}{branch_html}'
         f'</div>'
     )
 
@@ -210,11 +226,59 @@ def _render_top_level(el, theme) -> str:
     return ""
 
 
+def _generic_title(layout: ChartLayout) -> str:
+    """從 layout 撈標題文字（第一個 .dv-title）；沒有就用通稱。"""
+    for el in layout.elements:
+        if isinstance(el, TextEl) and "dv-title" in (el.cls or ""):
+            return el.content
+    return "圖表預覽"
+
+
+def _generic_html(layout: ChartLayout, theme) -> str:
+    """非命盤 layout 的通用輸出。
+
+    刻意直接內嵌 svg_writer 的產物，而不是另寫一套 div 版面：
+    這樣「螢幕上看到的」與「送印的」逐元素相同，交接文件 §8 第三條紀律
+    （畫完要真的看）才驗得到真東西——兩套版面演算法就等於在檢查另一張圖。
+    """
+    from . import svg_writer
+
+    title = escape(_generic_title(layout))
+    plane = theme.dv_colors["plane"]
+    fig = svg_writer.to_svg_fragment(layout, theme)
+
+    return f"""\
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title}</title>
+<style>
+html, body {{ margin: 0; padding: 0; background: {plane}; }}
+body {{ padding: 28px 20px 56px; }}
+.figure {{ max-width: 100%; overflow-x: auto; }}
+.figure svg {{ display: block; max-width: 100%; height: auto; }}
+</style>
+</head>
+<body>
+<div class="figure">
+{fig}
+</div>
+</body>
+</html>
+"""
+
+
 def to_html(layout: ChartLayout, theme=None) -> str:
     """將 ChartLayout 轉換為完整 HTML 字串。"""
     if theme is None:
         from ..theme import ThemeConfig
         theme = ThemeConfig()
+
+    # 命盤走 v2 flex 版面；其餘（資料圖表）走通用內嵌 SVG 路徑。
+    if not any(isinstance(el, PalaceEl) for el in layout.elements):
+        return _generic_html(layout, theme)
 
     css = theme.to_html_css()
 

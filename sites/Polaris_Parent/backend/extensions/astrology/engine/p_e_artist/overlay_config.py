@@ -7,8 +7,10 @@
     star_ink  : 該層的星曜／流曜顏色
     sihua_ink : 該層的四化標記顏色
 
-慣例：本命層星近黑、四化紅（突顯本命四化）；其餘三層星與四化同色，
-以「一層一色」快速區分盤別。要調整任何一層，直接改下面對應的色碼即可；
+慣例：**一層一色**，同層的星曜與四化同色——疊盤上四層並置，靠顏色分層比
+靠形狀分層快得多。本命層＝紅（2026-09-21 起星曜也用四化紅；先前星近黑、
+只有四化紅，本命星與大限/小限/流年並排時反而最不顯眼）。
+⚠️ 這裡的 natal 色只在**疊盤**生效；單盤走主題的 star_ink（近黑），不受影響。要調整任何一層，直接改下面對應的色碼即可；
 新增或移除盤層也在這裡。
 
 渲染時，這些色碼會透過 star_ink 分軌上色機制（見 writers/embed_assets.py 的
@@ -21,7 +23,7 @@ OVERLAY_LAYER_ORDER = ["natal", "decade", "small", "year"]
 
 # 各層配色。label 供圖例／標籤顯示；star_ink / sihua_ink 為該層兩軌顏色。
 OVERLAY_LAYERS = {
-    "natal":  {"label": "本命", "star_ink": "#231815", "sihua_ink": "#C62828"},  # 星近黑・四化紅
+    "natal":  {"label": "本命", "star_ink": "#C62828", "sihua_ink": "#C62828"},  # 紅（星與四化同色）
     "decade": {"label": "大限", "star_ink": "#2E7D32", "sihua_ink": "#2E7D32"},  # 綠
     "small":  {"label": "小限", "star_ink": "#1A237E", "sihua_ink": "#1A237E"},  # 深藍
     "year":   {"label": "流年", "star_ink": "#1E88E5", "sihua_ink": "#1E88E5"},  # 淺藍

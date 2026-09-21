@@ -2,27 +2,39 @@
 p_e_artist — 紫微斗數圖表渲染器
 ====================================
 
-V0.4: 多圖表類型架構 — 插件式 Composer 模組
+V0.5: 命盤之外加入資料圖表（v3 星場讀數），並新增 JSON 佈局規格出口
 
 用法:
     from p_e_artist import Chart
 
-    # V0.4: 明確指定圖表類型
+    # 命盤
     chart = Chart("natal", data).set_theme({...}).compute_layout()
     chart.to_svg("output.svg")
     chart.to_html("output.html")
 
+    # 資料圖表（吃 p_d_graph_v3.palace_readings 的 payload）
+    chart = Chart("starfield_aux_heatmap", readings_payload)
+    chart.to_svg("a1.svg")     # 印刷／InDesign／S5 成書
+    chart.to_json("a1.json")   # 前端渲染：幾何仍由 composer 算好，前端不重算
+    chart.to_html("a1.html")   # 自我檢核用預覽（內嵌的就是送印那份 SVG）
+
     # V0.3 相容: 省略類型 → 預設 "natal"
     chart = Chart(data).compute_layout()
     chart.to_svg("output.svg")
+
+一條原則：`compose()` 是幾何與數值的唯一真源，writers 只負責上色與封裝。
 """
 
-__version__ = "0.4.0"
+# ⚠️ 這個版號是**出圖檔的快取鍵**的一部分（見 PolarisUI 的
+# `artist/chart_table.render_signature()`）。改了畫面內容就要動它，否則舊圖會
+# 一直被當成現行版端出來——2026-08-12 的瀑布選星修正就是這樣：程式改好了，
+# 使用者重新整理看到的還是那張畫著地空的舊圖。
+__version__ = "0.5.8"
 
 from .theme import ThemeConfig
 from .core.elements import ChartLayout
 from .charts import get_chart_type, list_chart_types
-from .writers import svg_writer, html_writer
+from .writers import svg_writer, html_writer, json_writer
 
 
 def _initial_theme() -> ThemeConfig:
@@ -101,6 +113,25 @@ class Chart:
         if path:
             self._write_file(path, html_str)
         return html_str
+
+    def to_json(self, path: str | None = None, indent=None) -> str:
+        """輸出佈局規格 JSON（前端渲染用；幾何仍由 composer 算好）。
+
+        資料圖表專用——命盤的 PalaceEl 是語意容器，序列化會逼前端重算版面，
+        故 json_writer 會直接報錯。
+        """
+        if self._layout is None:
+            self.compute_layout()
+        json_str = json_writer.to_json(self._layout, self._theme, indent=indent)
+        if path:
+            self._write_file(path, json_str)
+        return json_str
+
+    def layout_dict(self) -> dict:
+        """同 to_json()，但回傳 dict（API 直接吐 JSON 時免二次編碼）。"""
+        if self._layout is None:
+            self.compute_layout()
+        return json_writer.to_dict(self._layout, self._theme)
 
     # ── 內部 ────────────────────────────────────────
 
