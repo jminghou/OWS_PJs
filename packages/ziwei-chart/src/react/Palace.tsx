@@ -5,6 +5,7 @@ import type { ZiweiTheme } from "../core/theme";
 import { brightnessNameZh, starNameZh } from "../core/registry";
 import { isFlowStar } from "../core/constants";
 import { StarIcon } from "./StarIcon";
+import { palaceSvg, STAR_SVG_DATA } from "./starSvgData";
 import type { LayerFlags } from "./types";
 
 interface PalaceProps {
@@ -15,6 +16,10 @@ interface PalaceProps {
   cnName: string;
   enName: string;
   branchLabel: string;
+  /** 宮干（宮格左下角）；無宮干時為空字串。 */
+  stemLabel?: string;
+  /** 宮位碼（取宮位圖示用）。 */
+  palaceCode?: string;
   isAxis: boolean;
   inSanfang: boolean;
   onClick: (code: string) => void;
@@ -32,6 +37,25 @@ function Badge({
   ink?: string;
 }) {
   const fs = theme.sizes.sihuaTag;
+  // 四化徽章優先用圖示（assets/stars 的 F/P/H/I）：祿圓、權六角、科方、忌三角，
+  // 形狀本身就在表意。圖內底色已轉 currentColor、白字保留 ⇒ color 給底色即可。
+  const glyph = STAR_SVG_DATA[box.label];
+  if (glyph) {
+    const size = box.r * 2;
+    return (
+      <svg
+        x={box.cx - box.r}
+        y={box.cy - box.r}
+        width={size}
+        height={size}
+        viewBox={glyph.viewBox}
+        preserveAspectRatio="xMidYMid meet"
+        color={bg ?? theme.colors.sihuaBadgeBg}
+        style={{ pointerEvents: "none" }}
+        dangerouslySetInnerHTML={{ __html: glyph.inner }}
+      />
+    );
+  }
   return (
     <g style={{ pointerEvents: "none" }}>
       <circle cx={box.cx} cy={box.cy} r={box.r} fill={bg ?? theme.colors.sihuaBadgeBg} />
@@ -98,11 +122,14 @@ export const Palace: FC<PalaceProps> = ({
   cnName,
   enName,
   branchLabel,
+  stemLabel = "",
+  palaceCode = "",
   isAxis,
   inSanfang,
   onClick,
 }) => {
   const { cell } = layout;
+  const palaceSvgData = palaceCode ? palaceSvg(palaceCode) : undefined;
   const highlightFill = isAxis
     ? theme.colors.axisHighlight
     : inSanfang
@@ -125,18 +152,49 @@ export const Palace: FC<PalaceProps> = ({
         style={{ transition: "fill 180ms ease" }}
       />
 
-      {/* header */}
-      <text
-        x={layout.name.x}
-        y={layout.name.y}
-        fontSize={theme.sizes.palaceName}
-        fontWeight="bold"
-        fill={isAxis ? theme.colors.palaceLink : theme.colors.palaceName}
-        fontFamily={theme.fontFamily}
-        style={{ pointerEvents: "none" }}
-      >
-        {cnName}
-      </text>
+      {/* header：宮位圖示（palaceNameStyle="icon"）或文字宮名 */}
+      {layout.palaceIcon && palaceSvgData ? (
+        <>
+          <svg
+            x={layout.palaceIcon.x}
+            y={layout.palaceIcon.y}
+            width={layout.palaceIcon.w}
+            height={layout.palaceIcon.h}
+            viewBox={palaceSvgData.viewBox}
+            preserveAspectRatio="xMidYMid meet"
+            color={isAxis ? theme.colors.palaceLink : theme.colors.palaceName}
+            style={{ pointerEvents: "none" }}
+            dangerouslySetInnerHTML={{ __html: palaceSvgData.inner }}
+          />
+          {/* 身宮＝圖示外一圈同粗細外框 */}
+          {layout.bodyFrame ? (
+            <rect
+              x={layout.bodyFrame.x}
+              y={layout.bodyFrame.y}
+              width={layout.bodyFrame.w}
+              height={layout.bodyFrame.h}
+              rx={1.5}
+              fill="none"
+              stroke={isAxis ? theme.colors.palaceLink : theme.colors.palaceName}
+              strokeWidth={layout.bodyFrame.strokeWidth}
+              strokeLinejoin="round"
+              style={{ pointerEvents: "none" }}
+            />
+          ) : null}
+        </>
+      ) : (
+        <text
+          x={layout.name.x}
+          y={layout.name.y}
+          fontSize={theme.sizes.palaceName}
+          fontWeight="bold"
+          fill={isAxis ? theme.colors.palaceLink : theme.colors.palaceName}
+          fontFamily={theme.fontFamily}
+          style={{ pointerEvents: "none" }}
+        >
+          {cnName}
+        </text>
+      )}
       {layout.flowTag ? (
         <text
           x={layout.flowTag.x}
@@ -162,6 +220,18 @@ export const Palace: FC<PalaceProps> = ({
           {enName}
         </text>
       ) : null}
+      {stemLabel ? (
+        <text
+          x={layout.stem.x}
+          y={layout.stem.y}
+          fontSize={theme.sizes.branch}
+          fill={theme.colors.branchInk}
+          fontFamily={theme.fontBranch}
+          style={{ pointerEvents: "none" }}
+        >
+          {stemLabel}
+        </text>
+      ) : null}
       <text
         x={layout.branch.x}
         y={layout.branch.y}
@@ -173,15 +243,18 @@ export const Palace: FC<PalaceProps> = ({
       >
         {branchLabel}
       </text>
-      <line
-        x1={layout.underline.x1}
-        y1={layout.underline.y1}
-        x2={layout.underline.x2}
-        y2={layout.underline.y2}
-        stroke={theme.colors.gridStroke}
-        strokeWidth={theme.layout.gridWidth}
-        style={{ pointerEvents: "none" }}
-      />
+      {/* 表頭底線：宮位圖示左右本就帶橫線，那條線是重複的 ⇒ 預設關 */}
+      {theme.layout.palaceHeaderLine ? (
+        <line
+          x1={layout.underline.x1}
+          y1={layout.underline.y1}
+          x2={layout.underline.x2}
+          y2={layout.underline.y2}
+          stroke={theme.colors.gridStroke}
+          strokeWidth={theme.layout.gridWidth}
+          style={{ pointerEvents: "none" }}
+        />
+      ) : null}
 
       {/* 主星 */}
       {layout.majorIcons.map((box, i) => (

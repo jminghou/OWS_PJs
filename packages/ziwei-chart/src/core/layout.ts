@@ -81,8 +81,14 @@ export interface PalaceLayout {
   name: { x: number; y: number };
   /** 英文宮名位置。 */
   nameEn: { x: number; y: number };
-  /** 地支文字位置（anchor=end）。 */
+  /** 地支文字位置（宮格右下角，anchor=end）。 */
   branch: { x: number; y: number };
+  /** 宮干文字位置（宮格左下角，anchor=start）；無宮干時仍給座標，由呼叫端決定畫不畫。 */
+  stem: { x: number; y: number };
+  /** 宮位圖示（palaceNameStyle="icon" 時非 null）。 */
+  palaceIcon: { x: number; y: number; w: number; h: number } | null;
+  /** 身宮外框（此宮為身宮且走圖示模式時非 null）。 */
+  bodyFrame: { x: number; y: number; w: number; h: number; strokeWidth: number } | null;
   /** 流盤宮位標記（大X/流X/小X），疊加模式時顯示；無則 null。 */
   flowTag: { x: number; y: number; text: string } | null;
   /** header 底線。 */
@@ -129,7 +135,12 @@ export function computePalaceLayout(
   palace: PalaceInfo,
   cell: CellRect,
   theme: ZiweiTheme,
-  opts: { cnName: string; enName: string; branchLabel: string; flowTag?: string },
+  opts: {
+    cnName: string; enName: string; branchLabel: string; flowTag?: string;
+    /** 宮位圖示的畫框比例（w/h），由 PALACE_SVG_DATA 的 viewBox 決定；缺省＝全寬 260×80。 */
+    palaceIconAspect?: number;
+    isBody?: boolean;
+  },
 ): PalaceLayout {
   const lo = theme.layout;
   const padLeft = lo.palacePadLeft;
@@ -142,8 +153,16 @@ export function computePalaceLayout(
   const badge = lo.sihuaBadgeSize;
   const minorLh = lo.minorLineHeight;
   const minorPb = lo.minorPadBottom;
-  const underlineY = lo.headerUnderlineOffset;
+  const useIcon = lo.palaceNameStyle === "icon";
+  // 表頭帶高＝星曜區起點。圖示模式較高（要容下圖示＋身宮外框），
+  // 且只看 style 不看個別宮位——12 宮的星曜區必須從同一條線開始。
+  const underlineY = useIcon ? lo.palaceIconHeaderOffset : lo.headerUnderlineOffset;
   const baselineY = lo.headerBaselineOffset;
+  const framePad = lo.palaceBodyFramePad;
+  const iconH = lo.palaceIconHeight;
+  const iconW = iconH * (opts.palaceIconAspect ?? 260 / 80);
+  // 線寬對齊主星圖示的視覺線寬（星曜原稿 289 畫框、線寬 5）
+  const iconStroke = (5 * iconMain) / 289;
   const sep = lo.minorSeparator;
   const starMinorSize = theme.sizes.starMinor;
 
@@ -171,7 +190,9 @@ export function computePalaceLayout(
   // stars 區域幾何（對應 svg_writer）
   const minorHeight = starMinorSize * minorLh + minorPb;
   const starsAreaTop = py + underlineY;
-  const starsAreaBottom = py + ph - padBottom;
+  // 干支已移到宮格下緣：整列保留高度，星曜與小星文字都不得壓到
+  const gzHeight = theme.sizes.branch + 2;
+  const starsAreaBottom = py + ph - padBottom - gzHeight;
   const iconsTop = starsAreaTop;
   const hasMajors = palace.majors.length > 0;
   const hasSubs = palace.subs.length > 0;
@@ -203,11 +224,29 @@ export function computePalaceLayout(
     };
   }
 
+  // 宮位圖示：整組（含外框留白）水平置中，由頂端固定留白下移
+  const iconTop = py + lo.palaceIconTopGap;
+  const iconX = px + (pw - (iconW + 2 * framePad)) / 2 + framePad;
+  // 干支移到宮格下緣：宮干左下、地支右下，同一條基線
+  const gzBaseline = py + ph - padBottom;
+
   return {
     cell,
     name: { x: px + padLeft, y: py + baselineY },
     nameEn: { x: enX, y: py + baselineY },
-    branch: { x: px + pw - padRight, y: py + baselineY },
+    branch: { x: px + pw - padRight, y: gzBaseline },
+    stem: { x: px + padLeft, y: gzBaseline },
+    palaceIcon: useIcon ? { x: iconX, y: iconTop + framePad, w: iconW, h: iconH } : null,
+    bodyFrame:
+      useIcon && opts.isBody
+        ? {
+            x: iconX - framePad,
+            y: iconTop,
+            w: iconW + 2 * framePad,
+            h: iconH + 2 * framePad,
+            strokeWidth: iconStroke,
+          }
+        : null,
     flowTag: tagText ? { x: tagX, y: py + baselineY, text: tagText } : null,
     underline: {
       x1: px + padLeft,

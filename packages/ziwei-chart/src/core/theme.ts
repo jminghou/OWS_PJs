@@ -57,6 +57,17 @@ export interface ZiweiThemeLayout {
   headerUnderlineOffset: number;
   headerBaselineOffset: number;
   gridWidth: number;
+  /** 宮名表現："icon"＝宮位圖示；"text"＝文字宮名。與 p_e_artist palace_name_style 同義。 */
+  palaceNameStyle: "icon" | "text";
+  palaceIconHeight: number;
+  /** 身宮外框與圖示的間距；版面一律留位，只有身宮真的畫框（12 宮才在同一條線上）。 */
+  palaceBodyFramePad: number;
+  /** 圖示上緣（含外框）距宮格頂的留白；置中會讓外框貼到格線。 */
+  palaceIconTopGap: number;
+  /** 圖示模式的表頭帶高（取代 headerUnderlineOffset）。 */
+  palaceIconHeaderOffset: number;
+  /** 表頭底線；宮位圖示左右本就帶橫線，那條線是重複的。 */
+  palaceHeaderLine: boolean;
 }
 
 export interface ZiweiTheme {
@@ -120,6 +131,12 @@ export const DEFAULT_THEME: ZiweiTheme = {
     headerUnderlineOffset: 24,
     headerBaselineOffset: 18,
     gridWidth: 0.5,
+    palaceNameStyle: "icon",
+    palaceIconHeight: 18,
+    palaceBodyFramePad: 3,
+    palaceIconTopGap: 7,
+    palaceIconHeaderOffset: 34,
+    palaceHeaderLine: false,
   },
 };
 

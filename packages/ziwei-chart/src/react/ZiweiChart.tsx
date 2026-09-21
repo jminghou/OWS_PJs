@@ -7,6 +7,7 @@ import { parseChart, type ChartData, type StarInfo } from "../core/model";
 import { parseFlow } from "../core/flow";
 import { resolveTheme } from "../core/theme";
 import { PALACE_CODES_12, isFlowStar } from "../core/constants";
+import { palaceSvg } from "./starSvgData";
 import {
   palaceNameZh,
   palaceNameEn,
@@ -182,18 +183,24 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
       let cnName = palaceNameZh(code);
       if (code === natalData.bodyPalace) cnName += "(身)";
       const enName = palaceNameEn(code);
-      // 宮位干支：有宮干顯示「癸卯」，舊資料無宮干退回「卯」
-      const branchLabel = stemNameZh(palace.stem) + branchNameZh(palace.branch);
+      // 宮位干支拆兩段：宮干走左下角、地支走右下角（與靜態圖一致）
+      const branchLabel = branchNameZh(palace.branch);
+      const stemLabel = stemNameZh(palace.stem);
       // 流盤宮位標記：大X/流X/小X（X = 該層宮名首字）
       const flowZh = flowNames ? flowNames[palace.branch]?.zh : undefined;
       const flowTag = flowZh ? layerPrefix + flowZh[0] : undefined;
+      const isBody = code === natalData.bodyPalace;
+      const iconSvg = palaceSvg(code);
+      const [, , vbW, vbH] = (iconSvg?.viewBox ?? "0 0 260 80").split(/\s+/).map(Number);
       const layout = computePalaceLayout(palace, cell, theme, {
         cnName,
         enName,
         branchLabel,
         flowTag,
+        isBody,
+        palaceIconAspect: vbW && vbH ? vbW / vbH : undefined,
       });
-      return { palace, layout, cnName, enName, branchLabel };
+      return { palace, layout, cnName, enName, branchLabel, stemLabel, code, isBody };
     }).filter((x): x is NonNullable<typeof x> => x !== null);
   }, [data, grid, theme, flowNames, layerPrefix, natalData]);
 
@@ -287,6 +294,8 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
             cnName={p.cnName}
             enName={p.enName}
             branchLabel={p.branchLabel}
+            stemLabel={p.stemLabel}
+            palaceCode={p.code}
             isAxis={p.palace.code === axisPalace}
             inSanfang={
               p.palace.code !== axisPalace && sanfangBranches.has(p.palace.branch)

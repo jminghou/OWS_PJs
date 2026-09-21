@@ -39,7 +39,18 @@ export const MAJOR_STAR_CODES: ReadonlySet<string> = new Set([
   // 六吉、祿馬、四煞、空劫、截空
   "LHA", "RHA", "AAC", "AAR", "CPA", "CAI", "DIV", "HHO",
   "GLA", "STO", "FSP", "CHI", "EVO", "MAE", "INT",
+  // 紅鸞天喜（本命亦佔位；流盤層另有 dRP/dHJ 等前綴碼）
+  "RPH", "HJO",
 ]);
+
+/**
+ * 四化徽章的圖示碼（＝assets/stars 裡的 F/P/H/I）。
+ * ⚠️ 四種形狀不同（祿圓、權六角、科方、忌三角），不可一律畫圓——
+ * 這也是它們雖然放在 assets/stars 卻**不是星曜**、不進 MAJOR_STAR_CODES 的原因。
+ */
+export const SIHUA_BADGE_ICON: Record<string, string> = {
+  FO: "F", PW: "P", HO: "H", BI: "I",
+};
 
 /** 副星 = 有圖檔但非十四主星。 */
 export const SUB_STAR_CODES: ReadonlySet<string> = new Set(

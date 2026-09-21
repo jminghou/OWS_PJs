@@ -215,13 +215,31 @@ if (-not $SkipChartPkg) {
             $pkgNames = (Get-ChildItem $pkgStars -Filter *.svg).Name
             $extra = (Get-ChildItem $srcStars -Filter *.svg).Name | Where-Object { $pkgNames -notcontains $_ }
         }
+        # 宮位圖示（assets/palace → 套件）：與星曜不同，這組整包同步（12 全寬 + 12 半寬，
+        # 檔名就是宮位碼，不需要另外註冊）。漏掉就會「靜態圖是圖示、互動命盤還是中文宮名」。
+        $pkgPalace = Join-Path $ChartPkg "src\assets\palace"
+        $srcPalace = "$Source\p_e_artist\assets\palace"
+        if (Test-Path $srcPalace) {
+            if (-not (Test-Path $pkgPalace)) { New-Item -ItemType Directory -Force -Path $pkgPalace | Out-Null }
+            Get-ChildItem $srcPalace -Filter *.svg | ForEach-Object {
+                $to = Join-Path $pkgPalace $_.Name
+                if (-not (Test-Path $to) -or (Get-FileHash $_.FullName).Hash -ne (Get-FileHash $to).Hash) {
+                    Copy-Item $_.FullName $to -Force
+                    $updated++
+                }
+            }
+            Write-Host ("[chart-pkg] 宮位圖示 " + (Get-ChildItem $pkgPalace -Filter *.svg).Count + " 個") -ForegroundColor Cyan
+        }
+
         Write-Host "[chart-pkg] 圖示更新 $updated 個" -ForegroundColor Cyan
         if ($missing.Count) { Write-Host ("[chart-pkg] ⚠ 真源缺少：" + ($missing -join ", ")) -ForegroundColor Yellow }
         if ($extra.Count)   { Write-Host ("[chart-pkg] ℹ 真源多出（未自動納入，需先在 constants.ts 註冊）：" + ($extra -join ", ")) -ForegroundColor Yellow }
         if ($updated -gt 0) {
             Push-Location $ChartPkg
             try {
-                & npm run gen:stars
+                # Windows 下 npm 是 .cmd，用 & npm 會被 PowerShell 解析成別的東西
+                # （2026-09-22 實測回 Unknown command: "pm"）⇒ 明確走 cmd.exe
+                & cmd.exe /c "npm run gen:stars"
                 if ($LASTEXITCODE -ne 0) { Write-Host "[chart-pkg] ⚠ gen:stars 失敗，請手動在 $ChartPkg 執行 npm run gen:stars" -ForegroundColor Yellow }
             } finally { Pop-Location }
         }
