@@ -19,7 +19,8 @@
       "@ows/platform-api": ["../platform-api/src/index.ts"],
       "@ows/platform-api/*": ["../platform-api/src/*"],
       "@ows/ziwei-chart": ["../ziwei-chart/src/index.ts"],
-      "@ows/ziwei-chart/core": ["../ziwei-chart/src/core/index.ts"]
+      "@ows/ziwei-chart/core": ["../ziwei-chart/src/core/index.ts"],
+      "@ows/ziwei-engine": ["../ziwei-engine/src/index.ts"]
     }
   },
   "include": ["src/**/*"],

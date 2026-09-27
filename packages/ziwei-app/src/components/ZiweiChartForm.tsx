@@ -78,7 +78,8 @@ export default function ZiweiChartForm() {
             : undefined,
         // 公開頁直接呈現互動命盤（本命層）；靜態 SVG 僅作渲染失敗時的備援。
         // 流盤（大限／流年）屬會員專區進階功能，公開頁不請求。
-        render: true,
+        // 排盤在瀏覽器算（@ows/ziwei-engine）；靜態 SVG 由後端出，只在會員頁下載時才取
+        render: false,
         include_chart_json: true,
         include_flow: false,
       });

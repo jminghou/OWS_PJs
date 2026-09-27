@@ -119,7 +119,8 @@ export default function MemberChartForm({ onComputed }: Props) {
           form.timeType === 'solar_time'
             ? { city: form.city, country: form.country }
             : undefined,
-        render: true,
+        // 排盤在瀏覽器算（@ows/ziwei-engine）；靜態 SVG 由後端出，只在會員頁下載時才取
+        render: false,
         include_chart_json: true,
         include_flow: true,
       });

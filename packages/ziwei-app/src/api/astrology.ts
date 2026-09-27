@@ -5,6 +5,7 @@
  *   GET  /api/v1/astrology/geo-options
  */
 import { API_URL, request } from '@ows/platform-api/client';
+import { calculateLocal, engineMode, geoOptionsLocal } from './localEngine';
 
 export type TimeType = 'clock_time' | 'solar_time';
 
@@ -331,10 +332,37 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return json as T;
 }
 
+/** 後端只出靜態 SVG（會員頁下載用）；失敗回 null，不擋本地算出的命盤。 */
+async function fetchSvgOnly(req: ZiweiCalcRequest): Promise<string | null> {
+  try {
+    const res = await postJson<ZiweiCalcResponse>('/astrology/calculate', {
+      ...req, render: true, include_flow: false, include_chart_json: false,
+      include_star_energy: false, include_readings: false,
+    });
+    return res.svg ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export const astrologyApi = {
-  /** 排盤：回傳命盤 JSON 與十二宮方圖 SVG。 */
-  calculate: (req: ZiweiCalcRequest) =>
-    postJson<ZiweiCalcResponse>('/astrology/calculate', req),
+  /**
+   * 排盤：預設在瀏覽器用 @ows/ziwei-engine 算（與後端引擎逐位元對齊，見套件黃金檔測試），
+   * 後端 /astrology/calculate 保留當備援：NEXT_PUBLIC_ZIWEI_ENGINE=api 全部走後端；
+   * 本地算失敗也自動退回後端。靜態 SVG 一律由後端出（render=true 時另取）。
+   */
+  calculate: async (req: ZiweiCalcRequest): Promise<ZiweiCalcResponse> => {
+    if (engineMode() === 'api') return postJson<ZiweiCalcResponse>('/astrology/calculate', req);
+    let local: ZiweiCalcResponse;
+    try {
+      local = calculateLocal(req);
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') console.warn('[ziwei] 本地排盤失敗，退回後端：', err);
+      return postJson<ZiweiCalcResponse>('/astrology/calculate', req);
+    }
+    if (req.render) local.svg = await fetchSvgOnly(req);
+    return local;
+  },
 
   /** 一鍵建檔 + 註冊：存命盤、建免密碼會員、寄設定密碼信。 */
   saveAndRegister: (req: SaveAndRegisterRequest) =>
@@ -409,8 +437,9 @@ export const astrologyApi = {
       method: 'DELETE',
     }),
 
-  /** 取得地點級聯選項（真太陽時用）。 */
+  /** 取得地點級聯選項（真太陽時用）。本地引擎內建同一份表；api 模式才打後端。 */
   geoOptions: async (): Promise<GeoHierarchy> => {
+    if (engineMode() !== 'api') return geoOptionsLocal();
     const res = await fetch(`${API_URL}/astrology/geo-options`);
     let json: any = {};
     try {
