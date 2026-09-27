@@ -14,7 +14,8 @@
     "packages/newsletter",
     "packages/content-kit",
     "packages/site-kit",
-    "sites/*/frontend"
+    "sites/*/frontend",
+    "apps/*"
   ],
   "scripts": {
     "dev:polaris": "npm run dev --workspace=p-ows-frontend",
@@ -43,7 +44,9 @@
     "test:engine": "npm run test --workspace=@ows/ziwei-engine",
     "golden:engine": "venv\\Scripts\\python.exe scripts/gen_ziwei_golden.py",
     "golden:geo": "venv\\Scripts\\python.exe scripts/gen_ziwei_geo.py",
-    "typecheck:engine": "npm run typecheck --workspace=@ows/ziwei-engine"
+    "typecheck:engine": "npm run typecheck --workspace=@ows/ziwei-engine",
+    "mobile": "npm run start --workspace=@ows/ziwei-mobile",
+    "typecheck:mobile": "npm run typecheck --workspace=@ows/ziwei-mobile"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"
