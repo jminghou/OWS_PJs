@@ -1,6 +1,6 @@
 {
  "_comment": "由 scripts/gen_ziwei_geo.py 產生：geo-options 階層＋每城座標／時區（Python GeographicDataManager 快照，勿手改）",
- "generated_at": "2026-09-27T10:23:47",
+ "generated_at": "2026-09-27T14:00:48",
  "hierarchy": {
   "亞洲": {
    "中國": [
@@ -839,7 +839,7 @@
    "country": "韓國",
    "city": "水原",
    "place_en": "水原, South Korea",
-   "coordinates": "37n15, 126e59",
+   "coordinates": "37n15, 127e00",
    "timezone": "h8e"
   },
   "高陽|韓國": {
@@ -1334,9 +1334,9 @@
    "continent": "亞洲",
    "country": "菲律賓",
    "city": "三寶淵",
-   "place_en": "三寶淵, Philippines",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Zamboanga, Philippines",
+   "coordinates": "18n11, 120e32",
+   "timezone": "h8e"
   },
   "卡加延德奧羅|菲律賓": {
    "continent": "亞洲",
@@ -1358,9 +1358,9 @@
    "continent": "亞洲",
    "country": "菲律賓",
    "city": "安吉利斯",
-   "place_en": "安吉利斯, Philippines",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Angeles City, Philippines",
+   "coordinates": "15n08, 120e35",
+   "timezone": "h8e"
   },
   "奧隆阿波|菲律賓": {
    "continent": "亞洲",
@@ -1470,9 +1470,9 @@
    "continent": "亞洲",
    "country": "汶萊",
    "city": "瓜拉勿洞",
-   "place_en": "瓜拉勿洞, Brunei",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Kuala Belait, Brunei",
+   "coordinates": "4n35, 114e11",
+   "timezone": "h8e"
   },
   "馬來奕|汶萊": {
    "continent": "亞洲",
@@ -1910,9 +1910,9 @@
    "continent": "歐洲",
    "country": "義大利",
    "city": "佛羅倫斯",
-   "place_en": "佛羅倫斯, Italy",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Florence, Italy",
+   "coordinates": "43n46, 11e15",
+   "timezone": "h1e"
   },
   "巴里|義大利": {
    "continent": "歐洲",
@@ -2062,8 +2062,8 @@
    "continent": "歐洲",
    "country": "西班牙",
    "city": "瓦拉多利德",
-   "place_en": "瓦拉多利德, Spain",
-   "coordinates": "0n00, 0e00",
+   "place_en": "Valladolid, Spain",
+   "coordinates": "41n37, 4w43",
    "timezone": "h0e"
   },
   "維哥|西班牙": {
@@ -2134,8 +2134,8 @@
    "continent": "歐洲",
    "country": "荷蘭",
    "city": "阿爾梅勒",
-   "place_en": "阿爾梅勒, Netherlands",
-   "coordinates": "0n00, 0e00",
+   "place_en": "Almere, Netherlands",
+   "coordinates": "52n22, 5e13",
    "timezone": "h0e"
   },
   "布雷達|荷蘭": {
@@ -2214,17 +2214,17 @@
    "continent": "歐洲",
    "country": "瑞士",
    "city": "聖加侖",
-   "place_en": "聖加侖, Switzerland",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "St. Gallen, Switzerland",
+   "coordinates": "47n25, 9e22",
+   "timezone": "h1e"
   },
   "盧加諾|瑞士": {
    "continent": "歐洲",
    "country": "瑞士",
    "city": "盧加諾",
-   "place_en": "盧加諾, Switzerland",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Lugano, Switzerland",
+   "coordinates": "46n00, 8e57",
+   "timezone": "h1e"
   },
   "比爾|瑞士": {
    "continent": "歐洲",
@@ -2302,9 +2302,9 @@
    "continent": "歐洲",
    "country": "奧地利",
    "city": "維納紐施塔特",
-   "place_en": "維納紐施塔特, Austria",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Wiener Neustadt, Austria",
+   "coordinates": "47n48, 16e14",
+   "timezone": "h1e"
   },
   "斯泰爾|奧地利": {
    "continent": "歐洲",
@@ -2486,9 +2486,9 @@
    "continent": "北美洲",
    "country": "加拿大",
    "city": "蒙特婁",
-   "place_en": "蒙特婁, Canada",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Montreal, Canada",
+   "coordinates": "45n30, 73w34",
+   "timezone": "h5w"
   },
   "溫哥華|加拿大": {
    "continent": "北美洲",
@@ -2614,16 +2614,16 @@
    "continent": "北美洲",
    "country": "墨西哥",
    "city": "托雷翁",
-   "place_en": "托雷翁, Mexico",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Torreón, Mexico",
+   "coordinates": "25n32, 103w24",
+   "timezone": "h7w"
   },
   "克雷塔羅|墨西哥": {
    "continent": "北美洲",
    "country": "墨西哥",
    "city": "克雷塔羅",
    "place_en": "克雷塔羅, Mexico",
-   "coordinates": "20n34, 100w21",
+   "coordinates": "20n34, 100w22",
    "timezone": "h7w"
   },
   "奇瓦瓦|墨西哥": {
@@ -2670,9 +2670,9 @@
    "continent": "南美洲",
    "country": "巴西",
    "city": "福塔雷薩",
-   "place_en": "福塔雷薩, Brazil",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Fortaleza, Brazil",
+   "coordinates": "3s47, 38w31",
+   "timezone": "h3w"
   },
   "貝洛奧里藏特|巴西": {
    "continent": "南美洲",
@@ -2694,9 +2694,9 @@
    "continent": "南美洲",
    "country": "巴西",
    "city": "庫里提巴",
-   "place_en": "庫里提巴, Brazil",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Curitiba, Brazil",
+   "coordinates": "25s25, 49w16",
+   "timezone": "h3w"
   },
   "累西費|巴西": {
    "continent": "南美洲",
@@ -2790,9 +2790,9 @@
    "continent": "南美洲",
    "country": "阿根廷",
    "city": "雷西斯滕西亞",
-   "place_en": "雷西斯滕西亞, Argentina",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Resistencia, Argentina",
+   "coordinates": "27s36, 59w11",
+   "timezone": "h4w"
   },
   "聖地亞哥|智利": {
    "continent": "南美洲",
@@ -2822,9 +2822,9 @@
    "continent": "南美洲",
    "country": "智利",
    "city": "拉塞雷納",
-   "place_en": "拉塞雷納, Chile",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "La Serena, Chile",
+   "coordinates": "29s54, 71w15",
+   "timezone": "h5w"
   },
   "安托法加斯塔|智利": {
    "continent": "南美洲",
@@ -2838,9 +2838,9 @@
    "continent": "南美洲",
    "country": "智利",
    "city": "特木科",
-   "place_en": "特木科, Chile",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Temuco, Chile",
+   "coordinates": "38s44, 72w35",
+   "timezone": "h5w"
   },
   "拉金塔|智利": {
    "continent": "南美洲",
@@ -2870,9 +2870,9 @@
    "continent": "南美洲",
    "country": "智利",
    "city": "伊基克",
-   "place_en": "伊基克, Chile",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Iquique, Chile",
+   "coordinates": "20s12, 70w09",
+   "timezone": "h5w"
   },
   "波哥大|哥倫比亞": {
    "continent": "南美洲",
@@ -2934,9 +2934,9 @@
    "continent": "南美洲",
    "country": "哥倫比亞",
    "city": "佩雷拉",
-   "place_en": "佩雷拉, Colombia",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Pereira, Colombia",
+   "coordinates": "4n47, 75w47",
+   "timezone": "h5w"
   },
   "伊瓦格|哥倫比亞": {
    "continent": "南美洲",
@@ -3006,9 +3006,9 @@
    "continent": "大洋洲",
    "country": "澳大利亞",
    "city": "紐卡索",
-   "place_en": "紐卡索, Australia",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Newcastle, Australia",
+   "coordinates": "32s55, 151e46",
+   "timezone": "h10e"
   },
   "坎培拉|澳大利亞": {
    "continent": "大洋洲",
@@ -3078,9 +3078,9 @@
    "continent": "大洋洲",
    "country": "紐西蘭",
    "city": "但尼丁",
-   "place_en": "但尼丁, New Zealand",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Dunedin, New Zealand",
+   "coordinates": "45s52, 170e30",
+   "timezone": "h11e"
   },
   "帕默斯頓北|紐西蘭": {
    "continent": "大洋洲",
@@ -3094,17 +3094,17 @@
    "continent": "大洋洲",
    "country": "紐西蘭",
    "city": "羅托魯瓦",
-   "place_en": "羅托魯瓦, New Zealand",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Rotorua, New Zealand",
+   "coordinates": "38s08, 176e15",
+   "timezone": "h12e"
   },
   "納爾遜|紐西蘭": {
    "continent": "大洋洲",
    "country": "紐西蘭",
    "city": "納爾遜",
-   "place_en": "納爾遜, New Zealand",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Nelson, New Zealand",
+   "coordinates": "41s16, 173e17",
+   "timezone": "h12e"
   },
   "新普利茅斯|紐西蘭": {
    "continent": "大洋洲",
@@ -3150,9 +3150,9 @@
    "continent": "非洲",
    "country": "南非",
    "city": "伊麗莎白港",
-   "place_en": "伊麗莎白港, South Africa",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Gqeberha, South Africa",
+   "coordinates": "33s57, 25e37",
+   "timezone": "h2e"
   },
   "布隆方丹|南非": {
    "continent": "非洲",
@@ -3174,25 +3174,25 @@
    "continent": "非洲",
    "country": "南非",
    "city": "內爾斯普雷特",
-   "place_en": "內爾斯普雷特, South Africa",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Mbombela, South Africa",
+   "coordinates": "25s28, 30e58",
+   "timezone": "h2e"
   },
   "克萊蒙德|南非": {
    "continent": "非洲",
    "country": "南非",
    "city": "克萊蒙德",
-   "place_en": "克萊蒙德, South Africa",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Klerksdorp, South Africa",
+   "coordinates": "26s51, 26e39",
+   "timezone": "h2e"
   },
   "波羅克瓦尼|南非": {
    "continent": "非洲",
    "country": "南非",
    "city": "波羅克瓦尼",
-   "place_en": "波羅克瓦尼, South Africa",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Polokwane, South Africa",
+   "coordinates": "23s54, 29e27",
+   "timezone": "h2e"
   },
   "開羅|埃及": {
    "continent": "非洲",
@@ -3222,16 +3222,16 @@
    "continent": "非洲",
    "country": "埃及",
    "city": "舒卜拉海邁",
-   "place_en": "舒卜拉海邁, Egypt",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Shubra El Kheima, Egypt",
+   "coordinates": "30n07, 31e14",
+   "timezone": "h2e"
   },
   "盧克索|埃及": {
    "continent": "非洲",
    "country": "埃及",
    "city": "盧克索",
    "place_en": "盧克索, Egypt",
-   "coordinates": "25n42, 32e37",
+   "coordinates": "25n43, 32e39",
    "timezone": "h2e"
   },
   "阿斯旺|埃及": {
@@ -3239,7 +3239,7 @@
    "country": "埃及",
    "city": "阿斯旺",
    "place_en": "阿斯旺, Egypt",
-   "coordinates": "24n05, 32e53",
+   "coordinates": "23n58, 32e52",
    "timezone": "h2e"
   },
   "伊斯梅利亞|埃及": {
@@ -3270,9 +3270,9 @@
    "continent": "非洲",
    "country": "埃及",
    "city": "曼蘇拉",
-   "place_en": "曼蘇拉, Egypt",
-   "coordinates": "0n00, 0e00",
-   "timezone": "h0e"
+   "place_en": "Mansoura, Egypt",
+   "coordinates": "31n02, 31e21",
+   "timezone": "h2e"
   },
   "卡薩布蘭卡|摩洛哥": {
    "continent": "非洲",
@@ -3342,16 +3342,16 @@
    "continent": "非洲",
    "country": "摩洛哥",
    "city": "凱尼特拉",
-   "place_en": "凱尼特拉, Morocco",
-   "coordinates": "0n00, 0e00",
+   "place_en": "Kenitra, Morocco",
+   "coordinates": "34n15, 6w34",
    "timezone": "h0e"
   },
   "泰圖安|摩洛哥": {
    "continent": "非洲",
    "country": "摩洛哥",
    "city": "泰圖安",
-   "place_en": "泰圖安, Morocco",
-   "coordinates": "0n00, 0e00",
+   "place_en": "Tetouan, Morocco",
+   "coordinates": "35n34, 5w22",
    "timezone": "h0e"
   },
   "拉哥斯|奈及利亞": {

@@ -111,7 +111,38 @@ class GeographicDataManager:
             "雅加達": "Jakarta", "泗水": "Surabaya", "萬隆": "Bandung", "棉蘭": "Medan",
             "三寶壟": "Semarang", "巴淡": "Batam", "巴里巴板": "Balikpapan", "馬卡薩": "Makassar",
             # 汶萊
-            "斯里巴加灣市": "Bandar Seri Begawan"
+            "斯里巴加灣市": "Bandar Seri Begawan",
+            # 2026-09-27 補：原本沒有英文名、Nominatim 查中文查不到而落 (0,0) 的 30 城
+            "三寶淵": "Zamboanga",
+            "安吉利斯": "Angeles City",
+            "瓜拉勿洞": "Kuala Belait",
+            "佛羅倫斯": "Florence",
+            "瓦拉多利德": "Valladolid",
+            "阿爾梅勒": "Almere",
+            "聖加侖": "St. Gallen",
+            "盧加諾": "Lugano",
+            "維納紐施塔特": "Wiener Neustadt",
+            "蒙特婁": "Montreal",
+            "托雷翁": "Torreón",
+            "福塔雷薩": "Fortaleza",
+            "庫里提巴": "Curitiba",
+            "雷西斯滕西亞": "Resistencia",
+            "拉塞雷納": "La Serena",
+            "特木科": "Temuco",
+            "伊基克": "Iquique",
+            "佩雷拉": "Pereira",
+            "紐卡索": "Newcastle",
+            "但尼丁": "Dunedin",
+            "羅托魯瓦": "Rotorua",
+            "納爾遜": "Nelson",
+            "伊麗莎白港": "Gqeberha",
+            "內爾斯普雷特": "Mbombela",
+            "克萊蒙德": "Klerksdorp",
+            "波羅克瓦尼": "Polokwane",
+            "舒卜拉海邁": "Shubra El Kheima",
+            "曼蘇拉": "Mansoura",
+            "凱尼特拉": "Kenitra",
+            "泰圖安": "Tetouan"
         }
 
     def get_geographic_hierarchy(self) -> Dict:
