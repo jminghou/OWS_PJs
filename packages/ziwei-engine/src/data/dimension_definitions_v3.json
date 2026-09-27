@@ -1,0 +1,903 @@
+[
+ {
+  "index": 0,
+  "name": "major_pol",
+  "name_zh": "排序力",
+  "kind": "major",
+  "stars": [
+   "POL"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 1,
+  "name": "major_hpi",
+  "name_zh": "運算力",
+  "kind": "major",
+  "stars": [
+   "HPI"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 2,
+  "name": "major_sun",
+  "name_zh": "作用力",
+  "kind": "major",
+  "stars": [
+   "SUN"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 3,
+  "name": "major_mar",
+  "name_zh": "兌換力",
+  "kind": "major",
+  "stars": [
+   "MAR"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 4,
+  "name": "major_har",
+  "name_zh": "分享力",
+  "kind": "major",
+  "stars": [
+   "HAR"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 5,
+  "name": "major_mag",
+  "name_zh": "掌控力",
+  "kind": "major",
+  "stars": [
+   "MAG"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 6,
+  "name": "major_tre",
+  "name_zh": "承載力",
+  "kind": "major",
+  "stars": [
+   "TRE"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 7,
+  "name": "major_moo",
+  "name_zh": "涵養力",
+  "kind": "major",
+  "stars": [
+   "MOO"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 8,
+  "name": "major_awo",
+  "name_zh": "擴張力",
+  "kind": "major",
+  "stars": [
+   "AWO"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 9,
+  "name": "major_gga",
+  "name_zh": "分界力",
+  "kind": "major",
+  "stars": [
+   "GGA"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 10,
+  "name": "major_min",
+  "name_zh": "授權力",
+  "kind": "major",
+  "stars": [
+   "MIN"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 11,
+  "name": "major_ble",
+  "name_zh": "系統力",
+  "kind": "major",
+  "stars": [
+   "BLE"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 12,
+  "name": "major_van",
+  "name_zh": "決斷力",
+  "kind": "major",
+  "stars": [
+   "VAN"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 13,
+  "name": "major_bre",
+  "name_zh": "重生力",
+  "kind": "major",
+  "stars": [
+   "BRE"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 14,
+  "name": "pair_lr",
+  "name_zh": "左右",
+  "kind": "pair",
+  "stars": [
+   "LHA",
+   "RHA"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 15,
+  "name": "pair_kk",
+  "name_zh": "魁鉞",
+  "kind": "pair",
+  "stars": [
+   "CPA",
+   "CAI",
+   "dCP",
+   "dCA",
+   "sCP",
+   "sCA",
+   "yCP",
+   "yCA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 16,
+  "name": "pair_cc",
+  "name_zh": "昌曲",
+  "kind": "pair",
+  "stars": [
+   "AAC",
+   "AAR"
+  ],
+  "can_sihua": true
+ },
+ {
+  "index": 17,
+  "name": "solo_div",
+  "name_zh": "祿存",
+  "kind": "solo",
+  "stars": [
+   "DIV",
+   "dDI",
+   "sDI",
+   "yDI"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 18,
+  "name": "solo_hho",
+  "name_zh": "天馬",
+  "kind": "solo",
+  "stars": [
+   "HHO",
+   "dHH",
+   "sHH",
+   "yHH"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 19,
+  "name": "solo_sha",
+  "name_zh": "煞星",
+  "kind": "solo",
+  "stars": [
+   "GLA",
+   "STO",
+   "FSP",
+   "CHI",
+   "dGL",
+   "dST",
+   "sGL",
+   "sST",
+   "yGL",
+   "yST"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 20,
+  "name": "trio_void",
+  "name_zh": "空劫",
+  "kind": "void",
+  "stars": [
+   "EVO",
+   "MAE",
+   "INT"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 21,
+  "name": "solo_peach",
+  "name_zh": "桃花",
+  "kind": "solo",
+  "stars": [
+   "RPH",
+   "HJO",
+   "dRP",
+   "dHJ",
+   "sRP",
+   "sHJ",
+   "yRP",
+   "yHJ"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 22,
+  "name": "major_pol_fo",
+  "name_zh": "排序力·化祿",
+  "kind": "channel",
+  "stars": [
+   "POL"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 23,
+  "name": "major_pol_pw",
+  "name_zh": "排序力·化權",
+  "kind": "channel",
+  "stars": [
+   "POL"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 24,
+  "name": "major_pol_ho",
+  "name_zh": "排序力·化科",
+  "kind": "channel",
+  "stars": [
+   "POL"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 25,
+  "name": "major_pol_bi",
+  "name_zh": "排序力·化忌",
+  "kind": "channel",
+  "stars": [
+   "POL"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 26,
+  "name": "major_hpi_fo",
+  "name_zh": "運算力·化祿",
+  "kind": "channel",
+  "stars": [
+   "HPI"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 27,
+  "name": "major_hpi_pw",
+  "name_zh": "運算力·化權",
+  "kind": "channel",
+  "stars": [
+   "HPI"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 28,
+  "name": "major_hpi_ho",
+  "name_zh": "運算力·化科",
+  "kind": "channel",
+  "stars": [
+   "HPI"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 29,
+  "name": "major_hpi_bi",
+  "name_zh": "運算力·化忌",
+  "kind": "channel",
+  "stars": [
+   "HPI"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 30,
+  "name": "major_sun_fo",
+  "name_zh": "作用力·化祿",
+  "kind": "channel",
+  "stars": [
+   "SUN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 31,
+  "name": "major_sun_pw",
+  "name_zh": "作用力·化權",
+  "kind": "channel",
+  "stars": [
+   "SUN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 32,
+  "name": "major_sun_ho",
+  "name_zh": "作用力·化科",
+  "kind": "channel",
+  "stars": [
+   "SUN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 33,
+  "name": "major_sun_bi",
+  "name_zh": "作用力·化忌",
+  "kind": "channel",
+  "stars": [
+   "SUN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 34,
+  "name": "major_mar_fo",
+  "name_zh": "兌換力·化祿",
+  "kind": "channel",
+  "stars": [
+   "MAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 35,
+  "name": "major_mar_pw",
+  "name_zh": "兌換力·化權",
+  "kind": "channel",
+  "stars": [
+   "MAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 36,
+  "name": "major_mar_ho",
+  "name_zh": "兌換力·化科",
+  "kind": "channel",
+  "stars": [
+   "MAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 37,
+  "name": "major_mar_bi",
+  "name_zh": "兌換力·化忌",
+  "kind": "channel",
+  "stars": [
+   "MAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 38,
+  "name": "major_har_fo",
+  "name_zh": "分享力·化祿",
+  "kind": "channel",
+  "stars": [
+   "HAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 39,
+  "name": "major_har_pw",
+  "name_zh": "分享力·化權",
+  "kind": "channel",
+  "stars": [
+   "HAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 40,
+  "name": "major_har_ho",
+  "name_zh": "分享力·化科",
+  "kind": "channel",
+  "stars": [
+   "HAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 41,
+  "name": "major_har_bi",
+  "name_zh": "分享力·化忌",
+  "kind": "channel",
+  "stars": [
+   "HAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 42,
+  "name": "major_mag_fo",
+  "name_zh": "掌控力·化祿",
+  "kind": "channel",
+  "stars": [
+   "MAG"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 43,
+  "name": "major_mag_pw",
+  "name_zh": "掌控力·化權",
+  "kind": "channel",
+  "stars": [
+   "MAG"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 44,
+  "name": "major_mag_ho",
+  "name_zh": "掌控力·化科",
+  "kind": "channel",
+  "stars": [
+   "MAG"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 45,
+  "name": "major_mag_bi",
+  "name_zh": "掌控力·化忌",
+  "kind": "channel",
+  "stars": [
+   "MAG"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 46,
+  "name": "major_tre_fo",
+  "name_zh": "承載力·化祿",
+  "kind": "channel",
+  "stars": [
+   "TRE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 47,
+  "name": "major_tre_pw",
+  "name_zh": "承載力·化權",
+  "kind": "channel",
+  "stars": [
+   "TRE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 48,
+  "name": "major_tre_ho",
+  "name_zh": "承載力·化科",
+  "kind": "channel",
+  "stars": [
+   "TRE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 49,
+  "name": "major_tre_bi",
+  "name_zh": "承載力·化忌",
+  "kind": "channel",
+  "stars": [
+   "TRE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 50,
+  "name": "major_moo_fo",
+  "name_zh": "涵養力·化祿",
+  "kind": "channel",
+  "stars": [
+   "MOO"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 51,
+  "name": "major_moo_pw",
+  "name_zh": "涵養力·化權",
+  "kind": "channel",
+  "stars": [
+   "MOO"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 52,
+  "name": "major_moo_ho",
+  "name_zh": "涵養力·化科",
+  "kind": "channel",
+  "stars": [
+   "MOO"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 53,
+  "name": "major_moo_bi",
+  "name_zh": "涵養力·化忌",
+  "kind": "channel",
+  "stars": [
+   "MOO"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 54,
+  "name": "major_awo_fo",
+  "name_zh": "擴張力·化祿",
+  "kind": "channel",
+  "stars": [
+   "AWO"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 55,
+  "name": "major_awo_pw",
+  "name_zh": "擴張力·化權",
+  "kind": "channel",
+  "stars": [
+   "AWO"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 56,
+  "name": "major_awo_ho",
+  "name_zh": "擴張力·化科",
+  "kind": "channel",
+  "stars": [
+   "AWO"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 57,
+  "name": "major_awo_bi",
+  "name_zh": "擴張力·化忌",
+  "kind": "channel",
+  "stars": [
+   "AWO"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 58,
+  "name": "major_gga_fo",
+  "name_zh": "分界力·化祿",
+  "kind": "channel",
+  "stars": [
+   "GGA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 59,
+  "name": "major_gga_pw",
+  "name_zh": "分界力·化權",
+  "kind": "channel",
+  "stars": [
+   "GGA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 60,
+  "name": "major_gga_ho",
+  "name_zh": "分界力·化科",
+  "kind": "channel",
+  "stars": [
+   "GGA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 61,
+  "name": "major_gga_bi",
+  "name_zh": "分界力·化忌",
+  "kind": "channel",
+  "stars": [
+   "GGA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 62,
+  "name": "major_min_fo",
+  "name_zh": "授權力·化祿",
+  "kind": "channel",
+  "stars": [
+   "MIN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 63,
+  "name": "major_min_pw",
+  "name_zh": "授權力·化權",
+  "kind": "channel",
+  "stars": [
+   "MIN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 64,
+  "name": "major_min_ho",
+  "name_zh": "授權力·化科",
+  "kind": "channel",
+  "stars": [
+   "MIN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 65,
+  "name": "major_min_bi",
+  "name_zh": "授權力·化忌",
+  "kind": "channel",
+  "stars": [
+   "MIN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 66,
+  "name": "major_ble_fo",
+  "name_zh": "系統力·化祿",
+  "kind": "channel",
+  "stars": [
+   "BLE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 67,
+  "name": "major_ble_pw",
+  "name_zh": "系統力·化權",
+  "kind": "channel",
+  "stars": [
+   "BLE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 68,
+  "name": "major_ble_ho",
+  "name_zh": "系統力·化科",
+  "kind": "channel",
+  "stars": [
+   "BLE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 69,
+  "name": "major_ble_bi",
+  "name_zh": "系統力·化忌",
+  "kind": "channel",
+  "stars": [
+   "BLE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 70,
+  "name": "major_van_fo",
+  "name_zh": "決斷力·化祿",
+  "kind": "channel",
+  "stars": [
+   "VAN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 71,
+  "name": "major_van_pw",
+  "name_zh": "決斷力·化權",
+  "kind": "channel",
+  "stars": [
+   "VAN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 72,
+  "name": "major_van_ho",
+  "name_zh": "決斷力·化科",
+  "kind": "channel",
+  "stars": [
+   "VAN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 73,
+  "name": "major_van_bi",
+  "name_zh": "決斷力·化忌",
+  "kind": "channel",
+  "stars": [
+   "VAN"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 74,
+  "name": "major_bre_fo",
+  "name_zh": "重生力·化祿",
+  "kind": "channel",
+  "stars": [
+   "BRE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 75,
+  "name": "major_bre_pw",
+  "name_zh": "重生力·化權",
+  "kind": "channel",
+  "stars": [
+   "BRE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 76,
+  "name": "major_bre_ho",
+  "name_zh": "重生力·化科",
+  "kind": "channel",
+  "stars": [
+   "BRE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 77,
+  "name": "major_bre_bi",
+  "name_zh": "重生力·化忌",
+  "kind": "channel",
+  "stars": [
+   "BRE"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 78,
+  "name": "pair_lr_fo",
+  "name_zh": "左右·化祿",
+  "kind": "channel",
+  "stars": [
+   "LHA",
+   "RHA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 79,
+  "name": "pair_lr_pw",
+  "name_zh": "左右·化權",
+  "kind": "channel",
+  "stars": [
+   "LHA",
+   "RHA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 80,
+  "name": "pair_lr_ho",
+  "name_zh": "左右·化科",
+  "kind": "channel",
+  "stars": [
+   "LHA",
+   "RHA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 81,
+  "name": "pair_lr_bi",
+  "name_zh": "左右·化忌",
+  "kind": "channel",
+  "stars": [
+   "LHA",
+   "RHA"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 82,
+  "name": "pair_cc_fo",
+  "name_zh": "昌曲·化祿",
+  "kind": "channel",
+  "stars": [
+   "AAC",
+   "AAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 83,
+  "name": "pair_cc_pw",
+  "name_zh": "昌曲·化權",
+  "kind": "channel",
+  "stars": [
+   "AAC",
+   "AAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 84,
+  "name": "pair_cc_ho",
+  "name_zh": "昌曲·化科",
+  "kind": "channel",
+  "stars": [
+   "AAC",
+   "AAR"
+  ],
+  "can_sihua": false
+ },
+ {
+  "index": 85,
+  "name": "pair_cc_bi",
+  "name_zh": "昌曲·化忌",
+  "kind": "channel",
+  "stars": [
+   "AAC",
+   "AAR"
+  ],
+  "can_sihua": false
+ }
+]

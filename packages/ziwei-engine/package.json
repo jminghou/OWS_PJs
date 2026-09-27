@@ -1,0 +1,27 @@
+{
+  "name": "@ows/ziwei-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "紫微斗數排盤引擎（純 TypeScript，零 React／零 Node 專屬 API）：農曆、真太陽時、本命與流盤排盤、編碼轉 chart_json、星場能量。Python p01_count／p_d_graph_v3 的對應物，黃金檔逐張比對。",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./lunar": "./src/lunar/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "js-sha256": "^0.11.0",
+    "lunar-typescript": "^1.8.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}

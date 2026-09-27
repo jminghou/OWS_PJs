@@ -4,6 +4,7 @@
   "private": true,
   "workspaces": [
     "packages/ui",
+    "packages/ziwei-engine",
     "packages/ziwei-chart",
     "packages/ziwei-app",
     "packages/platform-api",
@@ -38,7 +39,11 @@
     "dev:everything": "node scripts/dev-preflight.mjs 5000 3000 5002 3002 5010 3010 && concurrently -k -n polaris-api,polaris-web,claire-api,claire-web,hw-api,hw-web -c blue,cyan,magenta,red,green,yellow \"npm:dev:polaris:api\" \"npm:dev:polaris\" \"npm:dev:claire:api\" \"npm:dev:claire\" \"npm:dev:happy-wu:api\" \"npm:dev:happy-wu\"",
     "polaris": "npm run dev:polaris:all",
     "claire": "npm run dev:claire:all",
-    "happy-wu": "npm run dev:happy-wu:all"
+    "happy-wu": "npm run dev:happy-wu:all",
+    "test:engine": "npm run test --workspace=@ows/ziwei-engine",
+    "golden:engine": "venv\\Scripts\\python.exe scripts/gen_ziwei_golden.py",
+    "golden:geo": "venv\\Scripts\\python.exe scripts/gen_ziwei_geo.py",
+    "typecheck:engine": "npm run typecheck --workspace=@ows/ziwei-engine"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"
