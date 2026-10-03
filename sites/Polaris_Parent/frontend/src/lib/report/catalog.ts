@@ -77,3 +77,6 @@ export const READER_OPTIONS: { value: string; label: string }[] = [
 
 export const DEDICATION_MAX = 200;
 export const CALL_NAME_MAX = 20;
+
+/** 交易政策版本；與後端 extensions/report_orders/service.py 的 POLICY_VERSION 一致，改版時兩邊一起改 */
+export const POLICY_VERSION = '2026-10-03';

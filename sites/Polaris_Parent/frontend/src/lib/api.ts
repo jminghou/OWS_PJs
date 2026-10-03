@@ -21,9 +21,11 @@ export {
   membershipApi,
   adminCommerceApi,
   memberAccountApi,
+  reportOrdersApi,
 } from './api/index';
 
 export type { FetchOptions, I18nSettings, AuthorContentCard, AuthorDetailResponse } from './api/index';
+export type { ReportOrderSummary, ShippingInfo } from './api/index';
 export type {
   ZiweiCalcRequest,
   ZiweiCalcResponse,
