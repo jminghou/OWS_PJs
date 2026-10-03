@@ -139,10 +139,13 @@ def list_orders():
 
 @bp.route('/webhooks/mock-payment', methods=['POST'])
 def mock_payment_webhook():
-    """Mock payment callback webhook"""
-    # Note: In production, webhooks should verify signatures for security
+    """Mock payment callback webhook (dev mode only)"""
+    # 未驗證身分、未驗簽：只在開發模式開放，其他環境一律當作不存在，
+    # 否則任何人知道 order_no 就能把訂單改成已付款。
+    if not current_app.config.get('IS_DEV_MODE', False):
+        return jsonify({'message': 'Not found'}), 404
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     order_no = data.get('order_no')
     status = data.get('status')  # 'success' or 'failed'
 
@@ -152,6 +155,10 @@ def mock_payment_webhook():
     order = Order.query.filter_by(order_no=order_no).first()
     if not order:
         return jsonify({'message': 'Order not found'}), 404
+
+    # 只處理待付款訂單：重送通知不重複扣庫存／累計銷量
+    if order.status != 'pending':
+        return jsonify({'message': f'Order already {order.status}'}), 409
 
     try:
         if status == 'success':
