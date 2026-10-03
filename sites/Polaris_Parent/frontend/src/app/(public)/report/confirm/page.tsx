@@ -33,7 +33,7 @@ export default function ReportConfirmPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <h1 className="text-xl font-bold text-gray-900">找不到填寫中的資料</h1>
-        <p className="mt-2 text-sm text-gray-600">填寫內容只保存在原本的瀏覽器分頁，關閉分頁後需要重新填寫。</p>
+        <p className="mt-2 text-sm text-gray-600">填寫內容只保存在填寫時使用的裝置與瀏覽器，超過 7 天會自動清除。</p>
         <Link href="/report" className="mt-6 inline-block text-brand-purple-700 hover:underline">
           回到客製報告
         </Link>

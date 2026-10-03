@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { DEDICATION_MAX } from './catalog';
-import { emptyDraft, hasErrors, placeLabel, validateDraft, type ReportDraft } from './draft';
+import {
+  clearDraft, DRAFT_TTL_DAYS, emptyDraft, hasErrors, loadDraft, placeLabel, saveDraft, validateDraft, type ReportDraft,
+} from './draft';
 
 const TODAY = new Date(2026, 9, 3);
 
@@ -61,5 +63,52 @@ describe('validateDraft', () => {
 
   it('gives each draft its own submission key', () => {
     expect(emptyDraft().submission_key).not.toBe(emptyDraft().submission_key);
+  });
+});
+
+function memoryStorage() {
+  const m = new Map<string, string>();
+  return {
+    getItem: (k: string) => (m.has(k) ? m.get(k)! : null),
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
+  };
+}
+
+describe('draft storage', () => {
+  afterEach(() => {
+    delete (globalThis as any).window;
+  });
+
+  const install = () => {
+    const w = { localStorage: memoryStorage(), sessionStorage: memoryStorage() };
+    (globalThis as any).window = w;
+    return w;
+  };
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it('keeps a draft for the TTL and drops it afterwards', () => {
+    install();
+    const d = valid();
+    saveDraft(d, 0);
+    expect(loadDraft(DRAFT_TTL_DAYS * DAY - 1)?.submission_key).toBe(d.submission_key);
+    expect(loadDraft(DRAFT_TTL_DAYS * DAY + 1)).toBeNull();
+    expect(loadDraft(0)).toBeNull(); // 過期時已一併刪除
+  });
+
+  it('migrates a legacy sessionStorage draft once', () => {
+    const w = install();
+    const d = valid();
+    w.sessionStorage.setItem('polaris_report_draft', JSON.stringify(d));
+    expect(loadDraft()?.submission_key).toBe(d.submission_key);
+    expect(w.sessionStorage.getItem('polaris_report_draft')).toBeNull();
+    expect(loadDraft()?.submission_key).toBe(d.submission_key);
+  });
+
+  it('clearDraft removes it', () => {
+    install();
+    saveDraft(valid());
+    clearDraft();
+    expect(loadDraft()).toBeNull();
   });
 });

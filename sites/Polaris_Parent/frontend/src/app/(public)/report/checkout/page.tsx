@@ -67,8 +67,8 @@ export default function ReportCheckoutPage() {
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
         <h1 className="text-xl font-bold text-gray-900">還沒有要結帳的報告</h1>
         <p className="mt-3 text-sm leading-6 text-gray-600">
-          請先填寫報告主角的資料，確認後再前往結帳。填寫內容只會暫存在填寫時的瀏覽器分頁；
-          換了分頁、關閉分頁，或訂單已經送出，這裡就不會有資料。
+          請先填寫報告主角的資料，確認後再前往結帳。填寫內容只保存在填寫時使用的裝置與瀏覽器 7 天；
+          換了裝置或瀏覽器、超過 7 天，或訂單已經送出，這裡就不會有資料。
         </p>
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link href="/report/customize"

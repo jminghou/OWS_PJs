@@ -1,7 +1,7 @@
 /**
  * 客製報告的下單草稿（會員 v2）。
  *
- * 填寫與確認頁只存在瀏覽器 sessionStorage，不寫資料庫、不呼叫紫微；
+ * 填寫與確認頁只存在瀏覽器 localStorage（保留 7 天，像購物車），不寫資料庫、不呼叫紫微；
  * 登入並完成 Email 驗證後，結帳步驟才把草稿送到後端建單（docs/membership-v2-architecture.md §5）。
  * 送出時的內容會成為 order_items.customization 的快照，所以欄位名稱與後端契約一致。
  */
@@ -30,6 +30,14 @@ export interface ReportDraft {
 }
 
 const KEY = 'polaris_report_draft';
+/** 草稿保留天數：客人隔天回來仍可接著填；送出訂單後立即清除 */
+export const DRAFT_TTL_DAYS = 7;
+const TTL_MS = DRAFT_TTL_DAYS * 24 * 60 * 60 * 1000;
+
+interface StoredDraft {
+  savedAt: number;
+  draft: ReportDraft;
+}
 
 export function newSubmissionKey(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
@@ -49,19 +57,34 @@ export function emptyDraft(variant: ReportVariant = 'digital'): ReportDraft {
   };
 }
 
-export function loadDraft(): ReportDraft | null {
+export function loadDraft(now: number = Date.now()): ReportDraft | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.sessionStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as ReportDraft) : null;
+    // 舊版存在 sessionStorage：讀到就搬到 localStorage
+    const legacy = window.sessionStorage.getItem(KEY);
+    if (legacy) {
+      window.sessionStorage.removeItem(KEY);
+      const draft = JSON.parse(legacy) as ReportDraft;
+      saveDraft(draft);
+      return draft;
+    }
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as StoredDraft;
+    if (!stored?.draft || typeof stored.savedAt !== 'number' || now - stored.savedAt > TTL_MS) {
+      window.localStorage.removeItem(KEY);
+      return null;
+    }
+    return stored.draft;
   } catch {
     return null;
   }
 }
 
-export function saveDraft(draft: ReportDraft): void {
+export function saveDraft(draft: ReportDraft, now: number = Date.now()): void {
   try {
-    window.sessionStorage.setItem(KEY, JSON.stringify(draft));
+    const stored: StoredDraft = { savedAt: now, draft };
+    window.localStorage.setItem(KEY, JSON.stringify(stored));
   } catch {
     /* 私密模式等情況寫不進去：表單仍可在本頁完成 */
   }
@@ -69,6 +92,7 @@ export function saveDraft(draft: ReportDraft): void {
 
 export function clearDraft(): void {
   try {
+    window.localStorage.removeItem(KEY);
     window.sessionStorage.removeItem(KEY);
   } catch {
     /* ignore */
