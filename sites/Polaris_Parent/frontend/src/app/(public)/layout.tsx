@@ -10,7 +10,7 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <div className="public-site">
       {/* 全站實體資料：讓 AI 把所有內容歸屬到一個可信的組織/網站 */}
       <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
       <PublicHeader />
@@ -18,6 +18,6 @@ export default function PublicLayout({
         {children}
       </main>
       <PublicFooter />
-    </>
+    </div>
   );
 }

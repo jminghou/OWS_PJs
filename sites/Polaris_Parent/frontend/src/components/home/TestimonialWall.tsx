@@ -36,7 +36,7 @@ export default function TestimonialWall({ widgetId, heading }: TestimonialWallPr
 
   return (
     <section aria-labelledby="home-testimonials-heading" className="scroll-mt-20">
-      <h2 id="home-testimonials-heading" className="mx-auto max-w-[680px] text-2xl font-bold text-gray-900">
+      <h2 id="home-testimonials-heading" className="mx-auto max-w-[680px] text-xl font-bold text-gray-900">
         {heading}
       </h2>
       <div className="mt-8">

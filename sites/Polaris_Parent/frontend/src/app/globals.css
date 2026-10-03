@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 本站公開頁面的預設字級；後台與其他官網維持各自的設定。 */
+.public-site {
+  font-size: 15px;
+  line-height: 1.75;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

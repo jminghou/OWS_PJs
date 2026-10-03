@@ -29,7 +29,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const isZhCN = locale === 'zh-CN';
 
   return (
-    <div className={`min-h-screen flex flex-col ${isZhCN ? notoSansSC.className : ''}`}>
+    <div className={`public-site min-h-screen flex flex-col ${isZhCN ? notoSansSC.className : ''}`}>
       {/* 全站實體資料：與 (public)/layout.tsx 一致，語系頁面也要有 */}
       <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
       <PublicHeader />
