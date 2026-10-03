@@ -17,7 +17,6 @@ const navContent: Record<string, {
   ziwei: string;
   newsletter: string;
   openMenu: string;
-  login: string;
   account: string;
   logout: string;
 }> = {
@@ -31,7 +30,6 @@ const navContent: Record<string, {
     ziwei: '線上排盤',
     newsletter: '電子報',
     openMenu: '打開主選單',
-    login: '登入',
     account: '會員中心',
     logout: '登出',
   },
@@ -45,7 +43,6 @@ const navContent: Record<string, {
     ziwei: '在线排盘',
     newsletter: '电子报',
     openMenu: '打开主菜单',
-    login: '登录',
     account: '会员中心',
     logout: '登出',
   },
@@ -59,7 +56,6 @@ const navContent: Record<string, {
     ziwei: 'Ziwei Chart',
     newsletter: 'Newsletter',
     openMenu: 'Open main menu',
-    login: 'Login',
     account: 'My Account',
     logout: 'Logout',
   },
@@ -73,7 +69,6 @@ const navContent: Record<string, {
     ziwei: '紫微占い',
     newsletter: 'ニュースレター',
     openMenu: 'メニューを開く',
-    login: 'ログイン',
     account: 'マイページ',
     logout: 'ログアウト',
   },
@@ -166,7 +161,8 @@ export default function PublicHeader() {
                 {item.label}
               </Link>
             ))}
-            {isAuthenticated ? (
+            {/* 未登入不顯示登入入口：/login 只從結帳流程進入；後台由 /admin/login 直接進 */}
+            {isAuthenticated && (
               <>
                 <Link
                   href="/account"
@@ -181,13 +177,6 @@ export default function PublicHeader() {
                   {content.logout}
                 </button>
               </>
-            ) : (
-              <Link
-                href="/login"
-                className="text-brand-purple-700 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                {content.login}
-              </Link>
             )}
             {i18nEnabled && <LanguageSwitcher />}
           </nav>
@@ -235,9 +224,9 @@ export default function PublicHeader() {
                 {item.label}
               </Link>
             ))}
-            <div className="border-t border-warm-100 my-1" />
-            {isAuthenticated ? (
+            {isAuthenticated && (
               <>
+                <div className="border-t border-warm-100 my-1" />
                 <Link
                   href="/account"
                   className="text-brand-purple-700 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
@@ -251,13 +240,6 @@ export default function PublicHeader() {
                   {content.logout}
                 </button>
               </>
-            ) : (
-              <Link
-                href="/login"
-                className="text-brand-purple-700 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
-              >
-                {content.login}
-              </Link>
             )}
           </div>
         </div>
