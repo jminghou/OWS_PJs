@@ -37,6 +37,12 @@ SITE_EXTENSIONS = [
         url_prefix='/api/v1',
         enabled=True,
     ),
+    # 會員 v2：客製報告建單與查詢（/report-orders）
+    BlueprintConfig(
+        module_path='sites.Polaris_Parent.backend.extensions.report_orders',
+        url_prefix='/api/v1',
+        enabled=True,
+    ),
     # 會員商業循環（訂單登錄 → 審核 → 發券 / 收藏文章）。
     # 路由內部分 /membership/* 與 /admin/*，故掛在 /api/v1 而非子路徑。
     BlueprintConfig(

@@ -14,6 +14,7 @@ Polaris Parent — 站專屬模型（統一資料庫架構 §11，Option B）
 from sqlalchemy.dialects.postgresql import JSONB
 
 from core.backend_engine.factory import db
+from core.backend_engine.models import SHOP_SCHEMA as _SHOP_SCHEMA, qualify as _q
 
 
 class AppUser(db.Model):
@@ -202,6 +203,10 @@ class SavedArticle(db.Model):
 # 無 REFERENCES 權限），歸屬於建單時經紫微 save-and-register 確認。
 # =============================================================================
 
+# order_items 屬共用電商模組，落在 OWS_SHOP_SCHEMA（Polaris 為 shop）；外鍵跟著同一個設定走
+_ORDER_ITEMS_FK = _q('order_items.id', _SHOP_SCHEMA)
+
+
 class MemberEmailVerification(db.Model):
     """blog.member_email_verifications — 會員 Email 驗證紀錄（1:1 對 account.app_users）。
 
@@ -261,7 +266,7 @@ class ReportFulfillment(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True)
     order_item_id = db.Column(
-        db.Integer, db.ForeignKey('shop.order_items.id'), nullable=False, unique=True)
+        db.Integer, db.ForeignKey(_ORDER_ITEMS_FK), nullable=False, unique=True)
     request_no = db.Column(db.String(32), nullable=False, unique=True)  # 紫微工作單編號（= order_items.item_no）
     member_id = db.Column(
         db.BigInteger, db.ForeignKey('account.app_users.id'), nullable=False, index=True)
@@ -295,7 +300,7 @@ class Shipment(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True)
     order_item_id = db.Column(
-        db.Integer, db.ForeignKey('shop.order_items.id'), nullable=False, unique=True)
+        db.Integer, db.ForeignKey(_ORDER_ITEMS_FK), nullable=False, unique=True)
     recipient_name = db.Column(db.Text, nullable=False)  # 收件資料為下單時快照
     recipient_phone = db.Column(db.Text, nullable=False)
     postal_code = db.Column(db.String(10))

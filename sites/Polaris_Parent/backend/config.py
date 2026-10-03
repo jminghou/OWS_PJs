@@ -224,6 +224,11 @@ class Config:
     NEWSLETTER_ENABLED = _bool_env('NEWSLETTER_ENABLED', True)
     NEWSLETTER_BRAND_NAME = os.environ.get('NEWSLETTER_BRAND_NAME', '親紫之間')
 
+    # 客製報告的付款模式（會員 v2，docs/membership-v2-architecture.md §3）：
+    # placeholder = 只建待付款訂單、不收款也不交接生產（目前唯一實作的模式）；
+    # 之後會有 manual（人工收款）、ecpay_test、ecpay_live。後端以此判斷，不靠前端隱藏按鈕。
+    REPORT_PAYMENT_MODE = os.environ.get('REPORT_PAYMENT_MODE', 'placeholder')
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 

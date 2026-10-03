@@ -176,6 +176,24 @@ def _as_int(data, key):
         return None, f"欄位 {key} 必須為整數"
 
 
+def resolve_birth_time(eng, clock, time_type, city="", country=""):
+    """把輸入的出生時間換成排盤用的時間。
+
+    clock 為 (year, month, day, hour, minute)。time_type=solar_time 時依出生地換算真太陽時；
+    回傳 ((year, month, day, hour, minute), solar_time_str 或 None, birthplace)。
+    換算失敗拋例外，由呼叫端決定錯誤訊息。/calculate 與客製報告建單共用，確保存下的
+    命盤與畫面上預覽的一致。
+    """
+    if time_type != "solar_time":
+        return tuple(clock), None, ""
+    geo = eng.get_geo_info(city, country)
+    clock_str = eng.build_clock_time_str(*clock)
+    place_with_coords = f"{geo['place_en']}, {geo['coordinates']}"
+    solar_time_str = eng.compute_solar_time(clock_str, place_with_coords, geo["timezone"])
+    resolved = tuple(eng.parse_time_str(solar_time_str)) if solar_time_str else tuple(clock)
+    return resolved, solar_time_str, f"{city}, {country}"
+
+
 def _limit(rule):
     """有 limiter 才套用限流，否則 no-op（本機/測試不依賴 Redis）。"""
     def deco(fn):
@@ -258,7 +276,6 @@ def calculate():
     include_readings = bool(data.get("include_readings", False))
     theme = data.get("theme", "default")
 
-    y, mo, d, h = parts["year"], parts["month"], parts["day"], parts["hour"]
     birthplace = ""
     solar_time_str = None
 
@@ -270,16 +287,14 @@ def calculate():
         if not city or not country:
             return jsonify({"success": False,
                             "error": "time_type=solar_time 需提供 place.city 與 place.country"}), 400
-        try:
-            geo = eng.get_geo_info(city, country)
-            clock_str = eng.build_clock_time_str(y, mo, d, h, minute)
-            place_with_coords = f"{geo['place_en']}, {geo['coordinates']}"
-            solar_time_str = eng.compute_solar_time(clock_str, place_with_coords, geo["timezone"])
-            if solar_time_str:
-                y, mo, d, h, minute = eng.parse_time_str(solar_time_str)
-            birthplace = f"{city}, {country}"
-        except Exception as exc:  # noqa: BLE001
-            return jsonify({"success": False, "error": f"太陽時換算失敗：{exc}"}), 400
+    else:
+        city = country = ""
+    try:
+        (y, mo, d, h, minute), solar_time_str, birthplace = resolve_birth_time(
+            eng, (parts["year"], parts["month"], parts["day"], parts["hour"], minute),
+            time_type, city, country)
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"success": False, "error": f"太陽時換算失敗：{exc}"}), 400
 
     # ── 計算命盤 ──
     try:
