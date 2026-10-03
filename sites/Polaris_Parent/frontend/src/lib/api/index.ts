@@ -93,6 +93,9 @@ export type {
 export { adminCommerceApi } from './admin-commerce';
 export type { AdminOrderSubmission, CouponConfig } from './admin-commerce';
 
+export { memberAccountApi } from './memberAccount';
+export type { EmailCodePurpose, VerificationStatus } from './memberAccount';
+
 // ── 預設匯出（向後相容）────────────────────────────────────────────────────
 import {
   authApi,

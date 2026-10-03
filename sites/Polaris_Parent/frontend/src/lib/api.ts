@@ -20,6 +20,7 @@ export {
   astrologyApi,
   membershipApi,
   adminCommerceApi,
+  memberAccountApi,
 } from './api/index';
 
 export type { FetchOptions, I18nSettings, AuthorContentCard, AuthorDetailResponse } from './api/index';
