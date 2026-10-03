@@ -25,7 +25,9 @@ export {
 } from './api/index';
 
 export type { FetchOptions, I18nSettings, AuthorContentCard, AuthorDetailResponse } from './api/index';
-export type { ReportOrderSummary, ShippingInfo } from './api/index';
+export type {
+  ReportOrderSummary, ShippingInfo, AdminReportOrder, BankInfo, TransferReport, PaymentMode,
+} from './api/index';
 export type {
   ZiweiCalcRequest,
   ZiweiCalcResponse,

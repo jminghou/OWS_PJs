@@ -3,6 +3,9 @@ Report Orders Extension — 客製命理報告的建單與查詢（會員 v2，P
 
 註冊於 /api/v1，全部需要登入（JWT）。
 
+公開：
+    GET  /api/v1/report-payment-mode                 目前付款模式（結帳頁說明用，不含帳號）
+
 會員端：
     POST /api/v1/report-orders                       建立待付款訂單（需已驗證 Email、同意交易政策）
     GET  /api/v1/report-orders                       我的報告訂單
@@ -87,6 +90,15 @@ def _save_chart(payload):
     from sites.Polaris_Parent.backend.extensions.astrology import _ziwei_save_and_register
 
     return _ziwei_save_and_register(payload)
+
+
+@bp.route('/report-payment-mode', methods=['GET'])
+def payment_mode():
+    """結帳頁顯示付款說明用：只回模式與匯款天數，不含匯款帳號（帳號在訂單成立後才顯示）。"""
+    mode = _payment_mode()
+    return jsonify({'success': True, 'mode': mode,
+                    'available': mode in SUPPORTED_PAYMENT_MODES and (mode != 'manual' or payment.manual_bank_info() is not None),
+                    'deadline_days': payment.deadline_days() if mode == 'manual' else None})
 
 
 @bp.route('/report-orders', methods=['POST'])

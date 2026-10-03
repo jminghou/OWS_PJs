@@ -36,6 +36,7 @@ export default function ReportCheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [payMode, setPayMode] = useState<{ mode: string; available: boolean; deadline_days: number | null } | null>(null);
 
   useEffect(() => {
     checkAuth().finally(() => setChecked(true));
@@ -54,6 +55,7 @@ export default function ReportCheckoutPage() {
       router.replace(`/login?next=${encodeURIComponent(CHECKOUT)}`);
       return;
     }
+    reportOrdersApi.paymentMode().then(setPayMode).catch(() => setPayMode(null));
     memberAccountApi
       .getVerification()
       .then((v) => setVerification({ email: v.email, verified: v.email_verified }))
@@ -174,8 +176,12 @@ export default function ReportCheckoutPage() {
 
           <section className="rounded-banner border border-warm-200/70 bg-white p-5 sm:p-6">
             <h2 className="text-base font-bold text-gray-900">付款</h2>
-            <p className="mt-2 rounded-banner bg-warm-50 p-3 text-sm text-gray-700">
-              付款功能尚未開放。送出後訂單會保留為「待付款」，開放付款後我們會以 Email 通知你。
+            <p className="mt-2 rounded-banner bg-warm-50 p-3 text-sm leading-6 text-gray-700">
+              {payMode?.mode === 'manual' && payMode.available
+                ? `銀行轉帳。送出訂單後會顯示匯款帳號，請於 ${payMode.deadline_days} 天內轉帳並回報轉出帳號末五碼；我們確認入帳後才會開始製作。`
+                : payMode?.mode === 'manual'
+                  ? '目前暫停接受訂單，請稍後再試。'
+                  : '付款功能尚未開放。送出後訂單會保留為「待付款」，開放付款後我們會以 Email 通知你。'}
             </p>
           </section>
 
@@ -193,7 +199,7 @@ export default function ReportCheckoutPage() {
             <div className="rounded-banner border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
           )}
 
-          <Button type="submit" disabled={busy || !consented || !verification.verified}
+          <Button type="submit" disabled={busy || !consented || !verification.verified || payMode?.available === false}
                   className="w-full bg-brand-purple-600 hover:bg-brand-purple-700 disabled:opacity-50">
             {busy ? '送出中…' : '送出訂單'}
           </Button>

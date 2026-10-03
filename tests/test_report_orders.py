@@ -331,6 +331,13 @@ class ManualPaymentTests(_Base):
         return [c[0][0] for c in self.mail_send.call_args_list]
 
     # ── 下單 ─────────────────────────────────────────────────────────────
+    def test_payment_mode_endpoint_hides_account(self):
+        body = self.client.get('/api/v1/report-payment-mode').get_json()
+        self.assertEqual((body['mode'], body['available'], body['deadline_days']), ('manual', True, 3))
+        self.assertNotIn('1234567890123', str(body))
+        self.app.config['MANUAL_PAYMENT_ACCOUNT_NO'] = ''
+        self.assertFalse(self.client.get('/api/v1/report-payment-mode').get_json()['available'])
+
     def test_refuses_orders_until_bank_info_is_configured(self):
         self.app.config['MANUAL_PAYMENT_ACCOUNT_NO'] = ''
         r = self.post(payload())
