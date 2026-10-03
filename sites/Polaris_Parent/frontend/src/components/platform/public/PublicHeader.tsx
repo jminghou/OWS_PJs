@@ -114,7 +114,8 @@ export default function PublicHeader() {
   const navItems = [
     { href: `${basePath}/about`, label: content.about },
     { href: `${basePath}/articles`, label: content.articles },
-    { href: `${basePath}/products`, label: content.products },
+    // 客製報告目前只有中文頁面（/report），各語系都連到同一頁
+    { href: '/report', label: content.products },
     { href: `${basePath}/ziwei`, label: content.ziwei },
     { href: `${basePath}/newsletter`, label: content.newsletter },
   ];

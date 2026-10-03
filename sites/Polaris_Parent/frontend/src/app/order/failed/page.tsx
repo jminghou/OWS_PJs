@@ -15,7 +15,7 @@ export default function OrderFailedPage() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push('/products');
+          router.push('/report');
           return 0;
         }
         return prev - 1;
@@ -72,7 +72,7 @@ export default function OrderFailedPage() {
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button
-            onClick={() => router.push('/products')}
+            onClick={() => router.push('/report')}
             className="w-full"
           >
             重新選購

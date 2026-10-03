@@ -15,7 +15,7 @@ export default function OrderCompletedPage() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push('/products');
+          router.push('/report');
           return 0;
         }
         return prev - 1;
@@ -63,7 +63,7 @@ export default function OrderCompletedPage() {
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button
-            onClick={() => router.push('/products')}
+            onClick={() => router.push('/report')}
             className="w-full"
           >
             返回產品頁面
