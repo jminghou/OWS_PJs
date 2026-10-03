@@ -339,6 +339,191 @@ class PaymentMethod(db.Model):
 
 
 # =============================================================================
+# 訂單項目、付款嘗試、發票、通知（0002_orders_v2）
+#
+# 只放通用電商能力；站台專屬的履約資料（例如客製商品的生產交接）放站台自己的鏈，
+# 以 order_items.id 關聯。orders.items JSONB 仍照舊寫入，未使用新流程的站台不受影響。
+#
+# 一律新增表、不在 orders 加欄位：Claire 的庫不跑 commerce 鏈，Order 多一個欄位
+# 就會讓它查 orders 時直接失敗；新表只有用到時才會被查詢。
+# =============================================================================
+
+class OrderCheckout(db.Model):
+    """訂單的結帳資訊（1:1）：送出冪等鍵、交易政策同意紀錄、待付款期限。"""
+    __tablename__ = 'order_checkouts'
+    __table_args__ = {'schema': _SHOP_SCHEMA}
+
+    order_id = db.Column(db.Integer, db.ForeignKey(_q('orders.id', _SHOP_SCHEMA), ondelete='CASCADE'),
+                         primary_key=True)
+    submission_key = db.Column(db.String(64), unique=True, nullable=False)  # 前端產生，重送同一鍵回原單
+    policy_version = db.Column(db.String(32), nullable=True)
+    policy_consented_at = db.Column(db.DateTime, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    order = db.relationship('Order', backref=db.backref('checkout', uselist=False))
+
+    def __repr__(self):
+        return f'<OrderCheckout {self.order_id}>'
+
+
+class OrderItem(db.Model):
+    """訂單項目：每項購買一列，提供穩定的對外編號，讓履約、加購能掛在項目上。"""
+    __tablename__ = 'order_items'
+    __table_args__ = {'schema': _SHOP_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey(_q('orders.id', _SHOP_SCHEMA), ondelete='CASCADE'),
+                         nullable=False, index=True)
+    item_no = db.Column(db.String(32), unique=True, nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey(_q('products.id', _SHOP_SCHEMA), ondelete='SET NULL'),
+                           nullable=True, index=True)
+    product_code = db.Column(db.String(100), nullable=False)    # 快照：products.product_id
+    name = db.Column(db.String(200), nullable=False)            # 快照：下單語系的商品名
+    variant = db.Column(db.String(30), nullable=True)           # 站台自訂，例：digital / physical
+    kind = db.Column(db.String(20), nullable=False, default='purchase')  # purchase / addon
+    parent_item_id = db.Column(db.Integer, db.ForeignKey(_q('order_items.id', _SHOP_SCHEMA), ondelete='SET NULL'),
+                               nullable=True, index=True)       # 加購時指向原項目
+    unit_price = db.Column(db.Integer, nullable=False)
+    currency = db.Column(db.String(10), nullable=False, default='TWD')
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    customization = db.Column(JSONB, nullable=False, default=dict)  # 購買者填寫的客製內容快照
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    order = db.relationship('Order', backref=db.backref('order_items', lazy='select', order_by='OrderItem.id'))
+    parent_item = db.relationship('OrderItem', remote_side=[id])
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'item_no': self.item_no,
+            'product_code': self.product_code,
+            'name': self.name,
+            'variant': self.variant,
+            'kind': self.kind,
+            'parent_item_no': self.parent_item.item_no if self.parent_item else None,
+            'unit_price': self.unit_price,
+            'currency': self.currency,
+            'quantity': self.quantity,
+            'customization': self.customization,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __repr__(self):
+        return f'<OrderItem {self.item_no}>'
+
+
+class PaymentAttempt(db.Model):
+    """每次送往金流（或人工收款）的付款嘗試。
+
+    attempt_no 是對金流的交易編號（綠界 MerchantTradeNo：≤20 字元英數），
+    失敗重試就建新的一筆，不重用 order_no。同一訂單最多一筆 succeeded（部分唯一索引）。
+    """
+    __tablename__ = 'payment_attempts'
+    __table_args__ = (
+        db.UniqueConstraint('provider', 'provider_trade_no', name='uq_payment_attempts_provider_trade_no'),
+        db.Index('uq_payment_attempts_one_success', 'order_id', unique=True,
+                 postgresql_where=db.text("status = 'succeeded'")),
+        {'schema': _SHOP_SCHEMA},
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_no = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    order_id = db.Column(db.Integer, db.ForeignKey(_q('orders.id', _SHOP_SCHEMA)), nullable=False, index=True)
+    provider = db.Column(db.String(20), nullable=False)          # ecpay / manual
+    environment = db.Column(db.String(10), nullable=False)       # test / live
+    amount = db.Column(db.Integer, nullable=False)
+    currency = db.Column(db.String(10), nullable=False, default='TWD')
+    status = db.Column(db.String(20), nullable=False, default='created', index=True)
+    # created / redirected / succeeded / failed / expired
+    provider_trade_no = db.Column(db.String(64), nullable=True)  # 金流端交易編號（綠界 TradeNo）
+    paid_at = db.Column(db.DateTime, nullable=True)
+    confirmed_by = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), nullable=True)  # 人工收款確認者
+    manual_reference = db.Column(db.String(64), nullable=True)   # 人工收款：轉帳末五碼等
+    note = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    order = db.relationship('Order', backref=db.backref('payment_attempts', lazy='select'))
+
+    def __repr__(self):
+        return f'<PaymentAttempt {self.attempt_no} {self.status}>'
+
+
+class PaymentNotification(db.Model):
+    """金流通知原文與處理結果（每則收到的通知都留一列，含重送與驗證失敗）。"""
+    __tablename__ = 'payment_notifications'
+    __table_args__ = {'schema': _SHOP_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    provider = db.Column(db.String(20), nullable=False)
+    environment = db.Column(db.String(10), nullable=False)
+    attempt_id = db.Column(db.Integer, db.ForeignKey(_q('payment_attempts.id', _SHOP_SCHEMA), ondelete='SET NULL'),
+                           nullable=True, index=True)
+    provider_trade_no = db.Column(db.String(64), nullable=True, index=True)
+    payload = db.Column(JSONB, nullable=False, default=dict)
+    signature_valid = db.Column(db.Boolean, nullable=True)
+    result = db.Column(db.String(30), nullable=True)  # processed / duplicate / rejected / ignored
+    error = db.Column(db.Text, nullable=True)
+    received_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<PaymentNotification {self.provider} {self.result}>'
+
+
+class OrderInvoice(db.Model):
+    """訂單發票：結帳時的開立選項快照與開立結果（站台未開發票功能時 status=not_applicable）。"""
+    __tablename__ = 'order_invoices'
+    __table_args__ = {'schema': _SHOP_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey(_q('orders.id', _SHOP_SCHEMA), ondelete='CASCADE'),
+                         unique=True, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='not_applicable')
+    # not_applicable / pending / issued / failed / void
+    carrier_type = db.Column(db.String(20), nullable=True)  # member / mobile / citizen / company / donation
+    carrier_num = db.Column(db.String(64), nullable=True)
+    buyer_tax_id = db.Column(db.String(8), nullable=True)
+    buyer_name = db.Column(db.String(100), nullable=True)
+    love_code = db.Column(db.String(7), nullable=True)
+    notify_email = db.Column(db.String(255), nullable=True)
+    invoice_no = db.Column(db.String(10), nullable=True)
+    invoice_date = db.Column(db.DateTime, nullable=True)
+    random_number = db.Column(db.String(4), nullable=True)
+    issued_via = db.Column(db.String(10), nullable=True)    # api / manual
+    error = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    order = db.relationship('Order', backref=db.backref('invoice', uselist=False))
+
+    def __repr__(self):
+        return f'<OrderInvoice {self.order_id} {self.status}>'
+
+
+class OrderNotification(db.Model):
+    """訂單通知信紀錄；dedupe_key 唯一（例：paid:{order_id}），重送或重試不重複寄信。"""
+    __tablename__ = 'order_notifications'
+    __table_args__ = {'schema': _SHOP_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey(_q('orders.id', _SHOP_SCHEMA), ondelete='CASCADE'),
+                         nullable=False, index=True)
+    order_item_id = db.Column(db.Integer, db.ForeignKey(_q('order_items.id', _SHOP_SCHEMA), ondelete='CASCADE'),
+                              nullable=True)
+    event = db.Column(db.String(50), nullable=False)
+    dedupe_key = db.Column(db.String(120), unique=True, nullable=False)
+    recipient = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending / sent / failed
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    error = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    sent_at = db.Column(db.DateTime, nullable=True)
+
+    def __repr__(self):
+        return f'<OrderNotification {self.dedupe_key} {self.status}>'
+
+
+# =============================================================================
 # Exports
 # =============================================================================
 
@@ -348,4 +533,10 @@ __all__ = [
     'ProductPrice',
     'Order',
     'PaymentMethod',
+    'OrderCheckout',
+    'OrderItem',
+    'PaymentAttempt',
+    'PaymentNotification',
+    'OrderInvoice',
+    'OrderNotification',
 ]
