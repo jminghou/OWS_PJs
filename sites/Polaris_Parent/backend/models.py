@@ -191,3 +191,102 @@ class SavedArticle(db.Model):
 
     def __repr__(self):
         return f'<SavedArticle member={self.member_id} content={self.content_id}>'
+
+
+# =============================================================================
+# 會員 v2：客製報告的生產交接與實體出貨（見 docs/membership-v2-ziwei-contract.md）
+#
+# 以 shop.order_items.id 關聯共用電商的訂單項目；購買者填的出生資料與讀者設定
+# 存在 order_items.customization（送出時快照），這裡不重複存。
+# chart_id / person_user_id 為對紫微 account.* 的軟參照（blog_app 對 user_profiles
+# 無 REFERENCES 權限），歸屬於建單時經紫微 save-and-register 確認。
+# =============================================================================
+
+class MemberEmailVerification(db.Model):
+    """blog.member_email_verifications — 會員 Email 驗證紀錄（1:1 對 account.app_users）。
+
+    記錄「哪個 Email」在何時驗證通過；會員改 Email 後，舊紀錄的 email 對不上即視為未驗證。
+    不放在 member_profiles：該表由 postgres 以 SQL 建立，blog_app 不是擁有者、無法加欄位。
+    """
+    __tablename__ = 'member_email_verifications'
+    __table_args__ = {'schema': 'blog'}
+
+    app_user_id = db.Column(
+        db.BigInteger, db.ForeignKey('account.app_users.id', ondelete='CASCADE'), primary_key=True)
+    email = db.Column(db.String(255), nullable=False)
+    verified_at = db.Column(db.DateTime(timezone=True), nullable=False)
+
+    def __repr__(self):
+        return f'<MemberEmailVerification {self.app_user_id} {self.email}>'
+
+
+class ReportFulfillment(db.Model):
+    """shop.report_fulfillments — 一個報告訂單項目對應一筆；記錄命盤關聯、交接紫微工作單的狀態與同步快取。
+
+    handoff_status：not_ready（未付款）→ pending（待送出）→ sent（紫微已建工作單）；
+    送出失敗為 failed（可重送）；例外取消為 cancelled。
+    """
+    __tablename__ = 'report_fulfillments'
+    __table_args__ = (
+        db.CheckConstraint(
+            "handoff_status IN ('not_ready','pending','sent','failed','cancelled')",
+            name='ck_report_fulfillments_handoff_status'),
+        {'schema': 'shop'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    order_item_id = db.Column(
+        db.Integer, db.ForeignKey('shop.order_items.id'), nullable=False, unique=True)
+    request_no = db.Column(db.String(32), nullable=False, unique=True)  # 紫微工作單編號（= order_items.item_no）
+    member_id = db.Column(
+        db.BigInteger, db.ForeignKey('account.app_users.id'), nullable=False, index=True)
+    chart_id = db.Column(db.BigInteger)                  # 軟參照 account.user_profiles.chart_id
+    person_user_id = db.Column(db.BigInteger)            # 軟參照 account.users.user_id（命主）
+    environment = db.Column(db.String(10))               # 付款環境 test / live；交接時帶給紫微
+    handoff_status = db.Column(db.String(20), nullable=False, server_default='not_ready', index=True)
+    handoff_attempts = db.Column(db.Integer, nullable=False, server_default='0')
+    last_error = db.Column(db.Text)
+    sent_at = db.Column(db.DateTime(timezone=True))
+    ziwei_status = db.Column(db.String(20))              # 紫微工作單狀態快取（queued / in_progress / …）
+    member_note = db.Column(db.Text)                     # 紫微提供、可顯示給會員的進度說明
+    deliverable_ready_at = db.Column(db.DateTime(timezone=True))
+    synced_at = db.Column(db.DateTime(timezone=True))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f'<ReportFulfillment {self.request_no} {self.handoff_status}>'
+
+
+class Shipment(db.Model):
+    """shop.shipments — 實體書出貨（合作印刷廠在系統外，由管理者登錄進度與物流單號）。"""
+    __tablename__ = 'shipments'
+    __table_args__ = (
+        db.CheckConstraint(
+            "status IN ('pending','printing','shipped','delivered','cancelled')",
+            name='ck_shipments_status'),
+        {'schema': 'shop'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    order_item_id = db.Column(
+        db.Integer, db.ForeignKey('shop.order_items.id'), nullable=False, unique=True)
+    recipient_name = db.Column(db.Text, nullable=False)  # 收件資料為下單時快照
+    recipient_phone = db.Column(db.Text, nullable=False)
+    postal_code = db.Column(db.String(10))
+    address = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False, server_default='pending', index=True)
+    printer = db.Column(db.Text)
+    carrier = db.Column(db.Text)
+    tracking_no = db.Column(db.Text)
+    print_sent_at = db.Column(db.DateTime(timezone=True))
+    shipped_at = db.Column(db.DateTime(timezone=True))
+    delivered_at = db.Column(db.DateTime(timezone=True))
+    note = db.Column(db.Text)
+    updated_by = db.Column(
+        db.BigInteger, db.ForeignKey('account.app_users.id', ondelete='SET NULL'))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f'<Shipment item={self.order_item_id} {self.status}>'

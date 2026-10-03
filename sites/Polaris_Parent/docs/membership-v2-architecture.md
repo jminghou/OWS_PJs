@@ -101,7 +101,7 @@
 | 資料能力 | 實作方向 |
 | --- | --- |
 | 會員身分 | 沿用 account.app_users 與 blog.member_profiles；Email 驗證後才建立或歸戶（§5） |
-| 命盤保存 | 透過紫微 save-and-register 保存（已確認不會啟動報告生產）；紫微無出生資料版本，所以 `order_items.birth_snapshot` 保存送出時的原始輸入 |
+| 命盤保存 | 透過紫微 save-and-register 保存（已確認不會啟動報告生產）；紫微無出生資料版本，所以 `order_items.customization` 保存送出時的原始輸入 |
 | 商品版本 | 在現有商品基礎表達數位／實體及加購價格 |
 | 交易政策同意 | 訂單記錄同意時間及交易政策版本（§10） |
 | 生產交接 | OWS `report_fulfillments`（`order_item_id` UNIQUE）記錄交接與同步狀態；紫微 `report_requests` 為工作單本體 |
@@ -247,7 +247,7 @@
 - 佔位模式所有路徑都不能令訂單變成已付款或啟動生產。
 - 正式環境呼叫 mock-payment 回 404。
 - 未完成 Email 驗證不會呼叫 save-and-register，也不會建立帳號或命盤。
-- save-and-register 回傳的命盤性別、生日、時間與 `birth_snapshot` 不一致時拒絕建單。
+- save-and-register 回傳的命盤性別、生日、時間與 `order_items.customization` 不一致時拒絕建單。
 - 交接 API 失敗時訂單保持已付款、交接為待送出，重送不產生第二張工作單。
 - 會員只能查看、下載自己的訂單及成品。
 - 同一筆送出或付款通知重送，不重複建單、生產或寄信。

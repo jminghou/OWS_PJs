@@ -47,18 +47,27 @@
 
 ## 3. OWS 端資料表變更清單
 
-| 鏈 | 表 | 變更 | 重點欄位 |
+2026-10-03 已實作並在本機驗證（正式庫尚未套用）。
+
+| 鏈 | 表 | 重點欄位 | 狀態 |
 | --- | --- | --- | --- |
-| commerce | shop.orders | 新增可空欄位 | `submission_key`（UNIQUE，防重複送出）、`policy_version`、`policy_consented_at` |
-| commerce | shop.order_items | 新表 | `item_no`（UNIQUE，對外編號，也是送紫微的工作單編號）、`order_id`、`product_id`、`variant`（digital／physical）、`kind`（purchase／addon）、`parent_item_id`、`unit_price`、`currency`、`quantity`、`chart_id`／`person_user_id`（軟參照）、`subject_name`、`birth_snapshot` JSONB（送出時的原始輸入）、`audience` JSONB |
-| commerce | shop.payment_attempts | 新表 | 見實作架構 §4 |
-| commerce | shop.payment_notifications | 新表 | 通知原文、驗證結果、處理結果；金流交易編號 UNIQUE |
-| commerce | shop.order_invoices | 新表（功能開關預設關） | 開立方式、載具／統編／愛心碼、開立結果 |
-| commerce | shop.order_notifications | 新表 | `(order_item_id 或 order_id, event)` UNIQUE，寄信去重 |
-| core | blog.member_profiles | 新增欄位 | `email_verified_at` |
-| core | blog.member_email_codes | 新表 | email、用途（註冊／重設密碼）、雜湊後驗證碼、到期、嘗試次數 |
-| Polaris 站台 | shop.report_fulfillments | 新表 | `order_item_id`（UNIQUE）、`request_no`、`handoff_status`（待送出／已送出／送出失敗）、`handoff_attempts`、`last_error`、`ziwei_status`（快取）、`member_note`、`deliverable_ready_at`、`synced_at` |
-| Polaris 站台 | shop.shipments | 新表 | `order_item_id`、收件人快照、`status`（待送印／印製中／已出貨／已完成）、`printer`、`carrier`、`tracking_no`、各狀態時間、操作人 |
+| commerce `0002_orders_v2` | shop.order_checkouts（1:1 orders） | `submission_key`（UNIQUE，防重複送出）、`policy_version`、`policy_consented_at`、`expires_at` | ✅ |
+| commerce | shop.order_items | `item_no`（UNIQUE，也是紫微工作單編號）、`product_id`、`product_code`／`name` 快照、`variant`（digital／physical）、`kind`（purchase／addon）、`parent_item_id`、`unit_price`、`currency`、`quantity`、`customization` JSONB | ✅ |
+| commerce | shop.payment_attempts | 見實作架構 §4；部分唯一索引保證同一訂單最多一筆 succeeded | ✅ |
+| commerce | shop.payment_notifications | 通知原文、驗證結果、處理結果 | ✅ |
+| commerce | shop.order_invoices | 開立方式、載具／統編／愛心碼、開立結果；發票未開時 `not_applicable` | ✅ |
+| commerce | shop.order_notifications | `dedupe_key` UNIQUE，寄信去重 | ✅ |
+| Polaris 站台 `0004_membership_v2` | shop.report_fulfillments | `order_item_id`（UNIQUE）、`request_no`（UNIQUE）、`member_id`、`chart_id`／`person_user_id`（軟參照）、`environment`、`handoff_status`（not_ready／pending／sent／failed／cancelled）、`handoff_attempts`、`last_error`、`ziwei_status`、`member_note`、`deliverable_ready_at`、`synced_at` | ✅ |
+| Polaris 站台 | shop.shipments | `order_item_id`（UNIQUE）、收件人快照、`status`（pending／printing／shipped／delivered／cancelled）、`printer`、`carrier`、`tracking_no`、各狀態時間、`updated_by` | ✅ |
+| Polaris 站台 | blog.member_email_verifications | `app_user_id`（PK）、`email`、`verified_at` | ✅ |
+| 待定（做登入時） | Email 驗證碼表 | email、用途（註冊／重設密碼）、雜湊後驗證碼、到期、嘗試次數 | 未做 |
+
+與原草案的差異：
+
+- **不在既有表加欄位**：Claire 的庫不跑 commerce 鏈，`orders` 多一個欄位就會讓 Claire 查訂單失敗；結帳資訊改放新表 `order_checkouts`。`blog.member_profiles` 由 postgres 以 SQL 建立，blog_app 無法 ALTER，Email 驗證改放新表 `member_email_verifications`（並記錄是哪個 Email 通過驗證，改 Email 後需重新驗證）。
+- **出生資料與讀者設定的快照放在 `order_items.customization`**（購買者填寫內容的通用快照），`report_fulfillments` 不重複存；共用電商套件不出現命盤欄位。
+
+`customization` 內容（Polaris 報告商品）：`subject_name`、`gender`、`birth`（年月日時分、曆法、閏月）、`place`、`relation_label`、`audience`（讀者身分、書中稱呼、題字）。
 
 不改既有欄位型別、不刪欄位；`orders.items` JSONB 照舊寫入，維持 Claire、Happy_Wu 現行行為。
 
@@ -119,15 +128,15 @@ OWS 一定要先確認登入會員擁有該訂單項目，才代為呼叫下載 
 | 暫存檔與合併檔以「年份＋姓名」命名，會互相覆寫、個資留在磁碟 | 會員盤改以 chart_id 命名；上傳成功不留合併檔，失敗才留在 `fail_upload/` 供除錯；暫存檔在例外時也會清除 |
 | 服務 token 用 `!=` 比對 | 改用 `hmac.compare_digest`，未設定 token 時仍一律拒絕 |
 
-回應新增欄位：`gender`、`clock_time`、`place`、`place_differs`。OWS 建單前應核對 `gender` 與 `clock_time` 等於送出值；`place_differs` 為真時以 OWS 的 `birth_snapshot` 為準，不需要擋單。
+回應新增欄位：`gender`、`clock_time`、`place`、`place_differs`。OWS 建單前應核對 `gender` 與 `clock_time` 等於送出值；`place_differs` 為真時以 OWS 的 `customization` 為準，不需要擋單。
 
 仍未處理：同一筆資料**同時**送兩次時，第二筆可能回 500（主鍵衝突）。OWS 以 `submission_key` 防重複送出，重試時會走重存分支拿到同一張盤，可接受。
 
 ## 5. 端到端流程
 
-1. **送出訂單（未付款）**：會員已登入且 Email 已驗證 → OWS 呼叫 save-and-register（帶會員本人 Email、固定的 `relation_label`）→ 拿到 `chart_id`、`person_user_id` → 建立 `orders`＋`order_items`（存 `birth_snapshot` 與 `audience`），狀態為待付款。
-   - 核對回應的 `gender`、`clock_time` 與 `birth_snapshot` 一致，不一致就拒絕建單（防禦性檢查；§4.5 已修正去重邏輯）。
-2. **付款成功**（綠界或人工確認）：同一 transaction 內更新訂單、付款嘗試，並建立 `report_fulfillments`（`handoff_status=待送出`）。佔位模式不會走到這一步。
+1. **送出訂單（未付款）**：會員已登入且 Email 已驗證 → OWS 呼叫 save-and-register（帶會員本人 Email、固定的 `relation_label`）→ 拿到 `chart_id`、`person_user_id` → 建立 `orders`＋`order_checkouts`＋`order_items`（出生資料與讀者設定存於 `customization`）＋`report_fulfillments`（`handoff_status=not_ready`），訂單狀態為待付款。
+   - 核對回應的 `gender`、`clock_time` 與 `customization` 一致，不一致就拒絕建單（防禦性檢查；§4.5 已修正去重邏輯）。
+2. **付款成功**（綠界或人工確認）：同一 transaction 內更新訂單、付款嘗試，並把 `report_fulfillments.handoff_status` 從 `not_ready` 改為 `pending`（建單時已建立）。佔位模式不會走到這一步。
 3. **交接**：transaction 提交後呼叫 `POST /public/report-requests`；失敗則留在「待送出」，由排程或後台按鈕重送（冪等）。
 4. **製作**：紫微編輯照現行產線製作 → 審稿 → 組書 → InDesign 排版 → 上傳 PDF（實體版另傳送印檔）→ 標為完成。
 5. **同步**：OWS 排程每 10–15 分鐘查詢未完成工作單的狀態並更新 `ziwei_status`；會員開「我的報告」時也即時查一次。狀態有變就寄對應通知信（待補資料、報告完成）。
