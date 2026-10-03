@@ -220,6 +220,31 @@ class MemberEmailVerification(db.Model):
         return f'<MemberEmailVerification {self.app_user_id} {self.email}>'
 
 
+class MemberEmailCode(db.Model):
+    """blog.member_email_codes — Email 驗證碼（註冊／重設密碼／登入後驗證）。
+
+    只存 HMAC 雜湊，不存明碼；每次重新索取會讓同 email+用途的舊碼作廢。
+    """
+    __tablename__ = 'member_email_codes'
+    __table_args__ = (
+        db.CheckConstraint("purpose IN ('register','reset','verify')", name='ck_member_email_codes_purpose'),
+        db.Index('ix_blog_member_email_codes_email_purpose', 'email', 'purpose'),
+        {'schema': 'blog'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    email = db.Column(db.String(255), nullable=False)
+    purpose = db.Column(db.String(20), nullable=False)
+    code_hash = db.Column(db.String(64), nullable=False)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    attempts = db.Column(db.Integer, nullable=False, server_default='0')
+    consumed_at = db.Column(db.DateTime(timezone=True))
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False)
+
+    def __repr__(self):
+        return f'<MemberEmailCode {self.email} {self.purpose}>'
+
+
 class ReportFulfillment(db.Model):
     """shop.report_fulfillments — 一個報告訂單項目對應一筆；記錄命盤關聯、交接紫微工作單的狀態與同步快取。
 

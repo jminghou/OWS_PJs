@@ -31,6 +31,12 @@ SITE_EXTENSIONS = [
         url_prefix='/api/v1/astrology',
         enabled=True,
     ),
+    # 會員 v2：Email 驗證碼註冊、重設密碼、登入後驗證（/member/*）
+    BlueprintConfig(
+        module_path='sites.Polaris_Parent.backend.extensions.member_account',
+        url_prefix='/api/v1',
+        enabled=True,
+    ),
     # 會員商業循環（訂單登錄 → 審核 → 發券 / 收藏文章）。
     # 路由內部分 /membership/* 與 /admin/*，故掛在 /api/v1 而非子路徑。
     BlueprintConfig(
