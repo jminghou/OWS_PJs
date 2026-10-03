@@ -5,7 +5,7 @@
 存命盤 → 核對紫微回傳的命盤 → 同一個 transaction 建 orders / order_checkouts / order_items /
 report_fulfillments / order_invoices（＋實體書的 shipments）。
 
-付款模式目前只有 placeholder：訂單停在待付款，不建付款嘗試、不交接生產。
+付款模式：placeholder 只建待付款訂單；manual（人工收款）另設匯款期限，付款流程見 payment.py。
 """
 
 import secrets
@@ -96,7 +96,8 @@ def _save_chart(clean, email, eng, save_chart):
     return res, chart_time
 
 
-def create_report_order(user, email, clean, submission_key, eng, save_chart, payment_mode='placeholder'):
+def create_report_order(user, email, clean, submission_key, eng, save_chart, payment_mode='placeholder',
+                        expires_at=None):
     """建立待付款訂單。回傳 (order, created)；同一 submission_key 重送回傳既有訂單、created=False。"""
     existing = find_by_submission_key(submission_key)
     if existing is not None:
@@ -128,7 +129,7 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
     db.session.flush()
     now = datetime.utcnow()
     db.session.add(OrderCheckout(order_id=order.id, submission_key=submission_key,
-                                 policy_version=POLICY_VERSION, policy_consented_at=now))
+                                 policy_version=POLICY_VERSION, policy_consented_at=now, expires_at=expires_at))
     item = OrderItem(order_id=order.id, item_no=item_no, product_id=product.id, product_code=product.product_id,
                      name=name, variant=variant, kind='purchase', unit_price=price, currency=CURRENCY,
                      quantity=1, customization=customization)
@@ -156,7 +157,15 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
 
 
 def order_summary(order):
+    from .payment import attempt_view, latest_manual_attempt, manual_bank_info
+
     item = order.order_items[0] if order.order_items else None
+    payment = {'mode': order.payment_method,
+               'deadline': order.checkout.expires_at.isoformat() if order.checkout and order.checkout.expires_at else None}
+    if order.payment_method == 'manual':
+        payment['transfer'] = attempt_view(latest_manual_attempt(order))
+        if order.status == 'pending':
+            payment['bank'] = manual_bank_info()
     fulfillment = ReportFulfillment.query.filter_by(order_item_id=item.id).first() if item else None
     shipment = Shipment.query.filter_by(order_item_id=item.id).first() if item else None
     c = item.customization if item else {}
@@ -166,7 +175,9 @@ def order_summary(order):
         'amount': order.amount,
         'currency': order.currency,
         'payment_mode': order.payment_method,
+        'payment': payment,
         'created_at': order.created_at.isoformat() if order.created_at else None,
+        'paid_at': order.paid_at.isoformat() if order.paid_at else None,
         'item': item and {
             'item_no': item.item_no,
             'name': item.name,

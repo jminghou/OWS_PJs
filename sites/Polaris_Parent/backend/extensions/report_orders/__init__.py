@@ -3,24 +3,41 @@ Report Orders Extension — 客製命理報告的建單與查詢（會員 v2，P
 
 註冊於 /api/v1，全部需要登入（JWT）。
 
-    POST /api/v1/report-orders              建立待付款訂單（需已驗證 Email、同意交易政策）
-    GET  /api/v1/report-orders              我的報告訂單
-    GET  /api/v1/report-orders/<order_no>   單筆訂單（只能看自己的）
+會員端：
+    POST /api/v1/report-orders                       建立待付款訂單（需已驗證 Email、同意交易政策）
+    GET  /api/v1/report-orders                       我的報告訂單
+    GET  /api/v1/report-orders/<order_no>            單筆訂單（只能看自己的）
+    POST /api/v1/report-orders/<order_no>/transfer   人工收款：回報轉帳（末五碼、日期、金額）
 
-付款模式由 REPORT_PAYMENT_MODE 決定，目前只支援 placeholder：訂單停在待付款，
-不建付款嘗試、不交接紫微生產（docs/membership-v2-architecture.md §3）。
+管理端（@require_permission）：
+    GET  /api/v1/admin/report-orders                             訂單列表（report_orders.read）
+    POST /api/v1/admin/report-orders/<order_no>/confirm-payment  確認收款（report_orders.confirm_payment）
+    POST /api/v1/admin/report-orders/<order_no>/reject-transfer  退回轉帳回報（report_orders.confirm_payment）
+
+CLI：flask --app <site> report_orders expire-overdue   取消逾期未回報轉帳的訂單（可排程）
+
+付款模式由 REPORT_PAYMENT_MODE 決定（docs/membership-v2-architecture.md §3）：
+- placeholder：只建待付款訂單，不能付款、不交接生產
+- manual：人工收款，需設定 MANUAL_PAYMENT_*；匯款資訊不齊時不接受下單
+付款模式記在每筆訂單（orders.payment_method），切換模式不影響已成立的訂單。
 """
 
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
+from datetime import datetime, timedelta
+
+import click
+
 from core.backend_engine.factory import db
 from core.backend_engine.models import User
 from core.backend_engine.services.member_auth import normalise_email
+from core.backend_engine.services.rbac import require_permission
+from core.backend_engine.services.rbac_seed import register_permissions
 from packages.commerce.models import Order
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import notify, service
+from . import notify, payment, service
 from .validation import validate_order
 
 try:
@@ -30,7 +47,15 @@ except Exception:  # pragma: no cover
 
 bp = Blueprint('report_orders', __name__)
 
-SUPPORTED_PAYMENT_MODES = ('placeholder',)
+SUPPORTED_PAYMENT_MODES = ('placeholder', 'manual')
+
+# (code, module, action, name_zh, name_en)；admin 角色自動擁有，其他角色需另行指派
+REPORT_ORDER_PERMISSIONS = [
+    ('report_orders.read', 'report_orders', 'read', '檢視報告訂單', 'Read Report Orders'),
+    ('report_orders.confirm_payment', 'report_orders', 'confirm_payment', '確認人工收款',
+     'Confirm Manual Payments'),
+]
+register_permissions(REPORT_ORDER_PERMISSIONS)
 
 
 def _limit(rule):
@@ -98,18 +123,27 @@ def create_order():
         # 欄位錯誤放在 errors：前端 request() 會把它帶進 RequestError.errors
         return _error('資料有誤，請檢查後再送出', 400, code='invalid', errors=errors)
 
+    bank, expires_at = None, None
+    if mode == 'manual':
+        bank = payment.manual_bank_info()
+        if bank is None:
+            current_app.logger.error('REPORT_PAYMENT_MODE=manual 但 MANUAL_PAYMENT_* 匯款資訊未設定完整')
+            return _error('目前無法建立訂單，請稍後再試', 503)
+        expires_at = datetime.utcnow() + timedelta(days=payment.deadline_days())
+
     eng = _engine()
     if eng is None:
         return _error('排盤引擎暫時無法使用，請稍後再試', 503)
 
     try:
-        order, created = service.create_report_order(user, email, clean, submission_key, eng, _save_chart, mode)
+        order, created = service.create_report_order(user, email, clean, submission_key, eng, _save_chart, mode,
+                                                     expires_at=expires_at)
     except service.OrderError as exc:
         db.session.rollback()
         return _error(exc.message, exc.status, code=exc.code)
 
     if created:
-        notify.send_order_created(order, email, mode)
+        notify.send_order_created(order, email, mode, bank)
     return jsonify({'success': True, 'created': created, 'order': service.order_summary(order)}), 201 if created else 200
 
 
@@ -132,7 +166,117 @@ def get_order(order_no):
     user = _current_user()
     if user is None:
         return _error('會員不存在或已停用', 401)
+    _expire_overdue()
     order = Order.query.filter_by(order_no=order_no, user_id=user.id).first()
     if order is None or not order.order_items:
         return _error('找不到這筆訂單', 404)
     return jsonify({'success': True, 'order': service.order_summary(order)})
+
+
+@bp.route('/report-orders/<order_no>/transfer', methods=['POST'])
+@_limit('10 per minute')
+@jwt_required()
+def report_transfer(order_no):
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    order = Order.query.filter_by(order_no=order_no, user_id=user.id).first()
+    if order is None or not order.order_items:
+        return _error('找不到這筆訂單', 404)
+    try:
+        attempt = payment.report_transfer(order, request.get_json(silent=True) or {})
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code, errors=getattr(exc, 'errors', None))
+    notify.send_transfer_reported(order, attempt, normalise_email(user.email or user.username))
+    return jsonify({'success': True, 'order': service.order_summary(order)})
+
+
+# ── 管理端 ─────────────────────────────────────────────────────────────────
+def _buyer_email(order):
+    buyer = db.session.get(User, order.user_id)
+    return normalise_email(buyer.email or buyer.username) if buyer else None
+
+
+def _expire_overdue():
+    """取消逾期訂單並通知會員（查詢時順便執行；也可用 CLI 排程）。回傳取消筆數。"""
+    expired = payment.expire_overdue()
+    for order in expired:
+        email = _buyer_email(order)
+        if email:
+            notify.send_order_expired(order, email)
+    return len(expired)
+
+
+def _admin_row(order):
+    row = service.order_summary(order)
+    row['buyer_email'] = _buyer_email(order)
+    return row
+
+
+@bp.route('/admin/report-orders', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.read')
+def admin_list_orders():
+    _expire_overdue()
+    status = request.args.get('status', 'pending')
+    q = Order.query.filter(Order.payment_method.in_(SUPPORTED_PAYMENT_MODES))
+    if status != 'all':
+        q = q.filter(Order.status == status)
+    orders = [o for o in q.order_by(Order.created_at.desc()).limit(200).all() if o.order_items]
+    rows = [_admin_row(o) for o in orders]
+    if request.args.get('awaiting') == '1':  # 只看會員已回報、待確認的
+        rows = [r for r in rows if ((r['payment'] or {}).get('transfer') or {}).get('status') == 'created']
+    return jsonify({'success': True, 'orders': rows})
+
+
+def _admin_order(order_no):
+    order = Order.query.filter_by(order_no=order_no).first()
+    return order if order is not None and order.order_items else None
+
+
+@bp.route('/admin/report-orders/<order_no>/confirm-payment', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.confirm_payment')
+def admin_confirm_payment(order_no):
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    data = request.get_json(silent=True) or {}
+    admin_id = int(get_jwt_identity())
+    try:
+        payment.confirm_manual_payment(order, admin_id, data.get('received_amount'),
+                                       data.get('last5'), data.get('note'))
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    current_app.logger.info(f'manual payment confirmed {order.order_no} by admin {admin_id}')
+    email = _buyer_email(order)
+    if email:
+        notify.send_payment_confirmed(order, email)
+    return jsonify({'success': True, 'order': _admin_row(order)})
+
+
+@bp.route('/admin/report-orders/<order_no>/reject-transfer', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.confirm_payment')
+def admin_reject_transfer(order_no):
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    try:
+        attempt = payment.reject_transfer(order, int(get_jwt_identity()),
+                                          (request.get_json(silent=True) or {}).get('reason'))
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    email = _buyer_email(order)
+    if email:
+        notify.send_transfer_rejected(order, attempt, email)
+    return jsonify({'success': True, 'order': _admin_row(order)})
+
+
+@bp.cli.command('expire-overdue')
+def expire_overdue_command():
+    """取消逾期未回報轉帳的人工收款訂單（建議每小時排程一次）。"""
+    click.echo(f'cancelled {_expire_overdue()} overdue order(s)')

@@ -422,7 +422,8 @@ class PaymentAttempt(db.Model):
     __table_args__ = (
         db.UniqueConstraint('provider', 'provider_trade_no', name='uq_payment_attempts_provider_trade_no'),
         db.Index('uq_payment_attempts_one_success', 'order_id', unique=True,
-                 postgresql_where=db.text("status = 'succeeded'")),
+                 postgresql_where=db.text("status = 'succeeded'"),
+                 sqlite_where=db.text("status = 'succeeded'")),  # 測試庫（SQLite）同樣是部分索引
         {'schema': _SHOP_SCHEMA},
     )
 
@@ -439,6 +440,9 @@ class PaymentAttempt(db.Model):
     paid_at = db.Column(db.DateTime, nullable=True)
     confirmed_by = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), nullable=True)  # 人工收款確認者
     manual_reference = db.Column(db.String(64), nullable=True)   # 人工收款：轉帳末五碼等
+    transferred_on = db.Column(db.Date, nullable=True)           # 人工收款：付款人回報的轉帳日期
+    payer_note = db.Column(db.Text, nullable=True)               # 付款人回報時的備註
+    review_note = db.Column(db.Text, nullable=True)              # 管理者確認／退回時的備註（退回原因會告知付款人）
     note = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

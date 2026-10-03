@@ -1,7 +1,7 @@
 """Polaris 會員 v2：客製報告建單。In-memory SQLite；紫微服務、排盤引擎、寄信皆以假物件代替。"""
 import re
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from flask import Flask
@@ -12,8 +12,9 @@ from sqlalchemy.ext.compiler import compiles
 
 from core.backend_engine.factory import db, limiter, mail
 from core.backend_engine.models import User
+from core.backend_engine.services.rbac import RBACService
 from packages.commerce.models import (
-    Order, OrderCheckout, OrderInvoice, OrderItem, OrderNotification, Product, ProductPrice,
+    Order, OrderCheckout, OrderInvoice, OrderItem, OrderNotification, PaymentAttempt, Product, ProductPrice,
 )
 from sites.Polaris_Parent.backend.extensions import report_orders
 from sites.Polaris_Parent.backend.extensions.member_account import service as account_service
@@ -91,7 +92,9 @@ def _make_app():
     return app
 
 
-class ReportOrderTests(unittest.TestCase):
+class _Base(unittest.TestCase):
+    MODE = 'placeholder'
+
     @classmethod
     def setUpClass(cls):
         cls.app = _make_app()
@@ -106,8 +109,9 @@ class ReportOrderTests(unittest.TestCase):
                     conn.execute(text(f"ATTACH DATABASE ':memory:' AS {schema}"))
         self.tables = [User.__table__, Product.__table__, ProductPrice.__table__, Order.__table__,
                        OrderCheckout.__table__, OrderItem.__table__, OrderInvoice.__table__,
-                       OrderNotification.__table__, ReportFulfillment.__table__, Shipment.__table__,
-                       MemberEmailVerification.__table__]
+                       OrderNotification.__table__, PaymentAttempt.__table__, ReportFulfillment.__table__,
+                       Shipment.__table__, MemberEmailVerification.__table__]
+        self.app.config['REPORT_PAYMENT_MODE'] = self.MODE
         for t in self.tables:
             t.create(db.engine)
 
@@ -162,6 +166,8 @@ class ReportOrderTests(unittest.TestCase):
     def post(self, body, user=None):
         return self.client.post('/api/v1/report-orders', json=body, headers=self.headers(user))
 
+
+class ReportOrderTests(_Base):
     # ── 前置條件 ─────────────────────────────────────────────────────────
     def test_requires_verified_email(self):
         other = self.make_user('new@example.com', verified=False)
@@ -280,6 +286,179 @@ class ReportOrderTests(unittest.TestCase):
         theirs = self.client.get('/api/v1/report-orders', headers=self.headers(other)).get_json()['orders']
         self.assertEqual([o['order_no'] for o in mine], [order_no])
         self.assertEqual(theirs, [])
+
+
+BANK = {'MANUAL_PAYMENT_BANK_NAME': '測試銀行', 'MANUAL_PAYMENT_BANK_CODE': '812',
+        'MANUAL_PAYMENT_ACCOUNT_NO': '1234567890123', 'MANUAL_PAYMENT_ACCOUNT_NAME': '測試戶名',
+        'MANUAL_PAYMENT_DEADLINE_DAYS': 3, 'REPORT_ADMIN_NOTIFY_EMAIL': 'ops@example.test'}
+
+
+class ManualPaymentTests(_Base):
+    MODE = 'manual'
+
+    def setUp(self):
+        super().setUp()
+        self._saved_cfg = {k: self.app.config.get(k) for k in BANK}
+        self.app.config.update(BANK)
+        self.admin = self.make_user('admin@example.test', verified=True)
+        self.admin.role = 'admin'
+        db.session.commit()
+        p = patch.object(RBACService, 'get_user_permissions',
+                         side_effect=lambda uid: {'report_orders.read', 'report_orders.confirm_payment'}
+                         if int(uid) == self.admin.id else set())
+        p.start()
+        self.addCleanup(p.stop)
+
+    def tearDown(self):
+        self.app.config.update(self._saved_cfg)
+        super().tearDown()
+
+    def order(self, **over):
+        r = self.post(payload(**over))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        return r.get_json()['order']
+
+    def report(self, order_no, user=None, **over):
+        body = {'last5': '12345', 'transferred_on': datetime.utcnow().date().isoformat(), 'amount': 1980}
+        body.update(over)
+        return self.client.post(f'/api/v1/report-orders/{order_no}/transfer', json=body, headers=self.headers(user))
+
+    def admin_post(self, order_no, action, body, user=None):
+        return self.client.post(f'/api/v1/admin/report-orders/{order_no}/{action}', json=body,
+                                headers=self.headers(user or self.admin))
+
+    def mails(self):
+        return [c[0][0] for c in self.mail_send.call_args_list]
+
+    # ── 下單 ─────────────────────────────────────────────────────────────
+    def test_refuses_orders_until_bank_info_is_configured(self):
+        self.app.config['MANUAL_PAYMENT_ACCOUNT_NO'] = ''
+        r = self.post(payload())
+        self.assertEqual(r.status_code, 503)
+        self.assertEqual(self.ziwei_calls, [])
+
+    def test_manual_order_has_deadline_and_bank_info(self):
+        o = self.order()
+        self.assertEqual(o['payment']['mode'], 'manual')
+        self.assertEqual(o['payment']['bank']['account_no'], '1234567890123')
+        deadline = Order.query.one().checkout.expires_at
+        self.assertAlmostEqual((deadline - datetime.utcnow()).total_seconds(), 3 * 86400, delta=60)
+        self.assertIn('1234567890123', self.mails()[0].body)
+
+    # ── 會員回報 ─────────────────────────────────────────────────────────
+    def test_member_reports_transfer_and_admin_is_notified(self):
+        o = self.order()
+        r = self.report(o['order_no'], last5='12a45', transferred_on='2099-01-01')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(set(r.get_json()['errors']), {'last5', 'transferred_on'})
+
+        r = self.report(o['order_no'], note='用公司帳戶轉的')
+        self.assertEqual(r.status_code, 200, r.get_json())
+        t = r.get_json()['order']['payment']['transfer']
+        self.assertEqual((t['status'], t['last5'], t['member_note']), ('created', '12345', '用公司帳戶轉的'))
+        self.assertTrue(any(m.recipients == ['ops@example.test'] for m in self.mails()))
+
+        self.report(o['order_no'], last5='54321')  # 重報更新同一筆
+        self.assertEqual(PaymentAttempt.query.count(), 1)
+        self.assertEqual(PaymentAttempt.query.one().manual_reference, '54321')
+
+    def test_cannot_report_on_someone_elses_order(self):
+        o = self.order()
+        other = self.make_user('other@example.com', verified=True)
+        self.assertEqual(self.report(o['order_no'], user=other).status_code, 404)
+
+    # ── 管理者確認 ───────────────────────────────────────────────────────
+    def test_admin_confirms_payment_and_order_moves_to_handoff(self):
+        o = self.order()
+        self.report(o['order_no'])
+        self.assertEqual(self.admin_post(o['order_no'], 'confirm-payment', {'received_amount': 1980},
+                                         user=self.user).status_code, 403)
+        r = self.admin_post(o['order_no'], 'confirm-payment', {'received_amount': 1900})
+        self.assertEqual((r.status_code, r.get_json()['code']), (400, 'amount_mismatch'))
+
+        r = self.admin_post(o['order_no'], 'confirm-payment', {'received_amount': 1980, 'note': '已對帳'})
+        self.assertEqual(r.status_code, 200, r.get_json())
+        order = Order.query.one()
+        a = PaymentAttempt.query.one()
+        f = ReportFulfillment.query.one()
+        self.assertEqual((order.status, a.status, a.confirmed_by, a.review_note), ('paid', 'succeeded', self.admin.id, '已對帳'))
+        self.assertIsNotNone(order.paid_at)
+        self.assertEqual((f.handoff_status, f.environment), ('pending', 'live'))
+        self.assertTrue(any('已確認收款' in m.subject for m in self.mails()))
+
+        again = self.admin_post(o['order_no'], 'confirm-payment', {'received_amount': 1980})
+        self.assertEqual((again.status_code, again.get_json()['code']), (409, 'not_pending'))
+
+    def test_admin_can_confirm_without_member_report(self):
+        o = self.order()
+        r = self.admin_post(o['order_no'], 'confirm-payment', {'received_amount': 1980, 'last5': '99999'})
+        self.assertEqual(r.status_code, 200, r.get_json())
+        a = PaymentAttempt.query.one()
+        self.assertEqual((a.status, a.manual_reference), ('succeeded', '99999'))
+
+    def test_reject_then_member_reports_again(self):
+        o = self.order()
+        self.assertEqual(self.admin_post(o['order_no'], 'reject-transfer', {'reason': 'x'}).status_code, 409)
+        self.report(o['order_no'])
+        self.assertEqual(self.admin_post(o['order_no'], 'reject-transfer', {'reason': ''}).status_code, 400)
+        r = self.admin_post(o['order_no'], 'reject-transfer', {'reason': '查無此筆入帳'})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.get_json()['order']['payment']['transfer']['review_note'], '查無此筆入帳')
+        self.assertEqual(Order.query.one().status, 'pending')
+        self.assertTrue(any('查無此筆入帳' in m.body for m in self.mails()))
+
+        self.report(o['order_no'], last5='11111')
+        self.assertEqual(PaymentAttempt.query.count(), 2)
+        self.assertEqual(self.admin_post(o['order_no'], 'confirm-payment', {'received_amount': 1980}).status_code, 200)
+
+    def test_admin_list_filters_awaiting_reports(self):
+        o1 = self.order(submission_key='key-a-000001')
+        self.order(submission_key='key-b-000002')
+        self.report(o1['order_no'])
+        r = self.client.get('/api/v1/admin/report-orders?awaiting=1', headers=self.headers(self.admin))
+        rows = r.get_json()['orders']
+        self.assertEqual([x['order_no'] for x in rows], [o1['order_no']])
+        self.assertEqual(rows[0]['buyer_email'], 'buyer@example.com')
+        self.assertEqual(self.client.get('/api/v1/admin/report-orders', headers=self.headers()).status_code, 403)
+
+    # ── 逾期 ─────────────────────────────────────────────────────────────
+    def _age(self, order_no):
+        order = Order.query.filter_by(order_no=order_no).one()
+        order.checkout.expires_at = datetime.utcnow() - timedelta(minutes=1)
+        db.session.commit()
+
+    def test_overdue_order_without_report_is_cancelled(self):
+        o = self.order(variant='physical', shipping=SHIPPING)
+        self._age(o['order_no'])
+        self.assertEqual(self.report(o['order_no']).get_json()['code'], 'expired')
+        r = self.client.get(f"/api/v1/report-orders/{o['order_no']}", headers=self.headers())
+        self.assertEqual(r.get_json()['order']['status'], 'cancelled')
+        self.assertEqual(ReportFulfillment.query.one().handoff_status, 'cancelled')
+        self.assertEqual(Shipment.query.one().status, 'cancelled')
+        self.assertTrue(any('已取消' in m.subject for m in self.mails()))
+
+    def test_overdue_order_with_report_waits_for_admin(self):
+        o = self.order()
+        self.report(o['order_no'])
+        self._age(o['order_no'])
+        r = self.client.get(f"/api/v1/report-orders/{o['order_no']}", headers=self.headers())
+        self.assertEqual(r.get_json()['order']['status'], 'pending')
+        self.assertEqual(self.admin_post(o['order_no'], 'confirm-payment', {'received_amount': 1980}).status_code, 200)
+
+
+class PlaceholderCannotBePaidTests(_Base):
+    def test_placeholder_order_cannot_be_confirmed(self):
+        order_no = self.post(payload()).get_json()['order']['order_no']
+        admin = self.make_user('admin@example.test', verified=True)
+        with patch.object(RBACService, 'get_user_permissions', return_value={'report_orders.confirm_payment'}):
+            r = self.client.post(f'/api/v1/admin/report-orders/{order_no}/confirm-payment',
+                                 json={'received_amount': 1980}, headers=self.headers(admin))
+        self.assertEqual((r.status_code, r.get_json()['code']), (409, 'not_manual'))
+        r = self.client.post(f'/api/v1/report-orders/{order_no}/transfer', headers=self.headers(),
+                             json={'last5': '12345', 'transferred_on': datetime.utcnow().date().isoformat(), 'amount': 1980})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(Order.query.one().status, 'pending')
+        self.assertEqual(ReportFulfillment.query.one().handoff_status, 'not_ready')
 
 
 if __name__ == '__main__':

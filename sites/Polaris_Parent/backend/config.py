@@ -229,6 +229,15 @@ class Config:
     # 之後會有 manual（人工收款）、ecpay_test、ecpay_live。後端以此判斷，不靠前端隱藏按鈕。
     REPORT_PAYMENT_MODE = os.environ.get('REPORT_PAYMENT_MODE', 'placeholder')
 
+    # 人工收款（REPORT_PAYMENT_MODE=manual）：四項匯款資訊都要設定才接受下單
+    MANUAL_PAYMENT_BANK_NAME = os.environ.get('MANUAL_PAYMENT_BANK_NAME', '')
+    MANUAL_PAYMENT_BANK_CODE = os.environ.get('MANUAL_PAYMENT_BANK_CODE', '')
+    MANUAL_PAYMENT_ACCOUNT_NO = os.environ.get('MANUAL_PAYMENT_ACCOUNT_NO', '')
+    MANUAL_PAYMENT_ACCOUNT_NAME = os.environ.get('MANUAL_PAYMENT_ACCOUNT_NAME', '')
+    MANUAL_PAYMENT_DEADLINE_DAYS = int(os.environ.get('MANUAL_PAYMENT_DEADLINE_DAYS', '3'))
+    # 會員回報轉帳時通知的管理者信箱（留空則不寄）
+    REPORT_ADMIN_NOTIFY_EMAIL = os.environ.get('REPORT_ADMIN_NOTIFY_EMAIL', '')
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 
