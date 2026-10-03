@@ -40,8 +40,13 @@ export default function ReportCheckoutPage() {
   useEffect(() => {
     checkAuth().finally(() => setChecked(true));
     const d = loadDraft();
-    setDraft(d && !hasErrors(validateDraft(d)) ? d : null);
-  }, [checkAuth]);
+    // 有草稿但不完整 → 回表單補齊（表單會帶入已填的內容）
+    if (d && hasErrors(validateDraft(d))) {
+      router.replace('/report/customize');
+      return;
+    }
+    setDraft(d);
+  }, [checkAuth, router]);
 
   useEffect(() => {
     if (!checked) return;
@@ -60,9 +65,18 @@ export default function ReportCheckoutPage() {
   if (!draft) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
-        <h1 className="text-xl font-bold text-gray-900">找不到填寫中的資料</h1>
-        <p className="mt-2 text-sm text-gray-600">填寫內容只保存在原本的瀏覽器分頁，關閉分頁後需要重新填寫。</p>
-        <Link href="/report" className="mt-6 inline-block text-brand-purple-700 hover:underline">回到客製報告</Link>
+        <h1 className="text-xl font-bold text-gray-900">還沒有要結帳的報告</h1>
+        <p className="mt-3 text-sm leading-6 text-gray-600">
+          請先填寫報告主角的資料，確認後再前往結帳。填寫內容只會暫存在填寫時的瀏覽器分頁；
+          換了分頁、關閉分頁，或訂單已經送出，這裡就不會有資料。
+        </p>
+        <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Link href="/report/customize"
+                className="inline-flex rounded-banner bg-brand-purple-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-purple-700">
+            開始填寫報告資料
+          </Link>
+          <Link href="/report" className="text-sm text-brand-purple-700 hover:underline">看商品介紹</Link>
+        </div>
       </div>
     );
   }
