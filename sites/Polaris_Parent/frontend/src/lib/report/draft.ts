@@ -1,7 +1,7 @@
 /**
  * 客製報告的下單草稿（會員 v2）。
  *
- * 填寫與確認頁只存在瀏覽器 localStorage（保留 7 天，像購物車），不寫資料庫、不呼叫紫微；
+ * 填寫精靈與預覽頁只存在瀏覽器 localStorage（保留 7 天，像購物車），不寫資料庫、不呼叫紫微；
  * 登入並完成 Email 驗證後，結帳步驟才把草稿送到後端建單（docs/membership-v2-architecture.md §5）。
  * 送出時的內容會成為 order_items.customization 的快照，所以欄位名稱與後端契約一致。
  */
@@ -9,7 +9,8 @@ import type { TimeType } from '@/lib/api/astrology';
 import { CALL_NAME_MAX, DEDICATION_MAX, RELATION_OPTIONS, READER_OPTIONS, type ReportVariant } from './catalog';
 
 export interface ReportDraft {
-  variant: ReportVariant;
+  /** 看完預覽才選；精靈步驟期間為 null（舊草稿可能已帶版本） */
+  variant: ReportVariant | null;
   subject_name: string;
   gender: '男' | '女';
   birth: {
@@ -44,7 +45,7 @@ export function newSubmissionKey(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function emptyDraft(variant: ReportVariant = 'digital'): ReportDraft {
+export function emptyDraft(variant: ReportVariant | null = null): ReportDraft {
   return {
     variant,
     subject_name: '',
@@ -99,12 +100,15 @@ export function clearDraft(): void {
   }
 }
 
-export type DraftErrors = Partial<Record<
-  'subject_name' | 'birth_date' | 'birth_time' | 'place' | 'relation_label' | 'reader' | 'call_name' | 'dedication',
-  string
->>;
+export type DraftField =
+  | 'subject_name' | 'birth_date' | 'birth_time' | 'place' | 'relation_label' | 'reader' | 'call_name' | 'dedication';
 
-/** 前端檢查（後端建單時會再驗證一次）。回傳空物件代表通過。 */
+export type DraftErrors = Partial<Record<DraftField, string>>;
+
+/**
+ * 報告資料的前端檢查（後端建單時會再驗證一次），不含版本。回傳空物件代表通過。
+ * 精靈每一步只取自己負責的欄位（lib/report/steps.ts）。
+ */
 export function validateDraft(d: ReportDraft, today: Date = new Date()): DraftErrors {
   const errors: DraftErrors = {};
   const name = d.subject_name.trim();
@@ -139,6 +143,17 @@ export function validateDraft(d: ReportDraft, today: Date = new Date()): DraftEr
 }
 
 export const hasErrors = (e: DraftErrors) => Object.keys(e).length > 0;
+
+/** 草稿已可結帳：資料完整且已選版本 */
+export const isReadyForCheckout = (d: ReportDraft): d is ReportDraft & { variant: ReportVariant } =>
+  !!d.variant && !hasErrors(validateDraft(d));
+
+/** 存檔前整理：去掉姓名與稱呼的前後空白 */
+export const tidyDraft = (d: ReportDraft): ReportDraft => ({
+  ...d,
+  subject_name: d.subject_name.trim(),
+  audience: { ...d.audience, call_name: d.audience.call_name.trim() },
+});
 
 export function placeLabel(d: ReportDraft): string {
   const p = d.place;

@@ -8,8 +8,10 @@ import EmailVerifyBox from '@/components/report/EmailVerifyBox';
 import ReportDraftSummary from '@/components/report/ReportDraftSummary';
 import { useAuthStore } from '@/store/auth';
 import { memberAccountApi, reportOrdersApi, type ShippingInfo } from '@/lib/api';
-import { POLICY_VERSION } from '@/lib/report/catalog';
-import { clearDraft, hasErrors, loadDraft, validateDraft, type ReportDraft } from '@/lib/report/draft';
+import { POLICY_VERSION, variantInfo, type ReportVariant } from '@/lib/report/catalog';
+import { clearDraft, isReadyForCheckout, loadDraft, type ReportDraft } from '@/lib/report/draft';
+import { loadReportPrices, type ReportPrices } from '@/lib/report/prices';
+import { PREVIEW_HREF } from '@/lib/report/steps';
 
 const CHECKOUT = '/report/checkout';
 const EMPTY_SHIPPING: ShippingInfo = { recipient_name: '', recipient_phone: '', postal_code: '', address: '' };
@@ -29,7 +31,8 @@ export default function ReportCheckoutPage() {
   const router = useRouter();
   const { isAuthenticated, checkAuth } = useAuthStore();
   const [checked, setChecked] = useState(false);
-  const [draft, setDraft] = useState<ReportDraft | null>(null);
+  const [draft, setDraft] = useState<(ReportDraft & { variant: ReportVariant }) | null>(null);
+  const [prices, setPrices] = useState<ReportPrices | null>(null);
   const [verification, setVerification] = useState<{ email: string; verified: boolean } | null>(null);
   const [shipping, setShipping] = useState<ShippingInfo>(EMPTY_SHIPPING);
   const [consented, setConsented] = useState(false);
@@ -41,12 +44,13 @@ export default function ReportCheckoutPage() {
   useEffect(() => {
     checkAuth().finally(() => setChecked(true));
     const d = loadDraft();
-    // 有草稿但不完整 → 回表單補齊（表單會帶入已填的內容）
-    if (d && hasErrors(validateDraft(d))) {
-      router.replace('/report/customize');
+    // 有草稿但資料不完整或還沒選版本 → 回預覽頁（預覽頁會再把缺的資料導回精靈）
+    if (d && !isReadyForCheckout(d)) {
+      router.replace(PREVIEW_HREF);
       return;
     }
-    setDraft(d);
+    setDraft(d && isReadyForCheckout(d) ? d : null);
+    loadReportPrices().then(setPrices).catch(() => setPrices(null));
   }, [checkAuth, router]);
 
   useEffect(() => {
@@ -73,7 +77,7 @@ export default function ReportCheckoutPage() {
           換了裝置或瀏覽器、超過 7 天，或訂單已經送出，這裡就不會有資料。
         </p>
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Link href="/report/customize"
+          <Link href="/report/create"
                 className="inline-flex rounded-banner bg-brand-purple-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-purple-700">
             開始填寫報告資料
           </Link>
@@ -109,7 +113,7 @@ export default function ReportCheckoutPage() {
       // 欄位錯誤：收件資料就地標示；其他欄位屬於草稿，請客人回到表單修改
       const errs = (err.errors || {}) as Record<string, string>;
       setFieldErrors(Object.fromEntries(Object.entries(errs).filter(([k]) => k in SHIPPING_LABELS)));
-      if (Object.keys(errs).some((k) => !(k in SHIPPING_LABELS))) setError('報告資料有誤，請按「修改資料」回到表單檢查。');
+      if (Object.keys(errs).some((k) => !(k in SHIPPING_LABELS))) setError('報告資料有誤，請按「回到預覽」檢查並修改。');
       if (err.status === 403) setVerification((v) => (v ? { ...v, verified: false } : v));
     } finally {
       setBusy(false);
@@ -130,10 +134,27 @@ export default function ReportCheckoutPage() {
 
         <div>
           <ReportDraftSummary draft={draft} />
-          <Link href="/report/customize" className="mt-3 inline-block text-sm text-brand-purple-700 hover:underline">
-            ← 修改資料
+          <Link href={PREVIEW_HREF} className="mt-3 inline-block text-sm text-brand-purple-700 hover:underline">
+            ← 回到預覽修改資料或版本
           </Link>
         </div>
+
+        <section className="rounded-banner border border-warm-200/70 bg-white p-5 sm:p-6">
+          <h2 className="text-base font-bold text-gray-900">金額</h2>
+          <dl className="mt-2 text-sm">
+            <div className="flex justify-between py-1.5">
+              <dt className="text-gray-600">{variantInfo(draft.variant).label}</dt>
+              <dd className="text-gray-900">{prices ? prices[draft.variant].text : '…'}</dd>
+            </div>
+            {physical && (
+              <div className="flex justify-between py-1.5">
+                <dt className="text-gray-600">運費</dt>
+                <dd className="text-gray-900">［佔位］含在售價內</dd>
+              </div>
+            )}
+          </dl>
+          <p className="mt-2 text-xs text-gray-500">實際金額以送出訂單時的售價為準。</p>
+        </section>
 
         <form onSubmit={submit} className="space-y-6">
           {physical && (
