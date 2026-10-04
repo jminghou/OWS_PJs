@@ -68,7 +68,8 @@ def _save_chart(clean, email, eng, save_chart):
     try:
         resolved, solar_str, birthplace = resolve_birth_time(eng, clock, b['time_type'], p['city'], p['country'])
     except Exception as exc:  # noqa: BLE001
-        raise OrderError(f'無法換算真太陽時：{exc}', 400, 'solar_time_failed')
+        current_app.logger.error(f'report order: 真太陽時換算失敗 {p}：{exc}')
+        raise OrderError('無法依這個出生地換算真太陽時，請改選其他城市或使用一般時間。', 400, 'solar_time_failed')
 
     # 紫微的 save-and-register 直接以傳入時間排盤，所以真太陽時要先在這裡換好（與 /calculate 預覽一致）
     y, mo, d, h, mi = resolved
@@ -78,7 +79,9 @@ def _save_chart(clean, email, eng, save_chart):
         'email': email, 'relation': clean['relation_label'],
     })
     if err:
-        raise OrderError(f'命盤儲存失敗：{err}', 502, 'chart_service_error')
+        # 技術細節（連線錯誤、紫微回應）只進 log，不顯示給客人
+        current_app.logger.error(f'report order: 紫微 save-and-register 失敗：{err}')
+        raise OrderError('系統暫時無法建立訂單，請稍後再試；若持續發生請聯絡客服。', 502, 'chart_service_error')
 
     # 防禦性核對：紫微回傳的命盤必須是這次送出的性別與時間（舊版紫微沒有這些欄位 → 拒絕）
     if res.get('gender') is None or res.get('clock_time') is None:
