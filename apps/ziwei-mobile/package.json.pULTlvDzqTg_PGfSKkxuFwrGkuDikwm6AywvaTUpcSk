@@ -1,0 +1,30 @@
+{
+  "name": "@ows/ziwei-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "紫微斗數離線排盤 App（Expo；引擎與命盤核心與網站共用：@ows/ziwei-engine、@ows/ziwei-chart/core）",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "export:android": "expo export --platform android --output-dir dist"
+  },
+  "dependencies": {
+    "@ows/ziwei-chart": "*",
+    "@ows/ziwei-engine": "*",
+    "expo": "~57.0.25",
+    "expo-status-bar": "~57.0.1",
+    "js-sha256": "^0.11.0",
+    "lunar-typescript": "^1.8.6",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-svg": "15.15.4"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  }
+}

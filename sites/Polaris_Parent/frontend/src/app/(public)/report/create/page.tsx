@@ -20,7 +20,7 @@ function Start() {
   const presetVariant = v === 'digital' || v === 'physical' ? v : null;
 
   const startFresh = () => {
-    saveDraft(emptyDraft(presetVariant));
+    saveDraft(emptyDraft(presetVariant ?? 'digital'));
     router.replace(stepHref(REPORT_STEPS[0].slug));
   };
 

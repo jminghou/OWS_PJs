@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { READER_OPTIONS, RELATION_OPTIONS, variantInfo } from '@/lib/report/catalog';
+import { READER_OPTIONS, RELATION_OPTIONS, REPORT_PRODUCT, variantInfo } from '@/lib/report/catalog';
 import { placeLabel, type ReportDraft } from '@/lib/report/draft';
 import { stepHref, type StepSlug } from '@/lib/report/steps';
 
@@ -25,16 +25,24 @@ function Row({ label, edit, children }: { label: string; edit?: StepSlug; childr
  * 下單草稿的摘要（預覽頁、結帳頁共用）。出生資料集中呈現，讓購買者付款前再核對一次。
  * editable：每列附「修改」，連回精靈對應步驟，改完回到預覽頁。
  */
-export default function ReportDraftSummary({ draft, editable = false }: { draft: ReportDraft; editable?: boolean }) {
+export default function ReportDraftSummary({
+  draft,
+  editable = false,
+  showVariant = true,
+}: {
+  draft: ReportDraft;
+  editable?: boolean;
+  showVariant?: boolean;
+}) {
   const place = placeLabel(draft);
   const e = (slug: StepSlug) => (editable ? slug : undefined);
   return (
     <div className="space-y-5">
-      {draft.variant && (
+      {showVariant && (
         <section className="rounded-banner border border-warm-200/70 bg-white p-5 sm:p-6">
-          <h2 className="text-base font-bold text-gray-900">版本</h2>
+          <h2 className="text-base font-bold text-gray-900">內容</h2>
           <dl className="mt-2 divide-y divide-warm-100">
-            <Row label="版本">{variantInfo(draft.variant).label}</Row>
+            <Row label="報告">{REPORT_PRODUCT.name}・{variantInfo(draft.variant).label}</Row>
           </dl>
         </section>
       )}

@@ -1,0 +1,1086 @@
+[
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\middleware.ts",
+    "sha256": "619DA87BF6920BC7EF7096ADB5D8F86865B089D9F292F5C02DEF36FF1081E973"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\siteConfig.ts",
+    "sha256": "B7398FE1B044C6A31B6C386984DC3E18261D58AE0F00CB3891ABECF3DBC9DEA1"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\error.tsx",
+    "sha256": "A72C8CFA6B17C3D1085377BDC299A22DCE867D89373C6CC7977945D823F50361"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\globals.css",
+    "sha256": "7D87717AD101DCFFC464077A775CDE10AAA00087E1C6203796076912EAA48228"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\layout.tsx",
+    "sha256": "9618056B2099D06A7488C548262EFD8F058F270EFC69933B16626C867B1B50FC"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\loading.tsx",
+    "sha256": "E8F7C0BB1B7078827F05AD89DCF7DAFD96CFE0EF9E34C62A9173A0FF1C689552"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\not-found.tsx",
+    "sha256": "830451F7588427410DA0954346F3936C87AF4AB73F0F61E1ABB671490583134D"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\robots.ts",
+    "sha256": "125B7C9DC3557F295A297AB05B0DF1A240E4A11C40C3B54B0F32546E95C2A687"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\sitemap.ts",
+    "sha256": "AB1DB0637CAFEA825067B054BFAB360BE17BDC0C0B9FE60E46C2A5B5AB51C729"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\layout.tsx",
+    "sha256": "7161D046638CC65E083FC13AAD021C41155F30032FDDA6B473090114E897C28F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\page.tsx",
+    "sha256": "CCAE9D5AEF23FB4E965E5F14ED70D07C941C0D769BAC3D5B7DE2199A54EC25B2"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\about\\page.tsx",
+    "sha256": "3EB066D3745136C5287E5A1447A3AD2A62B8787768DEE897A1AEFC4E815FB810"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\account\\page.tsx",
+    "sha256": "DD4D2F482A52106E57884942B184B799167BEA5354DB9359AC7F5C1C392770E7"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\account\\charts\\[chartId]\\page.tsx",
+    "sha256": "BB57799567ABFC573A9830B7901AA069A6459EE02114438F7A9FDC7B6F3DB876"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\articles\\ArticlesContent.tsx",
+    "sha256": "7BC0C988CE7796547968897B221A4225C80F534FDF489F8F91CC9CC67E0C7551"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\articles\\page.tsx",
+    "sha256": "2A228273F86594CF2D145D317C55E1122D9DC819AF2516E950D45C506827620B"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\authors\\[username]\\page.tsx",
+    "sha256": "37DEF6C7B5B9EC1111AF69E6D7A89CA20CB285EB7FD7DEA3B4E9C6AF6297618F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\contact\\page.tsx",
+    "sha256": "DA0489FCB5405225DA466A0F65C80F65C0853C45F2DAE6B349A5E5C059C0C8A4"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\login\\page.tsx",
+    "sha256": "2DBABDE0B7438E7B24797D70EC9502B6731F01D8473AF4140825D7E6889058BB"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\newsletter\\page.tsx",
+    "sha256": "637365032B22A71EDD4A46E0D34E25C08697091D2B6B33B5810767628473FA87"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\posts\\page.tsx",
+    "sha256": "E299B230E24B111C495646AA43F498B6BC5FFCC36E2ED72912B7F0E9565FE555"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\posts\\PostsContent.tsx",
+    "sha256": "67DE8147C56D1F33F6FAE9705A588791AD9EBD75493C5D9786FF0F2171304A84"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\posts\\[slug]\\page.tsx",
+    "sha256": "8DFE727755EA1537AFC0BB38C4371EC747644EC90F7CDFC4E436B783906485AD"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\posts\\[slug]\\PostDetailContent.tsx",
+    "sha256": "685298773F6DC0A7DE3177C2E2D8986403DE1F9E79A02AA6E4AF882AC93DDB9F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\privacy\\page.tsx",
+    "sha256": "E21436CF7CC8958D305F8D9E6F9800BFE32A61161A8AA0DAEBE7CD108E525266"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\products\\page.tsx",
+    "sha256": "7D7B59E9187998864061C3A1AEBB68A237BADB9B36119E01E0B5588CCAED476A"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\products\\ProductsContent.tsx",
+    "sha256": "AAC9C8BB598C0FA661DDC1C259A72AF5CF73A0164F198216666B2596C9E33245"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\products\\[product_id]\\page.tsx",
+    "sha256": "7E6BDED8E3CCDFB0F40A66D2BE11A3309E8436CC4F97D7322D436333AD423751"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\products\\[product_id]\\ProductDetailContent.tsx",
+    "sha256": "98D6C1231B70343FC406B9BFB47762EE41A0B1A39969E02E03FB1995165AEA18"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\set-password\\page.tsx",
+    "sha256": "449CE8908DC257AA5489BE0B300B335852702C495A53E5ADB08D421E17F3A1A8"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\(public)\\ziwei\\page.tsx",
+    "sha256": "468D392E24E3C358253446E87E35834AC3CAB74B6E4C05D9A5579580FB30F2D4"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\layout.tsx",
+    "sha256": "32F3E27AC8A8EC4212F642BB2C0F1126BBA3E8992E59C74AAFB3870A9B3DA380"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\page.tsx",
+    "sha256": "720396019FA74DDB898066DC4184BFA6B5A3DCDC7716DB19DA0A518B713F4418"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\articles\\page.tsx",
+    "sha256": "098B549865B6B11BCFD7357A59AC859A6BB6B0FE2905DB8A37704678D5315A66"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\articles\\new\\page.tsx",
+    "sha256": "9FA9F08E9B9A53F96FD7502E792D71573F1E5ED51AF482A39E85239BD62C39DC"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\authors\\page.tsx",
+    "sha256": "93ECF997C08FB0F8126D79698FD3AC38A5466100DA42489927883454D6C4B9DA"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\categories\\page.tsx",
+    "sha256": "B014167413227C9155E40AED38DB499E74659F3719D0D3E3C353760B9A721233"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\coupons\\page.tsx",
+    "sha256": "C416BB0B0E28DC73D0A91FADD1E850326805B7A98A690DD055291333E1E5E37E"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\dashboard\\page.tsx",
+    "sha256": "2E01B428C3ACF7CAF8A5D3233F80ABBA5804F69B2FAE9AFE49E10448D6111225"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\editor\\[id]\\page.tsx",
+    "sha256": "0241684DD26BD742E83872FF1E1CBA5B542F490DC9E70B84E97F98894AAB562F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\homepage\\page.tsx",
+    "sha256": "BC2CF183403ED4D47AE5D6EA9EBA4EF7A67041B17F187104093EE4DA11A26F5A"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\login\\page.tsx",
+    "sha256": "C15FA5B1DCA4AFDF04873FB9FDB4EA40AD3161647F1B613E63269FAE07DA738F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\media\\page.tsx",
+    "sha256": "9323240FBB618A8AE6169AA5C8BDB3506B1634B64FC60B8361E953556A55E954"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\newsletter\\page.tsx",
+    "sha256": "50832125D311087EDFC1A74974FB87812EFD259EB6EFA194E1AFAF4CAF57D77A"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\order-reviews\\page.tsx",
+    "sha256": "F84E24930F3EF8C6A7B1D5E7210E41017CD82EB9DA65252E75E9B3DFB1CE99AE"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\posts\\page.tsx",
+    "sha256": "095AB7FD08DB3199A2FD4608126DFC2C9D070B0CD04506AD4483CA7497D880F9"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\product-types\\page.tsx",
+    "sha256": "96AE99FDDCD16CD9BDCD7BBD44CABEA7E94C771286782170DC37E016C2AF67CE"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\products\\page.tsx",
+    "sha256": "B2CB66C239EA6F225DF27EC82FAB5277CEB46E781CC708C573ECB695CF6DE9E3"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\products\\edit\\[id]\\page.tsx",
+    "sha256": "22B0A6AD5DF2D7B4C737E37001AE534EB57C7ABA1FE6D635325F7F3A3C18EBF8"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\products\\new\\page.tsx",
+    "sha256": "E18F151ED6605C37F3C546A9B9448CCEA0CC7C58E38F0F353DE4350744FB785B"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\roles\\page.tsx",
+    "sha256": "8D1F3D4560149117AFCFB30B1486349CDB6B21C3E2F0BCFEA65D72F8DE81F30F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\settings\\page.tsx",
+    "sha256": "DE835DBCCBF08FFC479BBBE668E07085CE886B3ED65618A660463A0D8BAFBDA8"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\page.tsx",
+    "sha256": "0FA539F647E9413BDADFD0A323BBE3A88A0BFC11F877F2D9496CAA489BECBCF9"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\card-kinds\\page.tsx",
+    "sha256": "0A201D2DE214230608F6A1A599509BE62E7925EABA17EE4BF8C99201275F8704"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\cards\\page.tsx",
+    "sha256": "8C52CC3F1B693716412D46FADF6CCFB02C2BED8FEFB1A82E6124A20D9E260058"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\inbox\\page.tsx",
+    "sha256": "90C49B6DE140D5AC6EFD4B0844A66BC048D5DB099EBDA977740D32CA88EBE0B2"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\projects\\page.tsx",
+    "sha256": "9952BF343A043AC7950974B37C1455E147B8944B12E675B9AE41D73F196ABC71"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\publishing\\page.tsx",
+    "sha256": "19CE0BD54E274D0A8357539CDA903D9499A4A5E8D392895E8814A983A8517FF6"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\tags\\page.tsx",
+    "sha256": "C9D88BFDEC1C3B49046EB1E64BA3EF6D8DE8FD657C3420589D23127A53CA1FE0"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\today\\page.tsx",
+    "sha256": "638A84667EDB9922ED5BB3786AE36461BBA32AF41E5E201A233F51EF1986639A"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\studio\\workspace\\page.tsx",
+    "sha256": "8A59147A92205C416735F5E31710B829F8ABB880890FF99A3CB202751616A58F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\admin\\submissions\\page.tsx",
+    "sha256": "EF8567C9022B693DD34858D6396600A7BC87C44ADF6A53B142BB01F59A8E425F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\api\\revalidate\\route.ts",
+    "sha256": "3BD9773F3955C237968ACF0404D2A51E75776C0DF8D2533BD9AAFADE7D0EA404"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\mock-payment\\[order_no]\\page.tsx",
+    "sha256": "14CB5FE188EA78C5FA6C490C69134D66A3FBCA2CDD251C5325B8A1518728E234"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\order\\completed\\page.tsx",
+    "sha256": "8A143EFF3C053AA5C75A602F633D42CCF86A44BECFF212939D31061054F664F6"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\order\\failed\\page.tsx",
+    "sha256": "63923A871D202B78DFAA726C4264E4AFF52232B776EF0B542F1921F3A271628F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\layout.tsx",
+    "sha256": "05C70DCE2068A2F2EA9D3C4703D32CF9C4D75776DCACD504257119C50455AFD4"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\page.tsx",
+    "sha256": "CD0031F293F670D2099C8FD5746E879FE77424D33D2D52DB23DAA35E531DA98A"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\about\\page.tsx",
+    "sha256": "A0C6A39922AE659FCF03A4508D159CC2C4D05D2B3D5EE1BE63171C1D73CBEF41"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\articles\\page.tsx",
+    "sha256": "533EBAF7A3DFC3964FE23E9A4EA9A86B6015DCD6975F64442AD341AC8466D5ED"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\contact\\page.tsx",
+    "sha256": "B89C86B913287DA7FAFB94CC0632B010C353F5782619B9A58C13455B00A9754B"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\newsletter\\page.tsx",
+    "sha256": "7AC134D99F1A3C9D190FC996909B5B550FE4AD734C1E2553EF046063DC867EB9"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\newsletter\\confirm\\page.tsx",
+    "sha256": "F7DB4C6016C692D2C6A9C2A39CB1D5C82E0D1790262E14AE9A873BE3EBEC893E"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\newsletter\\unsubscribe\\page.tsx",
+    "sha256": "544A0CA96238AA7811EB17B992A14710EE6C354B9A8A4CCC7C7127F1407DC3CE"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\posts\\page.tsx",
+    "sha256": "9355205FD18BF9C4C0062B8EC93575B80E6595A72B1B6A6FA6DB6121531F43C2"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\posts\\[slug]\\page.tsx",
+    "sha256": "021DD27AA045CE9F0846F1C486EB894BAD927C815CF42E4A9BDBB9FC8EAE574A"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\privacy\\page.tsx",
+    "sha256": "DB7F57920C48E049684A83ACD6C2DE433172D0E1B382D4136C0AC211128B6EE2"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\products\\page.tsx",
+    "sha256": "2E59223DBDAFB3CC3366855B1735D4BFF00C86D6AF2E19F51714E5A3EBC67EDE"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\products\\[product_id]\\page.tsx",
+    "sha256": "70CCAC9028BE97D8DAA70C8D66ED36C68CDB19D2F347541998FBEA53C8FFAC20"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\app\\[locale]\\ziwei\\page.tsx",
+    "sha256": "4525ADADC9BF9BF750F26B6DB75818ABB32CCA5AE662F1C45FCBA629FC76D5AB"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\admin\\MediaBrowser.tsx",
+    "sha256": "83EEF094E3F942890B330103315D11E1BCDF5091D70A2CE02E145C389A1CC3AF"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\domain\\membership\\SaveArticleButton.tsx",
+    "sha256": "95ACDD21E9DBE129F863E8BD9358A4AA12030FBF7A7EA942F428FB5A97F4F37A"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\home\\HomeLanding.tsx",
+    "sha256": "F353D4853C097ABA417925049B8C397811C6F7883783DD5D957CA75FD800AF93"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\home\\NewsletterLanding.tsx",
+    "sha256": "77EEF8557106975CD30E034C99E91C06AFD3DB9E8B75A148513484FCA576BB7F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\home\\SubscribeBlock.tsx",
+    "sha256": "00E97EE703D1F22F85ADEE5BE955C41D8364AE089E6A986726BAFB5F08D1C455"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\home\\TestimonialWall.tsx",
+    "sha256": "6DB8E790C9BF1DD88386CC53B8EECEBCC71417738CC9428223E33FD76457B6CF"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\home\\TextHero.tsx",
+    "sha256": "6663649E4CD62BA6EC75B427FE1E100270B043548AE649141E76732348A337CC"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\CurrencySelector.tsx",
+    "sha256": "FA85EEFC9F400D0247A395C6DC72AADDB40AA27430158F45AF721C6163227404"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\admin\\shared.ts",
+    "sha256": "1DF54BE3E0F7CDE57047EEFD15EC35F684A6AFEDB9A767721BEC3F77314A0C79"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\public\\AboutPreview.tsx",
+    "sha256": "C959605E897550A240B8658E41D4A2F67F0CC965F162B05E0EF39DFBEDA8F655"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\public\\HeroSection.tsx",
+    "sha256": "45FEBB9CB77F1CFDA5FEC2E626A15F17701F55AFAD5814695BAAB10AF0899AA7"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\public\\HomePageContent.tsx",
+    "sha256": "BBE0BF3C312EC1BCB48AF27CEF20F1A71E48B9CA3989E8E76718BC38B5E19D76"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\public\\PrivacyPolicy.tsx",
+    "sha256": "323872C8EB64362D4EE76A9800C4788F05ADBE93B92449F67D5891D8B42CA550"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\public\\PublicFooter.tsx",
+    "sha256": "9C98D1F8530889A6E23CDD45584A3F9A8B1579E6799D74A096E075ABCA8D541B"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\public\\PublicHeader.tsx",
+    "sha256": "46A55C2A00AB19555B27EAC6186B3AB54728A836DBFCA29FD8555DD96D0BE645"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\ui\\Button.tsx",
+    "sha256": "E5B52CAEDA64A4D42868F8B8E13FAC8A862BD8EA1F4265731925DBFB2FC5A485"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\ui\\Card.tsx",
+    "sha256": "89A7B236574B8828845F2257EF02711B91474965FB016B64F45013F4B96AC48C"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\ui\\CollapsibleSection.tsx",
+    "sha256": "CE6896316D06DC5DF193DB0705A55D6B62D3554CD3A7B59BE7A55FC1B3B4DDD4"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\ui\\Input.tsx",
+    "sha256": "C6A7AB73D2172BE94F173DCE2EC09D7A3482D5833D4C4182C5C390A561758321"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\ui\\MarkdownToolbar.tsx",
+    "sha256": "0791DFCB98B8CA3FFE902EF0F53014E0991F1CA4CA47BD75BB2A5024528D79DA"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\components\\platform\\ui\\Popover.tsx",
+    "sha256": "AEDD8BD1F023F707F080D5B1C7F746587EFBD9DE28EB2DE006FCD18B731C4A2A"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\hooks\\index.ts",
+    "sha256": "12DCCEA49519031C35995D250ADF0AFE3D91E7EE385D0E382E5E94B51DE0021C"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\config.ts",
+    "sha256": "81A56992E73242D6A361A8E0DA5A9B36CBC874F985F1CEA658C5F2C1E9341D25"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\homeLandingContent.ts",
+    "sha256": "7CA726346FA40C4DF808B7A6327D646659EF3646816FD65D88549D6156C50388"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\homePageData.ts",
+    "sha256": "D7B389F88DE8AD1A343E604A211DD9ECE19D1451B5E1AC73745BDF9C36F6A2B9"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\newsletterContent.ts",
+    "sha256": "5F9D028A59D982C5956DF54C29A1A3C22507F396E6BA80D88E479950D9046BFD"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\privacyContent.ts",
+    "sha256": "0C8F60FCFF1BF958276E4D7918443967642CE46A6B673CBB485A4AFA3BCDE964"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\request.ts",
+    "sha256": "EFA260F253EE0DCE8FDABE2DA63E2D3C525448EEBB9D14CF78E389265342A683"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\messages\\en.json",
+    "sha256": "2EC16A98445DC3D846035F2E42587E469F5CBCF2BE2E48D32F711C27F5387EED"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\messages\\ja.json",
+    "sha256": "AB50916E63ECF1F3E6CB13CC3D9157AC3233DC6AEB74749A4BB73484B2A6A6AB"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\messages\\zh-CN.json",
+    "sha256": "1C20E3DFECF76761E08D7D93B4CBD414F26D9F7F8B353DDB42313399D5D2BDA5"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\i18n\\messages\\zh-TW.json",
+    "sha256": "99DAE8CE2FC3DCE6CABC633A724DB81DFFDAEEBC700B31C1D932C5978EB69ABA"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api.ts",
+    "sha256": "864F69730A4F9008E09349E45E65125B362800E1B2256D596BFE6750F966EBEC"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\checkout.ts",
+    "sha256": "741E6A91916940CC8CAF0ABB783416506C091C9E5A11FDCD8CB19CF27EC7C80E"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\constants.ts",
+    "sha256": "197255B3F6C97AD016BC6B07645699FA64E2BAC301E988930A5E566458051EFD"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\currency.ts",
+    "sha256": "799AF0E3F3F7E865475F5893B3576DFC9D5078DE802D627DBEF256A159D9152B"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\homepage.ts",
+    "sha256": "86EFAD3A906D0F0C2D13E561DF689ECCC10E66A3B65ACE5F6A602663DCD9748E"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\pendingChart.ts",
+    "sha256": "6E4619FA141D6C0E1F1EC65B6881CDDB137A974E20E4FA66767E5CC6268C1CBA"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\utils.ts",
+    "sha256": "5AF92E67E1581DAE7312637AB68E01FA7AC98BFD5681A1FE8035041102436C15"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\admin-commerce.ts",
+    "sha256": "10107192E922B6ACB5788164A5892E181B63BBA871288721038D8D4715F464BB"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\astrology.ts",
+    "sha256": "C79ABF67D5389876F744F9F1F2A354723C1F5DC6185C544DE93E56505C0768C7"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\auth.ts",
+    "sha256": "6888662FC34E12D260630B4F47A5B6DA21C989E19604543209363980C2948459"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\client.ts",
+    "sha256": "1100DC56E87306B65349AC879A57C1369F547334A91BA9DBDE709970A5301D4D"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\imageUtils.ts",
+    "sha256": "A7C80FD11D1CDEE820F380EE4F5FF7BE9FD1B8FAEEE78CB5555AAB394CCE39AC"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\index.ts",
+    "sha256": "AC6245A6807259AD6EA6159ABB66BC278B27F621632E4E83ABC38D340B246DFD"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\media.ts",
+    "sha256": "BD402898D84842FB937ADFC797985411C7950AEF72AF3BB7DCECB87C831AD0D3"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\membership.ts",
+    "sha256": "5D16139D676448498069556D4655F5D0298DD81F6A5FEE69601FEC49F2882A3F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\lib\\api\\strapi.ts",
+    "sha256": "47073A61B06C3BECF1A9DCAD2F62A12F17C6D5AB68AE734096A8AB86810F86F1"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\store\\auth.ts",
+    "sha256": "58299DB5F6D49438D97FEB7ECCB23BFA76E1FE71BBEDA065E4E302AB93E61B06"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\src\\types\\index.ts",
+    "sha256": "CF71329C3999EBC64B5A371E8140D9B60AABCD03FFF512FDCF67A282F5692BB4"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\package.json",
+    "sha256": "EC6BE7054714B17C2802E26831DA1BF93A16D9AEB65A23BAC90DE15CB67F999E"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\frontend\\tailwind.config.ts",
+    "sha256": "E2C6C10BB7D6C595A914DE4B36C33C6E80BEEF5E1365142A2F2018344C8B2118"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\extensions\\membership\\__init__.py",
+    "sha256": "5BE59B80D5A50DCD0B64B4168EBFAE3320D7E0729DD9735E54A2D5685C7A488E"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\extensions\\astrology\\__init__.py",
+    "sha256": "5EBF9FD9BA9F8080A6C24A519F07DF2A4581C9F75C0FC5D79D2E6EB0EC93323F"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\models.py",
+    "sha256": "8A49076A3B6637448233A46C75D54F1C1A56C47B27F71CC6E9C74D5EC060DE88"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\config.py",
+    "sha256": "12856B995F47897675EA1EB7C5809BC9C5271E79D0F27C065829310D31CA4E55"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\app.py",
+    "sha256": "EFB039664F904CA2E51E314EF1BC7D4B55E5C7BB88D57193AE41D422515B9BD1"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\migrations\\env.py",
+    "sha256": "72BFCC291681B83A9140015099C4D0B80B2419541DB0F9326022C21F3E7913A7"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\migrations\\versions\\0001_phase2_identity_phase2_identity_fks_to_account_app_.py",
+    "sha256": "9F96C217ECF062AF0677243201B8F831EB01DE93293E2F7C0BA1B1E867E0B7FA"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\migrations\\versions\\0002_member_commerce_loop.py",
+    "sha256": "BCC8BE9D7C9CD74A5CF6E6C6744BA6F95C821E18EAEE43CF1840067A6D842AA6"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\migrations\\versions\\0003_media_lib_tables.py",
+    "sha256": "499E92E3E3148A9BCD289E5EFAC8D34DD2CA2F2205F846E922951B419E128664"
+  },
+  {
+    "path": "sites\\Polaris_Parent\\backend\\database\\init_member_profiles.sql",
+    "sha256": "1A2BFB23488461055E62735A2C4E1F738615F0F8CB9DB200EF096352DD1D4F0C"
+  },
+  {
+    "path": "core\\backend_engine\\__init__.py",
+    "sha256": "F3DE0373B00DF3180941B44AA61994B3C8BB4DD105FBF3E1EF8E8947450094C5"
+  },
+  {
+    "path": "core\\backend_engine\\factory.py",
+    "sha256": "313271D7A17C48F03E15B424CB0E40006D73C7D15D4C79B24AF5161973022802"
+  },
+  {
+    "path": "core\\backend_engine\\migrations_manifest.py",
+    "sha256": "5791B06F868F60070CEA151788630DCB86B26C5722E00D2B3DA1589099C8CF40"
+  },
+  {
+    "path": "core\\backend_engine\\models.py",
+    "sha256": "98DAD29AC4716231A9D003ED29D937F431595D1986BDABBA54FBEE508C25FF54"
+  },
+  {
+    "path": "core\\backend_engine\\site_config.py",
+    "sha256": "5BD34C1972E9E1E36AD57E36D5B45886B6C9AEC743C8424D19C59A0490E7BF5C"
+  },
+  {
+    "path": "core\\backend_engine\\site_scaffold.py",
+    "sha256": "7F988830DA20BFED15433282A1210C4AB225F6EBD5301CD8D7ECC0C8AF816174"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\__init__.py",
+    "sha256": "2D7E005E8C578988288038A2420254740D94001044E97B67BC7E9400957B56E9"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\admin\\__init__.py",
+    "sha256": "891E4F5E1F1DC02B80633217BF034EFA718F42F980309579E61EFE53FECDF433"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\__init__.py",
+    "sha256": "BAB39A3526B1BBF9A71FBAD453B8C5FA4EAAEE7F10B3B6D4CF61F8C92AD2E888"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\auth.py",
+    "sha256": "407D2C39F5CE9B3F7C3100062B82862884FCC7E570ED409BF00FD843823E5864"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\authors.py",
+    "sha256": "DD2DBFE90F1C3ED57B7AA4EF383A6EB8F3E676996821E25541F8D0DB36D7B371"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\contents.py",
+    "sha256": "E775B65E5EA3E032CE0C65A166B6B79EC67B7B05B71BFF02687FC464337E4ABA"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\member_auth.py",
+    "sha256": "00CCAF015AAE92AD8E31298EDD8F6D1852DBF589539BA627F666B7AD6A2AB03E"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\rbac_admin.py",
+    "sha256": "D16D1D4606F82635B0AB1F274C0E262E8F2A851A0379EC2D597CDF5E013A94FD"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\settings.py",
+    "sha256": "B5EA3E2C59406EBF7280F23770296EA7B4DE2890A8DEFB89EADF2D79FF97B1BB"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\submissions.py",
+    "sha256": "2DE970738FA333B1791CAE0DD3C1E1919B1F4A3EF060E40BF4D9B8B64E982715"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\users.py",
+    "sha256": "F6B9D8A07A4EF5E802DCDE21E15D62DDD4F5CF3DFAC973BAE2E6D114CA506EB7"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\api\\utils.py",
+    "sha256": "CEE282482F44224BCBFC3E2B3F1DE910321B8D6F49BECF9DA280F7756257FC1A"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\auth\\__init__.py",
+    "sha256": "FA1252362622B6815C553E31C76E821C4922CFCE61AB0D15F3D2D64F5FBA567B"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\errors\\__init__.py",
+    "sha256": "E9E8ACB0E5EABE3C92E722692F9B7AE9F799F6087F072589524C9049302AA3F6"
+  },
+  {
+    "path": "core\\backend_engine\\blueprints\\main\\__init__.py",
+    "sha256": "83C0D092C494E1466BC984550AD9F2433E25FD83FA84D6B294FC464AAC146DAC"
+  },
+  {
+    "path": "core\\backend_engine\\schemas\\__init__.py",
+    "sha256": "3CBA7B75F427BC51900A30CC3A4DC1A1AB414CA163D52E386871E4C5EDA0BC9B"
+  },
+  {
+    "path": "core\\backend_engine\\schemas\\base.py",
+    "sha256": "47C3A75E0F3D3C3EF1AE8831C2C8DB8B4D833B6932086407430113F6267678E0"
+  },
+  {
+    "path": "core\\backend_engine\\schemas\\category.py",
+    "sha256": "593E672FB3A721C3FA55BCDB56D165203D2FCF732FFF26A4F3724E1530374E27"
+  },
+  {
+    "path": "core\\backend_engine\\schemas\\content.py",
+    "sha256": "2EFD0495FDFB4F136110A27D51119D8B036AEBACF3A72F17A94949F08B1A9211"
+  },
+  {
+    "path": "core\\backend_engine\\schemas\\tag.py",
+    "sha256": "61BE23184035C9DF7CDF4749B7C73EC415B2F21BCE75DDCAD0675996302B0851"
+  },
+  {
+    "path": "core\\backend_engine\\schemas\\user.py",
+    "sha256": "FDFC9BB132F712CE0594FF71A7ECB1E61C3799C1155AEE95B09C3EAE35C078B5"
+  },
+  {
+    "path": "core\\backend_engine\\services\\__init__.py",
+    "sha256": "BEA7A7512AB1131ABD8121350600BD9CBA03C998F4C31863BBA1F58A29D9DE8E"
+  },
+  {
+    "path": "core\\backend_engine\\services\\identity.py",
+    "sha256": "3EA6B53399AEE3AEC77AF8D8EAAD713CB1B1B54BA1D9B89C5E920A59A3454EE0"
+  },
+  {
+    "path": "core\\backend_engine\\services\\member_auth.py",
+    "sha256": "7917AC0D982BC83BDAA57DD5033A397EBF8C2E2C284FD9655C2181E1F2225BAC"
+  },
+  {
+    "path": "core\\backend_engine\\services\\rbac_seed.py",
+    "sha256": "04FE79679EAA997D4CD94EF188694B64CD5B562D30F0BBC326737D69E9368922"
+  },
+  {
+    "path": "core\\backend_engine\\services\\rbac.py",
+    "sha256": "EF3A0EF87C14B220D6C44B271177D11D520A1AF35896001A0D3F4A9A69820933"
+  },
+  {
+    "path": "core\\backend_engine\\services\\revalidate.py",
+    "sha256": "B9E89598F45427AA4BE83000A80341A5CEBDD13468EBC7E960589A2B6ACB06B9"
+  },
+  {
+    "path": "core\\backend_engine\\services\\storage.py",
+    "sha256": "0AE9D8AAA8A690F56BD3C4C457D362E29A04D97D5A6D6468FF0DEFF16BF3C939"
+  },
+  {
+    "path": "core\\backend_engine\\services\\view_counter.py",
+    "sha256": "51892ED46A402569BD3DD5F8F1356B812B0FB69ACA67C88834A7796FAC4C1878"
+  },
+  {
+    "path": "packages\\platform-api\\src\\auth.ts",
+    "sha256": "5642124CFF2DDB90F5EB560AD647DAC6A5B2401920A77A192C536CED184285A0"
+  },
+  {
+    "path": "packages\\platform-api\\src\\authors.ts",
+    "sha256": "786E3E739EF8BF2DB5A573466FC3C9416A5C645E4014D8BF5B24449C8A3544C9"
+  },
+  {
+    "path": "packages\\platform-api\\src\\authStore.ts",
+    "sha256": "49AA58CA93CCBC66AA41040F1BEA2D81151B9B86A92179F1D29B04778BCB301E"
+  },
+  {
+    "path": "packages\\platform-api\\src\\client.ts",
+    "sha256": "5CD1A2D4A9C4B05DDB492DC2FCC44CBCA08A65AB84B1505364023C13CBD151C6"
+  },
+  {
+    "path": "packages\\platform-api\\src\\content.ts",
+    "sha256": "5266B285FB1577CEE0BC133EBD783F0440A482522DA5E4FA86C8E22405631EAA"
+  },
+  {
+    "path": "packages\\platform-api\\src\\imageUtils.ts",
+    "sha256": "7C6D41F5D0D7AEF5CF3E0F926A8C2BB23F3D9F8CBB2F3A65ECF92EB515DCEA3B"
+  },
+  {
+    "path": "packages\\platform-api\\src\\index.ts",
+    "sha256": "22B86426329C349F4EB198E37AFA917E5E72C8614FCD0CA494D992696A595A18"
+  },
+  {
+    "path": "packages\\platform-api\\src\\media.ts",
+    "sha256": "67EAB81C4275CD4AADA67197AAC86026EAF91CFCD7BA60C84742F00286B945C2"
+  },
+  {
+    "path": "packages\\platform-api\\src\\rbac.ts",
+    "sha256": "2B1CF4B5A91F6567352CDBBDAB243B48AC9C20A6746AB8E99D7460EB7D9715CD"
+  },
+  {
+    "path": "packages\\platform-api\\src\\settings.ts",
+    "sha256": "6A9E5C33534669895B785577B04F5C70D90208202C88EA10534E96F9F431293A"
+  },
+  {
+    "path": "packages\\platform-api\\src\\strapi.ts",
+    "sha256": "52855ECFB780D01140119E55DB1E210223B63429CA8FB19C7C1CEE2F89951451"
+  },
+  {
+    "path": "packages\\platform-api\\src\\types.ts",
+    "sha256": "4C403DB150B4265BD5309546326C16F93A81242F5A5D1F9DC31ACA9192DC13D7"
+  },
+  {
+    "path": "packages\\platform-api\\src\\users.ts",
+    "sha256": "8772CBF027ACFAC487881D1DD02E4C89DAB4972D5045F1ACAEC20EA00E2F8670"
+  },
+  {
+    "path": "packages\\admin-app\\src\\config.ts",
+    "sha256": "212E610977C4CFF3E43CF57FB92E88D0B0D689EC45BCA06746AB9F9EE24DD784"
+  },
+  {
+    "path": "packages\\admin-app\\src\\highlight-languages.d.ts",
+    "sha256": "4F7A4B9B15A02FFD2C335603A0A46C1AFAFF7B5D3092A212E310D45D090480B7"
+  },
+  {
+    "path": "packages\\admin-app\\src\\index.ts",
+    "sha256": "15AD7E3C4A815C163B0D100AB82F176EBD9F0FA8ACC7DD833A5108B51794B55A"
+  },
+  {
+    "path": "packages\\admin-app\\src\\platformNav.tsx",
+    "sha256": "8F2708AE36E9439E204E45BFD877433647BAA63226DA5209C2A31A9D1C5D34F6"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\AdminLabeledShell.tsx",
+    "sha256": "1EF991D5CBB7962028DDD608F4A33FB1630DE882E419E55F6424FD605191C14C"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\AdminLayout.tsx",
+    "sha256": "6713CEDD72ED6ABBF95320D1F8A3C4CE017B1EEE11FB51749FF332738052CA76"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\AeoAssistant.tsx",
+    "sha256": "D208B383A23F7A788CCD205D9C1C13701562526A19F9FA4D41D6670E3F611EAB"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\ArticleEditor.tsx",
+    "sha256": "9670E51CDE3AB2E002D53132AC03D51D99E195ADA587D501686CC9FA27DC4F69"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\articleExtensions.ts",
+    "sha256": "9CCA63359B3DDB0EFFA858580D0A8C688009AB3F009FC7A6183FC15E2598D951"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\ArticleSettingsPanel.tsx",
+    "sha256": "98CFC7DC3CFD6101CBE16BD7E033324DDCCCA7065F500745E1F01C9A2B6EB4D4"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\CategorySelector.tsx",
+    "sha256": "3DB89257D8CC2B3D3BB82975AEEDA24AEE57F0D24A6891B2F58ED2540EF50740"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\codeLanguages.ts",
+    "sha256": "1C73E0E2BA8F7BBD5BD53A404743B4A12255F729D9140A795BB83235A9789862"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\ContentSelector.tsx",
+    "sha256": "3C0384840A6B27DCFEA4D2FCF2DED2FE42667B67D9729AE93757290C765889DD"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\DropZone.tsx",
+    "sha256": "30B0D92D911834B0AF522C17082F6FF1E3DA3BDCF2623BD51B791846040228F3"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\HomepageArticleWall.tsx",
+    "sha256": "B93906FDBFF21B062D7C21A2D1CB1F4C1A3EF0635F7EE841BBEDFA038B90AC28"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\HomepageHeroIntro.tsx",
+    "sha256": "EB4E40CCF0150FFB196BF4F0A2B6296C0612BEAC90B3F9754938D674EFFB971A"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\ImageCropDialog.tsx",
+    "sha256": "462692BC6D928965DF307AD77B835842607903D3D05D74C0C20DE6056C240627"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\InlineImageSettings.tsx",
+    "sha256": "6AF4FA8AE368A6329CE8669BF081487F7A210A2FDB5708995690C560C833A7CA"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\LanguageManager.tsx",
+    "sha256": "35C0EAD2191ECF826500C4FD49EA9D969F4B0C92CBF75617B413E788EC60961A"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\LanguageSelector.tsx",
+    "sha256": "DAADF110162760AC9CE0504638E96404AAC48E24FF39A8024E77378CA13C7498"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\MediaBrowser.tsx",
+    "sha256": "07DD98147668B724626F2BB18F1538C7420723F99CC2219261B7F0A196DA51F1"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\NotionTitleInput.tsx",
+    "sha256": "9C5E4154078BCDB04D504A900BA2A29CF90848E77F238BB61C230580B76F82D0"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\SimpleTextEditor.tsx",
+    "sha256": "414E96EF4448C917C799A60186AE0350048664A010F6C30535901C047242CE9D"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\TagSelector.tsx",
+    "sha256": "5F28D36D392F06B11F49C3CE7AE417050DDD4A8F6CE0F2E3A9FC34317FFD16A8"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\TiptapEditor.tsx",
+    "sha256": "FDEAAB4BD07DCE7AF173BB099699F585834DA6BB2DACC028C742C24D39C55F18"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\TiptapEditorImpl.tsx",
+    "sha256": "0D20AFFA5D10802018F5E252E9A4C0FA0829A1CCA6437A8ADD174785B77AAB69"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\UploadProgress.tsx",
+    "sha256": "B4E217AD26533347ABCE2F3696E4E7FA378672F9794AC2BCE655DDB583B76F9A"
+  },
+  {
+    "path": "packages\\admin-app\\src\\components\\useVisibleNav.ts",
+    "sha256": "C61823058CC33ADAAFAAA8A944EEF30AD6068C746CBC9B20E39287A71269D1E8"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\AdminShell.tsx",
+    "sha256": "9AA2A5F0E13921536FDF80047263F63632B8FE0C9EB7BD04FBA7E323790C5E85"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\dashboard.tsx",
+    "sha256": "E255A8015435DB7A7620DF43CB1580D58B2009B6E1D7E61541BBF3F0E54766AB"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\homepage.tsx",
+    "sha256": "86952CC7760B5506ECD25AD9057BC474DC752843566A671015539227D9DA8557"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\login.tsx",
+    "sha256": "8869A6FADB90472F08748D5C933948D9FB3EFF7E7802233CCFEC9A2C73DF39D6"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\roles.tsx",
+    "sha256": "AD6D9A34B6E0A9FD9B7CFFD579D840EA72797205251FE12D91DD62D4BC4CEC06"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\settings.tsx",
+    "sha256": "5B83D6539D3D3B91E68D80E44ABE16D9571B464BD1FA93592691ED94D1AE93DD"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\submissions.tsx",
+    "sha256": "F544C49D79091201B678FF2F1F037012DBDF1BF70AE4278B0594AB199271F362"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\articles\\index.tsx",
+    "sha256": "BF6AAD10088EB4473EE573E1C70E9E996EEAE3CA4A66FA8BC679E2EE42A184BD"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\articles\\_components\\ArticleListItem.tsx",
+    "sha256": "771E60926A6EBB3E6E4AEA1A44180611F7CCC08B2D8827B323D7115C23E36A77"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\articles\\_components\\ArticleSidebar.tsx",
+    "sha256": "50CDE3016C8336C9BCB074F5050EBF9A3577D4CF265CE443561D777E46580932"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\articles\\_components\\index.ts",
+    "sha256": "68A9DC85C2F7241FAA1BBCD1637D7F44043C5FD6E3AA35C8E6BF96D5C52CE5DD"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\authors\\index.tsx",
+    "sha256": "900B2442E93D5A2175119A8F77B486E16E788687B0357D0F48A8BAA875889F11"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\authors\\_components\\AuthorForm.tsx",
+    "sha256": "83B581F37986C06F344300A3684E00FAA4B01A7D00C5A7CAB94EE0DCABB69BF3"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\authors\\_components\\AuthorSidebar.tsx",
+    "sha256": "B86C15320EE37A2C80D7AE61A3D71D1EBD4209789DFD3371917E6B47D6DAD8F0"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\authors\\_components\\index.ts",
+    "sha256": "87D21A4F589AA5DAAEC9D5A7EBC801186284E71DA25E09D23EB68B56407A6311"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\categories\\index.tsx",
+    "sha256": "A172B9D85AB57C5430CA55CE3CDC8B04732D1C57C0D24EBC3A6E26EECC6CCB60"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\categories\\_components\\CategoryTagForm.tsx",
+    "sha256": "07F38867056642FA2E3BDB8BB5605FE417A460B0896EDD9B4BB81A6F45A57BDC"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\categories\\_components\\CategoryTagSidebar.tsx",
+    "sha256": "28A4982A87D863DE58CC3A7956BDD67BAC9FEACAEFF19ADA1634FDC869B9935C"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\categories\\_components\\index.ts",
+    "sha256": "4D2F7CD6FE1589B963D4AF24015EA4C6B75CC4D9FC41267262CB87DD57AC60B4"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\index.tsx",
+    "sha256": "E7845FA6BC6E0B85C6D659F61846F71D991790F3D1BC9D42144CB3D0C95CE4D7"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\CreateFolderModal.tsx",
+    "sha256": "7F8F0418BEDD70237058DA882467FA39CA99CD5037DB29774397769B9D7B368F"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\EditableDescription.tsx",
+    "sha256": "F3577EFF4E3A914DE7F1034A0F32B9B61989F5EA3B5F91F5E35702855F7901D3"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\EditModal.tsx",
+    "sha256": "033D371D78D6B048B6046FA7D20749B5DD6346F6FD750DD4965B90929A8946D0"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\FolderSidebar.tsx",
+    "sha256": "2FD198BFB27840AC6ACC5B31A082E3FD2DCE058A6CB62E12BAF54ACA641CED0A"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\FolderTreeItem.tsx",
+    "sha256": "DF90E8CBF249BCF84E1F5FF46CC735EE739BA7280618AAB4608133D9BE3415AE"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\ImportModal.tsx",
+    "sha256": "59551287D700572EAFF25765E2E6E0E900E68E3FB2F14FE24FD79D666DF27E9B"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\index.ts",
+    "sha256": "004F307C6D6A8358A7B91187DE322818162D02937A152CE49C44121B28979092"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\InlineUploadZone.tsx",
+    "sha256": "299119ABCA0C18D1FA6E6E4BCDE9BB4EC9E8A1297C6EF1E1F0E58B84FB78986E"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\MoveFolderModal.tsx",
+    "sha256": "01B9C22425D11611E86F430C0DD4BCC4DDA870AA0D197C79C3F2102A9D4EADC3"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\RenameFolderModal.tsx",
+    "sha256": "66C33ED9F68502825C4961A12228C02803AD2A25ADDCA9472CB63A8051ED016A"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\SubFolderSection.tsx",
+    "sha256": "E84D70E304EF24E0B41EBF70C1E0173838242A5652D62B4A4A80496F4B867497"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\UploadModal.tsx",
+    "sha256": "AECA5514BCAD77681B6670D00BAD0C90FACF576C85488E2F102E5F870A8B6EC3"
+  },
+  {
+    "path": "packages\\admin-app\\src\\pages\\media\\_components\\utils.ts",
+    "sha256": "F57FC57ED17DAA77EC729485D2C88EA842F1F1A003B57E601B3F647AC426128C"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\index.ts",
+    "sha256": "5617CF415872893915E636C665C6746F8BA810CD5B5CCB0966EA2D896677168E"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\pendingChart.ts",
+    "sha256": "3155DCEB73586D3936F046EE723E9952F0205B5073A93BA1C4C5710C20A649C8"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\api\\astrology.ts",
+    "sha256": "786B76CCC6FFA118DC1C9C1F657C19777653111B513799E443B1D21B17C7DC3F"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\api\\localEngine.ts",
+    "sha256": "0999EEEC52A169BE558454D0F40499FE6403B7E3E25F684A4F7E1E7E46E413FA"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\BirthPlaceFields.tsx",
+    "sha256": "CC09094EE4079244D762202A938B95D25A50B2761B7B081B066FBA4EE71EE033"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\MemberChartForm.tsx",
+    "sha256": "05E83F594A8F873604570D7CC6C48E40F3B5EA85AEB38C6D967419D9F1B7852C"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\WheelColumn.tsx",
+    "sha256": "49C9640B798F21275FB43E94FE813E7B372BA38336E1F8DEDA5B9C744ACD84D9"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\ZiweiChartForm.tsx",
+    "sha256": "02A69FAABB2D28A84B5A09B206A84A383FCD92EB10CD00DF7717AD06E911136A"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\ZiweiChartResult.tsx",
+    "sha256": "7C0CC8D64440EACB8CAA9AF25037465C8BD9CA242EAE319F1A764D229D252FCA"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\ZiweiHomeSection.tsx",
+    "sha256": "0727CC3E80DF5E945F0B03357FAFC22F5ADE7149486C08A6DA2E28C09CAD5AD9"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\ZiweiQuickChart.tsx",
+    "sha256": "C2B4C21D5AA67CEC4AE52E45718CAD0BEB4BDA1BB1AE74AEB7C7B6B1B5C0336C"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\starfield\\ChartTooltip.tsx",
+    "sha256": "3876DE5D4E847B35975B9255AC92894B7253004D302786EA1A9D7506A3533CE0"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\starfield\\index.ts",
+    "sha256": "6DB9874622DC3B8B0CA74204D46FCA602D1B4B5920081E63FB3DD841F3693DE2"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\starfield\\PalaceAuxHeatmap.tsx",
+    "sha256": "7D5180FC30AF1DD7CDCF9B480AE0C77B3A9BBD48195E2DFA2653FAD82B935B7B"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\starfield\\PalaceChordDiagram.tsx",
+    "sha256": "3F833C115B58C5E2AD3B9D8DA6463DF8F9FE36C597ABDF2D53A4C5405012A5B7"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\starfield\\SihuaSankey.tsx",
+    "sha256": "6CDE1379F34746CFEDD86A0D76A58FE6F5C0491D73A8E9366B82758C0027ACEB"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\starfield\\StarEnergyPanel.tsx",
+    "sha256": "402F9CD7DDC69010BB5FF6B015E38C16F8FB7EC848956F716B83E98689D12102"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\starfield\\StarEnergyWaterfall.tsx",
+    "sha256": "EBA3DA3C7C7E54B26768EA373DDFE1B57D53A90ADB063AD74A20A6ADE65E7B52"
+  },
+  {
+    "path": "packages\\ziwei-app\\src\\components\\starfield\\StarfieldSection.tsx",
+    "sha256": "E07E1C98320D21CB25C693C3989794F55E783229ABB401E42BFEEF941A6B416D"
+  },
+  {
+    "path": "Duc\\member\\親紫之間-會員系統-需求規格.md",
+    "sha256": "3B4C870413EF969C659F61831339B5911BD7017F8504666E426DE47B4B2BF742"
+  }
+]

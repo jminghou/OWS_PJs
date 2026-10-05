@@ -12,9 +12,8 @@ const navContent: Record<string, {
   home: string;
   about: string;
   articles: string;
-  products: string;
+  reports: string;
   contact: string;
-  ziwei: string;
   newsletter: string;
   openMenu: string;
   account: string;
@@ -25,9 +24,8 @@ const navContent: Record<string, {
     home: '首頁',
     about: '關於我們',
     articles: '親紫專欄',
-    products: '服務與產品',
+    reports: '購買報告',
     contact: '聯絡我們',
-    ziwei: '線上排盤',
     newsletter: '電子報',
     openMenu: '打開主選單',
     account: '會員中心',
@@ -38,9 +36,8 @@ const navContent: Record<string, {
     home: '首页',
     about: '关于我们',
     articles: '亲紫专栏',
-    products: '服务与产品',
+    reports: '购买报告',
     contact: '联系我们',
-    ziwei: '在线排盘',
     newsletter: '电子报',
     openMenu: '打开主菜单',
     account: '会员中心',
@@ -51,9 +48,8 @@ const navContent: Record<string, {
     home: 'Home',
     about: 'About',
     articles: 'Articles',
-    products: 'Products',
+    reports: 'Buy a Report',
     contact: 'Contact',
-    ziwei: 'Ziwei Chart',
     newsletter: 'Newsletter',
     openMenu: 'Open main menu',
     account: 'My Account',
@@ -64,9 +60,8 @@ const navContent: Record<string, {
     home: 'ホーム',
     about: '私たちについて',
     articles: '記事',
-    products: '製品',
+    reports: 'レポートを購入',
     contact: 'お問い合わせ',
-    ziwei: '紫微占い',
     newsletter: 'ニュースレター',
     openMenu: 'メニューを開く',
     account: 'マイページ',
@@ -108,10 +103,9 @@ export default function PublicHeader() {
   // 導覽一律是真正的頁面連結（首頁由站名連回）
   const navItems = [
     { href: `${basePath}/about`, label: content.about },
-    { href: `${basePath}/articles`, label: content.articles },
     // 客製報告目前只有中文頁面（/report），各語系都連到同一頁
-    { href: '/report', label: content.products },
-    { href: `${basePath}/ziwei`, label: content.ziwei },
+    { href: '/report', label: content.reports },
+    { href: `${basePath}/articles`, label: content.articles },
     { href: `${basePath}/newsletter`, label: content.newsletter },
   ];
   const isActive = (href: string) =>

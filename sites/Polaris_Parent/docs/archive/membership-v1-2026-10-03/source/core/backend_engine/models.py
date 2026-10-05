@@ -1,0 +1,694 @@
+"""
+OWS Core Engine - Database Models
+
+This module defines all SQLAlchemy ORM models for the OWS platform.
+Models are designed to be shared across all sites.
+
+Key Features:
+- RBAC (Role-Based Access Control) support
+- JSONB attributes for extensibility
+- i18n (internationalization) support
+- Multi-currency pricing
+
+Schema 分流（統一資料庫架構，見 ARCHITECTURE_UNIFIED_DB.md）：
+本模組為跨站共用。Polaris 透過環境變數把表放進 blog/shop schema；其他站
+（如 Claire）不設這些變數 → schema=None＝public，行為與過去完全相同。
+"""
+
+import os
+from datetime import datetime
+from typing import Optional, Dict, Any, List
+
+from flask_login import UserMixin
+from sqlalchemy.dialects.postgresql import JSONB
+import bcrypt
+import re
+
+from core.backend_engine.factory import db
+
+
+# =============================================================================
+# Schema configuration (per-deployment via env; default None = public)
+# =============================================================================
+
+_BLOG_SCHEMA = os.environ.get('OWS_BLOG_SCHEMA') or None
+_SHOP_SCHEMA = os.environ.get('OWS_SHOP_SCHEMA') or None
+
+
+def _q(name: str, schema: Optional[str]) -> str:
+    """Qualify a table name / FK target with schema when set.
+
+    e.g. _q('users.id', 'blog') -> 'blog.users.id'; _q('users.id', None) -> 'users.id'.
+    Used for ForeignKey targets and association `secondary` references so the same
+    shared models render under blog/shop (Polaris) or public (other sites).
+    """
+    return f'{schema}.{name}' if schema else name
+
+
+# 第二期身分整合（§11）：使用者外鍵的「目標」與「型別」依部署而定。
+#
+#   local     站台自己的 users 表（Integer）。預設。
+#   external  外部身分系統的表（BigInteger）。Polaris 用這個，
+#             身分集中在紫微側的 account.app_users。
+#
+# 為什麼要獨立一個環境變數：
+#   這兩個判斷原本都掛在 _BLOG_SCHEMA 上 —— 一個環境變數同時決定「表放哪個
+#   schema」和「用哪種身分模型」。那讓第三個站台無法「用 blog/shop 分流表，
+#   但保留自己的 users 表」，而那是個完全合理的組合。拆開之後兩件事各自獨立。
+#
+#   相容性：Claire 沒設 OWS_BLOG_SCHEMA 也沒設 OWS_IDENTITY_MODE → local（行為不變）；
+#   Polaris 在 .env 明確設 external（行為不變）。
+#
+# 註：external 模式下，站台需由站專屬模型把該表載入 metadata，FK 字串才解析得到。
+_IDENTITY_MODE = (os.environ.get('OWS_IDENTITY_MODE') or 'local').strip().lower()
+_EXTERNAL_USER_TABLE = os.environ.get('OWS_EXTERNAL_USER_TABLE') or 'account.app_users'
+
+if _IDENTITY_MODE == 'external':
+    _USER_FK_TARGET = f'{_EXTERNAL_USER_TABLE}.id'
+    _USER_ID_TYPE = db.BigInteger
+else:
+    _USER_FK_TARGET = _q('users.id', _BLOG_SCHEMA)
+    _USER_ID_TYPE = db.Integer
+
+
+
+# 供選用模組（packages/commerce 等）使用的公開別名 —— 它們的表要跟 core 同一套
+# schema 佈局與身分模型，但不該去 import 底線開頭的實作細節。
+BLOG_SCHEMA = _BLOG_SCHEMA
+SHOP_SCHEMA = _SHOP_SCHEMA
+USER_FK_TARGET = _USER_FK_TARGET
+USER_ID_TYPE = _USER_ID_TYPE
+qualify = _q
+
+# =============================================================================
+# Utility Functions
+# =============================================================================
+
+def validate_password(password: str) -> bool:
+    """
+    Validate password complexity.
+
+    Requirements:
+    - Minimum 8 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    """
+    errors = []
+    if len(password) < 8:
+        errors.append('密碼長度至少 8 個字元')
+    if not re.search(r'[A-Z]', password):
+        errors.append('密碼必須包含至少一個大寫字母')
+    if not re.search(r'[a-z]', password):
+        errors.append('密碼必須包含至少一個小寫字母')
+    if not re.search(r'[0-9]', password):
+        errors.append('密碼必須包含至少一個數字')
+    if errors:
+        raise ValueError('; '.join(errors))
+    return True
+
+
+# =============================================================================
+# RBAC Models (New)
+# =============================================================================
+
+class Role(db.Model):
+    """Role model for RBAC."""
+    __tablename__ = 'roles'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    name = db.Column(JSONB, default={})  # {"zh-TW": "管理員", "en": "Administrator"}
+    description = db.Column(JSONB, default={})
+    is_system = db.Column(db.Boolean, default=False)  # System roles cannot be deleted
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    permissions_snapshot = db.Column(JSONB, default=[])  # Denormalized for fast lookup
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    role_permissions = db.relationship('RolePermission', backref='role', lazy='dynamic', cascade='all, delete-orphan')
+    user_roles = db.relationship('UserRole', backref='role', lazy='dynamic', cascade='all, delete-orphan')
+
+    def get_name(self, language: str = 'zh-TW') -> str:
+        """Get localized role name."""
+        if isinstance(self.name, dict):
+            return self.name.get(language, self.name.get('zh-TW', self.code))
+        return self.code
+
+    def __repr__(self):
+        return f'<Role {self.code}>'
+
+
+class Permission(db.Model):
+    """Permission model for RBAC."""
+    __tablename__ = 'permissions'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(100), unique=True, nullable=False, index=True)  # e.g., 'contents.create'
+    name = db.Column(JSONB, default={})
+    description = db.Column(JSONB, default={})
+    module = db.Column(db.String(50), nullable=False, index=True)  # e.g., 'contents', 'products'
+    action = db.Column(db.String(50), nullable=False)  # e.g., 'create', 'read', 'update', 'delete'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    role_permissions = db.relationship('RolePermission', backref='permission', lazy='dynamic', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<Permission {self.code}>'
+
+
+class RolePermission(db.Model):
+    """Association table for Role-Permission relationship."""
+    __tablename__ = 'role_permissions'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    role_id = db.Column(db.Integer, db.ForeignKey(_q('roles.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
+    permission_id = db.Column(db.Integer, db.ForeignKey(_q('permissions.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
+    granted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    granted_by = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), nullable=True)
+
+    def __repr__(self):
+        return f'<RolePermission role={self.role_id} permission={self.permission_id}>'
+
+
+class UserRole(db.Model):
+    """Association table for User-Role relationship."""
+    __tablename__ = 'user_roles'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET, ondelete='CASCADE'), primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey(_q('roles.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True)
+    assigned_at = db.Column(db.DateTime, default=datetime.utcnow)
+    assigned_by = db.Column(db.Integer, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)  # Optional expiration for temporary roles
+
+    def __repr__(self):
+        return f'<UserRole user={self.user_id} role={self.role_id}>'
+
+
+# =============================================================================
+# User Model (Enhanced)
+# =============================================================================
+
+class User(UserMixin, db.Model):
+    """User model with RBAC support."""
+    __tablename__ = 'users'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), default='user')  # Legacy field for backward compatibility
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    avatar = db.Column(db.String(500))  # Profile image path (supports GCS long URLs)
+
+    # NEW: JSONB extension fields
+    attributes = db.Column(JSONB, default={})  # Extensible attributes
+    meta_data = db.Column(JSONB, default={})  # Site-specific metadata
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
+
+    # Relationships
+    # 第二期：使用者外鍵改指 account.app_users（Polaris）後，User 與這些表之間已無
+    # DB 外鍵連結，須明確指定 primaryjoin/foreign_keys（join 於 User.id == *.user/author_id）。
+    # 對 Claire（外鍵仍指自身 users）同樣成立。
+    contents = db.relationship('Content', backref='author', lazy='dynamic',
+                               foreign_keys='Content.author_id',
+                               primaryjoin='User.id == Content.author_id')
+    comments = db.relationship('Comment', backref='user', lazy='dynamic',
+                               foreign_keys='Comment.user_id',
+                               primaryjoin='User.id == Comment.user_id')
+    activity_logs = db.relationship('ActivityLog', backref='user', lazy='dynamic',
+                                    foreign_keys='ActivityLog.user_id',
+                                    primaryjoin='User.id == ActivityLog.user_id')
+    # RBAC 四表僅供未統一身分的站別（Claire）使用；Polaris 已淘汰、表不存在，
+    # 故不定義此關聯（否則刪除 User 時 cascade 會去查不存在的 blog.user_roles）。
+    if not _BLOG_SCHEMA:
+        user_roles = db.relationship('UserRole', backref='user', lazy='dynamic', cascade='all, delete-orphan',
+                                     foreign_keys='UserRole.user_id',
+                                     primaryjoin='User.id == UserRole.user_id')
+
+    def set_password(self, password: str) -> None:
+        """Hash and set password after validation."""
+        validate_password(password)
+        salt = bcrypt.gensalt()
+        self.password_hash = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+    def check_password(self, password: str) -> bool:
+        """Verify password against hash."""
+        if not self.password_hash:
+            return False
+        return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+
+    def is_admin(self) -> bool:
+        """Check if user has admin role (legacy support)."""
+        return self.role == 'admin'
+
+    def is_editor(self) -> bool:
+        """Check if user has editor or admin role (legacy support)."""
+        return self.role in ['admin', 'editor']
+
+    def get_attribute(self, key: str, default: Any = None) -> Any:
+        """Get a value from attributes JSONB field."""
+        if self.attributes and isinstance(self.attributes, dict):
+            return self.attributes.get(key, default)
+        return default
+
+    def set_attribute(self, key: str, value: Any) -> None:
+        """Set a value in attributes JSONB field."""
+        if self.attributes is None:
+            self.attributes = {}
+        self.attributes[key] = value
+
+    def public_author_profile(self) -> Dict[str, Any]:
+        """Public author profile for E-E-A-T / author pages.
+
+        Author bio fields live in the `attributes` JSONB (no migration needed):
+        display_name, slug, title, bio, expertise (list), social_links (dict),
+        credentials. `social_links` values become schema.org Person.sameAs.
+        """
+        attrs = self.attributes if isinstance(self.attributes, dict) else {}
+        social = attrs.get('social_links') if isinstance(attrs.get('social_links'), dict) else {}
+        return {
+            'id': self.id,
+            'username': self.username,
+            'slug': attrs.get('slug') or self.username,
+            'name': attrs.get('display_name') or self.username,
+            'avatar': self.avatar,
+            'title': attrs.get('title'),
+            'bio': attrs.get('bio'),
+            'expertise': attrs.get('expertise') or [],
+            'social_links': {k: v for k, v in social.items() if v},
+            'credentials': attrs.get('credentials'),
+        }
+
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+
+# =============================================================================
+# Category Model (Enhanced)
+# =============================================================================
+
+class Category(db.Model):
+    """Category model with i18n support."""
+    __tablename__ = 'categories'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    slugs = db.Column(JSONB, default={})  # {"zh-TW": "政治", "en-US": "politics"}
+    parent_id = db.Column(db.Integer, db.ForeignKey(_q('categories.id', _BLOG_SCHEMA)))
+    sort_order = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True, index=True)
+
+    # NEW: JSONB extension field
+    attributes = db.Column(JSONB, default={})
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    contents = db.relationship('Content', backref='category', lazy='dynamic')
+    parent = db.relationship('Category', remote_side=[id], backref='children', foreign_keys=[parent_id])
+    # products 反向關聯由 packages/commerce 的 Product.category backref 提供（電商為選用模組）
+
+    def get_slug(self, language: str = 'zh-TW') -> str:
+        """Get localized slug."""
+        if isinstance(self.slugs, dict):
+            return self.slugs.get(language, self.slugs.get('zh-TW', self.code))
+        return self.code
+
+    def __repr__(self):
+        return f'<Category {self.code}>'
+
+
+# =============================================================================
+# Content Model (Enhanced)
+# =============================================================================
+
+class Content(db.Model):
+    """Content model for articles, pages, etc."""
+    __tablename__ = 'contents'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text)
+    summary = db.Column(db.Text)
+    slug = db.Column(db.String(200), unique=True, nullable=False, index=True)
+    status = db.Column(db.String(20), default='draft', index=True)
+    content_type = db.Column(db.String(50), default='article', index=True)
+    category_id = db.Column(db.Integer, db.ForeignKey(_q('categories.id', _BLOG_SCHEMA)), index=True)
+    author_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET), index=True)
+    featured_image = db.Column(db.String(500))  # 16:9, supports GCS long URLs
+    cover_image = db.Column(db.String(500))  # 1:1
+    meta_title = db.Column(db.String(200))
+    meta_description = db.Column(db.Text)
+    views_count = db.Column(db.Integer, default=0)
+    likes_count = db.Column(db.Integer, default=0)
+    published_at = db.Column(db.DateTime, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # i18n fields
+    language = db.Column(db.String(10), default='zh-TW', nullable=False, index=True)
+    original_id = db.Column(db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA)), nullable=True)
+
+    # NEW: JSONB extension fields
+    attributes = db.Column(JSONB, default={})  # Custom fields per site
+    meta_data = db.Column(JSONB, default={})  # SEO, schema.org data, etc.
+
+    # 複合索引：加速公開列表查詢（filter status+content_type+language、order by published_at）
+    __table_args__ = (
+        db.Index('ix_contents_list', 'status', 'content_type', 'language', 'published_at'),
+        {'schema': _BLOG_SCHEMA},
+    )
+
+    # Relationships
+    comments = db.relationship('Comment', backref='content', lazy='dynamic', cascade='all, delete-orphan')
+    tags = db.relationship('Tag', secondary=_q('content_tags', _BLOG_SCHEMA), back_populates='contents')
+    translations = db.relationship('Content', backref=db.backref('original', remote_side=[id]), lazy='dynamic')
+
+    def is_published(self) -> bool:
+        """Check if content is published and publication date has passed."""
+        return self.status == 'published' and self.published_at and self.published_at <= datetime.utcnow()
+
+    def increment_views(self) -> None:
+        """Increment view count."""
+        self.views_count += 1
+        db.session.commit()
+
+    def __repr__(self):
+        return f'<Content {self.title}>'
+
+
+# =============================================================================
+# Tag Model (Enhanced)
+# =============================================================================
+
+class Tag(db.Model):
+    """Tag model with i18n support."""
+    __tablename__ = 'tags'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    slugs = db.Column(JSONB, default={})  # {"zh-TW": "熱門", "en-US": "hot"}
+
+    # NEW: JSONB extension field
+    attributes = db.Column(JSONB, default={})
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    contents = db.relationship('Content', secondary=_q('content_tags', _BLOG_SCHEMA), back_populates='tags')
+    # products 反向關聯由 packages/commerce 的 Product.tags backref 提供（電商為選用模組）
+
+    def get_slug(self, language: str = 'zh-TW') -> str:
+        """Get localized slug."""
+        if isinstance(self.slugs, dict):
+            return self.slugs.get(language, self.slugs.get('zh-TW', self.code))
+        return self.code
+
+    def __repr__(self):
+        return f'<Tag {self.code}>'
+
+
+# Content-Tag association table
+content_tags = db.Table('content_tags',
+    db.Column('content_id', db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey(_q('tags.id', _BLOG_SCHEMA), ondelete='CASCADE'), primary_key=True),
+    schema=_BLOG_SCHEMA,
+)
+
+
+# =============================================================================
+# Comment Model
+# =============================================================================
+
+class Comment(db.Model):
+    """Comment model with nested replies support."""
+    __tablename__ = 'comments'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    content_id = db.Column(db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA), ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET))
+    author_name = db.Column(db.String(100))
+    author_email = db.Column(db.String(100))
+    comment_text = db.Column(db.Text, nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey(_q('comments.id', _BLOG_SCHEMA)))
+    status = db.Column(db.String(20), default='pending', index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    parent = db.relationship('Comment', remote_side=[id], backref='replies')
+
+    def __repr__(self):
+        return f'<Comment {self.id}>'
+
+
+# =============================================================================
+# Media — 已遷移至 packages/media_lib (MLFile/MLFolder)。
+# 舊的 Media/MediaFolder/content_media 已移除，圖片以 public_url 字串儲存。
+# =============================================================================
+
+
+# =============================================================================
+# Menu Models
+# =============================================================================
+
+class Menu(db.Model):
+    """Menu model for navigation."""
+    __tablename__ = 'menus'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(50), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    items = db.relationship('MenuItem', backref='menu', lazy='dynamic', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<Menu {self.name}>'
+
+
+class MenuItem(db.Model):
+    """Menu item model with hierarchy support."""
+    __tablename__ = 'menu_items'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    menu_id = db.Column(db.Integer, db.ForeignKey(_q('menus.id', _BLOG_SCHEMA), ondelete='CASCADE'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    url = db.Column(db.String(500))
+    content_id = db.Column(db.Integer, db.ForeignKey(_q('contents.id', _BLOG_SCHEMA)))
+    parent_id = db.Column(db.Integer, db.ForeignKey(_q('menu_items.id', _BLOG_SCHEMA)))
+    sort_order = db.Column(db.Integer, default=0)
+    css_class = db.Column(db.String(100))
+    target = db.Column(db.String(20), default='_self')
+    is_active = db.Column(db.Boolean, default=True)
+
+    # Relationships
+    content = db.relationship('Content', backref='menu_items')
+    parent = db.relationship('MenuItem', remote_side=[id], backref='children')
+
+    def __repr__(self):
+        return f'<MenuItem {self.title}>'
+
+
+# =============================================================================
+# Settings Models
+# =============================================================================
+
+class Setting(db.Model):
+    """Key-value settings model."""
+    __tablename__ = 'settings'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    value = db.Column(db.Text)
+    description = db.Column(db.Text)
+    data_type = db.Column(db.String(20), default='string')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Setting {self.key}>'
+
+
+class HomepageSlide(db.Model):
+    """Homepage carousel slide model."""
+    __tablename__ = 'homepage_slides'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    slide_id = db.Column(db.String(100), unique=True, nullable=False)
+    image_url = db.Column(db.String(500), nullable=False)
+    alt_text = db.Column(db.String(200))
+    sort_order = db.Column(db.Integer, default=0, nullable=False)
+    subtitles = db.Column(JSONB, default={})  # {"zh-TW": "文字A", "en": "Text A"}
+    is_active = db.Column(db.Boolean, default=True)
+
+    # Feature 1: Per-slide CTA link
+    cta_url = db.Column(db.String(500), nullable=True)
+    cta_text = db.Column(JSONB, default={})           # {"zh-TW": "了解更多", "en": "Learn More"}
+    cta_new_tab = db.Column(db.Boolean, default=False)
+
+    # Feature 2: Per-slide autoplay delay (ms); None = use global default 6000ms
+    autoplay_delay = db.Column(db.Integer, nullable=True)
+
+    # Feature 3: Video support
+    video_url = db.Column(db.String(500), nullable=True)
+    media_type = db.Column(db.String(20), default='image')  # 'image' | 'youtube' | 'video'
+
+    # Feature 4: Image focal point (CSS object-position)
+    focal_point = db.Column(db.String(30), default='center center')
+
+    # Feature 5: Per-slide overlay opacity (0-100, default 40 = ~from-black/40)
+    overlay_opacity = db.Column(db.Integer, default=40)
+
+    # Feature 6: Per-slide title override (multilang, fallback to global title)
+    titles = db.Column(JSONB, default={})
+
+    # Feature 8: Scheduled publish/unpublish
+    start_date = db.Column(db.DateTime, nullable=True)
+    end_date = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to frontend format."""
+        return {
+            'id': self.slide_id,
+            'image_url': self.image_url,
+            'alt_text': self.alt_text or '',
+            'sort_order': self.sort_order,
+            'subtitles': self.subtitles or {},
+            # Feature 1
+            'cta_url': self.cta_url or '',
+            'cta_text': self.cta_text or {},
+            'cta_new_tab': self.cta_new_tab or False,
+            # Feature 2
+            'autoplay_delay': self.autoplay_delay,  # None → frontend uses global
+            # Feature 3
+            'video_url': self.video_url or '',
+            'media_type': self.media_type or 'image',
+            # Feature 4
+            'focal_point': self.focal_point or 'center center',
+            # Feature 5
+            'overlay_opacity': self.overlay_opacity if self.overlay_opacity is not None else 40,
+            # Feature 6
+            'titles': self.titles or {},
+            # Feature 8
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
+        }
+
+    def __repr__(self):
+        return f'<HomepageSlide {self.slide_id}>'
+
+
+class HomepageSettings(db.Model):
+    """Homepage global settings model."""
+    __tablename__ = 'homepage_settings'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    button_text = db.Column(JSONB, default={})   # {"zh-TW": "關於我們", "en": "About Us"}
+    about_section = db.Column(JSONB, default={}) # {"zh-TW": {"title": "...", "philosophy": "..."}}
+
+    # Feature 7: Global pause-on-hover toggle
+    pause_on_hover = db.Column(db.Boolean, default=True)
+
+    # Feature 9: Global lazy loading toggle
+    lazy_loading = db.Column(db.Boolean, default=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to frontend format."""
+        return {
+            'button_text': self.button_text or {},
+            'about_section': self.about_section or {},
+            'pause_on_hover': self.pause_on_hover if self.pause_on_hover is not None else True,
+            'lazy_loading': self.lazy_loading if self.lazy_loading is not None else True,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def __repr__(self):
+        return f'<HomepageSettings {self.id}>'
+
+
+# =============================================================================
+# Activity Log Model
+# =============================================================================
+
+class ActivityLog(db.Model):
+    """Activity log for audit trail."""
+    __tablename__ = 'activity_logs'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(_USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET))
+    action = db.Column(db.String(100), nullable=False)
+    table_name = db.Column(db.String(50))
+    record_id = db.Column(db.Integer)
+    old_values = db.Column(JSONB)
+    new_values = db.Column(JSONB)
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return f'<ActivityLog {self.action}>'
+
+
+# =============================================================================
+# Submission Model (Enhanced)
+# =============================================================================
+
+class Submission(db.Model):
+    """User submission model (e.g., astrology questions)."""
+    __tablename__ = 'submissions'
+    __table_args__ = {'schema': _BLOG_SCHEMA}
+
+    id = db.Column(db.Integer, primary_key=True)
+    submission_type = db.Column(db.String(50), default='general', index=True)  # for multi-purpose
+    character_name = db.Column(db.String(100))
+    birth_year = db.Column(db.String(4))
+    birth_month = db.Column(db.String(2))
+    birth_day = db.Column(db.String(2))
+    birth_time = db.Column(db.String(50))
+    birth_place = db.Column(db.String(100))
+    question = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending', index=True)
+    admin_notes = db.Column(db.Text)
+    ip_address = db.Column(db.String(45))
+
+    # NEW: JSONB extension field
+    attributes = db.Column(JSONB, default={})
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Submission {self.id}: {self.character_name}>'
+
+
+# =============================================================================
+# E-commerce Models
+# =============================================================================
+

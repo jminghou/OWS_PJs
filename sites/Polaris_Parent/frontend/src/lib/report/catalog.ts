@@ -2,6 +2,7 @@
  * 客製命理報告的商品目錄（會員 v2）。
  *
  * 文案、交期皆為佔位內容（PLACEHOLDER），正式販售前替換。
+ * /report 是所有報告的目錄頁（書封），/report/{slug} 是單一報告的商品頁。
  * 價格不寫在這裡：以 product_id 向商品後台（shop.products）讀取，
  * 後台尚未建立該商品時頁面顯示「價格即將公布」。
  */
@@ -18,30 +19,133 @@ export interface ReportVariantInfo {
   deliveryNote: string;
 }
 
-export const REPORT_PRODUCT = {
-  code: 'natal-report',
+/** 書封配色（components/report/ReportBookCover.tsx） */
+export type CoverPalette = 'purple' | 'indigo' | 'rose' | 'teal';
+
+/** 商品頁亮點列的圖示（lucide-react） */
+export type HighlightIcon = 'users' | 'eye' | 'clock' | 'book' | 'pen';
+
+/**
+ * 一種客製報告（商品）。版型參考 Wonderbly 的商品頁：
+ * 圖庫＋標題＋亮點＋價格＋CTA → 可展開的詳細說明 → 特色區塊 → 評價 → FAQ。
+ * 每種報告預設是數位版；實體書是加購選項（見 REPORT_VARIANTS）。
+ */
+export interface ReportProduct {
+  /** 網址代稱：/report/{slug} */
+  slug: string;
+  name: string;
+  tagline: string;
+  /** 目錄卡片上的一句話 */
+  cardDescription: string;
+  /** 目錄卡片上的標籤，例如「新上市」 */
+  badge?: string;
+  /** 適用對象標籤，例如「適合所有年齡」 */
+  audienceLabel: string;
+  cover: { eyebrow: string; title: string; subtitle: string; palette: CoverPalette };
+  /** 商品頁圖庫：第一張固定是書封，其餘是內頁示意 */
+  gallery: string[];
+  highlights: { icon: HighlightIcon; text: string }[];
+  intro: string[];
+  testimonial: { quote: string; author: string };
+  /** 可展開的詳細說明（對應 Wonderbly 的 How is it personalised / What's the story / Size & quality） */
+  details: { title: string; body: string[] }[];
+  /** 圖文特色區塊（對應 Wonderbly 的 When is a book not just a book / Add some extra magic） */
+  features: { title: string; body: string; image: string }[];
+  process: { title: string; body: string }[];
+  faq: { q: string; a: string }[];
+}
+
+export const REPORT_PRODUCT: ReportProduct = {
+  slug: 'natal-report',
   name: '本命客製報告',
   tagline: '［佔位］一份只為一個人寫的命盤報告',
+  cardDescription: '［佔位］依出生資料排出命盤，逐章寫成一本只屬於主角的報告。',
+  badge: '［佔位］新上市',
+  audienceLabel: '［佔位］適合所有年齡',
+  cover: { eyebrow: '親紫之間', title: '本命客製報告', subtitle: '［佔位］寫給一個獨一無二的人', palette: 'purple' },
+  gallery: ['［佔位］扉頁題字', '［佔位］目錄', '［佔位］內頁：命盤總覽', '［佔位］內頁：性格與天賦', '［佔位］附錄：命盤圖'],
+  highlights: [
+    { icon: 'users', text: '［佔位］適合所有年齡，可為自己或家人製作' },
+    { icon: 'eye', text: '付款前先預覽主角的命盤與樣張' },
+    { icon: 'clock', text: '［佔位］付款後約 N 個工作天完成' },
+    { icon: 'book', text: '可加購精裝實體書' },
+  ],
   intro: [
     '［佔位］依照報告主角的出生資料排出命盤，由親紫之間的紫微斗數系統逐章分析，再經編輯審稿完成。',
     '［佔位］內容涵蓋性格、天賦、人際與成長方向等主題；你可以指定這份報告要給誰讀、書中怎麼稱呼主角，並在扉頁留下一段話。',
   ],
-  samplePages: ['［佔位］封面', '［佔位］目錄', '［佔位］內頁範例'],
-  /** 商品頁「適合誰」 */
-  forWhom: ['［佔位］想更了解自己的人', '［佔位］想用另一種方式認識孩子的父母', '［佔位］想送一份特別禮物給重要的人'],
-  /** 商品頁「製作方式」：依序呈現 */
+  testimonial: { quote: '［佔位］讀完才發現，原來有些事早就寫在命盤裡。', author: '［佔位］讀者 A' },
+  details: [
+    {
+      title: '報告如何客製？',
+      body: [
+        '［佔位］填寫主角的姓名、性別、出生日期與時間，系統會排出主角的本命盤。',
+        '［佔位］你可以指定這份報告寫給誰讀、書中怎麼稱呼主角，並在扉頁留下一段話。',
+      ],
+    },
+    {
+      title: '報告裡有什麼？',
+      body: ['［佔位］命盤總覽、性格與天賦、人際與關係、學習與工作、成長方向，以及完整命盤圖附錄。'],
+    },
+    {
+      title: '規格與品質',
+      body: ['［佔位］數位版：PDF，約 N 頁，會員中心下載。', '［佔位］實體書：精裝，N × N 公分，約 N 頁，由合作印刷廠印製寄送。'],
+    },
+  ],
+  features: [
+    {
+      title: '不只是一份報告',
+      body: '［佔位］扉頁可以留下一段你想對主角說的話，讓這份報告成為一份能收藏的禮物。',
+      image: '［佔位］扉頁題字照片',
+    },
+    {
+      title: '加購精裝實體書',
+      body: '［佔位］每份報告都是數位版；想要放在書架上或當成禮物，可以在預覽後加購精裝實體書。',
+      image: '［佔位］實體書照片',
+    },
+  ],
   process: [
     { title: '填寫資料', body: '［佔位］約 3 分鐘，填寫主角的出生資料與讀者設定。' },
-    { title: '預覽與下單', body: '［佔位］先看主角的命盤與樣張，再選數位版或實體書。' },
+    { title: '預覽與下單', body: '［佔位］先看主角的命盤與樣張，需要的話再加購實體書。' },
     { title: '系統分析＋人工審稿', body: '［佔位］逐章分析後由編輯審稿、排版。' },
     { title: '交付', body: '［佔位］數位版在會員中心下載；實體書由印刷廠寄出。' },
   ],
   faq: [
+    { q: '這份報告怎麼客製？', a: '［佔位］按下「開始客製我的報告」，依序回答幾個問題，完成後就能預覽。' },
     { q: '不知道出生時間可以買嗎？', a: '［佔位］需要確定的出生時間才能製作；我們不會替你推測時間。' },
+    { q: '適合送給誰？', a: '［佔位］自己、孩子、伴侶、父母或朋友都可以。' },
     { q: '付款後可以修改資料或退款嗎？', a: '［佔位］報告依出生資料個別製作，屬客製化商品，付款後不受理取消或退款，例外情形依交易政策處理。' },
     { q: '數位版之後可以加購實體書嗎？', a: '［佔位］可以，加購方式與價格另行公布。' },
   ],
-} as const;
+};
+
+/** 目錄頁（/report）列出的所有報告；目前只有一種，之後在這裡新增 */
+export const REPORT_PRODUCTS: ReportProduct[] = [REPORT_PRODUCT];
+
+export const productBySlug = (slug: string) => REPORT_PRODUCTS.find((p) => p.slug === slug);
+
+export const productHref = (p: ReportProduct) => `/report/${p.slug}`;
+
+/** 目錄頁文案（版型參考 Wonderbly 的 All personalised books） */
+export const REPORT_CATALOG = {
+  title: '所有客製報告',
+  subtitle: '［佔位］依出生資料逐章撰寫、經人工審稿的命理報告，寫給每一個重要的人。',
+  promo: '［佔位］每份報告都可以先預覽，再決定是否加購精裝實體書',
+  /** 「你想送給誰？」分類卡；目前只是導引，尚未依分類篩選 */
+  audiences: [
+    { label: '給自己', note: '［佔位］更了解自己' },
+    { label: '給孩子', note: '［佔位］換個角度認識孩子' },
+    { label: '給伴侶', note: '［佔位］一起讀懂彼此' },
+    { label: '送給家人朋友', note: '［佔位］一份特別的禮物' },
+  ],
+  usps: ['［佔位］付款前先預覽', '［佔位］人工審稿', '［佔位］可加購精裝實體書', '［佔位］會員中心永久下載'],
+  faq: [
+    { q: '報告是怎麼製作的？', a: '［佔位］依主角的出生資料排盤，由紫微斗數系統逐章分析，再經編輯審稿、排版。' },
+    { q: '多久可以收到？', a: '［佔位］數位版付款後約 N 個工作天完成；實體書另需印製與寄送時間。' },
+    { q: '實體書的尺寸與規格？', a: '［佔位］精裝，N × N 公分，約 N 頁。' },
+    { q: '要怎麼客製？', a: '［佔位］選一本報告，按下「開始客製」，依序回答幾個問題即可。' },
+  ],
+};
 
 /** 報告目錄（預覽頁顯示；正式章節名稱上線前替換） */
 export const REPORT_TOC: string[] = [
@@ -74,6 +178,11 @@ export const SAMPLE_PAGE_TEMPLATES: { title: string; body: string }[] = [
   },
 ];
 
+/**
+ * 後端的兩個版本：digital（基本，每份報告預設）與 physical（數位版＋精裝實體書）。
+ * 前台把 physical 呈現成「加購實體書」，加購價＝physical 售價 − digital 售價；
+ * 實際收費仍以後端讀到的 physical 售價為準（extensions/report_orders/service.py）。
+ */
 export const REPORT_VARIANTS: ReportVariantInfo[] = [
   {
     variant: 'digital',
@@ -86,7 +195,7 @@ export const REPORT_VARIANTS: ReportVariantInfo[] = [
   {
     variant: 'physical',
     productId: 'natal-report-physical',
-    label: '實體書版',
+    label: '數位版＋精裝實體書',
     summary: '［佔位］精裝實體書，另含數位版 PDF。',
     features: ['［佔位］精裝印刷實體書', '［佔位］含數位版 PDF', '［佔位］由合作印刷廠寄送'],
     deliveryNote: '［佔位］付款後約 N 個工作天出貨',
@@ -94,6 +203,13 @@ export const REPORT_VARIANTS: ReportVariantInfo[] = [
 ];
 
 export const variantInfo = (v: ReportVariant) => REPORT_VARIANTS.find((x) => x.variant === v)!;
+
+/** 加購實體書的說明（預覽頁的加購選項、商品頁） */
+export const PHYSICAL_ADDON = {
+  label: '加購精裝實體書',
+  summary: '［佔位］精裝印刷，由合作印刷廠寄送；仍包含數位版。',
+  features: ['［佔位］精裝印刷實體書', '［佔位］由合作印刷廠寄送', '［佔位］付款後約 N 個工作天出貨'],
+};
 
 /** 報告主角與購買者的關係 → account.users.relation_label（≤20 字，紫微 save-and-register 會檢查） */
 export const RELATION_OPTIONS: { value: string; label: string }[] = [

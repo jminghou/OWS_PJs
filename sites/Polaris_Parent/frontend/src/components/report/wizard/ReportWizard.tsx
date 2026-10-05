@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Button from '@/components/platform/ui/Button';
 import StepFields from './StepFields';
+import { REPORT_PRODUCT, productHref } from '@/lib/report/catalog';
 import { emptyDraft, hasErrors, loadDraft, saveDraft, tidyDraft, type DraftErrors, type ReportDraft } from '@/lib/report/draft';
 import { PREVIEW_HREF, firstIncompleteStep, isStepSlug, stepErrors, stepHref, visibleSteps } from '@/lib/report/steps';
 
@@ -72,7 +73,7 @@ export default function ReportWizard({ slug }: { slug: string }) {
 
   const goBack = () => {
     if (index > 0) router.push(stepHref(steps[index - 1].slug, returnTo));
-    else router.push(returnTo ? PREVIEW_HREF : '/report');
+    else router.push(returnTo ? PREVIEW_HREF : productHref(REPORT_PRODUCT));
   };
 
   const progress = Math.round(((index + 1) / steps.length) * 100);

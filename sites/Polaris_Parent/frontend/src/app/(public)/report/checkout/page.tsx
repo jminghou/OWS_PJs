@@ -8,9 +8,9 @@ import EmailVerifyBox from '@/components/report/EmailVerifyBox';
 import ReportDraftSummary from '@/components/report/ReportDraftSummary';
 import { useAuthStore } from '@/store/auth';
 import { memberAccountApi, reportOrdersApi, type ShippingInfo } from '@/lib/api';
-import { POLICY_VERSION, variantInfo, type ReportVariant } from '@/lib/report/catalog';
+import { PHYSICAL_ADDON, POLICY_VERSION, REPORT_PRODUCT, variantInfo } from '@/lib/report/catalog';
 import { clearDraft, isReadyForCheckout, loadDraft, type ReportDraft } from '@/lib/report/draft';
-import { loadReportPrices, type ReportPrices } from '@/lib/report/prices';
+import { addonPrice, loadReportPrices, type ReportPrices } from '@/lib/report/prices';
 import { PREVIEW_HREF } from '@/lib/report/steps';
 
 const CHECKOUT = '/report/checkout';
@@ -31,7 +31,7 @@ export default function ReportCheckoutPage() {
   const router = useRouter();
   const { isAuthenticated, checkAuth } = useAuthStore();
   const [checked, setChecked] = useState(false);
-  const [draft, setDraft] = useState<(ReportDraft & { variant: ReportVariant }) | null>(null);
+  const [draft, setDraft] = useState<ReportDraft | null>(null);
   const [prices, setPrices] = useState<ReportPrices | null>(null);
   const [verification, setVerification] = useState<{ email: string; verified: boolean } | null>(null);
   const [shipping, setShipping] = useState<ShippingInfo>(EMPTY_SHIPPING);
@@ -44,12 +44,12 @@ export default function ReportCheckoutPage() {
   useEffect(() => {
     checkAuth().finally(() => setChecked(true));
     const d = loadDraft();
-    // 有草稿但資料不完整或還沒選版本 → 回預覽頁（預覽頁會再把缺的資料導回精靈）
+    // 有草稿但資料不完整 → 回預覽頁（預覽頁會再把缺的資料導回精靈）
     if (d && !isReadyForCheckout(d)) {
       router.replace(PREVIEW_HREF);
       return;
     }
-    setDraft(d && isReadyForCheckout(d) ? d : null);
+    setDraft(d);
     loadReportPrices().then(setPrices).catch(() => setPrices(null));
   }, [checkAuth, router]);
 
@@ -135,7 +135,7 @@ export default function ReportCheckoutPage() {
         <div>
           <ReportDraftSummary draft={draft} />
           <Link href={PREVIEW_HREF} className="mt-3 inline-block text-sm text-brand-purple-700 hover:underline">
-            ← 回到預覽修改資料或版本
+            ← 回到預覽修改資料或加購
           </Link>
         </div>
 
@@ -143,15 +143,25 @@ export default function ReportCheckoutPage() {
           <h2 className="text-base font-bold text-gray-900">金額</h2>
           <dl className="mt-2 text-sm">
             <div className="flex justify-between py-1.5">
-              <dt className="text-gray-600">{variantInfo(draft.variant).label}</dt>
-              <dd className="text-gray-900">{prices ? prices[draft.variant].text : '…'}</dd>
+              <dt className="text-gray-600">{REPORT_PRODUCT.name}・{variantInfo('digital').label}</dt>
+              <dd className="text-gray-900">{prices ? prices.digital.text : '…'}</dd>
             </div>
             {physical && (
-              <div className="flex justify-between py-1.5">
-                <dt className="text-gray-600">運費</dt>
-                <dd className="text-gray-900">［佔位］含在售價內</dd>
-              </div>
+              <>
+                <div className="flex justify-between py-1.5">
+                  <dt className="text-gray-600">{PHYSICAL_ADDON.label}</dt>
+                  <dd className="text-gray-900">{prices ? addonPrice(prices).text : '…'}</dd>
+                </div>
+                <div className="flex justify-between py-1.5">
+                  <dt className="text-gray-600">運費</dt>
+                  <dd className="text-gray-900">［佔位］含在售價內</dd>
+                </div>
+              </>
             )}
+            <div className="mt-1 flex justify-between border-t border-warm-100 pt-2.5 font-bold">
+              <dt className="text-gray-900">合計</dt>
+              <dd className="text-gray-900">{prices ? prices[draft.variant].text : '…'}</dd>
+            </div>
           </dl>
           <p className="mt-2 text-xs text-gray-500">實際金額以送出訂單時的售價為準。</p>
         </section>

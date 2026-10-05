@@ -1,137 +1,97 @@
 import Link from 'next/link';
-import { REPORT_PRODUCT, REPORT_VARIANTS } from '@/lib/report/catalog';
+import ReportBookCover from '@/components/report/ReportBookCover';
+import { REPORT_CATALOG, REPORT_PRODUCTS, productHref } from '@/lib/report/catalog';
 import { loadReportPrices } from '@/lib/report/prices';
 
 // 價格由商品後台設定；每 10 分鐘重新取得
 export const revalidate = 600;
 
-const START = '/report/create';
-
-function StartButton({ className = '' }: { className?: string }) {
-  return (
-    <Link
-      href={START}
-      className={`inline-flex justify-center rounded-banner bg-brand-purple-600 px-6 py-3 text-base font-medium text-white hover:bg-brand-purple-700 ${className}`}
-    >
-      開始客製我的報告
-    </Link>
-  );
-}
-
-/** 商品頁：價格與說明一眼看清楚，唯一的行動是開始填寫；版本在預覽後才選。 */
-export default async function ReportProductPage() {
+/** 所有客製報告的目錄頁：每份報告以書封呈現，點進去是該報告的商品頁。 */
+export default async function ReportCatalogPage() {
+  // 目前所有報告共用同一組商品代碼；之後報告各自定價時改成依報告讀取
   const prices = await loadReportPrices();
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 md:py-16">
-      <section className="grid grid-cols-1 gap-10 md:grid-cols-2 md:items-center">
-        <div>
-          <p className="mb-3 text-sm font-medium tracking-widest text-brand-purple-700">客製命理報告</p>
-          <h1 className="text-[28px] font-bold leading-snug text-gray-900 md:text-[32px]">{REPORT_PRODUCT.name}</h1>
-          <p className="mt-3 text-lg text-gray-700">{REPORT_PRODUCT.tagline}</p>
+    <div>
+      <p className="bg-brand-purple-700 px-4 py-2 text-center text-sm text-white">{REPORT_CATALOG.promo}</p>
 
-          <dl className="mt-6 grid grid-cols-2 gap-3">
-            {REPORT_VARIANTS.map((v) => (
-              <div key={v.variant} className="rounded-banner border border-warm-200/70 bg-white p-4">
-                <dt className="text-sm text-gray-600">{v.label}</dt>
-                <dd className={`mt-1 text-xl font-bold ${prices[v.variant].available ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {prices[v.variant].text}
-                </dd>
-              </div>
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-14">
+        <section className="max-w-2xl">
+          <h1 className="text-[28px] font-bold leading-snug text-gray-900 md:text-[34px]">{REPORT_CATALOG.title}</h1>
+          <p className="mt-3 text-base leading-7 text-gray-700">{REPORT_CATALOG.subtitle}</p>
+        </section>
+
+        <section id="reports" aria-label="報告列表" className="mt-10">
+          <p className="text-sm text-gray-500">共 {REPORT_PRODUCTS.length} 份報告</p>
+          <ul className="mt-4 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+            {REPORT_PRODUCTS.map((p) => (
+              <li key={p.slug}>
+                <Link href={productHref(p)} className="group block">
+                  <div className="relative rounded-banner bg-warm-100 p-5 transition-colors group-hover:bg-warm-200/70 sm:p-7">
+                    {p.badge && (
+                      <span className="absolute left-3 top-3 z-10 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-brand-purple-700 shadow-sm">
+                        {p.badge}
+                      </span>
+                    )}
+                    <div className="transition-transform duration-300 group-hover:-translate-y-1">
+                      <ReportBookCover product={p} size="sm" />
+                    </div>
+                  </div>
+                  <h2 className="mt-4 text-base font-bold text-gray-900 group-hover:text-brand-purple-700">{p.name}</h2>
+                  <p className="mt-1 text-sm leading-6 text-gray-600">{p.cardDescription}</p>
+                  <p className="mt-1 text-xs text-gray-500">{p.audienceLabel}</p>
+                  <p className="mt-2 text-sm">
+                    {prices.digital.available ? (
+                      <>
+                        <span className="font-bold text-gray-900">{prices.digital.text}</span>
+                        <span className="text-gray-500"> 起・數位版</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">{prices.digital.text}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500">可加購精裝實體書</p>
+                </Link>
+              </li>
             ))}
-          </dl>
+          </ul>
+        </section>
 
-          <StartButton className="mt-6 w-full sm:w-auto" />
-          <p className="mt-3 text-xs text-gray-500">約 3 分鐘填完資料，先看命盤與樣張，再決定版本。</p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          {REPORT_PRODUCT.samplePages.map((label) => (
-            <div
-              key={label}
-              className="flex aspect-[3/4] items-center justify-center rounded-banner border border-dashed border-warm-300 bg-white text-xs text-gray-400"
-            >
-              {label}
-            </div>
+        <section aria-label="服務特色" className="mt-16 grid grid-cols-2 gap-3 rounded-banner bg-white p-5 text-center text-sm text-gray-700 md:grid-cols-4">
+          {REPORT_CATALOG.usps.map((u) => (
+            <p key={u} className="py-2">{u}</p>
           ))}
-        </div>
-      </section>
+        </section>
 
-      <section aria-labelledby="report-about" className="mt-16 max-w-[680px]">
-        <h2 id="report-about" className="text-xl font-bold text-gray-900">這份報告是什麼</h2>
-        <div className="mt-4 space-y-4 text-base leading-7 text-gray-700">
-          {REPORT_PRODUCT.intro.map((p) => (
-            <p key={p}>{p}</p>
-          ))}
-        </div>
-        <h3 className="mt-8 text-base font-bold text-gray-900">適合誰</h3>
-        <ul className="mt-3 space-y-1.5 text-sm text-gray-700">
-          {REPORT_PRODUCT.forWhom.map((f) => (
-            <li key={f} className="flex gap-2">
-              <span aria-hidden="true" className="text-brand-purple-600">✓</span>
-              {f}
-            </li>
-          ))}
-        </ul>
-      </section>
+        <section aria-labelledby="catalog-audience" className="mt-16">
+          <h2 id="catalog-audience" className="text-xl font-bold text-gray-900">你想送給誰？</h2>
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+            {REPORT_CATALOG.audiences.map((a) => (
+              <Link key={a.label} href="#reports"
+                    className="rounded-banner border border-warm-200/70 bg-white p-5 transition-colors hover:border-brand-purple-300">
+                <div className="flex aspect-[4/3] items-center justify-center rounded-banner bg-warm-100 text-xs text-gray-400">
+                  ［佔位］情境照片
+                </div>
+                <p className="mt-3 font-medium text-gray-900">{a.label}</p>
+                <p className="mt-1 text-sm text-gray-600">{a.note}</p>
+                <p className="mt-2 text-sm text-brand-purple-700">看看報告 →</p>
+              </Link>
+            ))}
+          </div>
+        </section>
 
-      <section aria-labelledby="report-editions" className="mt-16">
-        <h2 id="report-editions" className="text-xl font-bold text-gray-900">兩種版本</h2>
-        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
-          {REPORT_VARIANTS.map((v) => (
-            <article key={v.variant} className="rounded-banner border border-warm-200/70 bg-white p-6">
-              <div className="flex items-baseline justify-between gap-3">
-                <h3 className="text-lg font-bold text-gray-900">{v.label}</h3>
-                <p className={`text-lg font-bold ${prices[v.variant].available ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {prices[v.variant].text}
-                </p>
-              </div>
-              <p className="mt-1 text-sm text-gray-600">{v.summary}</p>
-              <ul className="mt-4 space-y-1.5 text-sm text-gray-700">
-                {v.features.map((f) => (
-                  <li key={f} className="flex gap-2">
-                    <span aria-hidden="true" className="text-brand-purple-600">✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-4 text-xs text-gray-500">{v.deliveryNote}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section aria-labelledby="report-process" className="mt-16">
-        <h2 id="report-process" className="text-xl font-bold text-gray-900">怎麼製作</h2>
-        <ol className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-          {REPORT_PRODUCT.process.map((s, i) => (
-            <li key={s.title} className="rounded-banner border border-warm-200/70 bg-white p-5">
-              <span className="text-sm font-bold text-brand-purple-700">{i + 1}</span>
-              <p className="mt-1 font-medium text-gray-900">{s.title}</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">{s.body}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section aria-labelledby="report-faq" className="mt-16 max-w-[680px]">
-        <h2 id="report-faq" className="text-xl font-bold text-gray-900">常見問題</h2>
-        <div className="mt-4 divide-y divide-warm-200 rounded-banner border border-warm-200/70 bg-white">
-          {REPORT_PRODUCT.faq.map((f) => (
-            <details key={f.q} className="group p-5">
-              <summary className="cursor-pointer list-none font-medium text-gray-900">{f.q}</summary>
-              <p className="mt-2 text-sm leading-6 text-gray-600">{f.a}</p>
-            </details>
-          ))}
-        </div>
-        <p className="mt-4 text-sm text-gray-500">
-          完整條款請見<Link href="/report/policy" className="text-brand-purple-700 hover:underline">《交易政策》</Link>。
-        </p>
-      </section>
-
-      <section className="mt-16 text-center">
-        <StartButton />
-      </section>
+        <section aria-labelledby="catalog-faq" className="mt-16 max-w-[720px]">
+          <h2 id="catalog-faq" className="text-xl font-bold text-gray-900">客製報告常見問題</h2>
+          <div className="mt-4 divide-y divide-warm-200 rounded-banner border border-warm-200/70 bg-white">
+            {REPORT_CATALOG.faq.map((f) => (
+              <details key={f.q} className="p-5">
+                <summary className="cursor-pointer font-medium text-gray-900">{f.q}</summary>
+                <p className="mt-2 text-sm leading-6 text-gray-600">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

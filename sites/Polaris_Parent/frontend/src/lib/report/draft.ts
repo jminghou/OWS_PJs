@@ -9,8 +9,8 @@ import type { TimeType } from '@/lib/api/astrology';
 import { CALL_NAME_MAX, DEDICATION_MAX, RELATION_OPTIONS, READER_OPTIONS, type ReportVariant } from './catalog';
 
 export interface ReportDraft {
-  /** 看完預覽才選；精靈步驟期間為 null（舊草稿可能已帶版本） */
-  variant: ReportVariant | null;
+  /** 預設數位版；在預覽頁勾選「加購實體書」才改成 physical */
+  variant: ReportVariant;
   subject_name: string;
   gender: '男' | '女';
   birth: {
@@ -45,7 +45,7 @@ export function newSubmissionKey(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function emptyDraft(variant: ReportVariant | null = null): ReportDraft {
+export function emptyDraft(variant: ReportVariant = 'digital'): ReportDraft {
   return {
     variant,
     subject_name: '',
@@ -76,7 +76,8 @@ export function loadDraft(now: number = Date.now()): ReportDraft | null {
       window.localStorage.removeItem(KEY);
       return null;
     }
-    return stored.draft;
+    // 前一版允許「尚未選版本」（null）：一律視為數位版
+    return { ...stored.draft, variant: stored.draft.variant ?? 'digital' };
   } catch {
     return null;
   }
@@ -144,9 +145,8 @@ export function validateDraft(d: ReportDraft, today: Date = new Date()): DraftEr
 
 export const hasErrors = (e: DraftErrors) => Object.keys(e).length > 0;
 
-/** 草稿已可結帳：資料完整且已選版本 */
-export const isReadyForCheckout = (d: ReportDraft): d is ReportDraft & { variant: ReportVariant } =>
-  !!d.variant && !hasErrors(validateDraft(d));
+/** 草稿已可結帳：資料完整 */
+export const isReadyForCheckout = (d: ReportDraft) => !hasErrors(validateDraft(d));
 
 /** 存檔前整理：去掉姓名與稱呼的前後空白 */
 export const tidyDraft = (d: ReportDraft): ReportDraft => ({
