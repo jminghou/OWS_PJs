@@ -193,7 +193,11 @@ def validate_article_wall(value):
 
 
 # 文字型首頁 Hero（取代輪播的站台用）：每語系一組文案 + 一張共用的選填圖片。
-_HERO_INTRO_FIELDS = {'eyebrow': 200, 'headline': 200, 'body': 2000, 'newsletter_note': 300, 'proof_line': 300}
+_HERO_INTRO_FIELDS = {
+    'eyebrow': 200, 'headline': 200, 'body': 2000, 'newsletter_note': 300, 'proof_line': 300,
+    # 文字型首頁其餘區塊的標題與說明（Polaris 的獨立首頁設定在用；其他站台不送就不存）
+    'ziwei_heading': 100, 'ziwei_body': 500, 'testimonials_heading': 100, 'subscribe_heading': 100,
+}
 _LOCALE_RE = re.compile(r'^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$')
 
 

@@ -221,6 +221,11 @@ export interface HeroIntroFields {
   body?: string;
   newsletter_note?: string;
   proof_line?: string;
+  /** 文字型首頁其餘區塊的標題與說明（選填；站台不用就不送） */
+  ziwei_heading?: string;
+  ziwei_body?: string;
+  testimonials_heading?: string;
+  subscribe_heading?: string;
 }
 
 export interface HeroIntro {

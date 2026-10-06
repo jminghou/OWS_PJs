@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { astrologyApi } from '@/lib/api';
-import Button from '@/components/platform/ui/Button';
+import BrandButton, { brandButton } from '@/components/ui/BrandButton';
+import Alert from '@/components/ui/Alert';
+import { LogoMark } from '@/components/ui/BrandLogo';
 
 /**
  * 設定會員密碼頁（一鍵建檔後寄出的「設定密碼信」連結目標）。
@@ -44,66 +46,60 @@ export default function SetPasswordPage() {
   };
 
   const inputCls =
-    'w-full px-4 py-3 border border-gray-300 rounded-banner focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent';
+    'w-full rounded-2xl border-[1.5px] border-line-strong bg-white px-[18px] py-[13px] text-base text-ink ' +
+    'placeholder:text-muted focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100';
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">設定會員密碼</h1>
-
-      {done ? (
-        <div className="bg-white rounded-banner border border-warm-200/70 p-6 text-center space-y-4">
-          <p className="text-green-700">密碼已設定完成！</p>
-          <Link
-            href="/"
-            className="inline-block px-5 py-3 rounded-banner bg-brand-purple-600 text-white hover:bg-brand-purple-700 transition-colors"
-          >
-            前往登入
-          </Link>
+    <div className="min-h-[calc(100vh-72px)] bg-paper px-4 py-16">
+      <div className="mx-auto max-w-md">
+        <div className="mb-6 flex justify-center">
+          <LogoMark width={72} />
         </div>
-      ) : (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-banner border border-warm-200/70 shadow-[0_8px_30px_rgba(139,92,246,0.06)] p-6 space-y-4"
-        >
-          <p className="text-sm text-gray-600">
-            密碼需至少 8 個字元，並包含大寫字母、小寫字母與數字。
-          </p>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">新密碼</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputCls}
-              autoComplete="new-password"
-              required
-            />
+        <h1 className="mb-6 text-center font-heading text-[26px] font-normal text-ink md:text-h2">設定會員密碼</h1>
+
+        {done ? (
+          <div className="space-y-5 rounded-card bg-white p-7 text-center md:p-8">
+            <Alert tone="success" className="text-left">密碼已設定完成！</Alert>
+            <Link href="/" className={brandButton({ variant: 'primary', className: 'w-full' })}>
+              前往登入
+            </Link>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">確認密碼</label>
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className={inputCls}
-              autoComplete="new-password"
-              required
-            />
-          </div>
-          {err && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-banner text-red-700 text-sm">
-              {err}
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5 rounded-card bg-white p-7 md:p-8">
+            <p className="text-sm text-text">
+              密碼需至少 8 個字元，並包含大寫字母、小寫字母與數字。
+            </p>
+            <div>
+              <label htmlFor="sp-password" className="mb-1.5 block text-sm font-medium text-ink">新密碼</label>
+              <input
+                id="sp-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputCls}
+                autoComplete="new-password"
+                required
+              />
             </div>
-          )}
-          <Button
-            type="submit"
-            disabled={busy}
-            className="w-full bg-brand-purple-600 hover:bg-brand-purple-700"
-          >
-            {busy ? '設定中…' : '設定密碼'}
-          </Button>
-        </form>
-      )}
+            <div>
+              <label htmlFor="sp-confirm" className="mb-1.5 block text-sm font-medium text-ink">確認密碼</label>
+              <input
+                id="sp-confirm"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className={inputCls}
+                autoComplete="new-password"
+                required
+              />
+            </div>
+            {err && <Alert tone="error">{err}</Alert>}
+            <BrandButton type="submit" variant="primary" disabled={busy} className="w-full">
+              {busy ? '設定中…' : '設定密碼'}
+            </BrandButton>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

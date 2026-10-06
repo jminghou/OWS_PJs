@@ -1,9 +1,9 @@
 export default function Loading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
-        <p className="text-gray-500 text-sm">載入中...</p>
+    <div className="flex min-h-screen items-center justify-center bg-paper font-body">
+      <div className="flex flex-col items-center gap-4" role="status">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-500" aria-hidden="true" />
+        <p className="text-small text-muted">載入中...</p>
       </div>
     </div>
   );

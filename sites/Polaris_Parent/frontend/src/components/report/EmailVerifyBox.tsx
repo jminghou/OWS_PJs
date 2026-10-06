@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Button from '@/components/platform/ui/Button';
+import { AlertTriangle } from 'lucide-react';
+import BrandButton from '@/components/ui/BrandButton';
 import { memberAccountApi } from '@/lib/api';
 
 const RESEND_SECONDS = 60;
@@ -58,15 +59,18 @@ export default function EmailVerifyBox({ email, onVerified }: { email: string; o
   };
 
   return (
-    <section className="rounded-banner border border-amber-200 bg-amber-50 p-5 sm:p-6">
-      <h2 className="text-base font-bold text-amber-900">請先驗證 Email</h2>
-      <p className="mt-1 text-sm text-amber-900">
+    <section className="rounded-inner bg-warning-bg p-5 text-warning-fg sm:p-6">
+      <h2 className="flex items-center gap-2 font-heading text-[18px] font-normal md:text-h4">
+        <AlertTriangle className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden="true" />
+        請先驗證 Email
+      </h2>
+      <p className="mt-1 text-sm">
         報告與訂單通知會寄到 <strong>{email}</strong>，送出訂單前需要確認這個 Email 是你的。
       </p>
       {!sent ? (
-        <Button type="button" onClick={send} disabled={busy} className="mt-4 bg-brand-purple-600 hover:bg-brand-purple-700">
+        <BrandButton onClick={send} disabled={busy} variant="secondary" className="mt-4">
           {busy ? '寄送中…' : '寄送驗證碼'}
-        </Button>
+        </BrandButton>
       ) : (
         <form onSubmit={verify} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
           <input
@@ -79,20 +83,20 @@ export default function EmailVerifyBox({ email, onVerified }: { email: string; o
             autoComplete="one-time-code"
             aria-label="驗證碼"
             placeholder="6 位數驗證碼"
-            className="w-full rounded-banner border border-gray-300 bg-white px-4 py-3 text-center tracking-[0.4em] sm:w-48"
+            className="w-full rounded-2xl border-[1.5px] border-line-strong bg-white px-[18px] py-[13px] text-center font-latin text-base tracking-[0.4em] text-ink placeholder:font-body placeholder:tracking-normal placeholder:text-muted focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-48"
             required
           />
-          <Button type="submit" disabled={busy || code.length !== 6} className="bg-brand-purple-600 hover:bg-brand-purple-700">
+          <BrandButton type="submit" disabled={busy || code.length !== 6} variant="secondary">
             {busy ? '驗證中…' : '確認'}
-          </Button>
-          <button type="button" onClick={send} disabled={busy || cooldown > 0}
-                  className="text-sm text-brand-purple-700 hover:underline disabled:opacity-50 sm:self-center">
+          </BrandButton>
+          <BrandButton type="button" onClick={send} disabled={busy || cooldown > 0} variant="link"
+                       className="min-h-[44px] text-sm sm:self-center">
             {cooldown > 0 ? `${cooldown} 秒後可重寄` : '重寄驗證碼'}
-          </button>
+          </BrandButton>
         </form>
       )}
-      {notice && !error && <p className="mt-3 text-sm text-green-700">{notice}</p>}
-      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+      {notice && !error && <p className="mt-3 text-sm text-success-fg">{notice}</p>}
+      {error && <p className="mt-3 text-sm text-error-fg" role="alert">{error}</p>}
     </section>
   );
 }

@@ -1,10 +1,19 @@
 import type { CoverPalette, ReportProduct } from '@/lib/report/catalog';
+import { LogoMark, type LogoTone } from '@/components/ui/BrandLogo';
 
-const PALETTES: Record<CoverPalette, { bg: string; spine: string; eyebrow: string; sub: string }> = {
-  purple: { bg: 'from-brand-purple-600 to-brand-purple-900', spine: 'bg-brand-purple-950/40', eyebrow: 'text-brand-purple-200', sub: 'text-brand-purple-100' },
-  indigo: { bg: 'from-indigo-600 to-indigo-900', spine: 'bg-indigo-950/40', eyebrow: 'text-indigo-200', sub: 'text-indigo-100' },
-  rose: { bg: 'from-rose-500 to-rose-800', spine: 'bg-rose-950/40', eyebrow: 'text-rose-200', sub: 'text-rose-100' },
-  teal: { bg: 'from-teal-600 to-teal-900', spine: 'bg-teal-950/40', eyebrow: 'text-teal-200', sub: 'text-teal-100' },
+/**
+ * 書封配色：品牌規範 v3 不用紫色與神祕漸層，改為平塗的品牌色。
+ * palette 的鍵名沿用 catalog 既有值（purple / indigo / rose / teal），只換成對應的品牌色。
+ * Logo 依規範 §2.2 背景對應：墨底全彩、藍底反白、淡底單色墨。
+ */
+const PALETTES: Record<
+  CoverPalette,
+  { bg: string; text: string; spine: string; rule: string; eyebrow: string; sub: string; logo: LogoTone }
+> = {
+  purple: { bg: 'bg-ink', text: 'text-white', spine: 'bg-white/10', rule: 'bg-white/20', eyebrow: 'text-[#D5D7E0]', sub: 'text-[#D5D7E0]', logo: 'brand' },
+  indigo: { bg: 'bg-blue-500', text: 'text-white', spine: 'bg-ink/20', rule: 'bg-white/30', eyebrow: 'text-blue-50', sub: 'text-blue-50', logo: 'white' },
+  rose: { bg: 'bg-pink-50', text: 'text-ink', spine: 'bg-ink/5', rule: 'bg-ink/10', eyebrow: 'text-pink-800', sub: 'text-pink-800', logo: 'ink' },
+  teal: { bg: 'bg-blue-50', text: 'text-ink', spine: 'bg-ink/5', rule: 'bg-ink/10', eyebrow: 'text-blue-800', sub: 'text-blue-800', logo: 'ink' },
 };
 
 interface ReportBookCoverProps {
@@ -23,24 +32,24 @@ interface ReportBookCoverProps {
  */
 export default function ReportBookCover({ product, title, subtitle, size = 'md', className = '' }: ReportBookCoverProps) {
   const c = PALETTES[product.cover.palette];
-  const titleCls = size === 'lg' ? 'text-3xl' : size === 'sm' ? 'text-lg' : size === 'xs' ? 'text-[9px]' : 'text-2xl';
+  const titleCls =
+    size === 'lg' ? 'text-[28px]' : size === 'sm' ? 'text-[18px]' : size === 'xs' ? 'text-[9px]' : 'text-[22px]';
   const thumb = size === 'xs';
+  // 單圖形最小 32px（規範 §2.3）；縮圖太小就不放 Logo
+  const logoWidth = size === 'lg' ? 64 : size === 'md' ? 56 : 40;
   return (
     <div
-      className={`relative aspect-[3/4] w-full overflow-hidden rounded-r-lg rounded-l-sm bg-gradient-to-br ${c.bg} text-white shadow-[6px_8px_24px_rgba(40,20,80,0.25)] ${className}`}
+      className={`relative aspect-[3/4] w-full overflow-hidden ${
+        thumb ? 'rounded-l-sm rounded-r-md' : 'rounded-l-md rounded-r-sm2'
+      } ${c.bg} ${c.text} shadow-md ${className}`}
     >
       {/* 書背 */}
       <div className={`absolute inset-y-0 left-0 w-[7%] ${c.spine}`} aria-hidden="true" />
-      <div className="absolute inset-y-0 left-[7%] w-px bg-white/20" aria-hidden="true" />
-      {/* 星點裝飾 */}
-      <svg className="absolute right-[10%] top-[8%] h-1/4 w-1/4 opacity-30" viewBox="0 0 100 100" aria-hidden="true">
-        <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" strokeWidth="1" />
-        <circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" strokeWidth="0.6" />
-        <path d="M50 14 L54 46 L86 50 L54 54 L50 86 L46 54 L14 50 L46 46 Z" fill="currentColor" />
-      </svg>
+      <div className={`absolute inset-y-0 left-[7%] w-px ${c.rule}`} aria-hidden="true" />
       <div className="relative flex h-full flex-col items-center justify-center px-[14%] text-center">
+        {!thumb && <LogoMark tone={c.logo} width={logoWidth} alt="" className="mb-4" />}
         {!thumb && <p className={`text-[10px] tracking-[0.3em] ${c.eyebrow}`}>{product.cover.eyebrow}</p>}
-        <p className={`font-bold leading-snug ${thumb ? '' : 'mt-4'} ${titleCls}`}>{title ?? product.cover.title}</p>
+        <p className={`font-heading leading-snug ${thumb ? '' : 'mt-3'} ${titleCls}`}>{title ?? product.cover.title}</p>
         {!thumb && <p className={`mt-3 text-xs leading-5 ${c.sub}`}>{subtitle ?? product.cover.subtitle}</p>}
       </div>
     </div>

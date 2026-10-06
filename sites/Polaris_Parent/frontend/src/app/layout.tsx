@@ -1,11 +1,22 @@
 // 必須最先載入：注入站台識別到 @ows/site-kit（見該檔說明）
 import { SITE_URL } from '@/siteConfig';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Archivo, Huninn, Inter, Noto_Sans_TC } from 'next/font/google';
 import './globals.css';
 
-// 拉丁字（英文/數字）走 Inter；中文一律走微軟正黑體（見 tailwind sans 設定）
+// 後台：拉丁字（英文/數字）走 Inter；中文一律走微軟正黑體（見 tailwind sans 設定）
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+
+// 公開站（docs/BRAND_GUIDELINES.md §4）：標題粉圓、內文思源黑體、數字與英文 Archivo。
+// subsets 只決定預載哪一段；中文字形由 Google 的 unicode-range 分片按需載入。
+const huninn = Huninn({ weight: '400', subsets: ['latin'], variable: '--font-huninn', display: 'swap' });
+const notoSansTC = Noto_Sans_TC({
+  weight: ['400', '500', '700'],
+  subsets: ['latin'],
+  variable: '--font-noto',
+  display: 'swap',
+});
+const archivo = Archivo({ weight: ['400', '600', '800'], subsets: ['latin'], variable: '--font-archivo', display: 'swap' });
 
 export const metadata: Metadata = {
   // 讓 OG / Twitter / canonical 的相對網址能解析成絕對網址
@@ -52,7 +63,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-TW">
-      <body className={`${inter.variable} font-sans`}>
+      <body
+        className={`${inter.variable} ${huninn.variable} ${notoSansTC.variable} ${archivo.variable} font-sans`}
+      >
         {children}
       </body>
     </html>

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { orderApi } from '@/lib/api';
+import Alert from '@/components/ui/Alert';
+import BrandButton from '@/components/ui/BrandButton';
 
 export default function MockPaymentPage() {
   const params = useParams();
@@ -31,50 +33,43 @@ export default function MockPaymentPage() {
   };
 
   if (!order_no) {
-    return <div className="p-10 text-center">Invalid Order Number</div>;
+    return <div className="public-site p-10 text-center text-text">Invalid Order Number</div>;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">Mock Payment Gateway</h1>
-        
+    // 本頁不在公開站 layout 內：自己掛 public-site，套用暖白底、字體與品牌色
+    <div className="public-site flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md rounded-card bg-white p-6 text-center md:p-8">
+        <h1 className="mb-6 font-heading text-[26px] font-normal text-ink md:text-h2">Mock Payment Gateway</h1>
+
         <div className="mb-8">
-          <p className="text-gray-600 mb-2">Order Number:</p>
-          <div className="text-xl font-mono bg-gray-50 p-3 rounded border">
+          <p className="mb-2 text-text">Order Number:</p>
+          <div className="rounded-inner bg-tint p-3 font-latin text-xl font-semibold text-ink">
             {order_no}
           </div>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">
+          <Alert tone="error" className="mb-4 text-left">
             {error}
-          </div>
+          </Alert>
         )}
 
+        {/* 測試用頁面：成功走 primary、失敗走 secondary（錯誤色只用在系統回饋，不用在按鈕上） */}
         <div className="space-y-4">
-          <button
-            onClick={() => handlePayment('success')}
-            disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded transition disabled:opacity-50"
-          >
+          <BrandButton variant="primary" onClick={() => handlePayment('success')} disabled={loading} className="w-full">
             {loading ? 'Processing...' : '[測試用] 模擬付款成功'}
-          </button>
-          
-          <button
-            onClick={() => handlePayment('failed')}
-            disabled={loading}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded transition disabled:opacity-50"
-          >
+          </BrandButton>
+
+          <BrandButton variant="secondary" onClick={() => handlePayment('failed')} disabled={loading} className="w-full">
             {loading ? 'Processing...' : '[測試用] 模擬付款失敗'}
-          </button>
+          </BrandButton>
         </div>
 
-        <p className="mt-6 text-xs text-gray-500">
+        <p className="mt-6 text-caption text-muted">
           This is a simulated payment page for development purposes only.
         </p>
       </div>
     </div>
   );
 }
-

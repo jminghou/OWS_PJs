@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { authorApi, type AuthorDetailResponse } from '@/lib/api';
-import { getImageUrl, formatDate } from '@/lib/utils';
+import { getImageUrl } from '@/lib/utils';
+import Tag from '@/components/ui/Tag';
+import ArticleCard, { ARTICLE_GRID } from '@/app/(public)/articles/ArticleCard';
 import { JsonLd } from '@ows/site-kit';
 import {
   buildPersonJsonLd,
@@ -77,63 +78,60 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-[calc(100vh-72px)] bg-paper">
       <JsonLd data={[personJsonLd, breadcrumb]} />
 
-      <div className="mx-auto px-4 sm:px-6 w-full lg:w-[1080px]">
+      <div className="mx-auto max-w-content px-4 pb-16 pt-12 md:px-6 md:pb-24 md:pt-16">
         {/* 作者檔案 */}
-        <header className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-10">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <header className="rounded-card bg-white p-6 md:p-8">
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
             {/* 頭像 */}
             {author.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={getImageUrl(author.avatar)}
                 alt={author.name}
-                className="w-24 h-24 rounded-full object-cover flex-shrink-0"
+                className="h-24 w-24 flex-shrink-0 rounded-full object-cover"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-3xl font-bold flex-shrink-0">
+              <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 font-heading text-[32px] text-blue-800">
                 {author.name.charAt(0)}
               </div>
             )}
 
             <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{author.name}</h1>
+              <h1 className="font-heading text-[32px] font-normal text-ink [text-wrap:pretty] md:text-h1">{author.name}</h1>
               {author.title && (
-                <p className="text-sm text-amber-700 font-medium mt-1">{author.title}</p>
+                <p className="mt-1 text-small font-medium text-blue-800">{author.title}</p>
               )}
               {author.credentials && (
-                <p className="text-xs text-gray-500 mt-1">{author.credentials}</p>
+                <p className="mt-1 text-caption text-muted">{author.credentials}</p>
               )}
               {author.bio && (
-                <p className="text-sm text-gray-700 leading-relaxed mt-4">{author.bio}</p>
+                <p className="mt-4 max-w-prose text-text [text-wrap:pretty]">{author.bio}</p>
               )}
 
               {/* 專長領域 */}
               {author.expertise && author.expertise.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4 justify-center sm:justify-start">
+                <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
                   {author.expertise.map((item) => (
-                    <span
-                      key={item}
-                      className="text-xs text-gray-700 bg-gray-100 px-3 py-1 rounded-full"
-                    >
+                    <Tag key={item} tone="category">
                       {item}
-                    </span>
+                    </Tag>
                   ))}
                 </div>
               )}
 
               {/* 社群連結（rel="me" 協助 AI 驗證作者身分） */}
               {socialEntries.length > 0 && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-4 justify-center sm:justify-start">
+                <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 sm:justify-start">
                   {socialEntries.map(([key, url]) => (
                     <a
                       key={key}
                       href={url as string}
                       target="_blank"
                       rel="me noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800"
+                      className="text-small text-blue-500 underline-offset-[3px] transition-colors duration-150 ease-out hover:text-pink-600 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
                     >
                       {SOCIAL_LABELS[key] || key}
                     </a>
@@ -145,47 +143,17 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
         </header>
 
         {/* 作者文章列表 */}
-        <section className="mt-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-            <span className="w-3 h-3 bg-amber-500 rounded-full mr-2"></span>
-            {author.name} 的文章（{contents.length}）
+        <section className="mt-12 md:mt-16">
+          <h2 className="mb-8 font-heading text-[26px] font-normal text-ink [text-wrap:pretty] md:text-h2">
+            {author.name} 的文章（<span className="font-latin">{contents.length}</span>）
           </h2>
 
           {contents.length === 0 ? (
-            <p className="text-sm text-gray-500">目前還沒有發佈的文章。</p>
+            <p className="text-text">目前還沒有發佈的文章。</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={ARTICLE_GRID}>
               {contents.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/posts/${post.slug}`}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
-                >
-                  {(post.cover_image || post.featured_image) && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={getImageUrl(post.cover_image || post.featured_image)}
-                      alt={post.title}
-                      className="w-full aspect-[16/9] object-cover"
-                    />
-                  )}
-                  <div className="p-4 flex-1 flex flex-col">
-                    {post.category?.name && (
-                      <span className="text-xs text-amber-700 mb-1">{post.category.name}</span>
-                    )}
-                    <h3 className="font-semibold text-gray-900 leading-snug line-clamp-2">
-                      {post.title}
-                    </h3>
-                    {post.summary && (
-                      <p className="text-sm text-gray-600 mt-2 line-clamp-2">{post.summary}</p>
-                    )}
-                    {post.published_at && (
-                      <span className="text-xs text-gray-400 mt-auto pt-3">
-                        {formatDate(post.published_at)}
-                      </span>
-                    )}
-                  </div>
-                </Link>
+                <ArticleCard key={post.id} post={post} headingAs="h3" />
               ))}
             </div>
           )}

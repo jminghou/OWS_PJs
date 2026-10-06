@@ -15,6 +15,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { membershipApi } from '@/lib/api';
+import { Bookmark } from 'lucide-react';
+import { brandButton } from '@/components/ui/BrandButton';
+
+// 已收藏狀態不用漸層：與 BrandButton S 同尺寸的膠囊，底色走「選中」的 blue-50
+const SAVED_BASE =
+  'relative inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full border-0 px-4 text-[14px] font-bold ' +
+  'transition-[filter,box-shadow,background-color] duration-150 ease-out hover:shadow-md ' +
+  'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 disabled:cursor-not-allowed disabled:shadow-none ' +
+  "before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-[''] md:before:hidden";
 
 /**
  * 文章收藏按鈕（會員功能）。
@@ -73,15 +82,14 @@ export default function SaveArticleButton({ contentId }: { contentId: number }) 
       onClick={toggle}
       disabled={busy}
       aria-pressed={saved}
-      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-colors disabled:opacity-60 ${
+      className={
         saved
-          ? 'bg-brand-purple-600 text-white border-brand-purple-600 hover:bg-brand-purple-700'
-          : 'bg-white text-brand-purple-700 border-brand-purple-300 hover:bg-brand-purple-50'
-      }`}
+          ? // 已收藏：選中狀態（blue-50 底），hover 稍深
+            `${SAVED_BASE} bg-blue-50 text-blue-800 hover:bg-blue-100 active:brightness-90 disabled:bg-line disabled:text-muted`
+          : brandButton({ variant: 'soft', size: 'S' })
+      }
     >
-      <svg className="w-4 h-4" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-      </svg>
+      <Bookmark className="h-4 w-4" fill={saved ? 'currentColor' : 'none'} strokeWidth={2} aria-hidden="true" />
       {saved ? '已收藏' : '收藏文章'}
     </button>
   );

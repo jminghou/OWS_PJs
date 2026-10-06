@@ -1,6 +1,6 @@
 // 首頁（文字型 landing）的站台文案。
-// heroIntroDefaults 是 Hero 的靜態預設：後台「首頁設定 → Hero 介紹」有填的欄位優先，留空的欄位退回這裡。
-// 排盤、回饋牆、訂閱區塊的標題與說明目前只在這裡改。
+// 這裡是靜態預設；後台「首頁設定」（本站獨立頁，src/app/admin/homepage）有填的欄位優先，留空的欄位退回這裡。
+// homepageDefaults 合併了首屏文案與排盤、回饋牆、訂閱三個區塊的標題，前台與後台 placeholder 共用。
 import type { HeroIntro, HeroIntroFields } from '@/types';
 
 export const heroIntroDefaults: HeroIntro['locales'] = {
@@ -78,9 +78,23 @@ export function getHomeLandingContent(locale: string): HomeLandingContent {
   return homeLandingContent[locale] ?? homeLandingContent[FALLBACK_LOCALE];
 }
 
+/** 首頁全部可在後台覆寫的欄位的預設值（首屏 + 各區塊標題）。 */
+export const homepageDefaults: HeroIntro['locales'] = Object.fromEntries(
+  Object.keys(heroIntroDefaults).map((locale) => {
+    const section = getHomeLandingContent(locale);
+    return [locale, {
+      ...heroIntroDefaults[locale],
+      ziwei_heading: section.ziweiHeading,
+      ziwei_body: section.ziweiBody,
+      testimonials_heading: section.testimonialsHeading,
+      subscribe_heading: section.subscribeHeading,
+    }];
+  })
+);
+
 /** 逐欄位合併：後台有填的用後台，留空的退回靜態預設。 */
 export function resolveHeroIntro(locale: string, saved?: HeroIntro): HeroIntroFields & { image_url?: string } {
-  const defaults = heroIntroDefaults[locale] ?? heroIntroDefaults[FALLBACK_LOCALE] ?? {};
+  const defaults = homepageDefaults[locale] ?? homepageDefaults[FALLBACK_LOCALE] ?? {};
   const fields = saved?.locales?.[locale] ?? {};
   const merged: HeroIntroFields = { ...defaults };
   (Object.keys(fields) as (keyof HeroIntroFields)[]).forEach((key) => {

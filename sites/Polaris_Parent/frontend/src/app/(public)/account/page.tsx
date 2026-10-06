@@ -21,7 +21,47 @@ import type {
   MemberReward,
   SavedArticle,
 } from '@/lib/api/membership';
-import Button from '@/components/platform/ui/Button';
+import {
+  BookOpen,
+  Bookmark,
+  ChevronUp,
+  Copy,
+  Download,
+  LayoutGrid,
+  LogOut,
+  Plus,
+  Receipt,
+  RotateCcw,
+  Ticket,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import BrandButton, { brandButton } from '@/components/ui/BrandButton';
+import Alert from '@/components/ui/Alert';
+import Tag, { TAG_BASE } from '@/components/ui/Tag';
+
+// 表單（品牌規範 §6.3）
+const INPUT =
+  'w-full rounded-2xl border-[1.5px] border-line-strong bg-white px-[18px] py-[13px] text-base text-ink ' +
+  'placeholder:text-muted focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100';
+// 工具列內的小型下拉（同樣式、內距縮小以對齊 S 按鈕高度）
+const INPUT_SM =
+  'rounded-2xl border-[1.5px] border-line-strong bg-white px-3.5 py-1.5 text-sm text-ink ' +
+  'focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100';
+const LABEL = 'mb-1.5 block text-sm font-medium text-ink';
+// 分頁／切換：膠囊項目，跟頁首導覽同一套（選中淡藍底、其他 hover 暖灰底）
+const pillCls = (active: boolean) =>
+  'whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors duration-150 ease-out ' +
+  'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 ' +
+  (active ? 'bg-blue-50 text-blue-800' : 'text-ink hover:bg-tint active:bg-line');
+// 低調的文字按鈕（關閉）
+const QUIET_BTN =
+  'inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm text-muted transition-colors duration-150 ease-out ' +
+  'hover:bg-tint hover:text-ink active:bg-line focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100';
+// 登出：結束性動作，hover 走 error 色（不用品牌粉）
+const QUIET_DANGER_BTN =
+  'inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm text-text transition-colors duration-150 ease-out ' +
+  'hover:bg-error-bg hover:text-error-fg active:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100';
 
 const RELATION_LABELS: Record<string, string> = {
   self: '我自己',
@@ -366,33 +406,32 @@ export default function AccountPage() {
     }
   };
 
+  // 審核狀態徽章：通過 success、退回 error、其餘（審核中）warning（品牌規範 §3.4）
   const subStatusCls = (s: string) =>
     s === '通過'
-      ? 'bg-green-100 text-green-800'
+      ? 'bg-success-bg text-success-fg'
       : s === '退回'
-        ? 'bg-red-100 text-red-700'
-        : 'bg-yellow-100 text-yellow-800';
+        ? 'bg-error-bg text-error-fg'
+        : 'bg-warning-bg text-warning-fg';
 
   if (isLoading || !isAuthenticated) {
-    return <div className="max-w-3xl mx-auto px-4 py-16 text-center text-gray-500">載入中…</div>;
+    return <div className="mx-auto max-w-3xl px-4 py-16 text-center text-muted">載入中…</div>;
   }
 
-  const tabCls = (active: boolean) =>
-    `px-5 py-2 text-sm rounded-banner transition-colors ${
-      active
-        ? 'bg-brand-purple-600 text-white'
-        : 'text-brand-purple-700 hover:bg-brand-purple-50 border border-brand-purple-600'
-    }`;
-  const cardCls =
-    'bg-white rounded-banner border border-warm-200/70 p-4 flex flex-wrap items-center justify-between gap-3';
+  const cardCls = 'flex flex-wrap items-center justify-between gap-3 rounded-inner bg-white p-4 md:px-6';
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">會員中心</h1>
-        <div className="flex items-center gap-3 text-sm text-gray-500">
-          <span>{user?.email || user?.username}</span>
-          <button onClick={() => logout().then(() => router.push('/login'))} className="text-brand-purple-700 hover:underline">
+    <div className="mx-auto max-w-3xl px-4 py-10 md:py-12">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-heading text-[32px] font-normal text-ink md:text-h1">會員中心</h1>
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <span className="min-w-0 truncate">{user?.email || user?.username}</span>
+          <button
+            type="button"
+            onClick={() => logout().then(() => router.push('/login'))}
+            className={QUIET_DANGER_BTN}
+          >
+            <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             登出
           </button>
         </div>
@@ -400,52 +439,48 @@ export default function AccountPage() {
 
       {/* 重繪的命盤（互動命盤 + 進階工具列：會員專區限定）*/}
       {viewing && (viewing.chart_json || viewing.svg) && (
-        <div className="mb-8 bg-white rounded-banner border border-warm-200/70 p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
-            <span>命盤 ID：<span className="font-mono">{viewing.chart_id}</span></span>
-            <button onClick={() => { setViewing(null); setDraft(null); }} className="text-gray-400 hover:text-gray-700">關閉 ✕</button>
+        <div className="mb-8 rounded-card bg-white p-6 md:p-8">
+          <div className="mb-3 flex items-center justify-between text-sm text-text">
+            <span>命盤 ID：<span className="font-latin">{viewing.chart_id}</span></span>
+            <button
+              type="button"
+              onClick={() => { setViewing(null); setDraft(null); }}
+              className={QUIET_BTN}
+            >
+              關閉
+              <X className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+            </button>
           </div>
 
           {/* 草稿盤：尚未歸檔，顯示儲存列 */}
           {draft && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-banner flex flex-wrap items-center justify-between gap-3">
-              <span className="text-sm text-amber-800">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-inner bg-warning-bg px-[18px] py-[14px]">
+              <span className="text-sm text-warning-fg">
                 這張命盤尚未儲存。按「儲存命盤」即可歸檔到你的帳號。
               </span>
-              <Button
-                type="button"
-                onClick={saveDraft}
-                disabled={saveBusy}
-                className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
-              >
+              <BrandButton variant="primary" size="S" onClick={saveDraft} disabled={saveBusy}>
                 {saveBusy ? '儲存中…' : '儲存命盤'}
-              </Button>
+              </BrandButton>
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
             {/* 互動 / 靜態 檢視切換 */}
             {viewing.chart_json && viewing.svg && (
-              <div className="inline-flex rounded-banner border border-brand-purple-600 overflow-hidden text-sm">
+              <div className="inline-flex gap-1" role="group" aria-label="檢視方式">
                 <button
                   type="button"
+                  aria-pressed={viewMode === 'interactive'}
                   onClick={() => setViewMode('interactive')}
-                  className={`px-4 py-2 transition-colors ${
-                    viewMode === 'interactive'
-                      ? 'bg-brand-purple-600 text-white'
-                      : 'text-brand-purple-700 hover:bg-brand-purple-50'
-                  }`}
+                  className={pillCls(viewMode === 'interactive')}
                 >
                   互動命盤
                 </button>
                 <button
                   type="button"
+                  aria-pressed={viewMode === 'static'}
                   onClick={() => setViewMode('static')}
-                  className={`px-4 py-2 transition-colors ${
-                    viewMode === 'static'
-                      ? 'bg-brand-purple-600 text-white'
-                      : 'text-brand-purple-700 hover:bg-brand-purple-50'
-                  }`}
+                  className={pillCls(viewMode === 'static')}
                 >
                   靜態圖
                 </button>
@@ -454,14 +489,14 @@ export default function AccountPage() {
 
             {/* 版型樣式（互動命盤）*/}
             {viewing.chart_json && viewMode === 'interactive' && (
-              <label className="inline-flex items-center gap-2 text-sm text-gray-600">
+              <label className="inline-flex items-center gap-2 text-sm font-medium text-ink">
                 版型
                 <select
                   value={chartTheme}
                   onChange={(e) =>
                     setChartTheme(e.target.value as 'light' | 'dark' | 'sepia')
                   }
-                  className="px-3 py-2 text-sm rounded-banner border border-gray-300 focus:ring-2 focus:ring-brand-purple-500 focus:border-transparent"
+                  className={`${INPUT_SM} w-auto`}
                 >
                   <option value="light">淺色</option>
                   <option value="dark">深色</option>
@@ -472,31 +507,24 @@ export default function AccountPage() {
 
             {viewing.svg && (
               <>
-                <button
-                  type="button"
-                  onClick={downloadSvg}
-                  className="px-4 py-2 text-sm rounded-banner border border-brand-purple-600 text-brand-purple-700 hover:bg-brand-purple-50 transition-colors"
-                >
+                <BrandButton variant="soft" size="S" onClick={downloadSvg}>
+                  <Download className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
                   下載 SVG
-                </button>
-                <button
-                  type="button"
-                  onClick={() => downloadPng(2)}
-                  disabled={pngBusy}
-                  className="px-4 py-2 text-sm rounded-banner border border-brand-purple-600 text-brand-purple-700 hover:bg-brand-purple-50 transition-colors disabled:opacity-50"
-                >
+                </BrandButton>
+                <BrandButton variant="soft" size="S" onClick={() => downloadPng(2)} disabled={pngBusy}>
+                  <Download className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
                   {pngBusy ? '轉換中…' : '下載 PNG'}
-                </button>
+                </BrandButton>
               </>
             )}
           </div>
 
           {viewing.chart_json && viewMode === 'interactive' ? (
             <div
-              className="w-full rounded-banner p-2 sm:p-4"
+              className="w-full rounded-inner p-2 sm:p-4"
               style={{
                 background: chartTheme === 'light' ? 'transparent' : NAMED_THEMES[chartTheme].colors?.bg,
-                transition: 'background 200ms ease',
+                transition: 'background 200ms ease-out',
               }}
             >
               <ZiweiChart
@@ -508,7 +536,7 @@ export default function AccountPage() {
             </div>
           ) : viewing.svg ? (
             <div
-              className="w-full overflow-x-auto flex justify-center [&>svg]:max-w-full [&>svg]:h-auto"
+              className="flex w-full justify-center overflow-x-auto [&>svg]:h-auto [&>svg]:max-w-full"
               // SVG 由自家後端 p_e_artist 產生（可信來源）
               dangerouslySetInnerHTML={{ __html: viewing.svg }}
             />
@@ -516,7 +544,7 @@ export default function AccountPage() {
 
           {/* 星場分析（點上方互動命盤的宮位，星曜能量會收斂到該宮） */}
           {(viewing.star_energy || viewing.readings) && (
-            <div className="mt-6 border-t border-warm-200/70 pt-5">
+            <div className="mt-6 border-t border-line pt-5">
               <StarfieldSection
                 starEnergy={viewing.star_energy}
                 readings={viewing.readings}
@@ -527,39 +555,46 @@ export default function AccountPage() {
         </div>
       )}
 
-      <div className="flex gap-3 mb-5">
-        <button className={tabCls(tab === 'charts')} onClick={() => setTab('charts')}>
+      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="會員中心分頁">
+        <button type="button" role="tab" aria-selected={tab === 'charts'} className={pillCls(tab === 'charts')} onClick={() => setTab('charts')}>
           我的命盤
         </button>
-        <button className={tabCls(tab === 'favorites')} onClick={() => setTab('favorites')}>
+        <button type="button" role="tab" aria-selected={tab === 'favorites'} className={pillCls(tab === 'favorites')} onClick={() => setTab('favorites')}>
           我的收藏
         </button>
-        <button className={tabCls(tab === 'orders')} onClick={() => setTab('orders')}>
+        <button type="button" role="tab" aria-selected={tab === 'orders'} className={pillCls(tab === 'orders')} onClick={() => setTab('orders')}>
           我的訂單 / 折扣券
         </button>
-        <button className={tabCls(tab === 'articles')} onClick={() => setTab('articles')}>
+        <button type="button" role="tab" aria-selected={tab === 'articles'} className={pillCls(tab === 'articles')} onClick={() => setTab('articles')}>
           收藏文章
         </button>
       </div>
 
-      {err && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-banner text-red-700 text-sm">{err}</div>
-      )}
-      {saveMsg && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-banner text-green-700 text-sm">{saveMsg}</div>
-      )}
-      {viewBusy && <p className="mb-4 text-sm text-gray-500">重繪命盤中…</p>}
+      {err && <Alert tone="error" className="mb-4">{err}</Alert>}
+      {saveMsg && <Alert tone="success" className="mb-4">{saveMsg}</Alert>}
+      {viewBusy && <p className="mb-4 text-sm text-muted">重繪命盤中…</p>}
 
       {/* 排新命盤（會員中心排盤 + 儲存）*/}
       {tab === 'charts' && (
         <div className="mb-6">
-          <button
-            type="button"
+          <BrandButton
+            variant="soft"
+            size="S"
+            aria-expanded={composerOpen}
             onClick={() => setComposerOpen((o) => !o)}
-            className="px-4 py-2 text-sm rounded-banner border border-brand-purple-600 text-brand-purple-700 hover:bg-brand-purple-50 transition-colors"
           >
-            {composerOpen ? '收合排盤表單 ▲' : '＋ 排新命盤'}
-          </button>
+            {composerOpen ? (
+              <>
+                收合排盤表單
+                <ChevronUp className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                排新命盤
+              </>
+            )}
+          </BrandButton>
           {composerOpen && (
             <div className="mt-4">
               <MemberChartForm onComputed={onComposed} />
@@ -569,48 +604,45 @@ export default function AccountPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">載入中…</p>
+        <p className="text-muted">載入中…</p>
       ) : tab === 'charts' ? (
         people.length === 0 ? (
-          <p className="text-gray-500">
+          <EmptyState
+            icon={LayoutGrid}
+            action={
+              !composerOpen && (
+                <BrandButton variant="soft" size="S" onClick={() => setComposerOpen(true)}>
+                  <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                  排新命盤
+                </BrandButton>
+              )
+            }
+          >
             還沒有命盤。按上方「＋ 排新命盤」排一張並儲存，就會歸檔到這裡。
-          </p>
+          </EmptyState>
         ) : (
           <div className="space-y-6">
             {people.map((p) => (
               <div key={p.user_id}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-medium text-gray-800">{p.display_name || '（未命名）'}</span>
-                  {p.relation_label && (
-                    <span className="px-2 py-0.5 text-xs rounded-full bg-brand-purple-100 text-brand-purple-700">
-                      {relLabel(p.relation_label)}
-                    </span>
-                  )}
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="font-medium text-ink">{p.display_name || '（未命名）'}</span>
+                  {p.relation_label && <Tag tone="category">{relLabel(p.relation_label)}</Tag>}
                 </div>
                 <div className="space-y-2">
                   {p.charts.map((c) => (
                     <div key={c.chart_id} className={cardCls}>
-                      <div className="text-sm text-gray-600">
-                        <span className="font-mono text-xs text-gray-400 mr-2">#{c.chart_id.slice(-6)}</span>
-                        {c.gender === 'F' || c.gender === '女' ? '女' : '男'}　{birthText(c)}
-                        {c.has_fortune && (
-                          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">
-                            完整版
-                          </span>
-                        )}
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text">
+                        <span className="font-latin text-xs text-muted">#{c.chart_id.slice(-6)}</span>
+                        <span>
+                          {c.gender === 'F' || c.gender === '女' ? '女' : '男'}　<span className="font-latin">{birthText(c)}</span>
+                        </span>
+                        {c.has_fortune && <Tag tone="category">完整版</Tag>}
                       </div>
                       <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          onClick={() => viewChart(c)}
-                          className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
-                        >
+                        <BrandButton variant="secondary" size="S" onClick={() => viewChart(c)}>
                           檢視命盤
-                        </Button>
-                        <Link
-                          href={`/account/charts/${c.chart_id}`}
-                          className="px-3 py-2 text-sm rounded-banner border border-brand-purple-300 text-brand-purple-700 hover:bg-brand-purple-50 inline-flex items-center"
-                        >
+                        </BrandButton>
+                        <Link href={`/account/charts/${c.chart_id}`} className={brandButton({ variant: 'soft', size: 'S' })}>
                           詳情 / 管理
                         </Link>
                       </div>
@@ -623,31 +655,23 @@ export default function AccountPage() {
         )
       ) : tab === 'favorites' ? (
         favorites.length === 0 ? (
-          <p className="text-gray-500">尚無收藏的命盤。</p>
+          <EmptyState icon={Bookmark}>尚無收藏的命盤。</EmptyState>
         ) : (
           <div className="space-y-2">
             {favorites.map((f) => (
               <div key={f.chart_id} className={cardCls}>
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium text-gray-800 mr-2">{f.name || '（未命名）'}</span>
-                  {f.gender === 'F' || f.gender === '女' ? '女' : '男'}　{birthText(f)}
-                  {f.note && <span className="ml-2 text-gray-400">— {f.note}</span>}
+                <div className="text-sm text-text">
+                  <span className="mr-2 font-medium text-ink">{f.name || '（未命名）'}</span>
+                  {f.gender === 'F' || f.gender === '女' ? '女' : '男'}　<span className="font-latin">{birthText(f)}</span>
+                  {f.note && <span className="ml-2 text-muted">— {f.note}</span>}
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => viewChart(f)}
-                    className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
-                  >
+                  <BrandButton variant="secondary" size="S" onClick={() => viewChart(f)}>
                     檢視
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => unfavorite(f.chart_id)}
-                    className="px-3 py-2 text-sm rounded-banner border border-gray-300 text-gray-500 hover:bg-gray-50"
-                  >
+                  </BrandButton>
+                  <BrandButton variant="soft" size="S" onClick={() => unfavorite(f.chart_id)}>
                     取消收藏
-                  </button>
+                  </BrandButton>
                 </div>
               </div>
             ))}
@@ -656,96 +680,97 @@ export default function AccountPage() {
       ) : tab === 'orders' ? (
         // ── 我的訂單 / 折扣券 ──────────────────────────────
         <div className="space-y-8">
-          <div className="flex items-center justify-between">
-            <h2 className="font-medium text-gray-800">我的折扣券</h2>
-          </div>
-          {rewards.length === 0 ? (
-            <p className="text-gray-500 text-sm">尚無折扣券。完成購買並登錄訂單號、經審核通過後即可領取。</p>
-          ) : (
-            <div className="space-y-2">
-              {rewards.map((r) => (
-                <div key={r.id} className={cardCls}>
-                  <div className="text-sm text-gray-600">
-                    <span className="font-mono font-medium text-green-700 mr-2">{r.coupon_code_snapshot}</span>
-                    <span className="text-gray-400">{r.platform}・{r.product_name}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => copyCode(r.coupon_code_snapshot)}
-                    className="px-3 py-2 text-sm rounded-banner border border-gray-300 text-gray-600 hover:bg-gray-50"
-                  >
-                    複製折扣碼
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <h2 className="font-medium text-gray-800">訂單登錄</h2>
-            <Button
-              type="button"
-              onClick={() => { setSubmitOpen(true); setErr(''); }}
-              className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
-            >
-              登錄訂單號
-            </Button>
-          </div>
-          {submissions.length === 0 ? (
-            <p className="text-gray-500 text-sm">尚無訂單登錄記錄。</p>
-          ) : (
-            <div className="space-y-2">
-              {submissions.map((s) => (
-                <div key={s.id} className={cardCls}>
-                  <div className="text-sm text-gray-600 flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-800">{s.product_name}</span>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${subStatusCls(s.status)}`}>{s.status}</span>
+          <div className="space-y-3">
+            <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">我的折扣券</h2>
+            {rewards.length === 0 ? (
+              <EmptyState icon={Ticket}>尚無折扣券。完成購買並登錄訂單號、經審核通過後即可領取。</EmptyState>
+            ) : (
+              <div className="space-y-2">
+                {rewards.map((r) => (
+                  <div key={r.id} className={cardCls}>
+                    <div className="text-sm text-text">
+                      <span className="mr-2 font-latin font-semibold text-success-fg">{r.coupon_code_snapshot}</span>
+                      <span className="text-muted">{r.platform}・{r.product_name}</span>
                     </div>
-                    <span className="text-gray-400">{s.platform}・訂單號 </span>
-                    <span className="font-mono text-xs">{s.external_order_no}</span>
-                    {s.status === '退回' && s.note && (
-                      <p className="text-red-600 text-xs mt-1">退回原因：{s.note}</p>
-                    )}
-                    {s.coupon_code && (
-                      <p className="text-green-700 text-xs mt-1">折扣碼：<span className="font-mono">{s.coupon_code}</span></p>
+                    <BrandButton variant="soft" size="S" onClick={() => copyCode(r.coupon_code_snapshot)}>
+                      <Copy className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                      複製折扣碼
+                    </BrandButton>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">訂單登錄</h2>
+              <BrandButton
+                variant="secondary"
+                size="S"
+                onClick={() => { setSubmitOpen(true); setErr(''); }}
+              >
+                登錄訂單號
+              </BrandButton>
+            </div>
+            {submissions.length === 0 ? (
+              <EmptyState icon={Receipt}>尚無訂單登錄記錄。</EmptyState>
+            ) : (
+              <div className="space-y-2">
+                {submissions.map((s) => (
+                  <div key={s.id} className={cardCls}>
+                    <div className="min-w-0 flex-1 text-sm text-text">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-ink">{s.product_name}</span>
+                        <span className={`${TAG_BASE} ${subStatusCls(s.status)}`}>{s.status}</span>
+                      </div>
+                      <span className="text-muted">{s.platform}・訂單號 </span>
+                      <span className="font-latin text-xs">{s.external_order_no}</span>
+                      {s.status === '退回' && s.note && (
+                        <p className="mt-1 text-[13px] text-error-fg">退回原因：{s.note}</p>
+                      )}
+                      {s.coupon_code && (
+                        <p className="mt-1 text-[13px] text-success-fg">折扣碼：<span className="font-latin font-semibold">{s.coupon_code}</span></p>
+                      )}
+                    </div>
+                    {s.status === '退回' && (
+                      <BrandButton variant="soft" size="S" onClick={() => openResubmit(s)}>
+                        <RotateCcw className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+                        修正並重送
+                      </BrandButton>
                     )}
                   </div>
-                  {s.status === '退回' && (
-                    <button
-                      type="button"
-                      onClick={() => openResubmit(s)}
-                      className="px-3 py-2 text-sm rounded-banner border border-brand-purple-300 text-brand-purple-700 hover:bg-brand-purple-50 whitespace-nowrap"
-                    >
-                      修正並重送
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         // ── 收藏文章 ──────────────────────────────────────
         savedArticles.length === 0 ? (
-          <p className="text-gray-500 text-sm">尚無收藏文章。在文章頁點「收藏文章」即可加入。</p>
+          <EmptyState
+            icon={BookOpen}
+            action={
+              <Link href="/articles" className={brandButton({ variant: 'soft', size: 'S' })}>
+                逛逛專欄
+              </Link>
+            }
+          >
+            尚無收藏文章。在文章頁點「收藏文章」即可加入。
+          </EmptyState>
         ) : (
           <div className="space-y-2">
             {savedArticles.map((a) => (
               <div key={a.id} className={cardCls}>
                 <a
                   href={`/posts/${a.slug}`}
-                  className="text-sm font-medium text-brand-purple-700 hover:underline flex-1 min-w-0 truncate"
+                  className="min-w-0 flex-1 truncate rounded-sm2 text-sm font-medium text-blue-500 underline-offset-[3px] transition-colors duration-150 ease-out hover:text-pink-600 hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
                 >
                   {a.title}
                 </a>
-                <button
-                  type="button"
-                  onClick={() => unsaveArticle(a.content_id)}
-                  className="px-3 py-2 text-sm rounded-banner border border-gray-300 text-gray-500 hover:bg-gray-50"
-                >
+                <BrandButton variant="soft" size="S" onClick={() => unsaveArticle(a.content_id)}>
                   取消收藏
-                </button>
+                </BrandButton>
               </div>
             ))}
           </div>
@@ -755,19 +780,20 @@ export default function AccountPage() {
       {/* 登錄訂單號 Modal */}
       {submitOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setSubmitOpen(false)} />
-          <div className="relative bg-white rounded-banner shadow-xl w-full max-w-md p-6 space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">登錄訂單號</h3>
+          <div className="fixed inset-0 bg-ink/40" onClick={() => setSubmitOpen(false)} />
+          <div role="dialog" aria-modal="true" aria-labelledby="submit-order-title" className="relative w-full max-w-md space-y-5 rounded-card bg-white p-7 shadow-lg md:p-8">
+            <h3 id="submit-order-title" className="font-heading text-[18px] font-normal text-ink md:text-h4">登錄訂單號</h3>
             {products.length === 0 ? (
-              <p className="text-sm text-gray-500">目前沒有可登錄的商品。</p>
+              <p className="text-sm text-muted">目前沒有可登錄的商品。</p>
             ) : (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">商品</label>
+                  <label htmlFor="so-product" className={LABEL}>商品</label>
                   <select
+                    id="so-product"
                     value={form.product_type_id}
                     onChange={(e) => setForm({ ...form, product_type_id: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-banner"
+                    className={INPUT}
                   >
                     <option value={0}>請選擇…</option>
                     {products.map((p) => (
@@ -776,20 +802,22 @@ export default function AccountPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">訂單號</label>
+                  <label htmlFor="so-order-no" className={LABEL}>訂單號</label>
                   <input
+                    id="so-order-no"
                     value={form.external_order_no}
                     onChange={(e) => setForm({ ...form, external_order_no: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-banner"
+                    className={`${INPUT} font-latin`}
                     placeholder="在蝦皮 / Pinkoi 完成購買後的訂單編號"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">關聯命盤（選填）</label>
+                  <label htmlFor="so-chart" className={LABEL}>關聯命盤（選填）</label>
                   <select
+                    id="so-chart"
                     value={form.chart_id}
                     onChange={(e) => setForm({ ...form, chart_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-banner"
+                    className={INPUT}
                   >
                     <option value="">不指定</option>
                     {people.flatMap((p) =>
@@ -802,21 +830,12 @@ export default function AccountPage() {
                   </select>
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setSubmitOpen(false)}
-                    className="px-4 py-2 text-sm rounded-banner border border-gray-300 text-gray-600 hover:bg-gray-50"
-                  >
+                  <BrandButton variant="soft" size="S" onClick={() => setSubmitOpen(false)}>
                     取消
-                  </button>
-                  <Button
-                    type="button"
-                    onClick={submitOrder}
-                    disabled={submitBusy}
-                    className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
-                  >
+                  </BrandButton>
+                  <BrandButton variant="primary" size="S" onClick={submitOrder} disabled={submitBusy}>
                     {submitBusy ? '送出中…' : '送出審核'}
-                  </Button>
+                  </BrandButton>
                 </div>
               </>
             )}
@@ -827,53 +846,67 @@ export default function AccountPage() {
       {/* 退回重送 Modal */}
       {resubmitTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setResubmitTarget(null)} />
-          <div className="relative bg-white rounded-banner shadow-xl w-full max-w-md p-6 space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">修正並重送</h3>
-            <p className="text-sm text-gray-500">
+          <div className="fixed inset-0 bg-ink/40" onClick={() => setResubmitTarget(null)} />
+          <div role="dialog" aria-modal="true" aria-labelledby="resubmit-title" className="relative w-full max-w-md space-y-5 rounded-card bg-white p-7 shadow-lg md:p-8">
+            <h3 id="resubmit-title" className="font-heading text-[18px] font-normal text-ink md:text-h4">修正並重送</h3>
+            <p className="text-sm text-text">
               {resubmitTarget.product_name}（{resubmitTarget.platform}）
               {resubmitTarget.note && (
-                <span className="block text-red-600 mt-1">退回原因：{resubmitTarget.note}</span>
+                <span className="mt-1 block text-[13px] text-error-fg">退回原因：{resubmitTarget.note}</span>
               )}
             </p>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">訂單號</label>
+              <label htmlFor="rs-order-no" className={LABEL}>訂單號</label>
               <input
+                id="rs-order-no"
                 value={resubmitNo}
                 onChange={(e) => setResubmitNo(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-banner"
+                className={`${INPUT} font-latin`}
                 placeholder="修正後的訂單編號"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">補充說明（選填）</label>
+              <label htmlFor="rs-note" className={LABEL}>補充說明（選填）</label>
               <input
+                id="rs-note"
                 value={resubmitNote}
                 onChange={(e) => setResubmitNote(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-banner"
+                className={INPUT}
                 placeholder="給審核者的補充說明"
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setResubmitTarget(null)}
-                className="px-4 py-2 text-sm rounded-banner border border-gray-300 text-gray-600 hover:bg-gray-50"
-              >
+              <BrandButton variant="soft" size="S" onClick={() => setResubmitTarget(null)}>
                 取消
-              </button>
-              <Button
-                type="button"
-                onClick={doResubmit}
-                disabled={resubmitBusy}
-                className="bg-brand-purple-600 hover:bg-brand-purple-700 text-sm py-2"
-              >
+              </BrandButton>
+              <BrandButton variant="primary" size="S" onClick={doResubmit} disabled={resubmitBusy}>
                 {resubmitBusy ? '送出中…' : '重新送審'}
-              </Button>
+              </BrandButton>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** 空狀態：Lucide 圖示＋說明，必要時附一個 soft 按鈕。 */
+function EmptyState({
+  icon: Icon,
+  children,
+  action,
+}: {
+  icon: LucideIcon;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-card bg-white px-6 py-10 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+        <Icon className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+      </span>
+      <p className="max-w-sm text-sm text-text [text-wrap:pretty]">{children}</p>
+      {action}
     </div>
   );
 }

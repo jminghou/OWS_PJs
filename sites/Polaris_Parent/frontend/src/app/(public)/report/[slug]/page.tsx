@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { BookOpen, Clock, Eye, PenLine, Users, type LucideIcon } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, ChevronDown, Clock, Eye, PenLine, Star, Users, type LucideIcon } from 'lucide-react';
 import ReportGallery from '@/components/report/ReportGallery';
+import Tag from '@/components/ui/Tag';
+import { brandButton } from '@/components/ui/BrandButton';
 import {
   PHYSICAL_ADDON,
   REPORT_CATALOG,
@@ -25,12 +27,35 @@ const ICONS: Record<HighlightIcon, LucideIcon> = { users: Users, eye: Eye, clock
 // 精靈目前只服務一種報告；報告變多時改為 /report/{slug}/create
 const START = '/report/create';
 
+const sectionTitle = 'font-heading text-[26px] font-normal text-ink md:text-h2';
+
 function StartButton({ className = '' }: { className?: string }) {
   return (
-    <Link href={START}
-          className={`inline-flex justify-center rounded-banner bg-brand-purple-600 px-6 py-3.5 text-base font-medium text-white hover:bg-brand-purple-700 ${className}`}>
+    <Link href={START} className={brandButton({ variant: 'primary', size: 'L', className })}>
       開始客製我的報告
+      <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
     </Link>
+  );
+}
+
+/** FAQ／詳細說明的手風琴：每項一張白卡（規範 §7.3） */
+function Accordion({ items }: { items: { title: string; body: React.ReactNode; open?: boolean }[] }) {
+  return (
+    <div className="space-y-3">
+      {items.map((it) => (
+        <details key={it.title} className="group rounded-inner bg-white" open={it.open}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-inner px-6 py-5 font-medium text-ink transition-colors duration-150 hover:text-blue-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 [&::-webkit-details-marker]:hidden">
+            {it.title}
+            <ChevronDown
+              className="h-5 w-5 shrink-0 text-muted transition-transform duration-200 ease-out group-open:rotate-180"
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+          </summary>
+          <div className="px-6 pb-5 text-small text-text">{it.body}</div>
+        </details>
+      ))}
+    </div>
   );
 }
 
@@ -43,11 +68,11 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
   const addon = addonPrice(prices);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:py-12">
-      <nav aria-label="麵包屑" className="text-sm text-gray-500">
-        <Link href="/report" className="hover:text-brand-purple-700">客製報告</Link>
+    <div className="mx-auto max-w-content px-4 py-8 md:px-6 md:py-12">
+      <nav aria-label="麵包屑" className="text-sm text-muted">
+        <Link href="/report" className="text-text transition-colors duration-150 hover:text-blue-500">客製報告</Link>
         <span className="mx-2">/</span>
-        <span className="text-gray-700">{product.name}</span>
+        <span className="text-ink">{product.name}</span>
       </nav>
 
       {/* 主區：圖庫＋購買資訊 */}
@@ -55,83 +80,93 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
         <ReportGallery product={product} />
 
         <div>
-          {product.badge && (
-            <span className="inline-block rounded-full bg-brand-purple-100 px-3 py-1 text-xs font-medium text-brand-purple-700">
-              {product.badge}
-            </span>
-          )}
-          <h1 className="mt-3 text-[28px] font-bold leading-snug text-gray-900 md:text-[34px]">{product.name}</h1>
-          <p className="mt-3 text-base leading-7 text-gray-700">{product.tagline}</p>
+          {product.badge && <Tag tone="status">{product.badge}</Tag>}
+          <h1 className="mt-3 font-heading text-[32px] font-normal text-ink md:text-h1">{product.name}</h1>
+          <p className="mt-3 text-[17px] text-text md:text-lead">{product.tagline}</p>
 
           <ul className="mt-6 space-y-3">
             {product.highlights.map((h) => {
               const Icon = ICONS[h.icon];
               return (
-                <li key={h.text} className="flex items-center gap-3 text-sm text-gray-700">
-                  <Icon className="h-5 w-5 shrink-0 text-brand-purple-600" aria-hidden="true" />
+                <li key={h.text} className="flex items-center gap-3 text-sm text-text">
+                  <Icon className="h-5 w-5 shrink-0 text-blue-500" strokeWidth={2} aria-hidden="true" />
                   {h.text}
                 </li>
               );
             })}
           </ul>
 
-          <div className="mt-8 rounded-banner border border-warm-200/70 bg-white p-5">
-            <p className="text-sm text-gray-500">數位版</p>
-            <p className={`mt-1 text-3xl font-bold ${prices.digital.available ? 'text-gray-900' : 'text-gray-400'}`}>
+          {/* 主推方案：墨底報告卡（規範 §6.5，一頁最多一張） */}
+          <div className="mt-8 rounded-card bg-ink p-7 text-white">
+            <p className="text-sm text-[#D5D7E0]">數位版</p>
+            <p
+              className={`mt-1 font-latin text-[30px] font-extrabold leading-tight ${
+                prices.digital.available ? 'text-white' : 'text-[#A9ADBD]'
+              }`}
+            >
               {prices.digital.text}
-              {prices.digital.available && <span className="ml-1 text-base font-normal text-gray-500">起</span>}
+              {prices.digital.available && (
+                <span className="ml-1 font-body text-base font-normal text-[#D5D7E0]">起</span>
+              )}
             </p>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-[#D5D7E0]">
               {PHYSICAL_ADDON.label}
-              <span className="ml-2 font-medium text-gray-900">{addon.text}</span>
+              <span className="ml-2 font-latin font-semibold text-white">{addon.text}</span>
             </p>
-            <StartButton className="mt-5 w-full" />
-            <p className="mt-3 text-center text-xs text-gray-500">約 3 分鐘填完資料，付款前可以先預覽。</p>
+            <StartButton className="mt-6 w-full" />
+            <p className="mt-3 text-center text-caption text-[#D5D7E0]">約 3 分鐘填完資料，付款前可以先預覽。</p>
           </div>
 
-          <figure className="mt-6 border-l-4 border-brand-purple-200 pl-4">
-            <blockquote className="text-sm italic leading-6 text-gray-700">「{product.testimonial.quote}」</blockquote>
-            <figcaption className="mt-1 text-xs text-gray-500">— {product.testimonial.author}</figcaption>
+          <figure className="mt-6 rounded-inner bg-blue-50 px-6 py-5">
+            <blockquote className="font-heading text-blue-800">「{product.testimonial.quote}」</blockquote>
+            <figcaption className="mt-2 text-caption text-blue-800">— {product.testimonial.author}</figcaption>
           </figure>
         </div>
       </section>
 
       {/* 詳細說明（可展開） */}
-      <section aria-label="報告說明" className="mt-14 max-w-[760px]">
-        <div className="space-y-4 text-base leading-7 text-gray-700">
+      <section aria-label="報告說明" className="mt-16 max-w-[760px] md:mt-24">
+        <div className="space-y-4 text-text">
           {product.intro.map((p) => (
             <p key={p}>{p}</p>
           ))}
         </div>
-        <div className="mt-8 divide-y divide-warm-200 rounded-banner border border-warm-200/70 bg-white">
-          {product.details.map((d, i) => (
-            <details key={d.title} className="p-5" open={i === 0}>
-              <summary className="cursor-pointer font-medium text-gray-900">{d.title}</summary>
-              <div className="mt-3 space-y-2 text-sm leading-6 text-gray-600">
-                {d.body.map((b) => (
-                  <p key={b}>{b}</p>
-                ))}
-              </div>
-            </details>
-          ))}
+        <div className="mt-8">
+          <Accordion
+            items={product.details.map((d, i) => ({
+              title: d.title,
+              open: i === 0,
+              body: (
+                <div className="space-y-2">
+                  {d.body.map((b) => (
+                    <p key={b}>{b}</p>
+                  ))}
+                </div>
+              ),
+            }))}
+          />
         </div>
       </section>
 
       {/* 圖文特色 */}
-      <section aria-label="特色" className="mt-16 space-y-12">
+      <section aria-label="特色" className="mt-16 space-y-12 md:mt-24 md:space-y-16">
         {product.features.map((f, i) => (
           <div key={f.title} className="grid grid-cols-1 items-center gap-6 md:grid-cols-2 md:gap-12">
-            <div className={`flex aspect-[4/3] items-center justify-center rounded-banner bg-warm-100 text-sm text-gray-400 ${i % 2 ? 'md:order-2' : ''}`}>
+            <div
+              className={`flex aspect-[4/3] items-center justify-center rounded-[32px] bg-tint text-sm text-muted ${
+                i % 2 ? 'md:order-2' : ''
+              }`}
+            >
               {f.image}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{f.title}</h2>
-              <p className="mt-3 text-base leading-7 text-gray-700">{f.body}</p>
+              <h2 className="font-heading text-[22px] font-normal text-ink md:text-h3">{f.title}</h2>
+              <p className="mt-3 text-text">{f.body}</p>
               {f.title === PHYSICAL_ADDON.label && (
-                <ul className="mt-4 space-y-1.5 text-sm text-gray-700">
+                <ul className="mt-4 space-y-1.5 text-sm text-text">
                   {PHYSICAL_ADDON.features.map((x) => (
                     <li key={x} className="flex gap-2">
-                      <span aria-hidden="true" className="text-brand-purple-600">✓</span>
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" strokeWidth={2} aria-hidden="true" />
                       {x}
                     </li>
                   ))}
@@ -143,64 +178,75 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
       </section>
 
       {/* 製作方式 */}
-      <section aria-labelledby="pd-process" className="mt-16">
-        <h2 id="pd-process" className="text-xl font-bold text-gray-900">怎麼製作</h2>
-        <ol className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+      <section aria-labelledby="pd-process" className="mt-16 md:mt-24">
+        <h2 id="pd-process" className={sectionTitle}>怎麼製作</h2>
+        <ol className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
           {product.process.map((s, i) => (
-            <li key={s.title} className="rounded-banner border border-warm-200/70 bg-white p-5">
-              <span className="text-sm font-bold text-brand-purple-700">{i + 1}</span>
-              <p className="mt-1 font-medium text-gray-900">{s.title}</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">{s.body}</p>
+            <li key={s.title} className="rounded-card bg-white p-6 md:p-8">
+              <span className="font-latin text-[30px] font-extrabold leading-none text-blue-500">{i + 1}</span>
+              <p className="mt-3 font-heading text-[18px] text-ink md:text-h4">{s.title}</p>
+              <p className="mt-1 text-small text-text">{s.body}</p>
             </li>
           ))}
         </ol>
       </section>
 
       {/* 評價 */}
-      <section aria-labelledby="pd-reviews" className="mt-16">
-        <h2 id="pd-reviews" className="text-xl font-bold text-gray-900">讀者怎麼說</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <section aria-labelledby="pd-reviews" className="mt-16 md:mt-24">
+        <h2 id="pd-reviews" className={sectionTitle}>讀者怎麼說</h2>
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
           {[1, 2, 3].map((n) => (
-            <figure key={n} className="rounded-banner border border-warm-200/70 bg-white p-5">
-              <p aria-label="五顆星" className="text-amber-500">★★★★★</p>
-              <blockquote className="mt-2 text-sm leading-6 text-gray-700">［佔位］讀者評價 {n}</blockquote>
-              <figcaption className="mt-2 text-xs text-gray-500">— ［佔位］讀者</figcaption>
+            <figure key={n} className="rounded-card bg-white p-6 md:p-8">
+              <p aria-label="五顆星" className="flex gap-0.5 text-star-500">
+                {[0, 1, 2, 3, 4].map((s) => (
+                  <Star key={s} className="h-4 w-4 fill-current" strokeWidth={2} aria-hidden="true" />
+                ))}
+              </p>
+              <blockquote className="mt-3 text-small text-text">［佔位］讀者評價 {n}</blockquote>
+              <figcaption className="mt-2 text-caption text-muted">— ［佔位］讀者</figcaption>
             </figure>
           ))}
         </div>
       </section>
 
       {/* FAQ */}
-      <section aria-labelledby="pd-faq" className="mt-16 max-w-[760px]">
-        <h2 id="pd-faq" className="text-xl font-bold text-gray-900">{product.name}常見問題</h2>
-        <div className="mt-4 divide-y divide-warm-200 rounded-banner border border-warm-200/70 bg-white">
-          {product.faq.map((f) => (
-            <details key={f.q} className="p-5">
-              <summary className="cursor-pointer font-medium text-gray-900">{f.q}</summary>
-              <p className="mt-2 text-sm leading-6 text-gray-600">{f.a}</p>
-            </details>
-          ))}
+      <section aria-labelledby="pd-faq" className="mt-16 max-w-[760px] md:mt-24">
+        <h2 id="pd-faq" className={sectionTitle}>{product.name}常見問題</h2>
+        <div className="mt-6">
+          <Accordion items={product.faq.map((f) => ({ title: f.q, body: <p>{f.a}</p> }))} />
         </div>
-        <p className="mt-4 text-sm text-gray-500">
-          完整條款請見<Link href="/report/policy" className="text-brand-purple-700 hover:underline">《交易政策》</Link>。
+        <p className="mt-4 text-sm text-muted">
+          完整條款請見
+          <Link
+            href="/report/policy"
+            className="text-blue-500 underline-offset-[3px] transition-colors duration-150 hover:text-pink-600 hover:underline"
+          >
+            《交易政策》
+          </Link>
+          。
         </p>
       </section>
 
-      <section className="mt-16 rounded-banner bg-white p-8 text-center">
-        <p className="text-lg font-bold text-gray-900">準備好為重要的人製作一份報告了嗎？</p>
-        <StartButton className="mt-5" />
+      <section className="mt-16 rounded-card bg-white p-8 text-center md:mt-24 md:p-12">
+        <p className="font-heading text-[22px] text-ink md:text-h3">準備好為重要的人製作一份報告了嗎？</p>
+        <StartButton className="mt-6" />
       </section>
 
       {/* 你想送給誰 */}
-      <section aria-labelledby="pd-audience" className="mt-16">
-        <h2 id="pd-audience" className="text-xl font-bold text-gray-900">你想送給誰？</h2>
-        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <section aria-labelledby="pd-audience" className="mt-16 md:mt-24">
+        <h2 id="pd-audience" className={sectionTitle}>你想送給誰？</h2>
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
           {REPORT_CATALOG.audiences.map((a) => (
-            <Link key={a.label} href="/report"
-                  className="rounded-banner border border-warm-200/70 bg-white p-5 transition-colors hover:border-brand-purple-300">
-              <p className="font-medium text-gray-900">{a.label}</p>
-              <p className="mt-1 text-sm text-gray-600">{a.note}</p>
-              <p className="mt-2 text-sm text-brand-purple-700">看所有報告 →</p>
+            <Link
+              key={a.label}
+              href="/report"
+              className="group rounded-card bg-white p-6 transition-shadow duration-300 ease-out hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+            >
+              <p className="font-heading text-[18px] text-ink md:text-h4">{a.label}</p>
+              <p className="mt-1 text-small text-text">{a.note}</p>
+              <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-blue-500 transition-colors duration-150 group-hover:text-pink-600">
+                看所有報告 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              </p>
             </Link>
           ))}
         </div>

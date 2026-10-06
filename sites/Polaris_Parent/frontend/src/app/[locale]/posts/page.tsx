@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import PostsContent from '@/app/(public)/posts/PostsContent';
+import { ArticleListSkeleton } from '@/app/(public)/articles/ArticleCard';
 
 // 多語言標題和描述
 const localeContent: Record<string, { title: string; pageTitle: string; description: string }> = {
@@ -44,63 +45,19 @@ export default async function LocalePostsPage({ params }: PageProps) {
   const content = localeContent[locale] || localeContent['zh-TW'];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+    <div className="min-h-[calc(100vh-72px)] bg-paper">
+      <div className="mx-auto max-w-content px-4 pb-16 pt-12 md:px-6 md:pb-24 md:pt-16">
+        <header className="mb-8 md:mb-12">
+          <h1 className="font-heading text-[32px] font-normal text-ink [text-wrap:pretty] md:text-h1">
             {content.pageTitle}
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="mt-4 max-w-prose text-[17px] text-text [text-wrap:pretty] md:text-lead">
             {content.description}
           </p>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Suspense fallback={<PostsLoading />}>
+        </header>
+        <Suspense fallback={<ArticleListSkeleton />}>
           <PostsContent locale={locale} />
         </Suspense>
-      </div>
-    </div>
-  );
-}
-
-function PostsLoading() {
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-        <div className="flex gap-2">
-          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow-sm border overflow-hidden">
-            <div className="aspect-square bg-gray-200 animate-pulse"></div>
-            <div className="p-6 space-y-4">
-              <div className="flex gap-2">
-                <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
-                <div className="h-6 w-12 bg-gray-200 rounded-full animate-pulse"></div>
-              </div>
-              <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-              <div className="flex justify-between">
-                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );

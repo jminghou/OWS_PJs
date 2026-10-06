@@ -22,7 +22,7 @@ export default async function NewsletterUnsubscribePage({ params }: PageProps) {
       <TokenAction
         mode="unsubscribe"
         labels={content.unsubscribe}
-        footer={<Link href={localePath(locale)} className="text-brand-purple-700 underline underline-offset-4 hover:text-brand-purple-900">{content.backHome}</Link>}
+        footer={<Link href={localePath(locale)} className="text-blue-500 underline underline-offset-[3px] transition-colors duration-150 ease-out hover:text-pink-600 focus-visible:rounded-sm2 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100">{content.backHome}</Link>}
       />
     </Suspense>
   );

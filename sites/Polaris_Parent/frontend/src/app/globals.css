@@ -2,10 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 本站公開頁面的預設字級；後台與其他官網維持各自的設定。 */
+/*
+ * 公開站基底（docs/BRAND_GUIDELINES.md v3）。
+ * 規範 §8.1 寫在 body 上的規則，這裡改掛在 .public-site：後台共用同一個 <body>，
+ * 不能讓暖白底、藍色連結、思源黑體漏進後台。
+ */
 .public-site {
-  font-size: 15px;
-  line-height: 1.75;
+  /* shadcn 的 --muted 在後台是淺灰底色；公開站的 muted 是「日期、註解」文字色 #6b7084 */
+  --muted: 228 10.5% 46.9%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-noto), "Microsoft JhengHei", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+}
+@media (min-width: 768px) {
+  .public-site { font-size: 17px; }
+}
+.public-site ::selection { background: var(--blue-100); color: var(--ink); }
+
+/* 標題一律粉圓 400：粉圓只有一種字重，加粗會變假粗體（故意蓋過 font-bold） */
+.public-site h1,
+.public-site h2,
+.public-site h3,
+.public-site h4 {
+  font-family: var(--font-huninn), "Zen Maru Gothic", sans-serif;
+  font-weight: 400;
+}
+.public-site :where(h1, h2, h3, h4, h5, h6, p, li, blockquote) { text-wrap: pretty; }
+
+/* 沒有 class 的連結就是內文連結（有 class 的連結各自決定顏色，避免整張卡片變藍） */
+.public-site a:not([class]) { color: var(--blue-500); text-underline-offset: 3px; }
+.public-site a:not([class]):hover { color: var(--pink-600); }
+
+@media (prefers-reduced-motion: reduce) {
+  .public-site *,
+  .public-site *::before,
+  .public-site *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer base {
@@ -31,8 +69,35 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
 
-    /* 全站 Banner / 卡片統一圓角（用 rounded-banner 套用）。改這一個值即可一次調整所有網頁圓角。 */
-    --radius-banner: 1rem;
+    /* 全站 Banner / 卡片統一圓角（用 rounded-banner 套用）。改這一個值即可一次調整所有網頁圓角。
+       品牌規範 v3：與 rounded-card 一致為 32px。 */
+    --radius-banner: 32px;
+
+    /* ── 品牌規範 v3（docs/BRAND_GUIDELINES.md §8.1）── */
+    /* 品牌色 */
+    --blue-50: #eef5ff; --blue-100: #dceaff; --blue-200: #b5d3ff; --blue-300: #7fb2fb; --blue-400: #3d8af2;
+    --blue-500: #0967e7; --blue-600: #0753bd; --blue-700: #064196; --blue-800: #08326f; --blue-900: #0b2349;
+    --pink-50: #fff0f7; --pink-100: #ffdcec; --pink-200: #ffb3d6; --pink-300: #ff7ab8; --pink-400: #ff3d9b;
+    --pink-500: #ff0084; --pink-600: #d6006f; --pink-700: #a8005a; --pink-800: #7a0743; --pink-900: #4d0a2d;
+    /* 基礎色 */
+    --ink: #1f2333; --text: #4b5063; --line-strong: #c6c9d4; --line: #e3e5ee;
+    --tint: #f3f1ec; --paper: #fcfaf6; --surface: #ffffff;
+    /* 輔助色 */
+    --star-100: #fff4d6; --star-500: #ffc23d; --star-800: #8a5a00;
+    --leaf-100: #dcf5ea; --leaf-500: #21b07a; --leaf-800: #0f6646;
+    /* 語意色 */
+    --success: #1f9d68; --success-bg: #dcf5ea; --success-fg: #0f6646;
+    --warning: #e09b00; --warning-bg: #fff4d6; --warning-fg: #8a5a00;
+    --error: #e0482a;   --error-bg: #fdebe6;   --error-fg: #9c2a14;
+    /* 按鈕漸層（135°，45–55% 之間明顯轉深） */
+    --btn-primary: linear-gradient(135deg, #5aa0ff 0%, #2a7cf3 45%, #0967e7 55%, #0546a8 100%);
+    --btn-accent: linear-gradient(135deg, #ff6bb5 0%, #ff2d97 45%, #ff0084 55%, #e6007a 100%);
+    --btn-secondary: linear-gradient(135deg, #565d7a 0%, #3a3f58 45%, #1f2333 55%, #0e1120 100%);
+    --btn-soft: linear-gradient(135deg, #ffffff 0%, #f6f3ec 45%, #e9e4d8 55%, #ddd6c6 100%);
+    /* 陰影（帶藍色調） */
+    --shadow-sm: 0 2px 6px rgba(9, 40, 100, .06);
+    --shadow-md: 0 10px 30px rgba(9, 40, 100, .10);
+    --shadow-lg: 0 24px 60px rgba(9, 40, 100, .16);
 
     /* Admin UI accent palette (shared with packages/ui admin components)
        Polaris values approximate Tailwind blue-*. */
@@ -77,53 +142,50 @@
   }
 }
 
-/* 文章內容樣式 */
+/* 文章內容樣式（品牌規範 §4.2–4.3） */
 .prose-content {
-  @apply max-w-none text-gray-800 leading-relaxed;
+  @apply max-w-prose text-text;
 }
 
 .prose-content h1 {
-  @apply text-3xl font-bold text-gray-900 mt-8 mb-6 leading-tight;
+  @apply font-heading font-normal text-[32px] md:text-h1 text-ink mt-12 mb-6;
 }
 
 .prose-content h2 {
-  @apply text-2xl font-semibold text-gray-900 mt-6 mb-4 leading-tight;
+  @apply font-heading font-normal text-[26px] md:text-h2 text-ink mt-12 mb-6;
 }
 
 .prose-content h3 {
-  @apply text-xl font-semibold text-gray-900 mt-5 mb-3 leading-tight;
+  @apply font-heading font-normal text-[22px] md:text-h3 text-ink mt-10 mb-5;
 }
 
 .prose-content h4 {
-  @apply text-lg font-semibold text-gray-900 mt-4 mb-2;
+  @apply font-heading font-normal text-[18px] md:text-h4 text-ink mt-8 mb-4;
 }
 
-.prose-content h5 {
-  @apply text-base font-semibold text-gray-900 mt-3 mb-2;
-}
-
+.prose-content h5,
 .prose-content h6 {
-  @apply text-sm font-semibold text-gray-900 mt-3 mb-2;
+  @apply font-body font-bold text-base text-ink mt-6 mb-3;
 }
 
 .prose-content p {
-  @apply mb-4 leading-7;
+  @apply mb-[1em];
 }
 
 .prose-content a {
-  @apply text-brand-purple-700 hover:text-brand-purple-900 underline decoration-brand-purple-200 hover:decoration-brand-purple-400 transition-colors;
+  @apply text-blue-500 underline underline-offset-[3px] hover:text-pink-600 transition-colors;
 }
 
 .prose-content ul {
-  @apply list-disc pl-6 mb-4 space-y-1;
+  @apply list-disc pl-6 mb-[1em] space-y-1;
 }
 
 .prose-content ol {
-  @apply list-decimal pl-6 mb-4 space-y-1;
+  @apply list-decimal pl-6 mb-[1em] space-y-1;
 }
 
-.prose-content li {
-  @apply leading-relaxed;
+.prose-content li::marker {
+  @apply text-blue-500;
 }
 
 .prose-content li > p {
@@ -131,43 +193,48 @@
 }
 
 .prose-content blockquote {
-  @apply border-l-4 border-warm-400 pl-6 py-2 my-6 italic text-gray-700 bg-warm-50 rounded-r-lg;
+  @apply bg-blue-50 text-blue-800 rounded-inner px-6 py-5 my-8 font-heading not-italic border-0;
+}
+
+.prose-content mark {
+  background: linear-gradient(transparent 60%, #ffb3d6 60%);
+  color: inherit;
 }
 
 .prose-content img {
-  @apply rounded-lg max-w-full h-auto my-6 shadow-sm;
+  @apply rounded-card max-w-full h-auto my-8;
 }
 
 .prose-content code {
-  @apply bg-gray-100 text-gray-800 rounded px-2 py-1 text-sm font-mono;
+  @apply bg-tint text-ink rounded-md px-1.5 py-0.5 text-[0.9em] font-mono;
 }
 
 .prose-content pre {
-  @apply bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto my-6 text-sm;
+  @apply bg-ink text-[#D5D7E0] rounded-inner p-5 overflow-x-auto my-8 text-sm;
 }
 
 .prose-content pre code {
-  @apply bg-transparent text-gray-100 p-0;
+  @apply bg-transparent text-inherit p-0;
 }
 
 .prose-content table {
-  @apply w-full border-collapse border border-gray-300 my-6;
+  @apply w-full border-collapse my-8 text-small;
 }
 
 .prose-content th {
-  @apply border border-gray-300 px-4 py-2 bg-gray-100 font-semibold text-left;
+  @apply border-b-2 border-line-strong px-4 py-2 font-bold text-ink text-left;
 }
 
 .prose-content td {
-  @apply border border-gray-300 px-4 py-2;
+  @apply border-b border-line px-4 py-2;
 }
 
 .prose-content hr {
-  @apply my-8 border-gray-200;
+  @apply my-12 border-line;
 }
 
 .prose-content strong {
-  @apply font-semibold text-gray-900;
+  @apply font-bold text-ink;
 }
 
 .prose-content em {

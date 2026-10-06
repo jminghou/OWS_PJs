@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ReportLayout({ children }: { children: React.ReactNode }) {
-  return <div className="bg-warm-50 min-h-[calc(100vh-3.5rem)]">{children}</div>;
+  return <div className="min-h-[calc(100vh-72px)] bg-paper">{children}</div>;
 }

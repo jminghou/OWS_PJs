@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Button from '@/components/platform/ui/Button';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import BrandButton from '@/components/ui/BrandButton';
 import StepFields from './StepFields';
 import { REPORT_PRODUCT, productHref } from '@/lib/report/catalog';
 import { emptyDraft, hasErrors, loadDraft, saveDraft, tidyDraft, type DraftErrors, type ReportDraft } from '@/lib/report/draft';
@@ -79,19 +80,21 @@ export default function ReportWizard({ slug }: { slug: string }) {
   const progress = Math.round(((index + 1) / steps.length) * 100);
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>第 {index + 1} / {steps.length} 步</span>
-        <span>資料會自動保存在這台裝置 7 天</span>
+    <div className="mx-auto max-w-xl px-4 py-12 md:px-6 md:py-16">
+      <div className="flex items-center justify-between gap-4 text-caption text-muted">
+        <span className="whitespace-nowrap">
+          第 <span className="font-latin font-semibold text-blue-500">{index + 1}</span> / <span className="font-latin">{steps.length}</span> 步
+        </span>
+        <span className="text-right">資料會自動保存在這台裝置 7 天</span>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-warm-200" role="progressbar"
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line" role="progressbar"
            aria-valuenow={index + 1} aria-valuemin={1} aria-valuemax={steps.length}>
-        <div className="h-full rounded-full bg-brand-purple-600 transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-full rounded-full bg-blue-500 transition-[width] duration-300 ease-out" style={{ width: `${progress}%` }} />
       </div>
 
       <form onSubmit={goNext} noValidate className="mt-10">
-        <h1 className="text-2xl font-bold leading-snug text-gray-900">{step.title}</h1>
-        {step.hint && <p className="mt-2 text-sm text-gray-600">{step.hint}</p>}
+        <h1 className="font-heading text-[26px] font-normal text-ink md:text-h2">{step.title}</h1>
+        {step.hint && <p className="mt-2 text-text">{step.hint}</p>}
 
         <div className="mt-8">
           <StepFields
@@ -105,13 +108,14 @@ export default function ReportWizard({ slug }: { slug: string }) {
         </div>
 
         <div className="mt-10 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button type="button" onClick={goBack} className="text-sm text-brand-purple-700 hover:underline">
-            ← {index > 0 ? '上一步' : returnTo ? '回到預覽' : '返回商品介紹'}
-          </button>
-          <Button type="submit" disabled={timeUnknown}
-                  className="bg-brand-purple-600 hover:bg-brand-purple-700 disabled:opacity-50 sm:min-w-[12rem]">
+          <BrandButton type="button" onClick={goBack} variant="soft" className="w-full sm:w-auto">
+            <ArrowLeft className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+            {index > 0 ? '上一步' : returnTo ? '回到預覽' : '返回商品介紹'}
+          </BrandButton>
+          <BrandButton type="submit" disabled={timeUnknown} variant="primary" className="w-full sm:w-auto sm:min-w-[12rem]">
             {isLast ? '看看我的報告' : '下一步'}
-          </Button>
+            <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+          </BrandButton>
         </div>
       </form>
     </div>

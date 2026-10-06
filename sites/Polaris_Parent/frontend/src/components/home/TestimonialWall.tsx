@@ -35,8 +35,11 @@ export default function TestimonialWall({ widgetId, heading }: TestimonialWallPr
   if (!widgetId && process.env.NODE_ENV === 'production') return null;
 
   return (
-    <section aria-labelledby="home-testimonials-heading" className="scroll-mt-20">
-      <h2 id="home-testimonials-heading" className="mx-auto max-w-[680px] text-xl font-bold text-gray-900">
+    <section aria-labelledby="home-testimonials-heading" className="scroll-mt-24">
+      <h2
+        id="home-testimonials-heading"
+        className="mx-auto max-w-[680px] font-heading text-[26px] font-normal leading-[1.35] text-ink [text-wrap:pretty] md:text-h2"
+      >
         {heading}
       </h2>
       <div className="mt-8">
@@ -44,11 +47,11 @@ export default function TestimonialWall({ widgetId, heading }: TestimonialWallPr
           // data-mode="shadow"：widget 渲染在 shadow DOM 裡，樣式與本站互不干擾
           <div className="senja-embed" data-id={widgetId} data-mode="shadow" data-lazyload="false" />
         ) : (
-          <div className="rounded-banner border-2 border-dashed border-warm-300 bg-white/60 px-6 py-16 text-center text-gray-500">
-            <p className="font-medium text-gray-700">回饋牆預留位置（只在開發環境顯示）</p>
-            <p className="mt-2 text-sm">
-              在 <code className="rounded bg-warm-100 px-1.5 py-0.5">.env.local</code> 設定{' '}
-              <code className="rounded bg-warm-100 px-1.5 py-0.5">NEXT_PUBLIC_SENJA_WIDGET_ID</code> 後，這裡會顯示 Senja 的回饋牆。
+          <div className="rounded-card border-2 border-dashed border-line-strong bg-paper px-6 py-16 text-center text-muted">
+            <p className="font-medium text-text">回饋牆預留位置（只在開發環境顯示）</p>
+            <p className="mt-2 text-small">
+              在 <code className="rounded-sm2 bg-tint px-1.5 py-0.5">.env.local</code> 設定{' '}
+              <code className="rounded-sm2 bg-tint px-1.5 py-0.5">NEXT_PUBLIC_SENJA_WIDGET_ID</code> 後，這裡會顯示 Senja 的回饋牆。
             </p>
           </div>
         )}

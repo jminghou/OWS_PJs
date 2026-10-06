@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Button from '@/components/platform/ui/Button';
+import BrandButton from '@/components/ui/BrandButton';
 import { emptyDraft, loadDraft, saveDraft, type ReportDraft } from '@/lib/report/draft';
 import { PREVIEW_HREF, REPORT_STEPS, firstIncompleteStep, stepHref } from '@/lib/report/steps';
 
@@ -41,19 +41,18 @@ function Start() {
   };
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-16 sm:px-6">
-      <h1 className="text-2xl font-bold text-gray-900">要接續上次填寫的資料嗎？</h1>
-      <p className="mt-3 text-sm leading-6 text-gray-600">
-        這台裝置還保存著一份尚未下單的報告資料（主角：{saved.subject_name}）。填寫內容會在這台裝置保留 7 天。
+    <div className="mx-auto max-w-xl px-4 py-16 md:px-6 md:py-24">
+      <h1 className="font-heading text-[26px] font-normal text-ink md:text-h2">要接續上次填寫的資料嗎？</h1>
+      <p className="mt-3 text-text">
+        這台裝置還保存著一份尚未下單的報告資料（主角：{saved.subject_name}）。填寫內容會在這台裝置保留 <span className="font-latin">7</span> 天。
       </p>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Button onClick={resume} className="bg-brand-purple-600 hover:bg-brand-purple-700 sm:min-w-[12rem]">
+        <BrandButton onClick={resume} variant="primary" className="sm:min-w-[12rem]">
           接續填寫
-        </Button>
-        <button type="button" onClick={startFresh}
-                className="rounded-banner border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 hover:border-brand-purple-300">
+        </BrandButton>
+        <BrandButton onClick={startFresh} variant="soft">
           重新開始（清除舊資料）
-        </button>
+        </BrandButton>
       </div>
     </div>
   );

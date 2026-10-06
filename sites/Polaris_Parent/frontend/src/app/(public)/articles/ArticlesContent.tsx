@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { contentApi, categoryApi } from '@/lib/api';
 import { Content, ContentListResponse, Category } from '@/types';
-import { PostCard as PostCard } from '@ows/site-kit';
-import Button from '@/components/platform/ui/Button';
+import { BookOpen, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import BrandButton from '@/components/ui/BrandButton';
+import Alert from '@/components/ui/Alert';
+import { filterTag } from '@/components/ui/Tag';
+import ArticleCard, { ARTICLE_GRID, ArticleListSkeleton, SEARCH_INPUT } from './ArticleCard';
 
 interface ArticlesContentProps {
   locale?: string;
@@ -126,26 +129,31 @@ export default function ArticlesContent({ locale }: ArticlesContentProps) {
   };
 
   if (loading) {
-    return <ArticlesLoading />;
+    return <ArticleListSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-600 text-lg">{error}</p>
-        <Button onClick={fetchPosts} className="mt-4">
+      <div className="mx-auto flex max-w-xl flex-col items-center gap-4 py-12">
+        <Alert tone="error" className="w-full">{error}</Alert>
+        <BrandButton variant="soft" onClick={fetchPosts}>
           重新載入
-        </Button>
+        </BrandButton>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 md:space-y-12">
       {/* 搜尋和篩選 */}
-      <div className="bg-white p-6 rounded-lg shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search
+              className="pointer-events-none absolute left-[18px] top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted"
+              strokeWidth={2}
+              aria-hidden="true"
+            />
             <input
               type="text"
               placeholder="搜尋親子教養文章..."
@@ -158,44 +166,42 @@ export default function ArticlesContent({ locale }: ArticlesContentProps) {
               }}
               onCompositionStart={() => setIsComposing(true)}
               onCompositionEnd={() => setIsComposing(false)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={SEARCH_INPUT}
             />
           </div>
-          <Button
-            onClick={handleSearch}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
+          <BrandButton variant="secondary" onClick={handleSearch}>
             搜尋
-          </Button>
+          </BrandButton>
         </div>
 
-        {/* 文章分類 */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">文章分類</h3>
+        {/* 文章分類（篩選標籤列） */}
+        <div>
+          <h3 className="mb-3 text-sm font-medium text-ink">文章分類</h3>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant={!activeFilters.category ? 'default' : 'outline'}
+            <button
+              type="button"
+              aria-pressed={!activeFilters.category}
               onClick={() => handleFilterChange('category', '')}
-              size="sm"
-              className={!activeFilters.category ? 'bg-blue-600 hover:bg-blue-700' : ''}
+              className={filterTag(!activeFilters.category)}
             >
               全部分類
-            </Button>
+            </button>
             {categories.map((category) => {
               // 從slugs中取得當前語言的名稱
               const currentLocale = locale || 'zh-TW';
               const categoryName = category.name || category.slugs?.[currentLocale] || category.code;
+              const selected = activeFilters.category === category.id.toString();
 
               return (
-                <Button
+                <button
                   key={category.id}
-                  variant={activeFilters.category === category.id.toString() ? 'default' : 'outline'}
+                  type="button"
+                  aria-pressed={selected}
                   onClick={() => handleFilterChange('category', category.id.toString())}
-                  size="sm"
-                  className={activeFilters.category === category.id.toString() ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                  className={filterTag(selected)}
                 >
                   {categoryName}
-                </Button>
+                </button>
               );
             })}
           </div>
@@ -205,88 +211,47 @@ export default function ArticlesContent({ locale }: ArticlesContentProps) {
       {/* 文章列表 */}
       {posts.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className={ARTICLE_GRID}>
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} imageAspect="3/4" />
+              <ArticleCard key={post.id} post={post} />
             ))}
           </div>
 
           {pagination && pagination.pages > 1 && (
-            <div className="flex justify-center items-center space-x-2">
-              <Button
-                variant="outline"
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <BrandButton
+                variant="soft"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={!pagination.has_prev}
               >
+                <ChevronLeft className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
                 上一頁
-              </Button>
+              </BrandButton>
 
-              <span className="text-sm text-gray-600">
-                第 {pagination.page} 頁，共 {pagination.pages} 頁
+              <span className="text-small text-muted">
+                第 <span className="font-latin">{pagination.page}</span> 頁，共 <span className="font-latin">{pagination.pages}</span> 頁
               </span>
 
-              <Button
-                variant="outline"
+              <BrandButton
+                variant="soft"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={!pagination.has_next}
               >
                 下一頁
-              </Button>
+                <ChevronRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              </BrandButton>
             </div>
           )}
         </>
       ) : (
-        <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-          <div className="text-6xl mb-4">📚</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">暫無文章</h3>
-          <p className="text-gray-500">
+        <div className="flex flex-col items-center rounded-card bg-white px-6 py-12 text-center md:px-8">
+          <BookOpen className="mb-4 h-12 w-12 text-blue-500" strokeWidth={2} aria-hidden="true" />
+          <h3 className="mb-2 font-heading text-[22px] font-normal text-ink md:text-h3">暫無文章</h3>
+          <p className="text-text">
             {activeFilters.search ? `沒有找到包含 "${activeFilters.search}" 的文章` : '目前還沒有親紫專欄文章'}
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-function ArticlesLoading() {
-  return (
-    <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-          </div>
-          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-        <div className="border-t pt-6">
-          <div className="h-6 w-24 bg-gray-200 rounded animate-pulse mb-4"></div>
-          <div className="flex gap-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow-sm border overflow-hidden">
-            <div className="aspect-square bg-gray-200 animate-pulse"></div>
-            <div className="p-6 space-y-4">
-              <div className="flex gap-2">
-                <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
-                <div className="h-6 w-12 bg-gray-200 rounded-full animate-pulse"></div>
-              </div>
-              <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -1,15 +1,22 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { JsonLd } from '@ows/site-kit';
 import { AuthorsSection as AuthorsSection } from '@ows/site-kit';
 import { buildAboutPageJsonLd, buildStaticPageAlternates } from '@ows/site-kit';
 import { authorApi } from '@/lib/api';
 import type { Author } from '@/types';
+import { brandButton } from '@/components/ui/BrandButton';
 
 // 從 i18n 訊息檔案載入翻譯（預設使用繁體中文）
 import zhTW from '@/i18n/messages/zh-TW.json';
 
 const t = zhTW.aboutPage;
+
+// 版面（docs/BRAND_GUIDELINES.md §5）：白卡片放在暖白底上、無邊框；區塊標題 h2 字級
+const CONTAINER = 'mx-auto max-w-4xl px-4 md:px-6';
+const CARD = 'rounded-card bg-white p-6 md:p-8';
+const H2 = 'mb-6 font-heading text-[26px] font-normal leading-[1.35] text-ink [text-wrap:pretty] md:text-h2';
 
 // ISR：關於頁很少變動，但作者資料需偶爾刷新
 export const revalidate = 3600;
@@ -33,36 +40,36 @@ export default async function AboutPage() {
   const authors = await getAuthors();
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="bg-paper">
       <JsonLd data={buildAboutPageJsonLd({ title: t.title, description: t.description })} />
-      <div className="prose prose-lg max-w-none">
-        {/* 個人故事區塊 */}
+      <div className={`${CONTAINER} py-16 md:py-24`}>
+        {/* 個人故事區塊：h1 ＋ lead（docs/BRAND_GUIDELINES.md §7.3） */}
         <section className="mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">
+          <h1 className="mb-8 text-center font-heading text-[32px] font-normal leading-[1.3] text-ink [text-wrap:pretty] md:text-h1">
             {t.aboutMe}
           </h1>
-          <div className="bg-warm-50 rounded-lg p-8 mb-8">
-            <p className="text-lg leading-relaxed text-gray-700">
+          <div className={CARD}>
+            <p className="text-[17px] leading-[1.8] text-text [text-wrap:pretty] md:text-lead">
               {t.story}
             </p>
           </div>
         </section>
 
-        {/* 品牌故事區塊 */}
+        {/* 品牌故事區塊：引言用 blockquote 樣式（§4.3、§7.3） */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">
+          <h2 className={H2}>
             {t.siteOriginTitle}
           </h2>
-          <div className="bg-brand-purple-50 rounded-lg p-8 mb-6">
-            <div className="border-l-4 border-brand-purple-500 pl-6 italic text-brand-purple-700 text-xl mb-6">
-              <p className="mb-2">
+          <div className={CARD}>
+            <blockquote className="mb-6 rounded-inner bg-blue-50 px-6 py-5 text-blue-800">
+              <p className="mb-2 font-heading text-[18px] leading-[1.45] [text-wrap:pretty] md:text-h4">
                 {t.quote}
               </p>
-              <p className="text-sm text-right text-gray-500">
+              <p className="text-right text-small">
                 {t.quoteAuthor}
               </p>
-            </div>
-            <p className="text-lg leading-relaxed text-gray-700">
+            </blockquote>
+            <p className="text-text [text-wrap:pretty]">
               {t.siteOrigin}
             </p>
           </div>
@@ -70,11 +77,11 @@ export default async function AboutPage() {
 
         {/* 品牌理念區塊 */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">
+          <h2 className={H2}>
             {t.missionTitle}
           </h2>
-          <div className="bg-gray-50 rounded-lg p-8">
-            <p className="text-lg leading-relaxed text-gray-700">
+          <div className={CARD}>
+            <p className="text-text [text-wrap:pretty]">
               {t.mission}
             </p>
           </div>
@@ -82,28 +89,25 @@ export default async function AboutPage() {
 
         {/* 作者區塊（E-E-A-T：把品牌與真實作者連結起來） */}
         <AuthorsSection authors={authors} locale="zh-TW" />
+      </div>
 
-        {/* 品牌使命區塊 */}
-        <section className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">
+      {/* 品牌使命區塊：交替底色 tint（§7.1） */}
+      <section className="bg-tint py-16 md:py-24">
+        <div className={`${CONTAINER} text-center`}>
+          <h2 className={H2}>
             {t.exploreTitle}
           </h2>
-          <p className="text-lg text-gray-600 mb-8 whitespace-pre-line">
+          <p className="mx-auto mb-8 max-w-prose whitespace-pre-line text-text [text-wrap:pretty]">
             {t.exploreDescription}
           </p>
           <div className="flex justify-center">
-            <Link
-              href="/contact"
-              className="inline-flex items-center px-8 py-4 bg-brand-purple-600 hover:bg-brand-purple-700 text-white font-medium rounded-lg transition-colors"
-            >
+            <Link href="/contact" className={brandButton({ variant: 'primary', size: 'L' })}>
               {t.contactBtn}
-              <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
+              <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             </Link>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

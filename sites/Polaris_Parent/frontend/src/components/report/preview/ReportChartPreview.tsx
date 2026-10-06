@@ -31,7 +31,7 @@ export default function ReportChartPreview({ draft }: { draft: ReportDraft }) {
   const chart = useMemo(() => chartOf(draft), [draft]);
   if (!chart) {
     return (
-      <p className="rounded-banner bg-warm-50 p-4 text-sm text-gray-600">
+      <p className="rounded-inner bg-tint px-[18px] py-[14px] text-sm text-text">
         命盤預覽暫時無法顯示，不影響下單；報告會依你填寫的出生資料製作。
       </p>
     );

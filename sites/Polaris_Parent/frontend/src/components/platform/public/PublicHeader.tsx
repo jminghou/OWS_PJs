@@ -3,67 +3,64 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Menu, X } from 'lucide-react';
 import LanguageSwitcher from '@ows/site-kit/components/LanguageSwitcher';
 import { useAuthStore } from '@/store/auth';
+import { LogoLockup } from '@/components/ui/BrandLogo';
 
 // 多語言導航內容
 const navContent: Record<string, {
   siteName: string;
-  home: string;
-  about: string;
   articles: string;
   reports: string;
   contact: string;
   newsletter: string;
   openMenu: string;
+  closeMenu: string;
   account: string;
   logout: string;
 }> = {
   'zh-TW': {
     siteName: '親紫之間',
-    home: '首頁',
-    about: '關於我們',
     articles: '親紫專欄',
     reports: '購買報告',
     contact: '聯絡我們',
     newsletter: '電子報',
     openMenu: '打開主選單',
+    closeMenu: '關閉主選單',
     account: '會員中心',
     logout: '登出',
   },
   'zh-CN': {
     siteName: '亲紫之间',
-    home: '首页',
-    about: '关于我们',
     articles: '亲紫专栏',
     reports: '购买报告',
     contact: '联系我们',
     newsletter: '电子报',
     openMenu: '打开主菜单',
+    closeMenu: '关闭主菜单',
     account: '会员中心',
     logout: '登出',
   },
   'en': {
     siteName: 'Qin Zi Blog',
-    home: 'Home',
-    about: 'About',
     articles: 'Articles',
     reports: 'Buy a Report',
     contact: 'Contact',
     newsletter: 'Newsletter',
     openMenu: 'Open main menu',
+    closeMenu: 'Close main menu',
     account: 'My Account',
     logout: 'Logout',
   },
   'ja': {
     siteName: '親紫の間',
-    home: 'ホーム',
-    about: '私たちについて',
     articles: '記事',
     reports: 'レポートを購入',
     contact: 'お問い合わせ',
     newsletter: 'ニュースレター',
     openMenu: 'メニューを開く',
+    closeMenu: 'メニューを閉じる',
     account: 'マイページ',
     logout: 'ログアウト',
   },
@@ -71,8 +68,19 @@ const navContent: Record<string, {
 
 const locales = ['zh-TW', 'zh-CN', 'en', 'ja'];
 
+const PILL =
+  'rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors duration-150 ease-out ' +
+  'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100';
+// 目前頁面淡藍底；其他 hover 暖灰底（品牌規範 §6.6）
+const navClass = (active: boolean) => `${PILL} ${active ? 'bg-blue-50 text-blue-800' : 'text-ink hover:bg-tint'}`;
+const mobileItemClass = (active: boolean) =>
+  `block w-full rounded-full px-5 py-3 text-left text-[18px] font-medium transition-colors duration-150 ease-out ${
+    active ? 'bg-blue-50 text-blue-800' : 'text-ink hover:bg-tint'
+  }`;
+
 export default function PublicHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [i18nEnabled, setI18nEnabled] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -88,6 +96,24 @@ export default function PublicHeader() {
     setIsMenuOpen(false);
   }, [pathname]);
 
+  // 黏在頂端、頁面已捲動時才加陰影
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 0);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // 全螢幕選單打開時鎖住背後頁面的捲動
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMenuOpen]);
+
   const handleLogout = async () => {
     await logout();
     setIsMenuOpen(false);
@@ -99,10 +125,10 @@ export default function PublicHeader() {
   const currentLocale = locales.includes(pathLocale) ? pathLocale : 'zh-TW';
   const content = navContent[currentLocale] || navContent['zh-TW'];
   const basePath = currentLocale === 'zh-TW' ? '' : `/${currentLocale}`;
+  const homeHref = basePath || '/';
 
-  // 導覽一律是真正的頁面連結（首頁由站名連回）
+  // 首頁由 Logo 連回；排盤入口在首頁內文，頁首不另放「首頁」與「立即排盤」
   const navItems = [
-    { href: `${basePath}/about`, label: content.about },
     // 客製報告目前只有中文頁面（/report），各語系都連到同一頁
     { href: '/report', label: content.reports },
     { href: `${basePath}/articles`, label: content.articles },
@@ -130,27 +156,28 @@ export default function PublicHeader() {
   }, []);
 
   return (
-    <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14">
-          <div className="flex items-center">
-            <Link
-              href={basePath || '/'}
-              className="text-2xl font-bold text-brand-purple-700 hover:text-brand-purple-600 transition-colors"
-            >
-              {content.siteName}
-            </Link>
-          </div>
+    <header
+      className={`sticky top-0 z-50 border-b border-line bg-white transition-shadow duration-150 ease-out ${
+        isScrolled ? 'shadow-sm' : ''
+      }`}
+    >
+      <div className="mx-auto max-w-content px-4 md:px-6">
+        <div className="flex h-[72px] items-center justify-between gap-4">
+          <Link
+            href={homeHref}
+            aria-label={content.siteName}
+            className="rounded-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+          >
+            <LogoLockup name={content.siteName} markWidth={58} priority />
+          </Link>
 
-          <nav className="hidden md:flex items-center space-x-4">
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Main">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={isActive(item.href) ? 'page' : undefined}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-brand-purple-600 ${
-                  isActive(item.href) ? 'text-brand-purple-700' : 'text-gray-900'
-                }`}
+                className={navClass(isActive(item.href))}
               >
                 {item.label}
               </Link>
@@ -160,14 +187,12 @@ export default function PublicHeader() {
               <>
                 <Link
                   href="/account"
-                  className="text-brand-purple-700 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  aria-current={isActive('/account') ? 'page' : undefined}
+                  className={navClass(isActive('/account'))}
                 >
                   {content.account}
                 </Link>
-                <button
-                  onClick={handleLogout}
-                  className="text-gray-500 hover:text-brand-purple-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
+                <button onClick={handleLogout} className={`${PILL} text-muted hover:bg-tint hover:text-ink`}>
                   {content.logout}
                 </button>
               </>
@@ -175,67 +200,61 @@ export default function PublicHeader() {
             {i18nEnabled && <LanguageSwitcher />}
           </nav>
 
-          <div className="md:hidden flex items-center gap-2">
+          <div className="flex items-center gap-1 lg:hidden">
             {i18nEnabled && <LanguageSwitcher />}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-expanded={isMenuOpen}
               aria-controls="public-mobile-menu"
-              className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-purple-500 p-2 rounded-md"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-ink transition-colors hover:bg-tint focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
             >
-              <span className="sr-only">{content.openMenu}</span>
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                {isMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                )}
-              </svg>
+              <span className="sr-only">{isMenuOpen ? content.closeMenu : content.openMenu}</span>
+              {isMenuOpen ? (
+                <X className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <Menu className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+              )}
             </button>
           </div>
         </div>
       </div>
 
+      {/* 手機：全螢幕白底面板，項目 18px、間距 8px */}
       {isMenuOpen && (
-        <div className="md:hidden" id="public-mobile-menu">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+        <div
+          id="public-mobile-menu"
+          className="fixed inset-x-0 bottom-0 top-[72px] z-50 flex flex-col overflow-y-auto bg-white px-4 pb-8 pt-4 lg:hidden"
+        >
+          <nav className="flex flex-col gap-2" aria-label="Main">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={isActive(item.href) ? 'page' : undefined}
-                className={`hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium ${
-                  isActive(item.href) ? 'text-brand-purple-700' : 'text-gray-900'
-                }`}
+                className={mobileItemClass(isActive(item.href))}
               >
                 {item.label}
               </Link>
             ))}
             {isAuthenticated && (
               <>
-                <div className="border-t border-warm-100 my-1" />
+                <div className="my-2 border-t border-line" />
                 <Link
                   href="/account"
-                  className="text-brand-purple-700 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+                  aria-current={isActive('/account') ? 'page' : undefined}
+                  className={mobileItemClass(isActive('/account'))}
                 >
                   {content.account}
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-gray-500 hover:bg-warm-50 block w-full text-left px-3 py-2 rounded-md text-base font-medium"
+                  className="block w-full rounded-full px-5 py-3 text-left text-[18px] font-medium text-muted transition-colors hover:bg-tint hover:text-ink"
                 >
                   {content.logout}
                 </button>
               </>
             )}
-          </div>
+          </nav>
         </div>
       )}
     </header>
