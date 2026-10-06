@@ -1,22 +1,18 @@
 // 必須最先載入：注入站台識別到 @ows/site-kit（見該檔說明）
 import { SITE_URL } from '@/siteConfig';
 import type { Metadata } from 'next';
-import { Archivo, Huninn, Inter, Noto_Sans_TC } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 
 // 後台：拉丁字（英文/數字）走 Inter；中文一律走微軟正黑體（見 tailwind sans 設定）
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 // 公開站（docs/BRAND_GUIDELINES.md §4）：標題粉圓、內文思源黑體、數字與英文 Archivo。
-// subsets 只決定預載哪一段；中文字形由 Google 的 unicode-range 分片按需載入。
-const huninn = Huninn({ weight: '400', subsets: ['latin'], variable: '--font-huninn', display: 'swap' });
-const notoSansTC = Noto_Sans_TC({
-  weight: ['400', '500', '700'],
-  subsets: ['latin'],
-  variable: '--font-noto',
-  display: 'swap',
-});
-const archivo = Archivo({ weight: ['400', '600', '800'], subsets: ['latin'], variable: '--font-archivo', display: 'swap' });
+// 刻意不用 next/font/google：中文字型被切成上百個 unicode-range 分片，開發伺服器每編譯一頁都要
+// 全部重新下載，只要一條連線中途斷掉就會無限期卡住整個 dev server（2026-10-06 實測）。
+// 改由瀏覽器載入 Google Fonts 樣式表，中文字形照樣按需分片下載；CSS 變數在 globals.css 的 :root 定義。
+const BRAND_FONTS_CSS =
+  'https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Huninn&family=Noto+Sans+TC:wght@400;500;700&display=swap';
 
 export const metadata: Metadata = {
   // 讓 OG / Twitter / canonical 的相對網址能解析成絕對網址
@@ -63,9 +59,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-TW">
-      <body
-        className={`${inter.variable} ${huninn.variable} ${notoSansTC.variable} ${archivo.variable} font-sans`}
-      >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href={BRAND_FONTS_CSS} />
+      </head>
+      <body className={`${inter.variable} font-sans`}>
         {children}
       </body>
     </html>

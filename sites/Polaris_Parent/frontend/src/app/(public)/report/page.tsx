@@ -2,16 +2,17 @@ import Link from 'next/link';
 import { ArrowRight, ChevronDown } from 'lucide-react';
 import ReportBookCover from '@/components/report/ReportBookCover';
 import Tag from '@/components/ui/Tag';
-import { REPORT_CATALOG, REPORT_PRODUCTS, productHref } from '@/lib/report/catalog';
+import { REPORT_CATALOG, productHref } from '@/lib/report/catalog';
+import { loadReportProducts } from '@/lib/report/display';
 import { loadReportPrices } from '@/lib/report/prices';
 
-// 價格由商品後台設定；每 10 分鐘重新取得
+// 價格與卡片文字由商品後台設定；每 10 分鐘重新取得
 export const revalidate = 600;
 
 /** 所有客製報告的目錄頁：每份報告以書封呈現，點進去是該報告的商品頁。 */
 export default async function ReportCatalogPage() {
   // 目前所有報告共用同一組商品代碼；之後報告各自定價時改成依報告讀取
-  const prices = await loadReportPrices();
+  const [prices, products] = await Promise.all([loadReportPrices(), loadReportProducts()]);
 
   return (
     <div>
@@ -25,10 +26,10 @@ export default async function ReportCatalogPage() {
 
         <section id="reports" aria-label="報告列表" className="mt-12 scroll-mt-24">
           <p className="text-caption text-muted">
-            共 <span className="font-latin">{REPORT_PRODUCTS.length}</span> 份報告
+            共 <span className="font-latin">{products.length}</span> 份報告
           </p>
           <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 md:gap-x-6 lg:grid-cols-4">
-            {REPORT_PRODUCTS.map((p) => (
+            {products.map((p) => (
               <li key={p.slug}>
                 <Link
                   href={productHref(p)}

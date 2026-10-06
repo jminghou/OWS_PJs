@@ -115,7 +115,9 @@ class Product(db.Model):
             'views_count': self.views_count,
             'sales_count': self.sales_count,
             'detail_content_id': self.detail_content_id,
-            'has_detail': self.detail_content_id is not None
+            'has_detail': self.detail_content_id is not None,
+            # 站台自訂的前台顯示欄位（例如 Polaris 的 report_display）；meta_data 才放內部資料
+            'attributes': self.attributes or {},
         }
 
     def to_admin_dict(self) -> Dict[str, Any]:

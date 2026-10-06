@@ -271,7 +271,8 @@ def admin_create_product():
             sort_order=data.get('sort_order', 0),
             meta_title=data.get('meta_title'),
             meta_description=data.get('meta_description'),
-            detail_content_id=detail_content_id
+            detail_content_id=detail_content_id,
+            attributes=data['attributes'] if isinstance(data.get('attributes'), dict) else {},
         )
 
         tag_ids = data.get('tag_ids', [])
@@ -369,6 +370,12 @@ def admin_update_product(id):
         if 'tag_ids' in data:
             tags = Tag.query.filter(Tag.id.in_(data['tag_ids'])).all()
             product.tags = tags
+
+        # attributes 依頂層鍵合併：各站台用自己的鍵（例如 report_display），互不覆蓋
+        if isinstance(data.get('attributes'), dict):
+            merged = dict(product.attributes or {})
+            merged.update(data['attributes'])
+            product.attributes = merged  # 重新賦值新 dict 讓 SQLAlchemy 偵測到變更
 
         db.session.commit()
 

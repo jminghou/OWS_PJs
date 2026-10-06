@@ -77,6 +77,8 @@ interface ProductFormEditProps {
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
   onToggleStatus: () => void;
+  /** 站台注入的額外區塊（例如前台顯示設定），放在 SEO 設定之後 */
+  extraSection?: React.ReactNode;
 }
 
 type ProductFormProps = ProductFormCreateProps | ProductFormEditProps;
@@ -515,6 +517,9 @@ export default function ProductForm(props: ProductFormProps) {
               </div>
             </div>
           </section>
+
+          {/* === 站台自訂區塊 (edit only) === */}
+          {mode === 'edit' && (props as ProductFormEditProps).extraSection}
 
           {/* === 詳情內容關聯 (edit only) === */}
           {mode === 'edit' && (

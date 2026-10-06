@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ComponentType } from 'react';
 import { categoryApi, tagApi } from '@ows/platform-api';
 import { productApi } from '../../api/products';
 import { ProductAdmin, Category, Tag } from '@ows/platform-api/types';
@@ -9,6 +9,23 @@ import { AdminListLayout, AdminEmptyState } from '@ows/ui/admin';
 import { ProductSidebar, ProductForm } from './_components';
 import type { CreateFormData, EditFormData } from './_components';
 import { Package } from 'lucide-react';
+
+/**
+ * 站台自訂的 attributes 編輯區塊。站台頁面改用具名的 ProductsAdmin 傳進來：
+ *   export default function Page() { return <ProductsAdmin AttributesSection={MySection} />; }
+ * （default export 不收 props，才能被站台直接 re-export 成 Next.js page。）
+ * 區塊只會拿到、也只該改自己那個頂層鍵；後端依頂層鍵合併 attributes。
+ */
+export interface ProductAttributesSectionProps {
+  /** 商品代碼（shop.products.product_id） */
+  productId: string;
+  attributes: Record<string, any>;
+  onChange: (attributes: Record<string, any>) => void;
+}
+
+interface ProductsPageProps {
+  AttributesSection?: ComponentType<ProductAttributesSectionProps>;
+}
 
 const emptyCreateForm: CreateFormData = {
   product_id: '',
@@ -51,6 +68,10 @@ const emptyEditForm: EditFormData = {
 };
 
 export default function ProductsPage() {
+  return <ProductsAdmin />;
+}
+
+export function ProductsAdmin({ AttributesSection }: ProductsPageProps) {
   // List state
   const [products, setProducts] = useState<ProductAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +89,7 @@ export default function ProductsPage() {
   const [createForm, setCreateForm] = useState<CreateFormData>({ ...emptyCreateForm });
   const [editForm, setEditForm] = useState<EditFormData>({ ...emptyEditForm });
   const [selectedProduct, setSelectedProduct] = useState<ProductAdmin | null>(null);
+  const [attributes, setAttributes] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
 
   // Shared data
@@ -141,6 +163,7 @@ export default function ProductsPage() {
         meta_description: productData.meta_description || '',
         detail_content_id: productData.detail_content_id?.toString() || '',
       });
+      setAttributes(productData.attributes || {});
     } catch (error) {
       console.error('Failed to fetch product:', error);
       alert('載入產品失敗');
@@ -247,6 +270,8 @@ export default function ProductsPage() {
         meta_title: editForm.meta_title,
         meta_description: editForm.meta_description,
         detail_content_id: editForm.detail_content_id ? parseInt(editForm.detail_content_id) : undefined,
+        // 只有站台掛了自訂區塊才送；後端依頂層鍵合併
+        ...(AttributesSection ? { attributes } : {}),
       };
 
       await productApi.adminUpdate(selectedId, updateData);
@@ -349,6 +374,15 @@ export default function ProductsPage() {
               onSubmit={handleEditSubmit}
               onCancel={handleCancel}
               onToggleStatus={handleToggleStatus}
+              extraSection={
+                AttributesSection && (
+                  <AttributesSection
+                    productId={selectedProduct!.product_id}
+                    attributes={attributes}
+                    onChange={setAttributes}
+                  />
+                )
+              }
             />
           )
         ) : (

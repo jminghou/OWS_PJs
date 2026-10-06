@@ -74,6 +74,10 @@
     --radius-banner: 32px;
 
     /* ── 品牌規範 v3（docs/BRAND_GUIDELINES.md §8.1）── */
+    /* 字體：由 layout.tsx 的 Google Fonts 樣式表載入（不走 next/font，原因見該檔） */
+    --font-huninn: "Huninn";
+    --font-noto: "Noto Sans TC";
+    --font-archivo: "Archivo";
     /* 品牌色 */
     --blue-50: #eef5ff; --blue-100: #dceaff; --blue-200: #b5d3ff; --blue-300: #7fb2fb; --blue-400: #3d8af2;
     --blue-500: #0967e7; --blue-600: #0753bd; --blue-700: #064196; --blue-800: #08326f; --blue-900: #0b2349;

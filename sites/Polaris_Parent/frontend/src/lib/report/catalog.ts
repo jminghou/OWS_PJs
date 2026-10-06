@@ -33,6 +33,11 @@ export type HighlightIcon = 'users' | 'eye' | 'clock' | 'book' | 'pen';
 export interface ReportProduct {
   /** 網址代稱：/report/{slug} */
   slug: string;
+  /**
+   * 由哪一筆後台商品（shop.products.product_id）帶入顯示文字，通常是數位版。
+   * 後台「產品管理」的名稱、簡短描述與「前台顯示設定」會蓋過這裡的預設值（lib/report/display.ts）。
+   */
+  displayProductId: string;
   name: string;
   tagline: string;
   /** 目錄卡片上的一句話 */
@@ -41,22 +46,27 @@ export interface ReportProduct {
   badge?: string;
   /** 適用對象標籤，例如「適合所有年齡」 */
   audienceLabel: string;
-  cover: { eyebrow: string; title: string; subtitle: string; palette: CoverPalette };
-  /** 商品頁圖庫：第一張固定是書封，其餘是內頁示意 */
+  /** image：後台上傳的封面圖（有就顯示圖片，沒有就用 CSS 畫書封） */
+  cover: { eyebrow: string; title: string; subtitle: string; palette: CoverPalette; image?: string };
+  /** 商品頁圖庫：第一張固定是書封，其餘是內頁示意（後台沒上傳圖時顯示這些佔位說明） */
   gallery: string[];
+  /** 後台上傳的內頁圖（有任何一張就取代 gallery 的佔位框） */
+  galleryImages?: string[];
   highlights: { icon: HighlightIcon; text: string }[];
   intro: string[];
   testimonial: { quote: string; author: string };
   /** 可展開的詳細說明（對應 Wonderbly 的 How is it personalised / What's the story / Size & quality） */
   details: { title: string; body: string[] }[];
   /** 圖文特色區塊（對應 Wonderbly 的 When is a book not just a book / Add some extra magic） */
-  features: { title: string; body: string; image: string }[];
+  /** image 是佔位說明；imageUrl 是後台上傳的圖片 */
+  features: { title: string; body: string; image: string; imageUrl?: string }[];
   process: { title: string; body: string }[];
   faq: { q: string; a: string }[];
 }
 
 export const REPORT_PRODUCT: ReportProduct = {
   slug: 'natal-report',
+  displayProductId: 'natal-report-digital',
   name: '本命客製報告',
   tagline: '［佔位］一份只為一個人寫的命盤報告',
   cardDescription: '［佔位］依出生資料排出命盤，逐章寫成一本只屬於主角的報告。',

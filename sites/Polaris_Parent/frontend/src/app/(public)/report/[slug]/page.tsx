@@ -11,9 +11,11 @@ import {
   productBySlug,
   type HighlightIcon,
 } from '@/lib/report/catalog';
+import { loadReportProduct } from '@/lib/report/display';
 import { addonPrice, loadReportPrices } from '@/lib/report/prices';
+import { getImageUrl } from '@/lib/utils';
 
-// 價格由商品後台設定；每 10 分鐘重新取得
+// 價格與主區文字由商品後台設定；每 10 分鐘重新取得
 export const revalidate = 600;
 // 只接受目錄裡的報告；create / preview / checkout 等固定路徑不受影響
 export const dynamicParams = false;
@@ -62,9 +64,9 @@ function Accordion({ items }: { items: { title: string; body: React.ReactNode; o
 /** 單一報告的商品頁（版型參考 Wonderbly 商品頁）。預設數位版，實體書為加購選項。 */
 export default async function ReportProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = productBySlug(slug);
-  if (!product) notFound();
-  const prices = await loadReportPrices();
+  const base = productBySlug(slug);
+  if (!base) notFound();
+  const [product, prices] = await Promise.all([loadReportProduct(base), loadReportPrices()]);
   const addon = addonPrice(prices);
 
   return (
@@ -152,13 +154,23 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
       <section aria-label="特色" className="mt-16 space-y-12 md:mt-24 md:space-y-16">
         {product.features.map((f, i) => (
           <div key={f.title} className="grid grid-cols-1 items-center gap-6 md:grid-cols-2 md:gap-12">
-            <div
-              className={`flex aspect-[4/3] items-center justify-center rounded-[32px] bg-tint text-sm text-muted ${
-                i % 2 ? 'md:order-2' : ''
-              }`}
-            >
-              {f.image}
-            </div>
+            {f.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={getImageUrl(f.imageUrl, 'medium')}
+                alt={f.title}
+                loading="lazy"
+                className={`aspect-[4/3] w-full rounded-[32px] object-cover ${i % 2 ? 'md:order-2' : ''}`}
+              />
+            ) : (
+              <div
+                className={`flex aspect-[4/3] items-center justify-center rounded-[32px] bg-tint text-sm text-muted ${
+                  i % 2 ? 'md:order-2' : ''
+                }`}
+              >
+                {f.image}
+              </div>
+            )}
             <div>
               <h2 className="font-heading text-[22px] font-normal text-ink md:text-h3">{f.title}</h2>
               <p className="mt-3 text-text">{f.body}</p>

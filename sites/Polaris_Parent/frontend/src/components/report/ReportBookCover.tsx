@@ -1,5 +1,6 @@
 import type { CoverPalette, ReportProduct } from '@/lib/report/catalog';
 import { LogoMark, type LogoTone } from '@/components/ui/BrandLogo';
+import { getImageUrl } from '@/lib/utils';
 
 /**
  * 書封配色：品牌規範 v3 不用紫色與神祕漸層，改為平塗的品牌色。
@@ -27,21 +28,33 @@ interface ReportBookCoverProps {
 }
 
 /**
- * 報告的書封（尚無正式封面圖時以 CSS 繪製）。
- * 之後有設計稿可在 ReportProduct.cover 加圖片欄位，這裡改成顯示圖片。
+ * 報告的書封：後台有上傳封面圖（cover.image）就顯示圖片，否則以 CSS 繪製。
+ * 預覽頁會傳入主角姓名當書名（title），這時一律用 CSS 書封，才能把名字印在封面上。
  */
 export default function ReportBookCover({ product, title, subtitle, size = 'md', className = '' }: ReportBookCoverProps) {
   const c = PALETTES[product.cover.palette];
   const titleCls =
     size === 'lg' ? 'text-[28px]' : size === 'sm' ? 'text-[18px]' : size === 'xs' ? 'text-[9px]' : 'text-[22px]';
   const thumb = size === 'xs';
+  const shape = thumb ? 'rounded-l-sm rounded-r-md' : 'rounded-l-md rounded-r-sm2';
+  if (product.cover.image && title === undefined) {
+    return (
+      <div className={`relative aspect-[3/4] w-full overflow-hidden bg-tint shadow-md ${shape} ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={getImageUrl(product.cover.image, thumb ? 'small' : 'medium')}
+          alt={product.cover.title}
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
   // 單圖形最小 32px（規範 §2.3）；縮圖太小就不放 Logo
   const logoWidth = size === 'lg' ? 64 : size === 'md' ? 56 : 40;
   return (
     <div
-      className={`relative aspect-[3/4] w-full overflow-hidden ${
-        thumb ? 'rounded-l-sm rounded-r-md' : 'rounded-l-md rounded-r-sm2'
-      } ${c.bg} ${c.text} shadow-md ${className}`}
+      className={`relative aspect-[3/4] w-full overflow-hidden ${shape} ${c.bg} ${c.text} shadow-md ${className}`}
     >
       {/* 書背 */}
       <div className={`absolute inset-y-0 left-0 w-[7%] ${c.spine}`} aria-hidden="true" />

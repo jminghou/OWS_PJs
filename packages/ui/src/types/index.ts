@@ -354,6 +354,8 @@ export interface Product {
   currency_symbol?: string;
   available_languages?: string[];
   available_currencies?: string[];
+  /** 站台自訂的前台顯示欄位（JSONB），依頂層鍵分站台使用 */
+  attributes?: Record<string, any>;
 }
 
 export interface ProductAdmin {
@@ -390,6 +392,7 @@ export interface ProductAdmin {
   // 多語言欄位
   language?: string;
   original_id?: number;
+  attributes?: Record<string, any>;
 }
 
 export interface ProductListResponse {
@@ -421,6 +424,8 @@ export interface CreateProductData {
   meta_title?: string;
   meta_description?: string;
   detail_content_id?: number;
+  /** 更新時依頂層鍵合併，不會清掉其他鍵 */
+  attributes?: Record<string, any>;
 }
 
 // 產品價格管理類型
