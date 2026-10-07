@@ -64,6 +64,50 @@ export const homepageApi = {
   },
 };
 
+// ── 專欄頁頁頭（core: /settings/column-profile）────────────────────────────
+// 型別放這裡而非 @ows/ui/types：後者因 Claire 依賴而凍結（docs/FROZEN_CONTRACT.md）。
+
+export interface ColumnProfileLink {
+  label: string;
+  url: string;
+}
+
+export interface ColumnProfileFields {
+  name?: string;
+  subtitle?: string;
+  bio?: string;
+}
+
+/** 精選標籤圓圈。後台存 tag_id；公開端另外補上 code（篩選用）與當前語系的 name。 */
+export interface ColumnHighlight {
+  tag_id: number;
+  image_url: string;
+  code?: string;
+  name?: string;
+}
+
+export interface ColumnProfile {
+  avatar_url: string;
+  links: ColumnProfileLink[];
+  actions: ColumnProfileLink[];
+  highlights: ColumnHighlight[];
+  locales: Record<string, ColumnProfileFields>;
+}
+
+export const columnProfileApi = {
+  getProfile: async (language?: string, options: FetchOptions = {}): Promise<ColumnProfile> =>
+    request<ColumnProfile>('/settings/column-profile', { params: language ? { language } : {}, ...options }),
+
+  getAdminProfile: async (): Promise<ColumnProfile> =>
+    request<ColumnProfile>('/settings/column-profile/admin', { cache: 'no-store' }),
+
+  updateProfile: async (data: ColumnProfile): Promise<{ message: string; column_profile: ColumnProfile }> =>
+    request<{ message: string; column_profile: ColumnProfile }>('/settings/column-profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
 // 已移除（P2 契約比對）：homepageApi.uploadSlideImage 打的
 // POST /settings/homepage/upload 在 core 不存在，兩站也沒有呼叫。
 // 幻燈片圖片實際走的是媒體庫（/media-lib/files）。

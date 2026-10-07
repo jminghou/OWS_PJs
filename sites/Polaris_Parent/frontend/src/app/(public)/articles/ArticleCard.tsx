@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * 文章卡（docs/BRAND_GUIDELINES.md §6.5）與列表骨架。
+ * 文章卡（docs/BRAND_GUIDELINES.md §6.5）。
  *
- * 親紫專欄（/articles、/posts 與其 [locale] 版本）共用。@ows/site-kit 的 PostCard 是跨站台共用元件，
+ * 作者頁與文章頁的「相關推薦」使用；專欄總覽改用 IG 式方格（./column/ColumnGrid）。@ows/site-kit 的 PostCard 是跨站台共用元件，
  * 不改它；這裡依 Polaris 品牌規範另做一張卡，資料欄位與連結（/posts/{slug}）與原本相同。
  */
 
@@ -95,54 +95,5 @@ export default function ArticleCard({
   );
 }
 
-/** 搜尋框（規範 §6.3 文字輸入框，左側留給放大鏡圖示） */
-export const SEARCH_INPUT =
-  'w-full rounded-2xl border-[1.5px] border-line-strong bg-white py-[13px] pl-12 pr-[18px] text-base text-ink ' +
-  'placeholder:text-muted transition-[border-color,box-shadow] duration-150 ease-out ' +
-  'focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100';
-
-/** 單張文章卡骨架 */
-export function ArticleCardSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-card bg-white">
-      <div className="m-3 aspect-square animate-pulse rounded-[24px] bg-tint" />
-      <div className="flex flex-col gap-2.5 px-6 pb-6 pt-4">
-        <div className="flex gap-2">
-          <div className="h-7 w-16 animate-pulse rounded-full bg-tint" />
-          <div className="h-7 w-24 animate-pulse rounded-full bg-tint" />
-        </div>
-        <div className="h-6 animate-pulse rounded-inner bg-tint" />
-        <div className="h-4 animate-pulse rounded-inner bg-tint" />
-        <div className="h-4 w-2/3 animate-pulse rounded-inner bg-tint" />
-      </div>
-    </div>
-  );
-}
-
 /** 文章卡網格：桌面 3 欄／平板 2 欄／手機 1 欄，卡片間距 16（手機）／24（桌面） */
 export const ARTICLE_GRID = 'grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3';
-
-/** 親紫專欄列表骨架：搜尋列 → 篩選標籤列 → 文章卡網格 */
-export function ArticleListSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="h-12 flex-1 animate-pulse rounded-2xl bg-tint" />
-          <div className="h-12 w-24 animate-pulse rounded-full bg-tint" />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-8 w-20 animate-pulse rounded-full bg-tint" />
-          ))}
-        </div>
-      </div>
-
-      <div className={ARTICLE_GRID}>
-        {[...Array(6)].map((_, i) => (
-          <ArticleCardSkeleton key={i} />
-        ))}
-      </div>
-    </div>
-  );
-}

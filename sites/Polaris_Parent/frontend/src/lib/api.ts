@@ -13,6 +13,7 @@ export {
   paymentMethodApi,
   i18nApi,
   homepageApi,
+  columnProfileApi,
   userApi,
   submissionApi,
   authorApi,
@@ -25,6 +26,7 @@ export {
 } from './api/index';
 
 export type { FetchOptions, I18nSettings, AuthorContentCard, AuthorDetailResponse } from './api/index';
+export type { ColumnProfile, ColumnProfileFields, ColumnProfileLink, ColumnHighlight } from './api/index';
 export type {
   ReportOrderSummary, ShippingInfo, AdminReportOrder, BankInfo, TransferReport, PaymentMode,
 } from './api/index';

@@ -7,6 +7,8 @@ Provides endpoints for system settings:
 - POST /settings/i18n/languages - Add language (admin)
 - GET /settings/homepage - Get homepage settings (public)
 - PUT /settings/homepage - Update homepage settings (editor)
+- GET /settings/column-profile - Get column page profile (public)
+- PUT /settings/column-profile - Update column page profile (editor)
 """
 
 from flask import jsonify, request, current_app
@@ -18,7 +20,7 @@ from datetime import datetime
 from core.backend_engine.factory import db
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.blueprints.api.utils import get_i18n_setting
-from core.backend_engine.models import Setting, User, HomepageSlide, HomepageSettings
+from core.backend_engine.models import Setting, User, HomepageSlide, HomepageSettings, Tag
 from core.backend_engine.services.rbac import require_permission
 from core.backend_engine.services.revalidate import trigger_frontend_revalidate
 
@@ -223,6 +225,144 @@ def validate_hero_intro(value):
     if not isinstance(image_url, str) or len(image_url) > 500 or (image_url and not image_url.startswith(('/', 'http://', 'https://'))):
         raise ValueError('Hero intro image_url must be a site path or http(s) URL')
     return {'image_url': image_url, 'locales': locales}
+
+
+# ==================== Column Profile Settings ====================
+# 專欄頁（文章總覽）的 IG 式頁頭：頭像、各語系名稱／簡介、外部連結、行動按鈕、
+# 以及一排「精選標籤」圓圈（指向既有標籤，可各配一張圖）。存在 Setting 表，不需 migration。
+
+_COLUMN_PROFILE_KEY = 'column_profile'
+_COLUMN_PROFILE_FIELDS = {'name': 60, 'subtitle': 120, 'bio': 600}
+_COLUMN_LINK_LABEL_MAX = 40
+_COLUMN_MAX_LINKS = 3
+_COLUMN_MAX_ACTIONS = 2
+_COLUMN_MAX_HIGHLIGHTS = 20
+
+
+def _validate_url(value, field, site_path_ok=True):
+    if not isinstance(value, str) or len(value) > 500:
+        raise ValueError(f'{field} must be text up to 500 characters')
+    value = value.strip()
+    prefixes = ('/', 'http://', 'https://') if site_path_ok else ('http://', 'https://')
+    if value and (not value.startswith(prefixes) or value.startswith('//')):
+        raise ValueError(f'{field} must be a site path or http(s) URL')
+    return value
+
+
+def _validate_link_list(items, field, limit):
+    if not isinstance(items, list) or len(items) > limit:
+        raise ValueError(f'{field} accepts up to {limit} items')
+    cleaned = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError(f'Invalid {field} item')
+        label = item.get('label', '')
+        if not isinstance(label, str) or len(label) > _COLUMN_LINK_LABEL_MAX:
+            raise ValueError(f'{field} label must be text up to {_COLUMN_LINK_LABEL_MAX} characters')
+        url = _validate_url(item.get('url', ''), f'{field} url')
+        if label.strip() and url:
+            cleaned.append({'label': label.strip(), 'url': url})
+    return cleaned
+
+
+def validate_column_profile(value):
+    """Normalize the column profile; unknown keys are dropped, malformed values are rejected."""
+    if not isinstance(value, dict) or not isinstance(value.get('locales', {}), dict):
+        raise ValueError('Invalid column profile')
+    if len(value.get('locales', {})) > 12:
+        raise ValueError('Too many column profile locales')
+    locales = {}
+    for locale, fields in value.get('locales', {}).items():
+        if not isinstance(locale, str) or not _LOCALE_RE.match(locale) or not isinstance(fields, dict):
+            raise ValueError('Invalid column profile locale')
+        cleaned = {}
+        for name, limit in _COLUMN_PROFILE_FIELDS.items():
+            text = fields.get(name, '')
+            if not isinstance(text, str) or len(text) > limit:
+                raise ValueError(f'Column profile {name} must be text up to {limit} characters')
+            if text.strip():
+                cleaned[name] = text.strip()
+        locales[locale] = cleaned
+
+    highlights = value.get('highlights', [])
+    if not isinstance(highlights, list) or len(highlights) > _COLUMN_MAX_HIGHLIGHTS:
+        raise ValueError(f'Highlights accept up to {_COLUMN_MAX_HIGHLIGHTS} tags')
+    cleaned_highlights, seen = [], set()
+    for item in highlights:
+        if not isinstance(item, dict) or type(item.get('tag_id')) is not int or item['tag_id'] <= 0:
+            raise ValueError('Each highlight requires a positive integer tag_id')
+        if item['tag_id'] in seen:
+            continue
+        seen.add(item['tag_id'])
+        cleaned_highlights.append({
+            'tag_id': item['tag_id'],
+            'image_url': _validate_url(item.get('image_url') or '', 'Highlight image_url'),
+        })
+
+    return {
+        'avatar_url': _validate_url(value.get('avatar_url') or '', 'avatar_url'),
+        'links': _validate_link_list(value.get('links', []), 'links', _COLUMN_MAX_LINKS),
+        'actions': _validate_link_list(value.get('actions', []), 'actions', _COLUMN_MAX_ACTIONS),
+        'highlights': cleaned_highlights,
+        'locales': locales,
+    }
+
+
+def _empty_column_profile():
+    return {'avatar_url': '', 'links': [], 'actions': [], 'highlights': [], 'locales': {}}
+
+
+def _load_column_profile():
+    setting = Setting.query.filter_by(key=_COLUMN_PROFILE_KEY).first()
+    try:
+        return validate_column_profile(json.loads(setting.value)) if setting and setting.value else _empty_column_profile()
+    except (ValueError, TypeError):
+        return _empty_column_profile()
+
+
+@bp.route('/settings/column-profile', methods=['GET'])
+def api_get_column_profile():
+    """Public: profile plus highlights resolved to live tags (name in the requested language, code for filtering)."""
+    profile = _load_column_profile()
+    language = request.args.get('language') or get_i18n_setting('i18n_default_language', 'zh-TW')
+    ids = [h['tag_id'] for h in profile['highlights']]
+    tags = {t.id: t for t in Tag.query.filter(Tag.id.in_(ids)).all()} if ids else {}
+    profile['highlights'] = [
+        {**h, 'code': tags[h['tag_id']].code, 'name': tags[h['tag_id']].get_slug(language)}
+        for h in profile['highlights'] if h['tag_id'] in tags  # 已刪除的標籤直接略過
+    ]
+    return jsonify(profile), 200
+
+
+@bp.route('/settings/column-profile/admin', methods=['GET'])
+@jwt_required()
+@require_permission('contents.update')
+def api_get_admin_column_profile():
+    """Raw stored profile for the editor (tag ids only, no resolution)."""
+    return jsonify(_load_column_profile()), 200
+
+
+@bp.route('/settings/column-profile', methods=['PUT'])
+@jwt_required()
+@require_permission('contents.update')
+def api_update_column_profile():
+    """Replace the column profile (requires contents.update)"""
+    try:
+        profile = validate_column_profile(request.get_json(silent=True))
+    except ValueError as error:
+        return jsonify({'message': str(error)}), 400
+    setting = Setting.query.filter_by(key=_COLUMN_PROFILE_KEY).first()
+    if not setting:
+        setting = Setting(key=_COLUMN_PROFILE_KEY)
+        db.session.add(setting)
+    setting.value = json.dumps(profile, ensure_ascii=False)
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Database error: {str(e)}'}), 500
+    trigger_frontend_revalidate(['/articles', '/posts', '/[locale]/articles', '/[locale]/posts'])
+    return jsonify({'message': 'Column profile updated', 'column_profile': profile}), 200
 
 
 def _parse_datetime(value):

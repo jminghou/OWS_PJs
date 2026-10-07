@@ -1,7 +1,10 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import PostsContent from '@/app/(public)/posts/PostsContent';
-import { ArticleListSkeleton } from '@/app/(public)/articles/ArticleCard';
+import ColumnPage from '@/app/(public)/articles/column/ColumnPage';
+import { ColumnPageSkeleton } from '@/app/(public)/articles/column/ColumnGrid';
+import { getColumnProfile } from '@/lib/columnProfile';
+
+export const revalidate = 60;
 
 // 多語言標題和描述
 const localeContent: Record<string, { title: string; pageTitle: string; description: string }> = {
@@ -42,23 +45,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LocalePostsPage({ params }: PageProps) {
   const { locale } = await params;
-  const content = localeContent[locale] || localeContent['zh-TW'];
+  const profile = await getColumnProfile(locale);
 
   return (
     <div className="min-h-[calc(100vh-72px)] bg-paper">
-      <div className="mx-auto max-w-content px-4 pb-16 pt-12 md:px-6 md:pb-24 md:pt-16">
-        <header className="mb-8 md:mb-12">
-          <h1 className="font-heading text-[32px] font-normal text-ink [text-wrap:pretty] md:text-h1">
-            {content.pageTitle}
-          </h1>
-          <p className="mt-4 max-w-prose text-[17px] text-text [text-wrap:pretty] md:text-lead">
-            {content.description}
-          </p>
-        </header>
-        <Suspense fallback={<ArticleListSkeleton />}>
-          <PostsContent locale={locale} />
-        </Suspense>
-      </div>
+      <Suspense fallback={<ColumnPageSkeleton />}>
+        <ColumnPage profile={profile} locale={locale} />
+      </Suspense>
     </div>
   );
 }

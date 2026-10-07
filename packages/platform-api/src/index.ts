@@ -33,8 +33,14 @@ export {
 } from './imageUtils';
 export type { ImageSize } from './imageUtils';
 
-export { i18nApi, homepageApi } from './settings';
-export type { I18nSettings } from './settings';
+export { i18nApi, homepageApi, columnProfileApi } from './settings';
+export type {
+  I18nSettings,
+  ColumnProfile,
+  ColumnProfileFields,
+  ColumnProfileLink,
+  ColumnHighlight,
+} from './settings';
 export { userApi, submissionApi } from './users';
 export { authorApi } from './authors';
 export type { AuthorContentCard, AuthorDetailResponse } from './authors';
