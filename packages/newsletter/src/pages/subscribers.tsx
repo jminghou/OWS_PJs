@@ -87,10 +87,10 @@ export default function SubscribersPage() {
 
   return (
     <AdminLayout>
-      <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="mx-auto max-w-5xl px-4 md:px-6 py-6 md:py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">電子報訂閱</h1>
+            <h1 className="text-xl md:text-2xl font-semibold text-foreground">電子報訂閱</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               發報時請匯出「已確認」名單到寄信工具；CSV 每列附該訂閱者的退訂連結，請放進信件頁尾。
             </p>
@@ -115,14 +115,14 @@ export default function SubscribersPage() {
         )}
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <div className="flex gap-1 rounded-lg bg-muted p-1">
+          <div className="flex gap-1 rounded-lg bg-muted p-1 max-w-full overflow-x-auto">
             {FILTERS.map((filter) => (
               <button
                 key={filter}
                 type="button"
                 onClick={() => { setStatus(filter); setPage(1); }}
                 aria-pressed={status === filter}
-                className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                className={`flex-shrink-0 whitespace-nowrap rounded-md px-3 py-2 md:py-1.5 text-sm transition-colors ${
                   status === filter ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -137,7 +137,7 @@ export default function SubscribersPage() {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="搜尋 Email"
             aria-label="搜尋 Email"
-            className="min-w-[200px] flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500"
+            className="w-full sm:w-auto sm:min-w-[200px] flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500"
           />
         </div>
 
@@ -151,7 +151,40 @@ export default function SubscribersPage() {
               description={search || status !== 'all' ? undefined : '前台的訂閱表單送出後，名單會出現在這裡。'}
             />
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <>
+            {/* 手機：一位訂閱者一張卡 */}
+            <ul className="md:hidden space-y-2">
+              {data.subscribers.map((subscriber) => (
+                <li key={subscriber.id} className="rounded-lg border border-border bg-card p-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-foreground break-all">{subscriber.email}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        <span className={`inline-flex rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_META[subscriber.status].className}`}>
+                          {STATUS_META[subscriber.status].label}
+                        </span>
+                        <span>{subscriber.locale || '—'}</span>
+                        <span>· {subscriber.source || '—'}</span>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        訂閱 {formatDate(subscriber.consent_at)}{subscriber.confirmed_at ? ` · 確認 ${formatDate(subscriber.confirmed_at)}` : ''}
+                      </div>
+                    </div>
+                    {canManage && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(subscriber)}
+                        aria-label={`刪除 ${subscriber.email}`}
+                        className="-mr-1 -mt-1 rounded p-2.5 text-muted-foreground hover:bg-muted hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-border bg-card">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-border text-xs text-muted-foreground">
                   <tr>
@@ -195,6 +228,7 @@ export default function SubscribersPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
 

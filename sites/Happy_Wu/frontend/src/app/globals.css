@@ -275,3 +275,19 @@ html {
 @media(max-width:767px){.hw-article-wall{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.hw-wall-fallback{padding:12px;font-size:16px;gap:12px}}
 
 .hw-about-caption{white-space:pre-line}
+
+/* ─── 後台手機版 RWD（.ows-admin = AdminLabeledShell 根節點） ─── */
+/* iOS Safari 對 font-size < 16px 的輸入框會在聚焦時自動放大畫面，手機上統一 16px */
+@media (max-width: 767.98px) {
+  .ows-admin input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .ows-admin select,
+  .ows-admin textarea {
+    font-size: 16px;
+  }
+}
+/* 觸控裝置沒有 hover：原本 hover 才出現的操作鈕一律常駐，避免手機點不到 */
+@media (hover: none) {
+  .ows-admin .group .group-hover\:opacity-100 {
+    opacity: 1;
+  }
+}

@@ -156,8 +156,8 @@ function ActionDialog({ action, projects, onClose, onDone }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className={`w-full max-w-md ${dialogCls} p-5 space-y-3`} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center px-3 py-4 bg-black/40" onClick={onClose}>
+      <div className={`w-full max-w-md max-h-full overflow-y-auto ${dialogCls} p-4 sm:p-5 space-y-3`} onClick={(e) => e.stopPropagation()}>
         <h3 className="text-base font-semibold">
           {kind === 'card' ? '整理成知識卡片' : kind === 'project' ? '加入內容專案' : '建立新專案'}
         </h3>

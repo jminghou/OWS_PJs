@@ -240,6 +240,9 @@ export default function CategoriesPage() {
     <AdminLayout>
       <AdminListLayout
         sidebarWidth={260}
+        mobileView={selectedId !== null || isCreateMode ? 'detail' : 'list'}
+        onMobileBack={handleCancel}
+        mobileTitle={isCreateMode ? '新增' : '編輯'}
         sidebar={
           <CategoryTagSidebar
             activeTab={activeTab}

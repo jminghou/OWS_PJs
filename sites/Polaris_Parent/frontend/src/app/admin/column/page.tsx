@@ -36,7 +36,7 @@ const inputCls =
   'w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 ' +
   'focus:outline-none focus:ring-1 focus:ring-admin-accent-500';
 const iconBtn =
-  'inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent';
+  'inline-flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent';
 
 type BrowseTarget = { kind: 'avatar' } | { kind: 'highlight'; index: number } | null;
 
@@ -59,9 +59,9 @@ function LinkListEditor({
   return (
     <div className="space-y-2">
       {items.map((item, i) => (
-        <div key={i} className="flex gap-2">
+        <div key={i} className="flex flex-wrap sm:flex-nowrap gap-2 pb-2 sm:pb-0 border-b border-border/60 sm:border-0 last:border-0">
           <input
-            className={`${inputCls} w-40 shrink-0`}
+            className={`${inputCls} w-full sm:w-40 sm:shrink-0`}
             value={item.label}
             maxLength={40}
             placeholder={labelPlaceholder}
@@ -69,7 +69,7 @@ function LinkListEditor({
             onChange={(e) => update(i, { label: e.target.value })}
           />
           <input
-            className={inputCls}
+            className={`${inputCls} flex-1 min-w-0`}
             value={item.url}
             maxLength={500}
             placeholder={urlPlaceholder}
@@ -207,8 +207,14 @@ export default function ColumnProfileSettingsPage() {
 
   return (
     <AdminLayout>
-      <AdminListLayout sidebar={sidebar} sidebarWidth={224}>
-        <div className="max-w-3xl space-y-6 p-6">
+      <AdminListLayout
+        sidebar={sidebar}
+        sidebarWidth={224}
+        mobileListLabel="專欄設定"
+        mobileTitle={section.label}
+        closeDrawerOn={activeSection}
+      >
+        <div className="max-w-3xl space-y-6 p-4 md:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-foreground">{section.label}</h2>

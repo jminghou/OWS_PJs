@@ -14,3 +14,8 @@ export { DropZone, type DropZoneProps } from './DropZone';
 export { UploadProgress, type UploadProgressProps, type UploadItem } from './UploadProgress';
 export { SimpleTextEditor, type SimpleTextEditorProps } from './SimpleTextEditor';
 export { RolesManager, type RolesManagerProps, type RolesManagerApi } from './RolesManager';
+// RWD 共用元件（手機版後台）
+export { AdminSheet, type AdminSheetProps } from './AdminSheet';
+export { AdminActionMenu, type AdminActionMenuProps, type AdminActionItem } from './AdminActionMenu';
+export { AdminStickyFooter, type AdminStickyFooterProps } from './AdminStickyFooter';
+export { AdminResponsiveTable, type AdminResponsiveTableProps, type AdminTableColumn } from './AdminResponsiveTable';

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { MediaFolder } from '@ows/platform-api/strapi';
+import { AdminActionMenu } from '@ows/ui/admin';
 
 // =============================================================================
 // Folder Tree Item (左欄遞迴子元件，含右鍵選單)
@@ -58,7 +59,7 @@ export function FolderTreeItem({
   return (
     <div>
       <div
-        className={`flex items-center gap-2 py-2 cursor-pointer transition-colors ${
+        className={`group flex items-center gap-2 py-1.5 md:py-2 cursor-pointer transition-colors ${
           isSelected
             ? 'border-l-2 border-blue-500 bg-blue-50 text-blue-700'
             : 'border-l-2 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -71,7 +72,8 @@ export function FolderTreeItem({
         {hasChildren ? (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleExpand(folder.id); }}
-            className="w-4 h-4 flex items-center justify-center flex-shrink-0 text-gray-400 hover:text-gray-600"
+            aria-label={isExpanded ? '收合' : '展開'}
+            className="w-8 h-8 -m-2 md:w-4 md:h-4 md:m-0 flex items-center justify-center flex-shrink-0 text-gray-400 hover:text-gray-600"
           >
             <svg
               className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
@@ -88,7 +90,20 @@ export function FolderTreeItem({
         <svg className="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
-        <span className="flex-1 truncate text-sm">{folder.name}</span>
+        <span className="flex-1 truncate text-sm py-1.5 md:py-0">{folder.name}</span>
+        {/* 觸控裝置沒有右鍵：每列提供「⋯」選單（桌機 hover 才顯示） */}
+        <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100" onClick={(e) => e.stopPropagation()}>
+          <AdminActionMenu
+            size="sm"
+            title={folder.name}
+            label={`${folder.name} 的操作`}
+            items={[
+              { label: '重新命名', onClick: () => onRename(folder) },
+              { label: '移動至…', onClick: () => onMove(folder) },
+              { label: '刪除', danger: true, onClick: () => onDelete(folder) },
+            ]}
+          />
+        </div>
       </div>
 
       {/* 右鍵選單 */}

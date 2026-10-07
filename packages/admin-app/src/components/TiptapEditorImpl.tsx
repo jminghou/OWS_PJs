@@ -55,6 +55,11 @@ import {
   Check,
   ExternalLink,
   Unlink,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import MediaBrowser from './MediaBrowser';
@@ -332,7 +337,8 @@ const createSlashCommandsExtension = (onImageRequest?: () => void) => {
 
                 const rect = props.clientRect?.();
                 if (rect && popup) {
-                  popup.style.left = `${rect.left}px`;
+                  // 手機：選單寬 256px，不可超出畫面右緣
+                  popup.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 264))}px`;
                   popup.style.top = `${rect.bottom + 4}px`;
                 }
                 updateMenu();
@@ -344,7 +350,8 @@ const createSlashCommandsExtension = (onImageRequest?: () => void) => {
 
                 const rect = props.clientRect?.();
                 if (rect && popup) {
-                  popup.style.left = `${rect.left}px`;
+                  // 手機：選單寬 256px，不可超出畫面右緣
+                  popup.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 264))}px`;
                   popup.style.top = `${rect.bottom + 4}px`;
                 }
                 updateMenu();
@@ -431,6 +438,14 @@ const tiptapStyles = `
     list-style-type: decimal;
     padding-left: 1.5rem;
   }
+  @media (max-width: 767.98px) {
+    .tiptap img.float-left, .tiptap img.float-right {
+      float: none;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
   .tiptap .dragging {
     opacity: 0.5;
     background: #f1f5f9;
@@ -514,9 +529,11 @@ const LinkEditor = ({
       const coords = editor.view.coordsAtPos(savedSelection.from);
       const editorRect = editor.view.dom.closest('.w-full')?.getBoundingClientRect();
       if (editorRect) {
+        // 面板約 340px 寬；手機上夾在編輯區內，不超出右緣
+        const maxLeft = Math.max(0, editorRect.width - Math.min(340, window.innerWidth - 24));
         setPosition({
           top: coords.bottom - editorRect.top + 8,
-          left: coords.left - editorRect.left,
+          left: Math.min(Math.max(0, coords.left - editorRect.left), maxLeft),
         });
       }
     } catch {
@@ -560,7 +577,7 @@ const LinkEditor = ({
   return (
     <div
       ref={panelRef}
-      className="absolute z-50 flex items-center gap-1 p-1.5 bg-slate-900 rounded-lg shadow-xl border border-slate-700"
+      className="absolute z-50 flex items-center gap-1 p-1.5 max-w-[calc(100vw-1.5rem)] bg-slate-900 rounded-lg shadow-xl border border-slate-700"
       style={{ top: position.top, left: position.left }}
     >
       <input
@@ -573,7 +590,7 @@ const LinkEditor = ({
           if (e.key === 'Escape') { e.preventDefault(); onClose(); }
         }}
         placeholder="輸入連結網址..."
-        className="bg-slate-800 text-white text-sm px-3 py-1.5 rounded outline-none border border-slate-600 focus:border-purple-400 w-64 transition-colors"
+        className="bg-slate-800 text-white text-sm px-3 py-1.5 rounded outline-none border border-slate-600 focus:border-purple-400 w-full min-w-0 sm:w-64 transition-colors"
       />
       <button
         type="button"
@@ -885,7 +902,10 @@ const BlockMenu = ({ editor, position, onClose, labels = defaultLabels }: BlockM
     <div
       ref={menuRef}
       className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-64 max-h-80 overflow-y-auto"
-      style={{ top: position.top, left: position.left }}
+      style={{
+        top: Math.max(8, Math.min(position.top, window.innerHeight - 330)),
+        left: Math.max(8, Math.min(position.left, window.innerWidth - 264)),
+      }}
     >
       <div className="px-3 py-2 text-xs font-medium text-gray-400 uppercase">{labels.basicBlocks}</div>
       {menuItems.map((item, i) => (
@@ -916,7 +936,7 @@ const BlockMenu = ({ editor, position, onClose, labels = defaultLabels }: BlockM
 
       {/* 圖片尺寸選擇彈窗 */}
       {showVariantModal && pendingImage && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">選擇插入尺寸</h3>
@@ -1512,6 +1532,84 @@ const BlockHandle = ({ editor, editorRef, labels = defaultLabels, accentColorCla
   );
 };
 
+// ============ Block commands（鍵盤快捷鍵與手機區塊列共用） ============
+/** 在游標所在的頂層區塊後面插入一份複本。 */
+function duplicateBlock(view: any) {
+  const { state } = view;
+  const { $from } = state.selection;
+  if ($from.depth < 1) return;
+  const blockEnd = $from.end(1);
+  const blockNode = $from.node(1);
+  if (!blockNode) return;
+  view.dispatch(state.tr.insert(blockEnd + 1, blockNode.copy(blockNode.content)));
+}
+
+/** 刪除游標所在的頂層區塊。 */
+function deleteBlock(view: any) {
+  const { state } = view;
+  const { $from } = state.selection;
+  if ($from.depth < 1) return;
+  view.dispatch(state.tr.delete($from.before(1), $from.after(1)));
+}
+
+/** 把游標所在的頂層區塊和上／下一個區塊交換，游標跟著區塊走。 */
+function moveBlock(view: any, dir: 'up' | 'down') {
+  const { state } = view;
+  const { $from } = state.selection;
+  if ($from.depth < 1) return;
+  const blockStart = $from.before(1);
+  const blockEnd = $from.after(1);
+  const blockNode = $from.node(1);
+  const offsetInBlock = $from.pos - blockStart;
+  const tr = state.tr;
+  if (dir === 'up') {
+    if (blockStart === 0) return;
+    const prevStart = state.doc.resolve(blockStart - 1).before(1);
+    tr.delete(blockStart, blockEnd);
+    tr.insert(prevStart, blockNode);
+    const newPos = Math.min(prevStart + offsetInBlock, tr.doc.content.size);
+    tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
+  } else {
+    if (blockEnd >= state.doc.content.size) return;
+    const nextEnd = state.doc.resolve(blockEnd + 1).after(1);
+    const nextSize = nextEnd - blockEnd;
+    // 先在下一個區塊之後插入複本，再刪除原來的
+    tr.insert(nextEnd, blockNode);
+    tr.delete(blockStart, blockEnd);
+    const newPos = Math.min(blockStart + nextSize + offsetInBlock, tr.doc.content.size);
+    tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
+  }
+  view.dispatch(tr.scrollIntoView());
+}
+
+/**
+ * 觸控裝置的區塊操作列：取代滑鼠 hover 才出現的「＋／拖曳把手」。
+ * 黏在捲動區頂端（手機鍵盤彈出時底部會被蓋住），按鈕用 onMouseDown preventDefault 保留編輯器焦點。
+ */
+const MobileBlockBar = ({ editor }: { editor: any }) => {
+  if (!editor) return null;
+  const keep = (e: React.MouseEvent | React.PointerEvent) => e.preventDefault();
+  const act = (fn: () => void) => () => {
+    if (!editor.isFocused) editor.commands.focus();
+    fn();
+  };
+  const btn = 'flex items-center justify-center min-w-[44px] h-10 px-2 rounded-md text-slate-600 active:bg-slate-200 text-sm';
+  return (
+    <div className="sticky top-0 z-30 -mx-3 mb-2 flex items-center gap-0.5 overflow-x-auto px-2 py-1 bg-white/95 backdrop-blur border-b border-slate-200">
+      <button type="button" className={btn} onMouseDown={keep} onClick={act(() => editor.chain().focus().insertContent('/').run())} aria-label="插入區塊">
+        <Plus size={18} /><span className="ml-1">插入</span>
+      </button>
+      <button type="button" className={btn} onMouseDown={keep} onClick={act(() => moveBlock(editor.view, 'up'))} aria-label="上移區塊"><ArrowUp size={18} /></button>
+      <button type="button" className={btn} onMouseDown={keep} onClick={act(() => moveBlock(editor.view, 'down'))} aria-label="下移區塊"><ArrowDown size={18} /></button>
+      <button type="button" className={btn} onMouseDown={keep} onClick={act(() => duplicateBlock(editor.view))} aria-label="複製區塊"><Copy size={18} /></button>
+      <button type="button" className={btn} onMouseDown={keep} onClick={act(() => { if (window.confirm('刪除游標所在的這個區塊？')) deleteBlock(editor.view); })} aria-label="刪除區塊"><Trash2 size={18} /></button>
+      <span className="mx-1 h-6 w-px bg-slate-200 flex-shrink-0" />
+      <button type="button" className={btn} onMouseDown={keep} onClick={act(() => editor.chain().focus().undo().run())} aria-label="復原"><Undo2 size={18} /></button>
+      <button type="button" className={btn} onMouseDown={keep} onClick={act(() => editor.chain().focus().redo().run())} aria-label="重做"><Redo2 size={18} /></button>
+    </div>
+  );
+};
+
 // ============ Main Component ============
 export function TiptapEditor({
   content,
@@ -1524,6 +1622,16 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [linkEditorOpen, setLinkEditorOpen] = useState(false);
+  // 觸控裝置或手機寬度：不用 hover 把手（點不到），改用頂端區塊操作列
+  const [touchMode, setTouchMode] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia('(hover: none), (max-width: 767.98px)');
+    const update = () => setTouchMode(mql.matches);
+    update();
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, []);
+  const useHandle = showBlockHandle && !touchMode;
   const [linkEditorSelection, setLinkEditorSelection] = useState<{ from: number; to: number } | null>(null);
 
   // 斜線命令圖片插入的狀態
@@ -1618,84 +1726,21 @@ export function TiptapEditor({
         // Ctrl+D / Cmd+D 複製區塊
         if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
           event.preventDefault();
-          if (!editor) return true;
-          const { state } = view;
-          const { $from } = state.selection;
-          // 找到游標所在的最頂層區塊節點
-          const depth = $from.depth;
-          const blockStart = $from.start(1);
-          const blockEnd = $from.end(1);
-          const blockNode = $from.node(1);
-          if (blockNode) {
-            const tr = state.tr;
-            // 在當前區塊後面插入相同的節點
-            tr.insert(blockEnd + 1, blockNode.copy(blockNode.content));
-            view.dispatch(tr);
-          }
+          if (editor) duplicateBlock(view);
           return true;
         }
 
         // Ctrl+Shift+K / Cmd+Shift+K 刪除區塊
         if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'K') {
           event.preventDefault();
-          if (!editor) return true;
-          const { state } = view;
-          const { $from } = state.selection;
-          const blockStart = $from.before(1);
-          const blockEnd = $from.after(1);
-          const tr = state.tr;
-          tr.delete(blockStart, blockEnd);
-          view.dispatch(tr);
+          if (editor) deleteBlock(view);
           return true;
         }
 
-        // Alt+↑ 向上移動區塊
-        if (event.altKey && event.key === 'ArrowUp') {
+        // Alt+↑ / Alt+↓ 移動區塊
+        if (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
           event.preventDefault();
-          if (!editor) return true;
-          const { state } = view;
-          const { $from } = state.selection;
-          const blockStart = $from.before(1);
-          const blockEnd = $from.after(1);
-          if (blockStart === 0) return true;
-          const blockNode = $from.node(1);
-          const $prevEnd = state.doc.resolve(blockStart - 1);
-          const prevStart = $prevEnd.before(1);
-          // 記住游標在區塊內的相對偏移
-          const offsetInBlock = $from.pos - blockStart;
-          const tr = state.tr;
-          tr.delete(blockStart, blockEnd);
-          tr.insert(prevStart, blockNode);
-          // 游標跟著區塊走：新位置 = prevStart + 相對偏移
-          const newPos = Math.min(prevStart + offsetInBlock, tr.doc.content.size);
-          tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
-          view.dispatch(tr.scrollIntoView());
-          return true;
-        }
-
-        // Alt+↓ 向下移動區塊
-        if (event.altKey && event.key === 'ArrowDown') {
-          event.preventDefault();
-          if (!editor) return true;
-          const { state } = view;
-          const { $from } = state.selection;
-          const blockStart = $from.before(1);
-          const blockEnd = $from.after(1);
-          if (blockEnd >= state.doc.content.size) return true;
-          const blockNode = $from.node(1);
-          const $nextStart = state.doc.resolve(blockEnd + 1);
-          const nextEnd = $nextStart.after(1);
-          const nextSize = nextEnd - blockEnd;
-          // 記住游標在區塊內的相對偏移
-          const offsetInBlock = $from.pos - blockStart;
-          const tr = state.tr;
-          // 先在下一個區塊之後插入複本，再刪除原來的
-          tr.insert(nextEnd, blockNode);
-          tr.delete(blockStart, blockEnd);
-          // 游標跟著區塊走：新位置 = 原位置 + 下一個區塊的大小
-          const newPos = Math.min(blockStart + nextSize + offsetInBlock, tr.doc.content.size);
-          tr.setSelection(TextSelection.near(tr.doc.resolve(newPos)));
-          view.dispatch(tr.scrollIntoView());
+          if (editor) moveBlock(view, event.key === 'ArrowUp' ? 'up' : 'down');
           return true;
         }
 
@@ -1723,7 +1768,8 @@ export function TiptapEditor({
   }, [content, editor]);
 
   return (
-    <div ref={editorContainerRef} className={`w-full bg-white relative ${showBlockHandle ? 'pl-14' : 'p-4'} ${className}`}>
+    <div ref={editorContainerRef} className={`w-full bg-white relative ${useHandle ? 'pl-14' : touchMode && showBlockHandle ? 'px-3 pb-4' : 'p-4'} ${className}`}>
+      {touchMode && showBlockHandle && <MobileBlockBar editor={editor} />}
       <EditorBubbleMenu editor={editor} accentColorClass={accentColorClass} onLinkEdit={() => openLinkEditor(editor)} />
       {linkEditorOpen && editor && (
         <LinkEditor
@@ -1732,7 +1778,7 @@ export function TiptapEditor({
           savedSelection={linkEditorSelection}
         />
       )}
-      {showBlockHandle && (
+      {useHandle && (
         <BlockHandle
           editor={editor}
           editorRef={editorContainerRef}
@@ -1758,7 +1804,7 @@ export function TiptapEditor({
 
       {/* 斜線命令的圖片尺寸選擇 */}
       {slashVariantModal && slashPendingImage && editor && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">選擇插入尺寸</h3>

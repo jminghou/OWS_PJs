@@ -225,7 +225,7 @@ export default function MediaPage() {
   const renderFolderMediaItem = (item: MediaItem) => (
     <div
       key={item.id}
-      className="w-[180px] h-[180px] relative group rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+      className="w-full aspect-square relative group rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
       onClick={() => setEditingFile(item)}
     >
       <img
@@ -235,13 +235,13 @@ export default function MediaPage() {
         onError={(e) => { (e.target as HTMLImageElement).src = '/images/placeholder.svg'; }}
       />
       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity" />
-      <div className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-0 left-0 p-2 md:p-1.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={selectedIds.includes(item.id)}
           onChange={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
           onClick={(e) => e.stopPropagation()}
-          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+          className="w-5 h-5 md:w-4 md:h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
         />
       </div>
     </div>
@@ -251,7 +251,7 @@ export default function MediaPage() {
   const renderAllFilesMediaItem = (item: MediaItem) => (
     <div
       key={item.id}
-      className={`w-[180px] h-[180px] relative group rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow ${
+      className={`w-full aspect-square relative group rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow ${
         selectedIds.includes(item.id) ? 'ring-2 ring-blue-500' : ''
       }`}
       onClick={() => setEditingFile(item)}
@@ -263,13 +263,13 @@ export default function MediaPage() {
         onError={(e) => { (e.target as HTMLImageElement).src = '/images/placeholder.svg'; }}
       />
       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity" />
-      <div className="absolute top-1.5 left-1.5">
+      <div className="absolute top-0 left-0 p-2 md:p-1.5" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={selectedIds.includes(item.id)}
           onChange={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
           onClick={(e) => e.stopPropagation()}
-          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+          className="w-5 h-5 md:w-4 md:h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
         />
       </div>
       {item.tags && item.tags.length > 0 && (
@@ -287,6 +287,9 @@ export default function MediaPage() {
   return (
     <AdminLayout>
       <AdminListLayout
+        mobileListLabel="資料夾"
+        mobileTitle={selectedFolder ? selectedFolder.name : selectedFolderId === null ? '全部媒體' : '未分類'}
+        closeDrawerOn={selectedFolderId}
         sidebar={
           <FolderSidebar
             folders={folders}
@@ -306,7 +309,7 @@ export default function MediaPage() {
           onSearchChange={setSearchQuery}
           searchPlaceholder="Search"
           variant="underline"
-          className="px-8 pt-6"
+          className="px-4 md:px-8 pt-4 md:pt-6"
           actions={
             <AdminBatchActions
               totalCount={mediaItems.length}
@@ -319,12 +322,12 @@ export default function MediaPage() {
                   移至
                 </Button>
                 {showMoveDropdown && (
-                  <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto">
-                    <button onClick={() => handleMoveSelected(null)} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-gray-700">
+                  <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 max-h-64 overflow-y-auto">
+                    <button onClick={() => handleMoveSelected(null)} className="w-full text-left px-3 py-3 md:py-2 text-sm hover:bg-gray-100 text-gray-700">
                       未分類（根目錄）
                     </button>
                     {flattenFolderTree(buildFolderTree(folders)).map(({ folder: f, depth: d }) => (
-                      <button key={f.id} onClick={() => handleMoveSelected(f.id)} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 text-gray-700">
+                      <button key={f.id} onClick={() => handleMoveSelected(f.id)} className="w-full text-left px-3 py-3 md:py-2 text-sm hover:bg-gray-100 text-gray-700">
                         {d > 0 ? '\u00A0\u00A0'.repeat(d) + '└ ' : ''}{f.name}
                       </button>
                     ))}
@@ -337,7 +340,7 @@ export default function MediaPage() {
         />
 
         {/* 內容區域 */}
-        <div className="px-8 pb-8 pt-5">
+        <div className="px-4 md:px-8 pb-8 pt-4 md:pt-5">
           {/* ===== 選中特定資料夾時的檢視 ===== */}
           {selectedFolder ? (
             <div>
@@ -364,8 +367,8 @@ export default function MediaPage() {
                     </svg>
                   )}
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedFolder.name}</h2>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 break-words">{selectedFolder.name}</h2>
                   <EditableDescription
                     folderId={selectedFolder.id}
                     description={selectedFolder.description || ''}

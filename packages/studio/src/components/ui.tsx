@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { AdminListLayout } from '@ows/ui/admin';
 import { PLATFORM_META, STAGE_META } from '../constants';
 import { kindMeta, useCardKinds } from '../cardKinds';
 import type { CardKind, Platform, Stage } from '../types';
@@ -67,7 +68,7 @@ export function KindBadge({ kind, className = '' }: { kind: CardKind; className?
   );
 }
 
-export const selectCls = 'text-xs border border-border rounded-md px-2 py-1 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500';
+export const selectCls = 'text-sm md:text-xs border border-border rounded-md px-2 py-2 md:py-1 bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500';
 
 export function StageSelect({ value, onChange, className = '' }: { value: Stage; onChange: (s: Stage) => void; className?: string }) {
   return (
@@ -82,17 +83,17 @@ export function StageSelect({ value, onChange, className = '' }: { value: Stage;
 /** 每頁外層：一致的邊距與最大寬度。 */
 export function StudioPage({ children, width = 'default', className = '' }: { children: ReactNode; width?: 'default' | 'wide' | 'narrow'; className?: string }) {
   const max = width === 'wide' ? 'max-w-6xl' : width === 'narrow' ? 'max-w-3xl' : 'max-w-5xl';
-  return <div className={`p-6 md:p-8 ${max} mx-auto ${className}`}>{children}</div>;
+  return <div className={`p-4 sm:p-6 md:p-8 ${max} mx-auto ${className}`}>{children}</div>;
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-6">
+      <div className="min-w-0">
+        <h1 className="text-xl md:text-2xl font-semibold tracking-tight">{title}</h1>
         {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{actions}</div>}
     </div>
   );
 }
@@ -124,15 +125,38 @@ export function EmptyState({ icon, title, description, action }: { icon?: ReactN
   );
 }
 
-/** 左欄清單 + 右主區（取代 @ows/ui 的 AdminListLayout，用 token 色）。 */
-export function StudioSplit({ sidebar, sidebarWidth = 300, children }: { sidebar: ReactNode; sidebarWidth?: number; children: ReactNode }) {
+/**
+ * 左欄清單 + 右主區。直接用 @ows/ui 的 AdminListLayout（已改 token 色），
+ * 手機上 hasSelection=false 顯示清單、true 顯示詳情＋返回列。
+ */
+export function StudioSplit({
+  sidebar,
+  sidebarWidth = 300,
+  children,
+  hasSelection,
+  onMobileBack,
+  mobileTitle,
+  mobileActions,
+}: {
+  sidebar: ReactNode;
+  sidebarWidth?: number;
+  children: ReactNode;
+  hasSelection?: boolean;
+  onMobileBack?: () => void;
+  mobileTitle?: ReactNode;
+  mobileActions?: ReactNode;
+}) {
   return (
-    <div className="flex h-full min-h-0">
-      <div className="flex-shrink-0 bg-card border-r border-border overflow-hidden flex flex-col" style={{ width: sidebarWidth }}>
-        {sidebar}
-      </div>
-      <div className="flex-1 min-w-0 overflow-y-auto">{children}</div>
-    </div>
+    <AdminListLayout
+      sidebar={sidebar}
+      sidebarWidth={sidebarWidth}
+      mobileView={hasSelection ? 'detail' : 'list'}
+      onMobileBack={onMobileBack}
+      mobileTitle={mobileTitle}
+      mobileActions={mobileActions}
+    >
+      {children}
+    </AdminListLayout>
   );
 }
 
@@ -144,7 +168,7 @@ export function SidebarSearch({ value, onChange, placeholder }: { value: string;
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder || '搜尋…'}
-        className="w-full px-3 py-1.5 text-sm rounded-md bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500"
+        className="w-full px-3 py-2 md:py-1.5 text-sm rounded-md bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500"
       />
     </div>
   );
@@ -166,7 +190,7 @@ export function SidebarItem({ active, onClick, children }: { active?: boolean; o
 export function Pill({ active, onClick, children, tone = 'dark' }: { active: boolean; onClick: () => void; children: ReactNode; tone?: 'dark' | 'accent' }) {
   const on = tone === 'accent' ? 'bg-admin-accent-600 text-white' : 'bg-foreground text-background';
   return (
-    <button type="button" onClick={onClick} className={`px-2 py-0.5 rounded text-xs font-medium transition ${active ? on : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+    <button type="button" onClick={onClick} className={`flex-shrink-0 whitespace-nowrap px-2.5 py-1.5 md:px-2 md:py-0.5 rounded text-xs font-medium transition ${active ? on : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
       {children}
     </button>
   );
@@ -217,7 +241,7 @@ export function countChars(text?: string | null): number {
 }
 
 export const inputCls = 'w-full px-3 py-2 text-sm border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-admin-accent-500/30 focus:border-admin-accent-500 transition';
-export const btnPrimary = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-admin-accent-600 text-white hover:bg-admin-accent-700 disabled:opacity-50 transition';
-export const btnGhost = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-muted text-foreground hover:bg-accent disabled:opacity-50 transition';
-export const btnDanger = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg text-destructive hover:bg-destructive/10 disabled:opacity-50 transition';
+export const btnPrimary = 'inline-flex items-center justify-center gap-1.5 min-h-[40px] md:min-h-0 px-3 py-1.5 text-sm font-medium rounded-lg bg-admin-accent-600 text-white hover:bg-admin-accent-700 disabled:opacity-50 transition';
+export const btnGhost = 'inline-flex items-center justify-center gap-1.5 min-h-[40px] md:min-h-0 px-3 py-1.5 text-sm font-medium rounded-lg bg-muted text-foreground hover:bg-accent disabled:opacity-50 transition';
+export const btnDanger = 'inline-flex items-center justify-center gap-1.5 min-h-[40px] md:min-h-0 px-3 py-1.5 text-sm font-medium rounded-lg text-destructive hover:bg-destructive/10 disabled:opacity-50 transition';
 export const dialogCls = 'bg-card text-card-foreground border border-border rounded-xl shadow-xl';

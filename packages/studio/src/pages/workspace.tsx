@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AdminLayout } from '@ows/admin-app';
 import { Popover } from '@ows/ui/ui';
+import { AdminActionMenu } from '@ows/ui/admin';
 import {
-  AlertTriangle, ArrowLeft, Check, ChevronDown, Cloud, CloudOff, ExternalLink, Loader2, PanelRight, Plus, Trash2,
+  AlertTriangle, ArrowLeft, Check, ChevronDown, Cloud, CloudOff, ExternalLink, Files, Loader2, PanelRight, Plus, Trash2, X,
 } from 'lucide-react';
 import { documentApi, todayApi } from '../api';
 import { PLATFORMS, PLATFORM_META, STUDIO_ROUTES } from '../constants';
@@ -42,7 +43,13 @@ function WorkspaceContent({docId}: {docId: number | null}) {
   const [language, setLanguage] = useState('');
   const [schedule, setSchedule] = useState('');
   const [error, setError] = useState('');
+  // 手機／平板：左側版本清單收成抽屜
+  const [docsOpen, setDocsOpen] = useState(false);
   useEffect(() => { documentApi.options().then(setOptions).catch(e => setError(e.message)); }, []);
+  // < lg 時右側資訊欄預設收起（在手機上是全螢幕覆蓋層，不該一進來就蓋住編輯器）
+  useEffect(() => {
+    if (window.matchMedia?.('(max-width: 1023.98px)').matches) setRightOpen(false);
+  }, []);
 
   // 沒帶 ?doc= 時列出最近編輯的文件供挑選
   useEffect(() => {
@@ -201,48 +208,66 @@ function WorkspaceContent({docId}: {docId: number | null}) {
     const s = autosave.status;
     const cls = 'inline-flex items-center gap-1 text-xs';
     if (s === 'saving') return <span className={`${cls} text-muted-foreground`}><Loader2 size={12} className="animate-spin" /> 儲存中</span>;
-    if (s === 'error') return <span className={`${cls} text-destructive`} title={autosave.error || ''}><CloudOff size={12} /> 未儲存</span>;
+    if (s === 'error') return <button type="button" className={`${cls} text-destructive`} title={autosave.error || ''} onClick={() => autosave.error && alert(autosave.error)}><CloudOff size={12} /> 未儲存</button>;
     if (s === 'dirty') return <span className={`${cls} text-muted-foreground`}><Cloud size={12} /> 有變更</span>;
-    if (s === 'saved' && autosave.savedAt) return <span className={`${cls} text-emerald-600`}><Check size={12} /> 已儲存 {formatDate(autosave.savedAt, true).slice(-5)}</span>;
-    return <span className={`${cls} text-muted-foreground/60`}><Cloud size={12} /> 自動儲存</span>;
+    if (s === 'saved' && autosave.savedAt) return <span className={`${cls} text-emerald-600`}><Check size={12} /> <span className="hidden sm:inline">已儲存</span> {formatDate(autosave.savedAt, true).slice(-5)}</span>;
+    return <span className={`${cls} text-muted-foreground/60`}><Cloud size={12} /> <span className="hidden sm:inline">自動儲存</span></span>;
   };
+
+  const docList = (
+    <>
+      <div className="p-3 border-b border-border/60">
+        {doc ? (
+          <Link href={STUDIO_ROUTES.project(doc.project_id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={12} /> <span className="truncate">{doc.project?.title}</span>
+          </Link>
+        ) : <span className="text-xs text-muted-foreground">寫作工作區</span>}
+      </div>
+      <div className="flex-1 overflow-y-auto py-2">
+        {doc && [doc, ...siblings.filter((s) => s.id !== doc.id)].sort((a, b) => a.platform.localeCompare(b.platform)).map((d) => (
+          <Link key={d.id} href={STUDIO_ROUTES.workspace(d.id)}
+            className={`flex items-center gap-2 px-3 py-3 lg:py-2 text-sm ${d.id === doc.id ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30 text-admin-accent-800 dark:text-admin-accent-100' : 'text-foreground/80 hover:bg-muted'}`}>
+            <PlatformBadge platform={d.platform} /><LanguageBadge language={d.language} />
+            <span className="truncate flex-1">{d.title || '（無標題）'}</span>
+          </Link>
+        ))}
+      </div>
+      {doc && (
+        <div className="p-2 border-t border-border/60">
+          <Popover placement="top-start"
+            trigger={<button type="button" className={`${btnGhost} w-full justify-center text-xs py-1.5`}><Plus size={12} /> 新增平台版本</button>}
+            content={
+              <div className="w-44 py-1">
+                {PLATFORMS.map((p) => (
+                  <button key={p} type="button" onClick={() => addSibling(p)} className="w-full flex items-center gap-2 text-left px-3 py-2.5 lg:py-1.5 text-sm text-foreground/80 hover:bg-muted"><PlatformIcon platform={p} />{PLATFORM_META[p].label}</button>
+                ))}
+              </div>
+            } />
+        </div>
+      )}
+    </>
+  );
 
   return (
     <AdminLayout>
       {error && <p role="alert" className="p-3 text-destructive">{error}</p>}
       <div className="flex h-full">
-        {/* 左：專案文件清單 */}
-        <aside className="w-[240px] flex-shrink-0 border-r border-border bg-card flex flex-col">
-          <div className="p-3 border-b border-border/60">
-            {doc ? (
-              <Link href={STUDIO_ROUTES.project(doc.project_id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-                <ArrowLeft size={12} /> <span className="truncate">{doc.project?.title}</span>
-              </Link>
-            ) : <span className="text-xs text-muted-foreground">寫作工作區</span>}
-          </div>
-          <div className="flex-1 overflow-y-auto py-2">
-            {doc && [doc, ...siblings.filter((s) => s.id !== doc.id)].sort((a, b) => a.platform.localeCompare(b.platform)).map((d) => (
-              <Link key={d.id} href={STUDIO_ROUTES.workspace(d.id)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm ${d.id === doc.id ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30 text-admin-accent-800 dark:text-admin-accent-100' : 'text-foreground/80 hover:bg-muted'}`}>
-                <PlatformBadge platform={d.platform} /><LanguageBadge language={d.language} />
-                <span className="truncate flex-1">{d.title || '（無標題）'}</span>
-              </Link>
-            ))}
-          </div>
-          {doc && (
-            <div className="p-2 border-t border-border/60">
-              <Popover placement="top-start"
-                trigger={<button type="button" className={`${btnGhost} w-full justify-center text-xs py-1.5`}><Plus size={12} /> 新增平台版本</button>}
-                content={
-                  <div className="w-44 py-1">
-                    {PLATFORMS.map((p) => (
-                      <button key={p} type="button" onClick={() => addSibling(p)} className="w-full flex items-center gap-2 text-left px-3 py-1.5 text-sm text-foreground/80 hover:bg-muted"><PlatformIcon platform={p} />{PLATFORM_META[p].label}</button>
-                    ))}
-                  </div>
-                } />
-            </div>
-          )}
+        {/* 左：專案文件清單（lg 以上常駐；以下為抽屜） */}
+        <aside className="hidden lg:flex w-[240px] flex-shrink-0 border-r border-border bg-card flex-col">
+          {docList}
         </aside>
+        {docsOpen && (
+          <div className="lg:hidden fixed inset-0 z-50" onClick={(e) => { if ((e.target as Element).closest('a')) setDocsOpen(false); }}>
+            <div className="absolute inset-0 bg-black/40" onClick={() => setDocsOpen(false)} />
+            <aside className="absolute inset-y-0 left-0 w-[85%] max-w-xs bg-card border-r border-border shadow-xl flex flex-col pb-[env(safe-area-inset-bottom)]">
+              <div className="flex items-center justify-between h-12 pl-4 pr-1 border-b border-border flex-shrink-0">
+                <span className="text-sm font-medium">版本</span>
+                <button type="button" onClick={() => setDocsOpen(false)} aria-label="關閉" className="flex items-center justify-center w-11 h-11 text-muted-foreground"><X size={18} /></button>
+              </div>
+              {docList}
+            </aside>
+          </div>
+        )}
 
         {/* 中：編輯器 */}
         <div className="flex-1 min-w-0 flex flex-col bg-card">
@@ -275,19 +300,25 @@ function WorkspaceContent({docId}: {docId: number | null}) {
             <div className="flex items-center justify-center h-full text-sm text-muted-foreground">載入中…</div>
           ) : (
             <>
-              <div className="flex items-center gap-2 px-4 h-12 border-b border-border/60 flex-shrink-0">
+              {/* 工具列：手機只留「版本／狀態／儲存狀態／發布／⋯」，標籤與階段換到第二行 */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-2 sm:px-4 py-1.5 lg:py-0 lg:h-12 border-b border-border/60 flex-shrink-0">
+                <button type="button" onClick={() => setDocsOpen(true)} aria-label="版本清單"
+                  className="lg:hidden flex items-center justify-center w-10 h-10 -ml-1 rounded-md text-muted-foreground hover:bg-muted"><Files size={18} /></button>
                 <PlatformBadge platform={doc.platform} />
-                <StageBadge stage={doc.stage} />{!isBlog && <StageSelect value={doc.stage} onChange={setStage} />}
-                <TagChips targetType="document" targetId={doc.id} tags={doc.tags || []} onChange={(tags) => setDoc({ ...doc, tags })} />
-                <div className="ml-auto flex items-center gap-2">
+                <StageBadge stage={doc.stage} />
+                <div className="order-last basis-full lg:order-none lg:basis-auto flex flex-wrap items-center gap-2 min-w-0 pb-1 lg:pb-0">
+                  {!isBlog && <StageSelect value={doc.stage} onChange={setStage} />}
+                  <TagChips targetType="document" targetId={doc.id} tags={doc.tags || []} onChange={(tags) => setDoc({ ...doc, tags })} />
+                </div>
+                <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
                   <SaveIndicator />
-                  {isBlog && <button className={`${btnGhost} relative ${settingsOpen ? 'ring-1 ring-admin-accent-500 text-admin-accent-700 dark:text-admin-accent-200' : ''}`} aria-pressed={settingsOpen} onClick={() => setSettingsOpen(!settingsOpen)}>文章設定{settings && !settings.featured_image && <span title="尚未設定文章主圖" className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-500" />}</button>}
-                  <button className={btnGhost} onClick={() => setPreview(!preview)}>{preview?'繼續編輯':'預覽'}</button>
-                  <button className={btnGhost} disabled={syncing} onClick={() => sync('save')}>儲存草稿</button>
+                  {isBlog && <button className={`hidden lg:inline-flex ${btnGhost} relative ${settingsOpen ? 'ring-1 ring-admin-accent-500 text-admin-accent-700 dark:text-admin-accent-200' : ''}`} aria-pressed={settingsOpen} onClick={() => setSettingsOpen(!settingsOpen)}>文章設定{settings && !settings.featured_image && <span title="尚未設定文章主圖" className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-500" />}</button>}
+                  <button className={`hidden lg:inline-flex ${btnGhost}`} onClick={() => setPreview(!preview)}>{preview?'繼續編輯':'預覽'}</button>
+                  <button className={`hidden lg:inline-flex ${btnGhost}`} disabled={syncing} onClick={() => sync('save')}>儲存草稿</button>
                   <Popover open={publishOpen} onOpenChange={setPublishOpen} placement="bottom-end"
                     trigger={<button type="button" className={`${btnPrimary} text-xs py-1.5`}>{isBlog ? '發布' : '狀態'} <ChevronDown size={12} /></button>}
                     content={
-                      <div className="w-56 py-1 text-sm">
+                      <div className="w-64 lg:w-56 py-1 text-sm [&_button]:min-h-[44px] lg:[&_button]:min-h-0">
                         {isBlog ? (
                           <>
                             {settings && !settings.featured_image && (
@@ -313,15 +344,25 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                         <button type="button" onClick={remove} className="w-full text-left px-4 py-2 text-destructive hover:bg-destructive/10 inline-flex items-center gap-1"><Trash2 size={12} /> 封存此版本</button>
                       </div>
                     } />
-                  <button type="button" onClick={() => setRightOpen((o) => !o)} className={`p-1.5 rounded ${rightOpen ? 'text-admin-accent-600 dark:text-admin-accent-200 bg-admin-accent-50 dark:bg-admin-accent-800/30' : 'text-muted-foreground hover:text-foreground'}`} title="右側資訊欄"><PanelRight size={16} /></button>
+                  <AdminActionMenu
+                    className="lg:hidden"
+                    title={title || '（無標題）'}
+                    items={[
+                      { label: '文章設定', hidden: !isBlog, onClick: () => setSettingsOpen(true) },
+                      { label: preview ? '繼續編輯' : '預覽', onClick: () => setPreview(!preview) },
+                      { label: '儲存草稿', disabled: syncing, onClick: () => sync('save') },
+                      { label: '引用卡片／版本紀錄', onClick: () => { setSettingsOpen(false); setRightOpen(true); } },
+                    ]}
+                  />
+                  <button type="button" onClick={() => setRightOpen((o) => !o)} className={`hidden lg:inline-flex p-1.5 rounded ${rightOpen ? 'text-admin-accent-600 dark:text-admin-accent-200 bg-admin-accent-50 dark:bg-admin-accent-800/30' : 'text-muted-foreground hover:text-foreground'}`} title="右側資訊欄"><PanelRight size={16} /></button>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b text-xs">
-                <label>語言 <select value={doc.id} disabled={syncing} onChange={async e => {const id=Number(e.target.value);try {await saveDraft(); router.push(STUDIO_ROUTES.workspace(id));} catch(e:any){alert(e.message);}}} className="bg-card border rounded p-1">
+              <div className="flex flex-wrap items-center gap-2 px-2 sm:px-4 py-2 border-b text-xs">
+                <label className="flex items-center gap-1">語言 <select value={doc.id} disabled={syncing} onChange={async e => {const id=Number(e.target.value);try {await saveDraft(); router.push(STUDIO_ROUTES.workspace(id));} catch(e:any){alert(e.message);}}} className="bg-card border rounded p-2 lg:p-1 max-w-[11rem]">
                   {(doc.language_versions || [doc]).map(v=><option key={v.id} value={v.id}>{options?.language_names[v.language] || v.language} · {v.stage}</option>)}
                 </select></label>
-                <select aria-label="新增語言" value={language} onChange={e=>setLanguage(e.target.value)} className="bg-card border rounded p-1"><option value="">新增語言…</option>{options?.languages.filter(l=>!doc.language_versions?.some(v=>v.language===l)).map(l=><option key={l} value={l}>{options.language_names[l] || l}</option>)}</select>
+                <select aria-label="新增語言" value={language} onChange={e=>setLanguage(e.target.value)} className="bg-card border rounded p-2 lg:p-1"><option value="">新增語言…</option>{options?.languages.filter(l=>!doc.language_versions?.some(v=>v.language===l)).map(l=><option key={l} value={l}>{options.language_names[l] || l}</option>)}</select>
                 <button className={btnGhost} disabled={!language || syncing} onClick={()=>translate('blank')}>空白翻譯</button>
                 <button className={btnGhost} disabled={!language || syncing} onClick={()=>translate('copy')}>複製為翻譯草稿</button>
                 {options && !options.enabled && <Link href="/admin/settings" className="underline">啟用更多語言</Link>}

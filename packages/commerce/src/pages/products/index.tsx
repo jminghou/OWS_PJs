@@ -344,6 +344,9 @@ export function ProductsAdmin({ attributeTabs, AttributesSection }: ProductsPage
     <AdminLayout>
       <AdminListLayout
         sidebarWidth={280}
+        mobileView={selectedId !== null || isCreateMode ? 'detail' : 'list'}
+        onMobileBack={handleCancel}
+        mobileTitle={isCreateMode ? '新增產品' : editForm.name}
         sidebar={
           <ProductSidebar
             products={products}

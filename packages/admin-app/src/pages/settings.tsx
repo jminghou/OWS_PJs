@@ -135,7 +135,7 @@ export default function SettingsPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">語系設定</h1>
           <p className="text-gray-600">管理網站的多語言顯示設定</p>

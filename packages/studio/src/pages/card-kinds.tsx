@@ -144,10 +144,10 @@ export default function CardKindsPage() {
           {loading ? <p className="text-sm text-muted-foreground py-4 text-center">載入中…</p> : (
             <ul className="divide-y divide-border/60">
               {kinds.map((k, idx) => (
-                <li key={k.key} className={`flex items-center gap-3 py-2 ${k.active ? '' : 'opacity-60'}`}>
+                <li key={k.key} className={`flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2 py-2 ${k.active ? '' : 'opacity-60'}`}>
                   <div className="flex flex-col -my-1">
-                    <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowUp size={12} /></button>
-                    <button type="button" onClick={() => move(idx, 1)} disabled={idx === kinds.length - 1} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowDown size={12} /></button>
+                    <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} aria-label="上移" className="p-1.5 sm:p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowUp size={12} /></button>
+                    <button type="button" onClick={() => move(idx, 1)} disabled={idx === kinds.length - 1} aria-label="下移" className="p-1.5 sm:p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"><ArrowDown size={12} /></button>
                   </div>
 
                   {/* 徽章 = 顏色按鈕：點開小調色盤 */}
@@ -173,13 +173,13 @@ export default function CardKindsPage() {
                     )}
                   </div>
 
-                  <input value={k.label} onChange={(e) => update(idx, { label: e.target.value })} className={`${inputCls} py-1 flex-1 min-w-0`} placeholder="名稱" />
+                  <input value={k.label} onChange={(e) => update(idx, { label: e.target.value })} className={`${inputCls} py-1 flex-1 min-w-[8rem]`} placeholder="名稱" />
 
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap" title="停用後不出現在選單，既有卡片保留">
+                  <label className="ml-9 sm:ml-0 flex items-center gap-1.5 py-2 sm:py-0 text-xs text-muted-foreground whitespace-nowrap" title="停用後不出現在選單，既有卡片保留">
                     <input type="checkbox" checked={k.active} onChange={(e) => update(idx, { active: e.target.checked })} className="rounded border-border" /> 啟用
                   </label>
-                  <button type="button" onClick={() => setFilterKind(k.key)} className="text-xs text-muted-foreground hover:text-foreground hover:underline w-12 text-right tabular-nums whitespace-nowrap" title="在下方列出這個類型的卡片">{k.usage ?? 0} 張</button>
-                  <button type="button" onClick={() => remove(idx)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="刪除"><Trash2 size={14} /></button>
+                  <button type="button" onClick={() => setFilterKind(k.key)} className="py-2 sm:py-0 text-xs text-muted-foreground hover:text-foreground hover:underline w-12 text-right tabular-nums whitespace-nowrap" title="在下方列出這個類型的卡片">{k.usage ?? 0} 張</button>
+                  <button type="button" onClick={() => remove(idx)} aria-label="刪除" className="ml-auto sm:ml-0 p-2.5 sm:p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="刪除"><Trash2 size={14} /></button>
                 </li>
               ))}
             </ul>
@@ -208,7 +208,7 @@ export default function CardKindsPage() {
         <p className="mt-3 text-xs text-muted-foreground">點左側徽章可換顏色；名稱隨時可改；上下箭頭調整選單順序。</p>
 
         <Section title={`現有卡片（${cards.length}）`} className="mt-6"
-          extra={<input value={cardSearch} onChange={(e) => setCardSearch(e.target.value)} placeholder="搜尋卡片…" className={`${inputCls} py-1 w-44`} />}>
+          extra={<input value={cardSearch} onChange={(e) => setCardSearch(e.target.value)} placeholder="搜尋卡片…" className={`${inputCls} py-1 w-32 sm:w-44`} />}>
           <div className="flex flex-wrap gap-1 text-xs mb-3">
             <Pill active={filterKind === 'all'} onClick={() => setFilterKind('all')}>全部</Pill>
             {kinds.map((k) => <Pill key={k.key} active={filterKind === k.key} onClick={() => setFilterKind(k.key)}>{k.label}{k.active ? '' : '（停用）'}</Pill>)}
@@ -245,7 +245,7 @@ export default function CardKindsPage() {
                       <Link href={STUDIO_ROUTES.card(c.id)} className="text-sm font-medium hover:text-admin-accent-600 truncate block">{c.title}</Link>
                       {c.body && <p className="text-xs text-muted-foreground truncate">{stripHtml(c.body, 100)}</p>}
                     </div>
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">{c.status === 'archived' ? '封存 · ' : ''}引用 {c.ref_count ?? 0} · {relativeTime(c.updated_at)}</span>
+                    <span className="hidden sm:inline text-[11px] text-muted-foreground whitespace-nowrap">{c.status === 'archived' ? '封存 · ' : ''}引用 {c.ref_count ?? 0} · {relativeTime(c.updated_at)}</span>
                     <button type="button" onClick={async () => { if (confirm(`刪除「${c.title}」？`)) { await cardApi.delete(c.id); loadCards(); refreshUsage(); } }} className={`${btnDanger} px-1.5 py-1`} title="刪除"><Trash2 size={13} /></button>
                   </li>
                 );

@@ -69,8 +69,8 @@ export default function CouponsPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="mb-6 flex justify-between items-center">
+      <div className="p-4 md:p-6">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">折扣碼設定</h1>
             <p className="text-gray-600">
@@ -96,9 +96,9 @@ export default function CouponsPage() {
             ) : (
               <div className="space-y-3">
                 {rows.map((c) => (
-                  <div key={c.id} className="border border-gray-200 rounded-lg p-4 flex justify-between items-center gap-4">
-                    <div className="text-sm text-gray-700 space-y-1">
-                      <div className="flex items-center gap-2">
+                  <div key={c.id} className="border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div className="text-sm text-gray-700 space-y-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono font-medium text-gray-900">{c.code}</span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{c.platform || '—'}</span>
                         {c.active
@@ -121,9 +121,9 @@ export default function CouponsPage() {
         </Card>
 
         {editing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:px-4">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setEditing(null)} />
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div className="relative bg-white rounded-t-2xl sm:rounded-lg shadow-xl w-full max-w-lg max-h-[92dvh] overflow-y-auto overscroll-contain p-4 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6 space-y-4">
               <h3 className="text-lg font-medium text-gray-900">{editing.id ? '編輯折扣碼' : '新增折扣碼'}</h3>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">折扣碼 *</label>
@@ -154,7 +154,7 @@ export default function CouponsPage() {
                   placeholder="例：8折"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">生效</label>
                   <input

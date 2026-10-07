@@ -14,11 +14,11 @@ interface Props {
 /** 收集 → 整理 → 寫作 → 改編 → 發布 的五步流程列。 */
 export function FlowBar({ counts = {}, active, onSelect }: Props) {
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className="flex md:grid md:grid-cols-5 gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 md:pb-0">
       {FLOW_STEPS.map((step, idx) => {
         const isActive = active === step.key;
         const n = counts[step.key];
-        const cls = `flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-medium border transition ${
+        const cls = `flex-shrink-0 whitespace-nowrap flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-medium border transition ${
           isActive
             ? 'bg-admin-accent-100 border-admin-accent-200 text-admin-accent-800 dark:bg-admin-accent-800/40 dark:border-admin-accent-700 dark:text-admin-accent-100'
             : 'bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted'

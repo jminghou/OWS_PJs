@@ -17,10 +17,14 @@ export function AdminContentGrid<T>({
   gap = 3,
   className = '',
 }: AdminContentGridProps<T>) {
+  // 手機：最小寬度降到約半個畫面，至少兩欄並撐滿；桌機維持原本格子大小
   return (
     <div
-      className={`grid gap-${gap} ${className}`}
-      style={{ gridTemplateColumns: `repeat(auto-fill, ${itemSize}px)` }}
+      className={`grid ${className}`}
+      style={{
+        gap: `${gap * 0.25}rem`,
+        gridTemplateColumns: `repeat(auto-fill, minmax(min(${itemSize}px, calc(50% - ${gap * 0.125}rem)), 1fr))`,
+      }}
     >
       {items.map((item, index) => (
         <React.Fragment key={index}>

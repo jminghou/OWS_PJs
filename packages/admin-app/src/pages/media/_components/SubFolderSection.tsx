@@ -91,17 +91,17 @@ export function SubFolderSection({
       {isExpanded && (
         <div className="pb-4">
           {loading ? (
-            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, 180px)" }}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(180px, calc(50% - 0.375rem)), 1fr))" }}>
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="w-[180px] h-[180px] bg-gray-200 rounded-lg animate-pulse" />
+                <div key={i} className="w-full aspect-square bg-gray-200 rounded-lg animate-pulse" />
               ))}
             </div>
           ) : mediaItems.length > 0 ? (
-            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, 180px)" }}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(180px, calc(50% - 0.375rem)), 1fr))" }}>
               {mediaItems.map((item) => (
                 <div
                   key={item.id}
-                  className="w-[180px] h-[180px] relative group rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                  className="w-full aspect-square relative group rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => onEditFile(item)}
                 >
                   <img

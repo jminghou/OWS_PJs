@@ -55,9 +55,9 @@ export function NotionTitleInput({
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
       rows={1}
-      className={`w-full text-4xl font-bold text-gray-900 placeholder-gray-300
+      className={`w-full text-2xl md:text-4xl font-bold text-gray-900 placeholder-gray-300
                  border-none outline-none resize-none bg-transparent
-                 focus:ring-0 leading-tight py-2 pl-14 ${className}`}
+                 focus:ring-0 leading-tight py-2 pl-3 md:pl-14 ${className}`}
       style={{ minHeight: '3rem' }}
     />
   );

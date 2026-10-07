@@ -168,10 +168,10 @@ function ImageSlot({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={getImageUrl(value, 'small')} alt={label} className="h-full w-full object-cover" />
       <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1 bg-black/50 p-1.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-        <button type="button" onClick={onBrowse} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-white hover:bg-white/20">
+        <button type="button" onClick={onBrowse} className="inline-flex items-center gap-1 rounded px-3 py-2 sm:px-2 sm:py-1 text-xs text-white hover:bg-white/20">
           <RefreshCw className="h-3.5 w-3.5" /> 更換
         </button>
-        <button type="button" onClick={onRemove} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-white hover:bg-white/20">
+        <button type="button" onClick={onRemove} className="inline-flex items-center gap-1 rounded px-3 py-2 sm:px-2 sm:py-1 text-xs text-white hover:bg-white/20">
           <X className="h-3.5 w-3.5" /> 移除
         </button>
       </div>
@@ -247,20 +247,20 @@ function ReportImagesTab(props: ProductAttributesSectionProps) {
         title="商品頁圖庫：內頁"
         description={<>正方形 1:1，依序排在封面之後；放了任何一張就取代全部佔位框，可一次選多張。目前佔位：{report.gallery.join('、')}</>}
       >
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {gallery.map((path, i) => (
             <div key={`${path}-${i}`} className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-muted">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={getImageUrl(path, 'small')} alt={`內頁 ${i + 1}`} className="h-full w-full object-cover" />
               <span className="absolute left-1 top-1 rounded bg-black/60 px-1.5 text-[11px] text-white">{i + 1}</span>
               <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/50 p-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                <button type="button" onClick={() => moveGallery(i, i - 1)} disabled={i === 0} aria-label="往前移" className="rounded p-1 text-white hover:bg-white/20 disabled:opacity-30">
+                <button type="button" onClick={() => moveGallery(i, i - 1)} disabled={i === 0} aria-label="往前移" className="rounded p-2 sm:p-1 text-white hover:bg-white/20 disabled:opacity-30">
                   <ArrowLeft className="h-3.5 w-3.5" />
                 </button>
-                <button type="button" onClick={() => set({ gallery_images: gallery.filter((_, j) => j !== i) })} aria-label="移除" className="rounded p-1 text-white hover:bg-white/20">
+                <button type="button" onClick={() => set({ gallery_images: gallery.filter((_, j) => j !== i) })} aria-label="移除" className="rounded p-2 sm:p-1 text-white hover:bg-white/20">
                   <X className="h-3.5 w-3.5" />
                 </button>
-                <button type="button" onClick={() => moveGallery(i, i + 1)} disabled={i === gallery.length - 1} aria-label="往後移" className="rounded p-1 text-white hover:bg-white/20 disabled:opacity-30">
+                <button type="button" onClick={() => moveGallery(i, i + 1)} disabled={i === gallery.length - 1} aria-label="往後移" className="rounded p-2 sm:p-1 text-white hover:bg-white/20 disabled:opacity-30">
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </div>

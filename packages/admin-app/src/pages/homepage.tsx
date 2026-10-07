@@ -8,10 +8,10 @@ import AdminLayout from '../components/AdminLayout';
 import HomepageArticleWall from '../components/HomepageArticleWall';
 import HomepageHeroIntro from '../components/HomepageHeroIntro';
 import Button from '@ows/ui/ui/Button';
-import { AdminListLayout, AdminImagePicker } from '@ows/ui/admin';
+import { AdminListLayout, AdminImagePicker, AdminStickyFooter } from '@ows/ui/admin';
 import TiptapEditor from '../components/TiptapEditor';
-import { Image, Trash2, GripVertical, Save, AlertCircle, Video, Link } from 'lucide-react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { Image, Trash2, GripVertical, Save, AlertCircle, Video, Link, ArrowUp, ArrowDown } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -37,14 +37,14 @@ function FocalPointPicker({ value, onChange }: { value: string; onChange: (v: st
   return (
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1">圖片焦點</label>
-      <div className="grid grid-cols-3 gap-1 w-24">
+      <div className="grid grid-cols-3 gap-1 w-36 md:w-24">
         {FOCAL_POINTS.map((fp) => (
           <button
             key={fp}
             type="button"
             title={FOCAL_LABELS[fp]}
             onClick={() => onChange(fp)}
-            className={`h-6 w-full rounded-sm border text-xs transition-colors ${
+            className={`h-10 md:h-6 w-full rounded-sm border text-xs transition-colors ${
               current === fp
                 ? 'bg-blue-500 border-blue-600 text-white'
                 : 'bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-500'
@@ -79,8 +79,14 @@ function SortableSlideItem({
   onDelete,
   onUpdate,
   onOpenMediaBrowser,
+  index,
+  total,
+  onMove,
 }: {
   slide: HomepageSlide;
+  index: number;
+  total: number;
+  onMove: (id: string, dir: -1 | 1) => void;
   enabledLanguages: string[];
   languageNames: Record<string, string>;
   onDelete: (id: string) => void;
@@ -112,36 +118,46 @@ function SortableSlideItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white border border-gray-200 rounded-lg p-6 mb-4"
+      className="bg-white border border-gray-200 rounded-lg p-3 md:p-6 mb-4"
     >
+      {/* 手機：頂部操作列（排序用按鈕，不靠拖拉） */}
+      <div className="md:hidden flex items-center gap-1 -mt-1 mb-3 pb-2 border-b border-gray-100">
+        <span className="text-sm font-medium text-gray-700 mr-auto">第 {index + 1} 張</span>
+        <button type="button" disabled={index === 0} onClick={() => onMove(slide.id, -1)} aria-label="上移"
+          className="flex items-center justify-center w-10 h-10 rounded-md text-gray-600 disabled:opacity-30 active:bg-gray-100"><ArrowUp className="h-5 w-5" /></button>
+        <button type="button" disabled={index === total - 1} onClick={() => onMove(slide.id, 1)} aria-label="下移"
+          className="flex items-center justify-center w-10 h-10 rounded-md text-gray-600 disabled:opacity-30 active:bg-gray-100"><ArrowDown className="h-5 w-5" /></button>
+        <button type="button" onClick={() => onDelete(slide.id)} aria-label="刪除此幻燈片"
+          className="flex items-center justify-center w-10 h-10 rounded-md text-red-600 active:bg-red-50"><Trash2 className="h-5 w-5" /></button>
+      </div>
       <div className="flex gap-4">
-        {/* 拖拉手柄 */}
+        {/* 拖拉手柄（桌機） */}
         <div
           {...attributes}
           {...listeners}
-          className="flex items-start pt-2 cursor-grab active:cursor-grabbing"
+          className="hidden md:flex items-start pt-2 cursor-grab active:cursor-grabbing touch-none"
         >
           <GripVertical className="h-6 w-6 text-gray-400" />
         </div>
 
         {/* 主體內容 */}
-        <div className="flex-1 space-y-5">
+        <div className="flex-1 min-w-0 space-y-5">
 
           {/* ── A. 媒體設定 ─────────────────────────────────────────── */}
-          <div className="border border-gray-100 rounded-lg p-4 bg-gray-50 space-y-3">
+          <div className="border border-gray-100 rounded-lg p-3 md:p-4 bg-gray-50 space-y-3">
             <div className="flex items-center gap-2 mb-2">
               <Video className="h-4 w-4 text-gray-500" />
               <span className="text-sm font-semibold text-gray-700">媒體設定</span>
             </div>
 
             {/* 媒體類型選擇 */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {(['image', 'youtube', 'video'] as const).map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => onUpdate(slide.id, 'media_type', type)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+                  className={`px-3 py-2.5 md:py-1.5 text-xs font-medium rounded-md border transition-colors ${
                     mediaType === type
                       ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
@@ -154,13 +170,13 @@ function SortableSlideItem({
 
             {/* 圖片模式 */}
             {mediaType === 'image' && (
-              <div className="flex gap-4 items-start">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-start">
                 <div className="space-y-2">
                   {slide.image_url ? (
                     <img
                       src={getImageUrl(slide.image_url, 'medium')}
                       alt={slide.alt_text}
-                      className="w-48 h-auto max-h-36 object-contain rounded-lg border border-gray-200"
+                      className="w-full sm:w-48 h-auto max-h-48 sm:max-h-36 object-contain rounded-lg border border-gray-200 bg-white"
                       onError={(e) => {
                         const t = e.target as HTMLImageElement;
                         if (t.src.includes('_medium')) {
@@ -171,20 +187,20 @@ function SortableSlideItem({
                       }}
                     />
                   ) : (
-                    <div className="w-48 h-28 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white">
+                    <div className="w-full sm:w-48 h-28 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white">
                       <Image className="h-8 w-8 text-gray-300" />
                     </div>
                   )}
                   <button
                     type="button"
                     onClick={() => onOpenMediaBrowser(slide.id, 'image_url')}
-                    className="text-xs text-blue-600 hover:text-blue-700 underline"
+                    className="py-2 sm:py-0 text-sm sm:text-xs text-blue-600 hover:text-blue-700 underline"
                   >
                     {slide.image_url ? '更換圖片' : '選擇圖片'}
                   </button>
-                  <div className="text-xs text-gray-400 break-all max-w-[192px]">{slide.image_url}</div>
+                  <div className="text-xs text-gray-400 break-all sm:max-w-[192px]">{slide.image_url}</div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 sm:flex-1 min-w-0">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Alt Text（無障礙描述）</label>
                     <input
@@ -247,7 +263,7 @@ function SortableSlideItem({
           </div>
 
           {/* ── B. 顯示設定 ─────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 覆蓋層透明度：{slide.overlay_opacity ?? 40}%
@@ -291,7 +307,7 @@ function SortableSlideItem({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 主標題覆蓋（多語言，留空沿用全域主標題）
               </label>
-              <div className="flex gap-2 mb-2 border-b border-gray-200">
+              <div className="flex gap-2 mb-2 border-b border-gray-200 overflow-x-auto">
                 {enabledLanguages.map((lang) => (
                   <button
                     key={lang}
@@ -325,7 +341,7 @@ function SortableSlideItem({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 副標題（多語言富文本）
               </label>
-              <div className="flex gap-2 mb-3 border-b border-gray-200">
+              <div className="flex gap-2 mb-3 border-b border-gray-200 overflow-x-auto">
                 {enabledLanguages.map((lang) => (
                   <button
                     key={lang}
@@ -357,8 +373,8 @@ function SortableSlideItem({
           </div>
 
           {/* ── D. 個別 CTA 連結 ─────────────────────────────────────── */}
-          <div className="border border-gray-100 rounded-lg p-4 bg-gray-50 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="border border-gray-100 rounded-lg p-3 md:p-4 bg-gray-50 space-y-3">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
               <Link className="h-4 w-4 text-gray-500" />
               <span className="text-sm font-semibold text-gray-700">個別 CTA 連結</span>
               <span className="text-xs text-gray-400">（留空則使用全域按鈕行為）</span>
@@ -375,7 +391,7 @@ function SortableSlideItem({
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-2">按鈕文字（多語言）</label>
-              <div className="flex gap-2 mb-2 border-b border-gray-200">
+              <div className="flex gap-2 mb-2 border-b border-gray-200 overflow-x-auto">
                 {enabledLanguages.map((lang) => (
                   <button
                     key={lang}
@@ -415,7 +431,7 @@ function SortableSlideItem({
           </div>
 
           {/* ── E. 排程 ─────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">排程啟用時間</label>
               <input
@@ -439,8 +455,8 @@ function SortableSlideItem({
           </div>
         </div>
 
-        {/* 刪除按鈕 */}
-        <div className="flex items-start pt-2">
+        {/* 刪除按鈕（桌機；手機在頂部操作列） */}
+        <div className="hidden md:flex items-start pt-2">
           <button
             onClick={() => onDelete(slide.id)}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -500,7 +516,8 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults,
   }, [enabledLanguages, activeLanguage]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -604,6 +621,15 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults,
     }
   };
 
+  const handleMoveSlide = (id: string, dir: -1 | 1) => {
+    setSlides((items) => {
+      const i = items.findIndex((item) => item.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= items.length) return items;
+      return arrayMove(items, i, j).map((item, index) => ({ ...item, sort_order: index }));
+    });
+  };
+
   const handleDeleteSlide = (id: string) => {
     if (confirm('確定要刪除此幻燈片嗎？')) {
       setSlides(slides.filter((s) => s.id !== id));
@@ -679,15 +705,21 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults,
 
   return (
     <AdminLayout>
-      <AdminListLayout sidebar={sidebar} sidebarWidth={224}>
-        <div className="p-6 space-y-6">
+      <AdminListLayout
+        sidebar={sidebar}
+        sidebarWidth={224}
+        mobileListLabel="首頁區塊"
+        mobileTitle={sectionItems.find((s) => s.key === activeSection)?.label}
+        closeDrawerOn={activeSection}
+      >
+        <div className="p-4 md:p-6 space-y-6">
           {/* 頂部標題 + 儲存 */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h1 className="text-xl font-bold text-gray-900">
                 {sectionItems.find((s) => s.key === activeSection)?.label}
               </h1>
-              <p className="text-gray-600 mt-2">
+              <p className="text-sm md:text-base text-gray-600 mt-2">
                 {activeSection === 'slides' && '最多上傳 5 張圖片，拖拉調整順序，每張可設定媒體、文字、CTA、排程'}
                 {activeSection === 'carousel_settings' && '設定輪播的全域行為（hover 暫停、延遲載入）'}
                 {activeSection === 'button_text' && '設定首頁主視覺按鈕文字；單張幻燈片的 CTA 文字優先，未設定 CTA 網址時捲動到文章牆'}
@@ -699,7 +731,7 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults,
             <Button
               onClick={handleSave}
               disabled={saving || loading || !loaded}
-              className="flex items-center gap-2"
+              className="hidden md:flex items-center gap-2 flex-shrink-0"
             >
               <Save className="h-4 w-4" />
               {saving ? '儲存中...' : '儲存設定'}
@@ -761,10 +793,13 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults,
                       onDragEnd={handleDragEnd}
                     >
                       <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-                        {slides.map((slide) => (
+                        {slides.map((slide, index) => (
                           <SortableSlideItem
                             key={slide.id}
                             slide={slide}
+                            index={index}
+                            total={slides.length}
+                            onMove={handleMoveSlide}
                             enabledLanguages={enabledLanguages}
                             languageNames={languageNames}
                             onDelete={handleDeleteSlide}
@@ -982,6 +1017,13 @@ export function HomepageSettingsPage({ enableArticleWall = false, aboutDefaults,
             </>
           )}
         </div>
+        {/* 手機：固定在底部的儲存列 */}
+        <AdminStickyFooter className="md:hidden">
+          <Button onClick={handleSave} disabled={saving || loading || !loaded} className="w-full flex items-center justify-center gap-2">
+            <Save className="h-4 w-4" />
+            {saving ? '儲存中...' : '儲存設定'}
+          </Button>
+        </AdminStickyFooter>
       </AdminListLayout>
 
       {/* 媒體庫瀏覽器 */}

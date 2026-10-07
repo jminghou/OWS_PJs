@@ -8,6 +8,7 @@ import { Merge, Pencil, Plus, Tag as TagIcon, Trash2 } from 'lucide-react';
 import { tagApi } from '../api';
 import { STUDIO_ROUTES } from '../constants';
 import type { Card, Document, InboxItem, Project, StudioTag } from '../types';
+import { AdminActionMenu } from '@ows/ui/admin';
 import { Empty, EmptyState, KindBadge, PageHeader, PlatformBadge, Section, SidebarSearch, StageBadge, StudioPage, StudioSplit, btnDanger, btnGhost, btnPrimary, inputCls } from '../components/ui';
 
 const TYPE_LABEL: Record<string, string> = { project: '專案', document: '文件', card: '卡片', inbox_item: '收集' };
@@ -16,6 +17,8 @@ function TagsPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const selectedId = params.get('id') ? Number(params.get('id')) : null;
+  // 手機：返回清單時保留其他篩選參數，只拿掉 id
+  const backToList = () => { const q = new URLSearchParams(params.toString()); q.delete('id'); q.delete('new'); router.push(`?${q.toString()}`); };
 
   const [tags, setTags] = useState<StudioTag[]>([]);
   const [search, setSearch] = useState('');
@@ -69,6 +72,9 @@ function TagsPageContent() {
     <AdminLayout>
       <StudioSplit
         sidebarWidth={320}
+        hasSelection={!!selectedId}
+        onMobileBack={backToList}
+        mobileTitle={items ? `#${items.tag.name}` : undefined}
         sidebar={
           <div className="flex flex-col h-full">
             <div className="p-3 border-b border-border/60 flex gap-1.5">
@@ -83,12 +89,14 @@ function TagsPageContent() {
             </div>
             <div className="flex-1 overflow-y-auto border-t border-border/60 mt-1">
               {tags.length === 0 ? <Empty text="沒有標籤" /> : tags.map((t) => (
-                <div key={t.id} className={`group flex items-center gap-2 px-3 py-2 border-b border-border/40 hover:bg-muted ${selectedId === t.id ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30' : ''}`}>
-                  <input type="checkbox" checked={selected.includes(t.id)} onChange={(e) => setSelected((s) => e.target.checked ? [...s, t.id] : s.filter((x) => x !== t.id))} className="rounded border-border" />
-                  <button type="button" onClick={() => router.push(STUDIO_ROUTES.tag(t.id))} className="flex-1 text-left text-sm text-foreground truncate">#{t.name}</button>
+                <div key={t.id} className={`group flex items-center gap-2 px-3 py-1 md:py-2 border-b border-border/40 hover:bg-muted ${selectedId === t.id ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30' : ''}`}>
+                  <input type="checkbox" checked={selected.includes(t.id)} onChange={(e) => setSelected((s) => e.target.checked ? [...s, t.id] : s.filter((x) => x !== t.id))} className="w-5 h-5 md:w-auto md:h-auto rounded border-border" />
+                  <button type="button" onClick={() => router.push(STUDIO_ROUTES.tag(t.id))} className="flex-1 min-w-0 py-2 md:py-0 text-left text-sm text-foreground truncate">#{t.name}</button>
                   <span className="text-[11px] text-muted-foreground">{t.total ?? 0}</span>
-                  <button type="button" onClick={() => rename(t)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground p-0.5" title="重新命名"><Pencil size={12} /></button>
-                  <button type="button" onClick={() => remove(t)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-0.5" title="刪除"><Trash2 size={12} /></button>
+                  <AdminActionMenu size="sm" title={`#${t.name}`} label={`#${t.name} 的操作`} items={[
+                    { label: '重新命名', icon: <Pencil />, onClick: () => rename(t) },
+                    { label: '刪除', icon: <Trash2 />, danger: true, onClick: () => remove(t) },
+                  ]} />
                 </div>
               ))}
             </div>

@@ -80,8 +80,8 @@ export default function OrderReviewsPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="mb-6 flex justify-between items-center">
+      <div className="p-4 md:p-6">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">訂單審核</h1>
             <p className="text-gray-600">審核會員登錄的外部訂單號，通過後自動發出折扣碼。</p>
@@ -121,9 +121,9 @@ export default function OrderReviewsPage() {
               <div className="space-y-3">
                 {rows.map((r) => (
                   <div key={r.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 text-sm text-gray-700 space-y-1">
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+                      <div className="flex-1 min-w-0 break-words text-sm text-gray-700 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium text-gray-900">{r.product_name}</span>
                           {statusBadge(r.status)}
                           <span className="text-xs text-gray-400">#{r.id}</span>
@@ -136,7 +136,7 @@ export default function OrderReviewsPage() {
                         <p className="text-xs text-gray-400">提交於 {formatDateTime(r.created_at || '')}</p>
                       </div>
                       {r.status === '待審核' && (
-                        <div className="flex flex-col gap-2">
+                        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2">
                           <Button size="sm" onClick={() => approve(r.id)} disabled={busyId === r.id}>
                             通過
                           </Button>

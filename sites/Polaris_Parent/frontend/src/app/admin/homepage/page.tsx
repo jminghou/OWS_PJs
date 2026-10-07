@@ -154,8 +154,14 @@ export default function PolarisHomepageSettingsPage() {
 
   return (
     <AdminLayout>
-      <AdminListLayout sidebar={sidebar} sidebarWidth={224}>
-        <div className="max-w-3xl space-y-6 p-6">
+      <AdminListLayout
+        sidebar={sidebar}
+        sidebarWidth={224}
+        mobileListLabel="首頁區塊"
+        mobileTitle={section.label}
+        closeDrawerOn={activeSection}
+      >
+        <div className="max-w-3xl space-y-6 p-4 md:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-foreground">{section.label}</h2>

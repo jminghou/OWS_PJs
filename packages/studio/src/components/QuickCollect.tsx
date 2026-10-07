@@ -19,9 +19,10 @@ export function QuickCollectButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-muted text-foreground hover:bg-accent transition whitespace-nowrap"
+        aria-label="快速收集"
+        className="inline-flex items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 text-sm font-medium rounded-lg bg-muted text-foreground hover:bg-accent transition whitespace-nowrap"
       >
-        <Plus size={14} /> 快速收集
+        <Plus size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">快速收集</span>
       </button>
       {open && <QuickCollectDialog onClose={() => setOpen(false)} />}
     </>
@@ -53,11 +54,11 @@ export function QuickCollectDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center pt-[14vh] bg-black/30" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-start justify-center px-3 pt-4 sm:pt-[14vh] bg-black/30" onClick={onClose}>
       <div className="w-full max-w-lg bg-card text-card-foreground rounded-xl shadow-xl border border-border p-4 space-y-2" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">快速收集</h3>
-          <span className="text-[11px] text-muted-foreground">Ctrl+Enter 儲存 · Esc 關閉</span>
+          <span className="hidden md:inline text-[11px] text-muted-foreground">Ctrl+Enter 儲存 · Esc 關閉</span>
         </div>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="標題（選填）" className={inputCls} />
         <textarea

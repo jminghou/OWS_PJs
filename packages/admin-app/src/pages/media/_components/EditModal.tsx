@@ -123,13 +123,13 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] md:p-4">
+      <div className="bg-white md:rounded-xl w-full max-w-5xl h-full md:h-auto md:max-h-[90vh] flex flex-col shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+        <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-900">媒體詳情</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} aria-label="關閉" className="p-2.5 -mr-2 md:mr-0 md:p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -137,10 +137,10 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
         </div>
 
         {/* Body: two-column layout */}
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-visible overscroll-contain">
 
           {/* LEFT PANEL: preview + file info */}
-          <div className="w-72 flex-shrink-0 flex flex-col bg-gray-50 border-r p-5 gap-4 overflow-y-auto">
+          <div className="w-full md:w-72 flex-none md:flex-shrink-0 flex flex-col bg-gray-50 border-b md:border-b-0 md:border-r p-4 md:p-5 gap-4 md:overflow-y-auto">
 
             {/* Image preview */}
             <div className="flex items-center justify-center bg-white rounded-lg border border-gray-200 overflow-hidden min-h-40">
@@ -205,16 +205,16 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
           </div>
 
           {/* RIGHT PANEL: tabs + form */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-none md:flex-1 flex flex-col min-w-0">
 
             {/* Tab bar */}
-            <div className="flex border-b flex-shrink-0 px-6">
+            <div className="flex border-b flex-shrink-0 px-2 md:px-6 overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                  className={`flex-shrink-0 whitespace-nowrap px-3 md:px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
                     activeTab === tab.key
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -226,7 +226,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
             </div>
 
             {/* Tab content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="md:flex-1 md:overflow-y-auto p-4 md:p-6">
 
               {/* Tab 1: 基本資訊 */}
               {activeTab === 'basic' && (
@@ -311,7 +311,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                               key={color}
                               type="button"
                               onClick={() => setNewTagColor(color)}
-                              className={`w-5 h-5 rounded-full transition-transform ${newTagColor === color ? 'ring-2 ring-offset-1 ring-gray-400 scale-110' : 'hover:scale-110'}`}
+                              className={`w-8 h-8 md:w-5 md:h-5 rounded-full transition-transform ${newTagColor === color ? 'ring-2 ring-offset-1 ring-gray-400 scale-110' : 'hover:scale-110'}`}
                               style={{ backgroundColor: color }}
                             />
                           ))}
@@ -349,7 +349,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
               {/* Tab 2: Metadata */}
               {activeTab === 'metadata' && (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">命盤ID</label>
                       <input type="text" value={metaChartId} onChange={(e) => setMetaChartId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="紫微命盤 ID..." />
@@ -374,7 +374,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">狀態</label>
                       <select value={metaStatus} onChange={(e) => setMetaStatus(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -407,7 +407,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">圖片路徑</label>
                     <div className="relative">
                       <input type="text" value={file.file_path} readOnly className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg bg-gray-50 text-sm font-mono" />
-                      <button onClick={() => navigator.clipboard.writeText(file.file_path)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700 transition-colors" title="複製">
+                      <button onClick={() => navigator.clipboard.writeText(file.file_path)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 md:p-1 text-gray-400 hover:text-gray-700 transition-colors" title="複製" aria-label="複製">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                       </button>
                     </div>
@@ -417,7 +417,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">HTML</label>
                     <div className="relative">
                       <textarea value={`<img src="${file.file_path}" alt="${altText || file.original_filename}" />`} readOnly rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs font-mono resize-none" />
-                      <button onClick={() => navigator.clipboard.writeText(`<img src="${file.file_path}" alt="${altText || file.original_filename}" />`)} className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-700 transition-colors" title="複製">
+                      <button onClick={() => navigator.clipboard.writeText(`<img src="${file.file_path}" alt="${altText || file.original_filename}" />`)} className="absolute right-2 top-2 p-2.5 md:p-1 text-gray-400 hover:text-gray-700 transition-colors" title="複製" aria-label="複製">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                       </button>
                     </div>
@@ -427,7 +427,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Markdown</label>
                     <div className="relative">
                       <textarea value={`![${altText || file.original_filename}](${file.file_path})`} readOnly rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs font-mono resize-none" />
-                      <button onClick={() => navigator.clipboard.writeText(`![${altText || file.original_filename}](${file.file_path})`)} className="absolute right-2 top-2 p-1 text-gray-400 hover:text-gray-700 transition-colors" title="複製">
+                      <button onClick={() => navigator.clipboard.writeText(`![${altText || file.original_filename}](${file.file_path})`)} className="absolute right-2 top-2 p-2.5 md:p-1 text-gray-400 hover:text-gray-700 transition-colors" title="複製" aria-label="複製">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                       </button>
                     </div>
@@ -440,7 +440,7 @@ export function EditModal({ file, folders, tags, onClose, onSave, onTagCreated }
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 px-6 py-4 border-t bg-gray-50 flex-shrink-0 rounded-b-xl">
+        <div className="flex justify-end gap-2 px-4 md:px-6 pt-3 md:py-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t bg-gray-50 flex-shrink-0 md:rounded-b-xl">
           <Button variant="outline" onClick={onClose}>關閉</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? '儲存中...' : '儲存變更'}</Button>
         </div>

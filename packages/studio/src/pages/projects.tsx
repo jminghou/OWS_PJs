@@ -23,6 +23,8 @@ function ProjectsPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const selectedId = params.get('id') ? Number(params.get('id')) : null;
+  // 手機：返回清單時保留其他篩選參數，只拿掉 id
+  const backToList = () => { const q = new URLSearchParams(params.toString()); q.delete('id'); q.delete('new'); router.push(`?${q.toString()}`); };
   const stageParam = (params.get('stage') as Stage | null) || 'all';
   const flowParam = (params.get('flow') as FlowStep | null) || null;
 
@@ -52,6 +54,9 @@ function ProjectsPageContent() {
     <AdminLayout>
       <StudioSplit
         sidebarWidth={300}
+        hasSelection={!!selectedId}
+        onMobileBack={backToList}
+        mobileTitle={detail?.title}
         sidebar={
           <div className="flex flex-col h-full">
             <div className="p-3 border-b border-border/60">
@@ -144,8 +149,8 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-4">
-      <div className="flex items-start gap-3">
+    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
         <div className="flex-1 min-w-0">
           <input value={title} onChange={(e) => { setTitle(e.target.value); setDirty(true); }}
             className="w-full text-2xl font-semibold text-foreground outline-none bg-transparent placeholder:text-muted-foreground/50" placeholder="專案標題" />
@@ -154,7 +159,7 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
             <TagChips targetType="project" targetId={project.id} tags={project.tags || []} onChange={onChanged} size="md" />
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 self-end sm:self-auto">
           {dirty && <button type="button" onClick={save} disabled={saving} className={btnPrimary}>{saving ? '儲存中…' : '儲存'}</button>}
           <button type="button" onClick={remove} className={btnDanger} title="刪除專案"><Trash2 size={14} /></button>
         </div>
@@ -203,7 +208,7 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
                       {s.url && <a href={s.url} target="_blank" rel="noreferrer" className="text-xs text-admin-accent-600 dark:text-admin-accent-200 hover:underline break-all inline-flex items-center gap-1"><Link2 size={10} />{s.url}</a>}
                       {s.note && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-0.5">{s.note}</p>}
                     </div>
-                    <button type="button" onClick={async () => { await projectApi.deleteSource(s.id); onChanged(); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-1"><X size={12} /></button>
+                    <button type="button" onClick={async () => { if (!confirm('移除這筆參考資料？')) return; await projectApi.deleteSource(s.id); onChanged(); }} aria-label="移除參考資料" className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-2.5 -m-1.5 md:p-1 md:m-0"><X size={14} className="md:w-3 md:h-3" /></button>
                   </div>
                 </li>
               ))}
@@ -225,7 +230,7 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
                   <div className="flex items-center gap-2">
                     <KindBadge kind={c.kind} />
                     <Link href={STUDIO_ROUTES.card(c.id)} className="text-sm font-medium text-foreground truncate flex-1 hover:text-admin-accent-600">{c.title}</Link>
-                    <button type="button" onClick={async () => { await cardApi.removeRef(c.id, 'project', project.id); onChanged(); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-1"><X size={12} /></button>
+                    <button type="button" onClick={async () => { await cardApi.removeRef(c.id, 'project', project.id); onChanged(); }} aria-label="取消引用" className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-2.5 -m-1.5 md:p-1 md:m-0"><X size={14} className="md:w-3 md:h-3" /></button>
                   </div>
                   {c.body && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{stripHtml(c.body, 140)}</p>}
                 </li>
@@ -285,10 +290,10 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-lg bg-card text-card-foreground border border-border rounded-xl shadow-xl p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center px-3 py-4 bg-black/40" onClick={onClose}>
+      <div className="w-full max-w-lg max-h-full overflow-y-auto bg-card text-card-foreground border border-border rounded-xl shadow-xl p-4 sm:p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-base font-semibold text-foreground">新增作品</h3><label className="text-xs">原始語言 <select value={language} onChange={e=>setLanguage(e.target.value)} className="bg-card border rounded p-1">{languages.map(l=><option key={l}>{l}</option>)}</select></label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {PLATFORMS.map((p) => (
             <button key={p} type="button" onClick={() => setPlatform(p)}
               className={`rounded-lg border px-3 py-2 text-sm text-left ${platform === p ? 'border-admin-accent-500 bg-admin-accent-50 dark:bg-admin-accent-800/30 text-admin-accent-800 dark:text-admin-accent-100' : 'border-border hover:border-border'}`}>
@@ -299,8 +304,8 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
         </div>
         {platform === 'blog' && (
           <div className="flex gap-1 text-xs">
-            <button type="button" onClick={() => setMode('new')} className={`px-2 py-1 rounded ${mode === 'new' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>建立新文章草稿</button>
-            <button type="button" onClick={() => setMode('bind')} className={`px-2 py-1 rounded ${mode === 'bind' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>開啟／接管既有文章</button>
+            <button type="button" onClick={() => setMode('new')} className={`px-2.5 py-2 sm:px-2 sm:py-1 rounded ${mode === 'new' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>建立新文章草稿</button>
+            <button type="button" onClick={() => setMode('bind')} className={`px-2.5 py-2 sm:px-2 sm:py-1 rounded ${mode === 'bind' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>開啟／接管既有文章</button>
           </div>
         )}
         {platform === 'blog' && mode === 'bind' ? (

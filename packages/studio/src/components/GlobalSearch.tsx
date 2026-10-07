@@ -68,7 +68,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
 
   let lastGroup = '';
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[12vh] bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center px-3 pt-3 sm:pt-[12vh] bg-black/40" onClick={onClose}>
       <div className="w-full max-w-xl bg-card text-card-foreground border border-border rounded-xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 px-4 border-b border-border/60">
           <Search size={16} className="text-muted-foreground" />
@@ -83,7 +83,8 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
               if (e.key === 'Enter' && hits[active]) go(hits[active]);
             }}
           />
-          <kbd className="text-[10px] text-muted-foreground border border-border rounded px-1">Esc</kbd>
+          <kbd className="hidden md:inline text-[10px] text-muted-foreground border border-border rounded px-1">Esc</kbd>
+          <button type="button" onClick={onClose} className="md:hidden -mr-2 h-11 px-2 text-sm text-muted-foreground">取消</button>
         </div>
         <div className="max-h-[60vh] overflow-y-auto">
           {q && !loading && hits.length === 0 && <p className="p-6 text-sm text-muted-foreground text-center">沒有結果</p>}
@@ -95,7 +96,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
               <div key={h.key}>
                 {showGroup && <div className="px-4 pt-3 pb-1 text-[11px] font-medium text-muted-foreground">{GROUP_LABEL[h.group]}</div>}
                 <button type="button" onMouseEnter={() => setActive(idx)} onClick={() => go(h)}
-                  className={`w-full text-left px-4 py-2 ${idx === active ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30' : 'hover:bg-muted'}`}>
+                  className={`w-full text-left px-4 py-3 md:py-2 ${idx === active ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30' : 'hover:bg-muted'}`}>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-foreground truncate flex-1">{h.title}</span>
                     {h.meta && <span className="text-[11px] text-muted-foreground flex-shrink-0">{h.meta}</span>}
@@ -148,10 +149,11 @@ export function StudioSearchBar() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center gap-2 h-9 px-3 rounded-lg bg-muted text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition text-left"
+        aria-label="搜尋"
+        className="w-full flex items-center gap-2 h-10 md:h-9 px-3 rounded-lg bg-muted text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition text-left"
       >
         <Search size={15} />
-        <span className="flex-1 truncate">搜尋文章、知識卡片、舊版本…</span>
+        <span className="flex-1 truncate"><span className="sm:hidden">搜尋…</span><span className="hidden sm:inline">搜尋文章、知識卡片、舊版本…</span></span>
         <kbd className="hidden md:inline text-[10px] border border-border rounded px-1 py-0.5 bg-card">⌘K</kbd>
       </button>
       <GlobalSearch open={open} onClose={() => setOpen(false)} />

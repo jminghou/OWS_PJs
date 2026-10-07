@@ -31,10 +31,10 @@ export function AdminImagePicker({
   aspectRatio = '4/3',
 }: AdminImagePickerProps) {
   const aspectClass = {
-    '1/1': 'aspect-square w-40 h-40',
-    '4/3': 'aspect-[4/3] w-40 h-30',
-    '16/9': 'aspect-video w-40 h-22.5',
-    'auto': 'w-40 h-auto min-h-[120px]',
+    '1/1': 'aspect-square w-full max-w-[12rem] sm:w-40',
+    '4/3': 'aspect-[4/3] w-full max-w-xs sm:w-40',
+    '16/9': 'aspect-video w-full max-w-xs sm:w-40',
+    'auto': 'w-full sm:w-40 h-auto min-h-[120px]',
   }[aspectRatio];
 
   return (
@@ -45,7 +45,7 @@ export function AdminImagePicker({
         </label>
       )}
       
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 sm:gap-4">
         {/* 圖片預覽區 */}
         <div className={`flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden border border-gray-200 relative group ${aspectClass}`}>
           {value ? (
@@ -74,12 +74,12 @@ export function AdminImagePicker({
         </div>
 
         {/* 操作按鈕區 */}
-        <div className="flex-1 space-y-2">
-          <div className="flex flex-col gap-2">
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex flex-row sm:flex-col gap-2">
             <button
               type="button"
               onClick={onBrowse}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
               <Plus className="h-4 w-4" />
               選擇圖片
@@ -89,7 +89,7 @@ export function AdminImagePicker({
               <button
                 type="button"
                 onClick={onRemove}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-red-100 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-white border border-red-100 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
               >
                 <X className="h-4 w-4" />
                 移除圖片

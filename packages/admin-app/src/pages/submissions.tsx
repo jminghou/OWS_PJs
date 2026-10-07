@@ -137,7 +137,7 @@ export default function SubmissionsPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
             <div>
@@ -188,9 +188,9 @@ export default function SubmissionsPage() {
                 <div className="space-y-4">
                   {submissions.map((submission) => (
                     <div key={submission.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                        <div className="flex-1 min-w-0 break-words">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
                             <h3 className="font-medium text-gray-900">
                               {submission.character_name || '未提供稱呼'}
                             </h3>
@@ -239,7 +239,7 @@ export default function SubmissionsPage() {
                           )}
                         </div>
 
-                        <div className="flex flex-col space-y-2 ml-4">
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-col sm:space-y-2 sm:gap-0 sm:ml-4">
                           <Button
                             size="sm"
                             variant="outline"
@@ -252,7 +252,7 @@ export default function SubmissionsPage() {
                             value={submission.status}
                             onChange={(e) => handleStatusChange(submission.id, e.target.value)}
                             disabled={updating}
-                            className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-brand-purple-500"
+                            className="text-sm sm:text-xs px-2 py-2 sm:py-1 border border-gray-300 rounded focus:ring-1 focus:ring-brand-purple-500"
                           >
                             <option value="pending">待處理</option>
                             <option value="reviewed">已查看</option>
@@ -305,12 +305,12 @@ export default function SubmissionsPage() {
 
         {/* 提問詳細彈窗 */}
         {selectedSubmission && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+          <div className="fixed inset-0 z-[60] overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-3 py-4 text-center sm:block sm:p-0">
               <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={closeSubmissionDetail}></div>
 
               <div className="inline-block w-full max-w-2xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
-                <div className="bg-white px-6 py-4 border-b border-gray-200">
+                <div className="bg-white px-4 sm:px-6 py-4 border-b border-gray-200">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium text-gray-900">
                       提問詳細 #{selectedSubmission.id}
@@ -323,13 +323,13 @@ export default function SubmissionsPage() {
                   </div>
                 </div>
 
-                <div className="px-6 py-4 space-y-4">
+                <div className="px-4 sm:px-6 py-4 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">稱呼</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedSubmission.character_name || '未提供'}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">出生資訊</label>
                       <p className="mt-1 text-sm text-gray-900">{formatBirthInfo(selectedSubmission) || '未提供'}</p>
@@ -366,7 +366,7 @@ export default function SubmissionsPage() {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-2">
+                <div className="bg-gray-50 px-4 sm:px-6 py-3 flex justify-end space-x-2">
                   <Button variant="outline" onClick={closeSubmissionDetail}>
                     關閉
                   </Button>

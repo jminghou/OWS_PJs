@@ -18,6 +18,8 @@ function CardsPageContent() {
   const params = useSearchParams();
   const selectedId = params.get('id') ? Number(params.get('id')) : null;
   const isNew = params.get('new') === '1';
+  // 手機：返回清單時保留其他篩選參數，只拿掉 id
+  const backToList = () => { const q = new URLSearchParams(params.toString()); q.delete('id'); q.delete('new'); router.push(`?${q.toString()}`); };
 
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,9 @@ function CardsPageContent() {
     <AdminLayout>
       <StudioSplit
         sidebarWidth={300}
+        hasSelection={!!selectedId || isNew}
+        onMobileBack={backToList}
+        mobileTitle={isNew ? '新卡片' : detail?.title}
         sidebar={
           <div className="flex flex-col h-full">
             <div className="p-3 border-b border-border/60">
@@ -129,8 +134,8 @@ function CardForm({ card, onSaved, onDeleted, onChanged }: { card?: Card; onSave
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <div className="flex items-start gap-3">
+    <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
         <div className="flex-1 min-w-0">
           <input value={form.title} onChange={(e) => set({ title: e.target.value })} placeholder="卡片標題" autoFocus={!card}
             className="w-full text-2xl font-semibold text-foreground outline-none bg-transparent placeholder:text-muted-foreground/50" />
@@ -145,7 +150,7 @@ function CardForm({ card, onSaved, onDeleted, onChanged }: { card?: Card; onSave
             {card?.status === 'archived' && <span className="text-xs text-muted-foreground">已封存</span>}
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 self-end sm:self-auto">
           {(dirty || !card) && <button type="button" onClick={save} disabled={saving} className={btnPrimary}>{saving ? '儲存中…' : card ? '儲存' : '建立'}</button>}
           {card && <button type="button" onClick={toggleArchive} className={btnGhost}>{card.status === 'active' ? '封存' : '取消封存'}</button>}
           {card && <button type="button" onClick={remove} className={btnDanger} title="刪除"><Trash2 size={14} /></button>}
@@ -184,7 +189,7 @@ function CardForm({ card, onSaved, onDeleted, onChanged }: { card?: Card; onSave
                   <li key={c.id} className="group flex items-center gap-2 text-sm px-2 py-1.5 rounded-lg hover:bg-muted">
                     <KindBadge kind={c.kind} />
                     <Link href={STUDIO_ROUTES.card(c.id)} className="truncate flex-1 text-foreground hover:text-admin-accent-600">{c.title}</Link>
-                    <button type="button" onClick={async () => { await cardApi.unlink(card.id, c.id); onChanged?.(); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"><X size={12} /></button>
+                    <button type="button" onClick={async () => { await cardApi.unlink(card.id, c.id); onChanged?.(); }} aria-label="取消關聯" className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-2.5 -m-1.5 md:p-0 md:m-0"><X size={14} className="md:w-3 md:h-3" /></button>
                   </li>
                 ))}
               </ul>

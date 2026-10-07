@@ -137,11 +137,12 @@ export function ArticleSettingsPanel({ value, options, onChange, onClose, dirty 
   const set = <K extends keyof ArticleSettings>(key: K, v: ArticleSettings[K]) => onChange({ ...value, [key]: v });
 
   return (
-    <aside className="w-[360px] flex-shrink-0 border-l border-border bg-card flex flex-col h-full">
+    // < lg：全螢幕覆蓋層；lg 以上：右側 360px 欄
+    <aside className="fixed inset-0 z-50 w-full pb-[env(safe-area-inset-bottom)] lg:static lg:z-auto lg:pb-0 lg:w-[360px] flex-shrink-0 border-l border-border bg-card flex flex-col h-full">
       <header className="flex items-center gap-2 px-4 h-12 border-b border-border/60 flex-shrink-0">
         <h2 className="text-sm font-semibold text-foreground">文章設定</h2>
         {dirty && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">未儲存</span>}
-        <button type="button" onClick={onClose} title="關閉" className="ml-auto p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"><X size={15} /></button>
+        <button type="button" onClick={onClose} title="關閉" aria-label="關閉" className="ml-auto -mr-2 lg:mr-0 flex items-center justify-center w-11 h-11 lg:w-auto lg:h-auto lg:p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"><X size={15} /></button>
       </header>
 
       <div className="flex-1 overflow-y-auto">
@@ -160,7 +161,7 @@ export function ArticleSettingsPanel({ value, options, onChange, onClose, dirty 
             <textarea id="as-summary" rows={3} className={`${inputCls} resize-y`} value={value.summary || ''}
               placeholder="顯示在文章卡片與搜尋結果的一兩句話" onChange={(e) => set('summary', e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls} htmlFor="as-category">分類</label>
               <select id="as-category" className={`${selectCls} w-full py-2`} value={value.category_id ?? ''}

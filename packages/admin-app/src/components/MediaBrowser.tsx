@@ -116,18 +116,20 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-6xl h-5/6 flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b">
-          <div>
-            <h2 className="text-xl font-semibold">選擇媒體</h2>
-            <p className="text-sm text-gray-500 mt-1">
+    // 手機全螢幕；md 以上置中視窗
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[65] md:p-4">
+      <div className="bg-white md:rounded-lg w-full max-w-6xl h-full md:h-5/6 flex flex-col pb-[env(safe-area-inset-bottom)] md:pb-0">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 md:p-6 border-b">
+          <div className="min-w-0">
+            <h2 className="text-lg md:text-xl font-semibold">選擇媒體</h2>
+            <p className="text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1 truncate">
               當前位置：{getCurrentFolderPath()}
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600"
+            aria-label="關閉"
+            className="flex-shrink-0 flex items-center justify-center w-11 h-11 -mr-2 md:w-auto md:h-auto md:mr-0 text-gray-400 hover:text-gray-600"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -135,8 +137,8 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
           </button>
         </div>
 
-        <div className="p-6 border-b">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="px-4 py-3 md:p-6 border-b">
+          <div className="flex items-center gap-2 mb-3 md:mb-4">
             {currentFolder && (
               <Button
                 variant="outline"
@@ -161,7 +163,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
             </Button>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <div className="flex-1">
               <input
                 type="text"
@@ -179,11 +181,11 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
           </div>
         </div>
 
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-3 md:p-6 overflow-y-auto overscroll-contain">
           {getCurrentFolderSubfolders().length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-3">資料夾</h3>
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 gap-2 md:gap-3">
                 {getCurrentFolderSubfolders().map((folder) => (
                   <div
                     key={folder.id}
@@ -222,7 +224,7 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                   return (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
+                      className={`flex items-center gap-3 p-2.5 md:p-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
                         isSelected ? 'bg-blue-50 ring-1 ring-blue-300' : ''
                       }`}
                       onClick={() => handleItemClick(item)}
@@ -232,11 +234,11 @@ export default function MediaBrowser({ isOpen, onClose, onSelect, multiple = fal
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => {}}
-                          className="w-4 h-4 flex-shrink-0 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+                          className="w-5 h-5 md:w-4 md:h-4 flex-shrink-0 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
                           onClick={(e) => e.stopPropagation()}
                         />
                       )}
-                      <div className="w-10 h-10 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                      <div className="w-14 h-14 md:w-10 md:h-10 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
                         <img
                           src={getImageUrl(getThumbnailUrl(item))}
                           alt={item.alt_text || item.original_filename}

@@ -34,7 +34,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center px-3 pt-4 sm:p-0 bg-black/30" onClick={onClose}>
       <div className="w-full max-w-md bg-card text-card-foreground border border-border rounded-xl shadow-xl p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-base font-semibold">新內容專案</h3>
         <input

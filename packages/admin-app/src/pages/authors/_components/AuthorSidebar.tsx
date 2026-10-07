@@ -161,8 +161,9 @@ export default function AuthorSidebar({
                       e.stopPropagation();
                       onDeleteUser(user.id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all flex-shrink-0"
+                    className="opacity-0 group-hover:opacity-100 p-2.5 -m-1.5 md:p-1 md:m-0 text-gray-400 hover:text-red-500 transition-all flex-shrink-0"
                     title="刪除"
+                    aria-label="刪除"
                   >
                     <Trash2 size={14} />
                   </button>

@@ -135,7 +135,7 @@ export function RolesManager({ api, lang = 'zh-TW' }: RolesManagerProps) {
   if (loading) return <div className="p-8 text-gray-500">載入中…</div>;
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-4 md:p-6 space-y-8">
       {msg && (
         <div className="px-4 py-2 rounded-md bg-admin-accent-50 text-admin-accent-800 text-sm">{msg}</div>
       )}
@@ -143,13 +143,13 @@ export function RolesManager({ api, lang = 'zh-TW' }: RolesManagerProps) {
       {/* ===== 角色與權限 ===== */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">角色與權限</h2>
-        <div className="flex gap-6">
-          {/* Role list */}
-          <div className="w-56 shrink-0 space-y-1">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+          {/* Role list（手機：橫向一排可捲動的角色鈕） */}
+          <div className="md:w-56 md:shrink-0 flex md:block gap-1 overflow-x-auto -mx-1 px-1 pb-1 md:pb-0 md:mx-0 md:px-0 md:space-y-1">
             {roles.map((role) => (
               <div
                 key={role.id}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer ${
+                className={`flex-shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 md:py-2 rounded-lg cursor-pointer whitespace-nowrap ${
                   selectedRoleId === role.id ? 'bg-admin-accent-500 text-white' : 'hover:bg-gray-100 text-gray-700'
                 }`}
                 onClick={() => selectRole(role)}
@@ -161,53 +161,54 @@ export function RolesManager({ api, lang = 'zh-TW' }: RolesManagerProps) {
                 {!role.is_system && (
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteRole(role); }}
-                    className="text-xs opacity-60 hover:opacity-100"
+                    className="-my-2 -mr-2 p-2 text-xs opacity-60 hover:opacity-100"
                     title="刪除角色"
+                    aria-label="刪除角色"
                   >✕</button>
                 )}
               </div>
             ))}
-            <div className="flex gap-1 pt-2">
+            <div className="flex-shrink-0 flex gap-1 md:pt-2">
               <input
                 value={newRoleCode}
                 onChange={(e) => setNewRoleCode(e.target.value)}
                 placeholder="新角色代碼"
-                className="flex-1 min-w-0 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-admin-accent-500 focus:outline-none"
+                className="flex-1 min-w-[7rem] px-2 py-2 md:py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-admin-accent-500 focus:outline-none"
               />
               <button
                 onClick={createRole}
                 disabled={saving || !newRoleCode.trim()}
-                className="px-2 py-1 bg-admin-accent-500 text-white rounded text-sm disabled:opacity-50"
+                className="px-3 md:px-2 py-2 md:py-1 bg-admin-accent-500 text-white rounded text-sm whitespace-nowrap disabled:opacity-50"
               >新增</button>
             </div>
           </div>
 
           {/* Permission matrix */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {selectedRole ? (
               <>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between gap-3 mb-3">
                   <span className="text-sm text-gray-500">
                     勾選「{roleName(selectedRole, lang)}」可執行的權限
                   </span>
                   <button
                     onClick={savePerms}
                     disabled={saving}
-                    className="px-4 py-1.5 bg-admin-accent-600 text-white rounded-lg text-sm disabled:opacity-50"
+                    className="flex-shrink-0 px-4 py-2 md:py-1.5 bg-admin-accent-600 text-white rounded-lg text-sm disabled:opacity-50"
                   >{saving ? '儲存中…' : '儲存'}</button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                   {Object.entries(modules).map(([module, perms]) => (
                     <div key={module} className="border border-gray-200 rounded-lg p-3">
                       <div className="font-medium text-sm text-gray-800 mb-2 capitalize">{module}</div>
                       <div className="space-y-1">
                         {perms.map((p) => (
-                          <label key={p.code} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                          <label key={p.code} className="flex items-center gap-2 py-1.5 md:py-0 text-sm text-gray-600 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={draftPerms.has(p.code)}
                               onChange={() => togglePerm(p.code)}
-                              className="rounded border-gray-300 text-admin-accent-500 focus:ring-admin-accent-500"
+                              className="w-5 h-5 md:w-4 md:h-4 rounded border-gray-300 text-admin-accent-500 focus:ring-admin-accent-500"
                             />
                             {p.name?.[lang] || p.name?.['zh-TW'] || p.action}
                           </label>
@@ -227,7 +228,32 @@ export function RolesManager({ api, lang = 'zh-TW' }: RolesManagerProps) {
       {/* ===== 使用者角色指派 ===== */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">使用者角色指派</h2>
-        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+        <div className="md:hidden space-y-2">
+          {users.map((u) => (
+            <div key={u.id} className="border border-gray-200 rounded-lg p-3">
+              <div className="text-sm font-medium text-gray-800 mb-2">{u.username}</div>
+              <div className="flex flex-wrap gap-2">
+                {roles.map((r) => {
+                  const on = (userRoles[u.id] || []).includes(r.code);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggleUserRole(u.id, r.code)}
+                      className={`px-3 py-2 rounded-full text-sm border ${
+                        on ? 'bg-admin-accent-500 border-admin-accent-500 text-white' : 'border-gray-300 text-gray-600'
+                      }`}
+                    >
+                      {on ? '✓ ' : ''}{roleName(r, lang)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-lg">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
               <tr>

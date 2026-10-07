@@ -88,7 +88,7 @@ export default function DashboardPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             歡迎回來，{user?.username}！
@@ -196,7 +196,7 @@ export default function DashboardPage() {
             ) : posts.length > 0 ? (
               <div className="space-y-4">
                 {posts.map((post) => (
-                  <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div key={post.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-medium text-gray-900 truncate">
@@ -220,13 +220,13 @@ export default function DashboardPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center text-sm text-gray-500 space-x-4">
+                      <div className="flex flex-wrap items-center text-sm text-gray-500 gap-x-4 gap-y-1">
                         <span>瀏覽：{post.views_count}</span>
                         <span>{formatDateTime(post.updated_at)}</span>
                         {post.author && <span>作者：{post.author.username}</span>}
                       </div>
                     </div>
-                    <div className="flex space-x-2 ml-4">
+                    <div className="flex space-x-2 sm:ml-4 self-end sm:self-auto">
                       <Link href={`/admin/editor/${post.id}`}>
                         <Button variant="outline" size="sm">
                           編輯

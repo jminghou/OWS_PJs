@@ -75,8 +75,8 @@ export default function ProductTypesPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="mb-6 flex justify-between items-center">
+      <div className="p-4 md:p-6">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">外部商品</h1>
             <p className="text-gray-600">維護導流到蝦皮 / Pinkoi 的商品連結（會員「為這張盤下單」用）。</p>
@@ -100,9 +100,9 @@ export default function ProductTypesPage() {
             ) : (
               <div className="space-y-3">
                 {rows.map((p) => (
-                  <div key={p.id} className="border border-gray-200 rounded-lg p-4 flex justify-between items-center gap-4">
-                    <div className="text-sm text-gray-700">
-                      <div className="flex items-center gap-2">
+                  <div key={p.id} className="border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div className="text-sm text-gray-700 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-gray-900">{p.name}</span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{p.platform || '—'}</span>
                         {!p.active && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">已下架</span>}
@@ -125,9 +125,9 @@ export default function ProductTypesPage() {
         </Card>
 
         {editing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:px-4">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setEditing(null)} />
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div className="relative bg-white rounded-t-2xl sm:rounded-lg shadow-xl w-full max-w-lg max-h-[92dvh] overflow-y-auto overscroll-contain p-4 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6 space-y-4">
               <h3 className="text-lg font-medium text-gray-900">{editing.id ? '編輯商品' : '新增商品'}</h3>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">商品名稱 *</label>

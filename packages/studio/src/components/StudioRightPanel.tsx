@@ -68,12 +68,12 @@ export function StudioRightPanel({ document, siblings, current, onRestored, onIn
         <KindBadge kind={card.kind} />
         <Link href={STUDIO_ROUTES.card(card.id)} className="text-xs font-medium text-foreground truncate flex-1 hover:text-admin-accent-600">{card.title}</Link>
         {onInsertCard && (
-          <button type="button" onClick={() => onInsertCard(card)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground p-0.5" title="插入摘要到編輯器">
+          <button type="button" onClick={() => onInsertCard(card)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground p-2 -m-1.5 lg:p-0.5 lg:m-0" title="插入摘要到編輯器" aria-label="插入摘要到編輯器">
             <Plus size={12} />
           </button>
         )}
         {removable && (
-          <button type="button" onClick={() => removeRef(card)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-0.5" title="取消引用">
+          <button type="button" onClick={() => removeRef(card)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-2 -m-1.5 lg:p-0.5 lg:m-0" title="取消引用" aria-label="取消引用">
             <X size={12} />
           </button>
         )}
@@ -83,15 +83,16 @@ export function StudioRightPanel({ document, siblings, current, onRestored, onIn
   );
 
   return (
-    <aside className="w-[320px] flex-shrink-0 border-l border-border bg-muted/60 flex flex-col h-full">
+    // < lg：全螢幕覆蓋層（手機／平板）；lg 以上：右側 320px 欄
+    <aside className="fixed inset-0 z-50 w-full pb-[env(safe-area-inset-bottom)] lg:static lg:z-auto lg:pb-0 lg:w-[320px] flex-shrink-0 border-l border-border bg-muted lg:bg-muted/60 flex flex-col h-full">
       <div className="flex items-center border-b border-border bg-card px-1">
         {TABS.map((t) => (
           <button key={t.key} type="button" onClick={() => setTab(t.key)} title={t.label}
-            className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium border-b-2 transition ${tab === t.key ? 'border-admin-accent-600 text-admin-accent-700 dark:text-admin-accent-200' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            {t.icon}<span className="hidden xl:inline">{t.label}</span>
+            className={`flex-1 flex items-center justify-center gap-1 py-3.5 lg:py-2.5 text-xs lg:text-[11px] font-medium border-b-2 transition ${tab === t.key ? 'border-admin-accent-600 text-admin-accent-700 dark:text-admin-accent-200' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            {t.icon}<span className="lg:hidden xl:inline">{t.label}</span>
           </button>
         ))}
-        <button type="button" onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground" title="收合右欄"><X size={14} /></button>
+        <button type="button" onClick={onClose} className="flex items-center justify-center w-11 h-11 lg:w-auto lg:h-auto lg:p-1.5 text-muted-foreground hover:text-foreground" title="收合右欄" aria-label="收合右欄"><X size={16} className="lg:w-3.5 lg:h-3.5" /></button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">

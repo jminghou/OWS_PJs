@@ -31,20 +31,20 @@ export function DocumentEditor({ platform, title, body, onTitleChange, onBodyCha
   // 深色模式：TipTap 與 NotionTitleInput（packages/ui，凍結）是寫死的白底黑字，
   // 所以在深色下把整個編輯區當成一張「白紙」，而不是讓標題消失在深色背景裡。
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 dark:my-6 dark:bg-white dark:text-gray-900 dark:rounded-2xl dark:shadow-lg">
+    <div className="max-w-3xl mx-auto px-1 sm:px-6 py-4 sm:py-8 dark:my-6 dark:bg-white dark:text-gray-900 dark:rounded-2xl dark:shadow-lg">
       <NotionTitleInput value={title} onChange={onTitleChange} placeholder={platform === 'newsletter' ? '主旨行' : '無標題'} />
-      {meta.hint && <p className="px-14 -mt-2 mb-4 text-xs text-muted-foreground">{meta.hint}</p>}
+      {meta.hint && <p className="px-3 md:px-14 -mt-2 mb-4 text-xs text-muted-foreground">{meta.hint}</p>}
 
       {meta.editor === 'rich' ? (
         <TiptapEditor content={body} onChange={onBodyChange} placeholder="輸入 / 開啟指令選單…" />
       ) : (
-        <div className="px-14">
+        <div className="px-3 md:px-14">
           {meta.editor === 'script' && (
-            <div className="flex gap-2 mb-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {SCRIPT_SECTIONS.map((s) => (
                 <button key={s} type="button"
                   onClick={() => onBodyChange((body ? body.trimEnd() + '\n\n' : '') + `## ${s}\n`)}
-                  className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground hover:bg-muted">
+                  className="text-xs px-3 py-2 md:px-2 md:py-1 rounded-md bg-muted text-muted-foreground hover:bg-muted">
                   + {s}
                 </button>
               ))}

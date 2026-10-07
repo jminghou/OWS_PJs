@@ -32,7 +32,7 @@ export function CardPicker({ exclude = [], onPick, onClose }: Props) {
   }, [q, kind, exclude]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center px-3 pt-3 sm:pt-24 bg-black/40" onClick={onClose}>
       <div className="w-full max-w-lg bg-card text-card-foreground border border-border rounded-xl shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="p-3 border-b border-border/60 space-y-2">
           <div className="relative">
@@ -41,9 +41,9 @@ export function CardPicker({ exclude = [], onPick, onClose }: Props) {
               onKeyDown={(e) => e.key === 'Escape' && onClose()} />
           </div>
           <div className="flex gap-1 text-xs flex-wrap">
-            <button type="button" onClick={() => setKind('all')} className={`px-2 py-0.5 rounded ${kind === 'all' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>全部</button>
+            <button type="button" onClick={() => setKind('all')} className={`px-2.5 py-1.5 sm:px-2 sm:py-0.5 rounded ${kind === 'all' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>全部</button>
             {kinds.map((k) => (
-              <button key={k.key} type="button" onClick={() => setKind(k.key)} className={`px-2 py-0.5 rounded ${kind === k.key ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>
+              <button key={k.key} type="button" onClick={() => setKind(k.key)} className={`px-2.5 py-1.5 sm:px-2 sm:py-0.5 rounded ${kind === k.key ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>
                 {k.label}
               </button>
             ))}

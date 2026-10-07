@@ -224,6 +224,9 @@ export default function AuthorsPage() {
     <AdminLayout>
       <AdminListLayout
         sidebarWidth={280}
+        mobileView={selectedId !== null || isCreateMode ? 'detail' : 'list'}
+        onMobileBack={handleCancel}
+        mobileTitle={isCreateMode ? '新增作者' : '編輯作者'}
         sidebar={
           <AuthorSidebar
             users={users}
