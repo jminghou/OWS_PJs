@@ -24,11 +24,11 @@ export default function ReportGallery({ product }: { product: ReportProduct }) {
 
   const render = (slide: Slide, size: 'sm' | 'lg') =>
     slide.kind === 'cover' ? (
-      <div className={size === 'lg' ? 'mx-auto w-3/5' : 'w-full'}>
+      <div className={size === 'lg' ? 'mx-auto w-[70%]' : 'w-full'}>
         <ReportBookCover product={product} size={size === 'lg' ? 'md' : 'xs'} />
       </div>
     ) : slide.kind === 'image' ? (
-      <div className={`relative aspect-[3/4] overflow-hidden rounded-sm2 bg-white shadow-sm ${size === 'lg' ? 'mx-auto w-3/5' : 'w-full'}`}>
+      <div className={`relative aspect-square overflow-hidden rounded-sm2 bg-white shadow-sm ${size === 'lg' ? 'mx-auto w-[70%]' : 'w-full'}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={getImageUrl(slide.src, size === 'lg' ? 'medium' : 'small')}
@@ -38,8 +38,8 @@ export default function ReportGallery({ product }: { product: ReportProduct }) {
         />
       </div>
     ) : (
-      <div className={`flex aspect-[3/4] items-center justify-center rounded-sm2 border-[1.5px] border-dashed border-line-strong bg-white text-center text-muted ${
-        size === 'lg' ? 'mx-auto w-3/5 text-sm' : 'w-full text-[10px] leading-tight'
+      <div className={`flex aspect-square items-center justify-center rounded-sm2 border-[1.5px] border-dashed border-line-strong bg-white text-center text-muted ${
+        size === 'lg' ? 'mx-auto w-[70%] text-sm' : 'w-full overflow-hidden px-0.5 text-[10px] leading-tight'
       }`}>
         {slide.label}
       </div>

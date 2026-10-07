@@ -39,7 +39,7 @@ export default function ReportBookCover({ product, title, subtitle, size = 'md',
   const shape = thumb ? 'rounded-l-sm rounded-r-md' : 'rounded-l-md rounded-r-sm2';
   if (product.cover.image && title === undefined) {
     return (
-      <div className={`relative aspect-[3/4] w-full overflow-hidden bg-tint shadow-md ${shape} ${className}`}>
+      <div className={`relative aspect-square w-full overflow-hidden bg-tint shadow-md ${shape} ${className}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={getImageUrl(product.cover.image, thumb ? 'small' : 'medium')}
@@ -54,7 +54,7 @@ export default function ReportBookCover({ product, title, subtitle, size = 'md',
   const logoWidth = size === 'lg' ? 64 : size === 'md' ? 56 : 40;
   return (
     <div
-      className={`relative aspect-[3/4] w-full overflow-hidden ${shape} ${c.bg} ${c.text} shadow-md ${className}`}
+      className={`relative aspect-square w-full overflow-hidden ${shape} ${c.bg} ${c.text} shadow-md ${className}`}
     >
       {/* 書背 */}
       <div className={`absolute inset-y-0 left-0 w-[7%] ${c.spine}`} aria-hidden="true" />

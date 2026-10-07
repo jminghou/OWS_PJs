@@ -23,7 +23,18 @@ export interface ProductAttributesSectionProps {
   onChange: (attributes: Record<string, any>) => void;
 }
 
+/** 站台自訂的分頁：在編輯產品時排在「價格與庫存」之後 */
+export interface ProductAttributeTab {
+  key: string;
+  label: string;
+  Component: ComponentType<ProductAttributesSectionProps>;
+  /** 只對某些商品顯示這個分頁（預設全部顯示） */
+  appliesTo?: (productId: string) => boolean;
+}
+
 interface ProductsPageProps {
+  attributeTabs?: ProductAttributeTab[];
+  /** @deprecated 改用 attributeTabs；仍傳入時會變成一個「前台顯示設定」分頁 */
   AttributesSection?: ComponentType<ProductAttributesSectionProps>;
 }
 
@@ -71,7 +82,11 @@ export default function ProductsPage() {
   return <ProductsAdmin />;
 }
 
-export function ProductsAdmin({ AttributesSection }: ProductsPageProps) {
+export function ProductsAdmin({ attributeTabs, AttributesSection }: ProductsPageProps) {
+  const siteTabs: ProductAttributeTab[] = [
+    ...(attributeTabs ?? []),
+    ...(AttributesSection ? [{ key: 'attributes', label: '前台顯示設定', Component: AttributesSection }] : []),
+  ];
   // List state
   const [products, setProducts] = useState<ProductAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -374,15 +389,15 @@ export function ProductsAdmin({ AttributesSection }: ProductsPageProps) {
               onSubmit={handleEditSubmit}
               onCancel={handleCancel}
               onToggleStatus={handleToggleStatus}
-              extraSection={
-                AttributesSection && (
-                  <AttributesSection
-                    productId={selectedProduct!.product_id}
-                    attributes={attributes}
-                    onChange={setAttributes}
-                  />
-                )
-              }
+              extraTabs={siteTabs
+                .filter((tab) => !tab.appliesTo || tab.appliesTo(selectedProduct!.product_id))
+                .map(({ key, label, Component }) => ({
+                  key,
+                  label,
+                  content: (
+                    <Component productId={selectedProduct!.product_id} attributes={attributes} onChange={setAttributes} />
+                  ),
+                }))}
             />
           )
         ) : (

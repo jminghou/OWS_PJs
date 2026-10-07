@@ -16,7 +16,7 @@ export { orderApi, paymentMethodApi } from './api/orders';
 export { commerceNav } from './nav';
 export { default as PriceManager } from './components/PriceManager';
 export { default as ProductLanguageManager } from './components/ProductLanguageManager';
-export type { ProductAttributesSectionProps } from './pages/products/index';
+export type { ProductAttributesSectionProps, ProductAttributeTab } from './pages/products/index';
 export type {
   Product, ProductAdmin, ProductListResponse, ProductAdminListResponse, ProductPrice,
   ProductPriceListResponse, ProductTranslation, ProductTranslationListResponse,

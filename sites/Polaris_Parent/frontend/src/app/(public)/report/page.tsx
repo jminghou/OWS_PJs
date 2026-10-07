@@ -28,20 +28,20 @@ export default async function ReportCatalogPage() {
           <p className="text-caption text-muted">
             共 <span className="font-latin">{products.length}</span> 份報告
           </p>
-          <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 md:gap-x-6 lg:grid-cols-4">
+          <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 md:gap-x-6">
             {products.map((p) => (
               <li key={p.slug}>
                 <Link
                   href={productHref(p)}
                   className="group block rounded-card focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
                 >
-                  <div className="relative rounded-card bg-white p-5 transition-shadow duration-300 ease-out group-hover:shadow-md sm:p-7">
+                  <div className="relative flex aspect-square items-center rounded-card bg-white p-5 transition-shadow duration-300 ease-out group-hover:shadow-md sm:p-7">
                     {p.badge && (
                       <Tag tone="status" className="absolute left-3 top-3 z-10">
                         {p.badge}
                       </Tag>
                     )}
-                    <div className="transition-transform duration-300 ease-out group-hover:-translate-y-1">
+                    <div className="w-full transition-transform duration-300 ease-out group-hover:-translate-y-1">
                       <ReportBookCover product={p} size="sm" />
                     </div>
                   </div>
