@@ -108,7 +108,28 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
             raise OrderError('這筆送出編號已被使用', 409, 'submission_conflict')
         return existing, False
 
-    product, price = _product_and_price(clean['variant'])
+    from . import physical as phys
+
+    cfg = phys.load_config()
+    selection = None
+    errors = {}
+    if clean['variant'] == 'physical':
+        # 實體書版：數位版售價＋實體書（第一本含規格＋第二本起＋特殊客製），設定見 physical.py
+        if not cfg['enabled']:
+            raise OrderError('實體書目前沒有開放購買', 409, 'product_unavailable')
+        selection, e = phys.price_physical(cfg, clean.get('physical'))
+        errors.update(e)
+    consult, e = phys.price_consult(cfg, clean.get('consult_sessions'))
+    errors.update(e)
+    if errors:
+        err = OrderError('資料有誤，請檢查後再送出', 400, 'invalid')
+        err.errors = errors
+        raise err
+    if selection is not None:
+        product = Product.query.filter_by(product_id=PRODUCT_IDS['physical'], language=LANGUAGE).first()
+        price = cfg['digital_price'] + selection['line_total']
+    else:
+        product, price = _product_and_price(clean['variant'])
     chart, chart_time = _save_chart(clean, email, eng, save_chart)
 
     variant = clean['variant']
@@ -124,10 +145,8 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
         'chart_time': chart_time,
     }
 
-    order = Order(order_no=_new_order_no(), user_id=user.id, amount=price, status='pending',
-                  items=[{'product_id': product.product_id, 'name': name, 'price': price,
-                          'currency': CURRENCY, 'variant': variant, 'item_no': item_no}],
-                  language=LANGUAGE, currency=CURRENCY, payment_method=payment_mode)
+    order = Order(order_no=_new_order_no(), user_id=user.id, amount=price + (consult['line_total'] if consult else 0),
+                  status='pending', items=[], language=LANGUAGE, currency=CURRENCY, payment_method=payment_mode)
     db.session.add(order)
     db.session.flush()
     now = datetime.utcnow()
@@ -142,7 +161,12 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
                                      chart_id=int(chart['chart_id']), person_user_id=int(chart['person_user_id']),
                                      handoff_status='not_ready'))
     db.session.add(OrderInvoice(order_id=order.id, status='not_applicable'))
+    items = [item]
+    if consult:
+        items.append(phys.create_consult_item(order, item, consult))
+    order.items = [phys.item_snapshot(i) for i in items]
     if variant == 'physical':
+        phys.create_print_job(item, cfg, selection, clean['audience']['call_name'])
         s = clean['shipping']
         db.session.add(Shipment(order_item_id=item.id, recipient_name=s['recipient_name'],
                                 recipient_phone=s['recipient_phone'], postal_code=s['postal_code'] or None,
@@ -162,7 +186,13 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
 def order_summary(order):
     from .payment import attempt_view, latest_manual_attempt, manual_bank_info
 
-    item = order.order_items[0] if order.order_items else None
+    from . import physical as phys
+
+    # 主項目：報告（purchase）＞實體書加購＞其他（例如單獨加購的專人解讀）
+    items = order.order_items
+    item = (next((i for i in items if i.kind == 'purchase'), None)
+            or next((i for i in items if i.variant == 'physical'), None)
+            or (items[0] if items else None))
     payment = {'mode': order.payment_method,
                'deadline': order.checkout.expires_at.isoformat() if order.checkout and order.checkout.expires_at else None}
     if order.payment_method == 'manual':
@@ -172,6 +202,10 @@ def order_summary(order):
     fulfillment = ReportFulfillment.query.filter_by(order_item_id=item.id).first() if item else None
     shipment = Shipment.query.filter_by(order_item_id=item.id).first() if item else None
     c = item.customization if item else {}
+    p_item = phys.physical_item(order)
+    p_job = phys.print_job_for(p_item)
+    c_item = phys.consult_item(order)
+    c_row = phys.consultation_for(c_item)
     return {
         'order_no': order.order_no,
         'status': order.status,
@@ -187,7 +221,17 @@ def order_summary(order):
             'variant': item.variant,
             'subject_name': c.get('subject_name'),
             'call_name': (c.get('audience') or {}).get('call_name'),
+            'kind': item.kind,
+            'quantity': item.quantity,
+            'parent_order_no': c.get('parent_order_no'),
         },
+        'lines': [{'name': i.name, 'kind': i.kind, 'variant': i.variant, 'quantity': i.quantity,
+                   'amount': i.unit_price if i.variant == 'physical' and i.kind == 'addon' else i.unit_price * i.quantity}
+                  for i in items],
+        'physical': p_job and phys.job_view(p_job, p_item),
+        'consult': c_row and phys.consult_view(c_row, c_item),
+        'addons': phys.addon_children(item) if item is not None and item.kind == 'purchase' else [],
+        'addon_offer': phys.addon_offer(order),
         'production': fulfillment and {'handoff_status': fulfillment.handoff_status,
                                         'ziwei_status': fulfillment.ziwei_status,
                                         'member_note': fulfillment.member_note},

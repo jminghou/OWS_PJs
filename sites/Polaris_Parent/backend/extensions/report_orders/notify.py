@@ -53,9 +53,19 @@ def _deliver(order, event, recipient, subject, body, key=None):
 
 
 def _item_line(order):
-    item = order.order_items[0]
-    call_name = ((item.customization or {}).get('audience') or {}).get('call_name') or ''
-    return f'品項：{item.name}' + (f'（{call_name}）' if call_name else '')
+    """品項：一張訂單可能有報告／實體書／專人解讀多個項目。"""
+    names = []
+    call_name = ''
+    for item in order.order_items:
+        c = item.customization or {}
+        call_name = call_name or (c.get('audience') or {}).get('call_name') or ''
+        if item.variant == 'consult':
+            names.append(f'{item.name} × {item.quantity} 次')
+        elif item.kind == 'addon':
+            names.append(f'{item.name} × {item.quantity} 本')
+        else:
+            names.append(item.name)
+    return '品項：' + '、'.join(names) + (f'（{call_name}）' if call_name else '')
 
 
 def _bank_lines(bank, order):
@@ -100,10 +110,20 @@ def send_transfer_reported(order, attempt, buyer_email):
 
 
 def send_payment_confirmed(order, recipient):
+    kinds = {i.kind for i in order.order_items}
+    has_consult = any(i.variant == 'consult' for i in order.order_items)
+    if 'purchase' not in kinds:
+        intro = '我們已確認收到你的款項。'
+        after = '\n'.join(filter(None, [
+            '實體書：送印前會請你在訂單頁確認內容，出貨時會再寄信通知你。' if 'addon' in kinds else '',
+            '專人解讀：我們會以 Email 或電話跟你約時間。' if has_consult else '',
+        ]))
+    else:
+        intro, after = '我們已確認收到你的款項，報告將開始製作。', '製作完成後會再寄信通知你到會員中心下載。'
     body = '\n'.join([
-        '我們已確認收到你的款項，報告將開始製作。', '',
+        intro, '',
         f'訂單編號：{order.order_no}', _item_line(order), f'金額：NT${order.amount:,}', '',
-        '製作完成後會再寄信通知你到會員中心下載。',
+        after,
         f'訂單詳情：{_order_link(order)}',
     ])
     return _deliver(order, 'payment_confirmed', recipient, f'【親紫之間】已確認收款 {order.order_no}', body)
@@ -127,3 +147,92 @@ def send_order_expired(order, recipient):
         '若你其實已經轉帳，請直接回信與我們聯絡；也歡迎重新下單。',
     ])
     return _deliver(order, 'order_expired', recipient, f'【親紫之間】訂單已取消 {order.order_no}', body)
+
+
+# ── 實體書 ───────────────────────────────────────────────────────────────────
+def _admin_to():
+    return (current_app.config.get('REPORT_ADMIN_NOTIFY_EMAIL') or '').strip()
+
+
+def send_physical_cancelled(order, job, recipient, by_member):
+    refund = job.refund_due
+    lines = [('你已取消' if by_member else '我們已為你取消') + '這筆訂單的實體書。', '',
+             f'訂單編號：{order.order_no}', _item_line(order), '']
+    if refund:
+        lines += [f'應退金額：NT${refund:,}。我們會以轉帳退款，完成後再寄信通知你。', '']
+    if order.order_items[0].kind != 'addon':
+        lines += ['你的數位版報告不受影響，會照常製作與交付。', '']
+    if job.cancel_reason and not by_member:
+        lines += [f'原因：{job.cancel_reason}', '']
+    lines += [f'訂單詳情：{_order_link(order)}']
+    sent = _deliver(order, 'physical_cancelled', recipient, f'【親紫之間】實體書已取消 {order.order_no}',
+                    '\n'.join(lines), key=f'physical_cancelled:{job.id}')
+    to = _admin_to()
+    if to and by_member:
+        body = '\n'.join(['會員取消了實體書，請確認是否需要退款。', '', f'訂單編號：{order.order_no}',
+                          f'購買者：{recipient}', f'應退金額：NT${refund:,}' if refund else '應退金額：無（尚未付款）', '',
+                          f'後台：{_frontend_url()}/admin/report-shipments'])
+        _deliver(order, 'physical_cancelled_admin', to, f'【親紫之間後台】實體書取消 {order.order_no}', body,
+                 key=f'physical_cancelled_admin:{job.id}')
+    return sent
+
+
+def send_physical_shipped(order, shipment, recipient):
+    body = '\n'.join([
+        '你的實體書已經出貨。', '',
+        f'訂單編號：{order.order_no}', _item_line(order),
+        f'物流：{shipment.carrier}', f'單號：{shipment.tracking_no}', '',
+        f'訂單詳情：{_order_link(order)}',
+    ])
+    return _deliver(order, 'physical_shipped', recipient, f'【親紫之間】實體書已出貨 {order.order_no}', body,
+                    key=f'physical_shipped:{shipment.id}')
+
+
+def send_refund_recorded(order, job, recipient):
+    body = '\n'.join([
+        '我們已完成退款。', '',
+        f'訂單編號：{order.order_no}', f'退款金額：NT${job.refund_amount:,}',
+        *( [f'說明：{job.refund_note}'] if job.refund_note else [] ), '',
+        '若一週內沒有收到款項，請直接回信與我們聯絡。',
+    ])
+    return _deliver(order, 'refund_recorded', recipient, f'【親紫之間】退款完成 {order.order_no}', body,
+                    key=f'refund_recorded:{job.id}')
+
+
+# ── 專人解讀 ─────────────────────────────────────────────────────────────────
+def _fmt_time(dt):
+    # 存的是含時區的時間；信件以台灣時間顯示
+    from datetime import timedelta, timezone
+    return dt.astimezone(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M') if dt else '-'
+
+
+def send_consult_scheduled(order, consult, recipient):
+    body = '\n'.join([
+        '你的專人解讀時間已經確認：', '',
+        f'時間：{_fmt_time(consult.scheduled_at)}（台灣時間）',
+        f'長度：{consult.minutes * consult.sessions} 分鐘',
+        *([f'說明：{consult.admin_note}'] if consult.admin_note else []), '',
+        f'訂單編號：{order.order_no}',
+        '如需更改時間，請直接回覆這封信。',
+    ])
+    key = f'consult_scheduled:{consult.id}:{consult.scheduled_at.isoformat() if consult.scheduled_at else ""}'
+    return _deliver(order, 'consult_scheduled', recipient, f'【親紫之間】專人解讀時間確認 {order.order_no}', body, key=key)
+
+
+def send_consult_cancelled(order, consult, recipient):
+    lines = ['你的專人解讀已取消。', '', f'訂單編號：{order.order_no}']
+    if consult.refund_due:
+        lines += [f'應退金額：NT${consult.refund_due:,}。我們會以轉帳退款，完成後再寄信通知你。']
+    return _deliver(order, 'consult_cancelled', recipient, f'【親紫之間】專人解讀已取消 {order.order_no}',
+                    '\n'.join(lines), key=f'consult_cancelled:{consult.id}')
+
+
+def send_consult_refunded(order, consult, recipient):
+    body = '\n'.join([
+        '我們已完成退款。', '',
+        f'訂單編號：{order.order_no}', f'退款金額：NT${consult.refund_amount:,}',
+        *([f'說明：{consult.refund_note}'] if consult.refund_note else []), '',
+        '若一週內沒有收到款項，請直接回信與我們聯絡。',
+    ])
+    return _deliver(order, 'consult_refunded', recipient, f'【親紫之間】退款完成 {order.order_no}', body,
+                    key=f'consult_refunded:{consult.id}')

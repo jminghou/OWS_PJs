@@ -111,10 +111,13 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
                 <span className="ml-1 font-body text-base font-normal text-[#D5D7E0]">起</span>
               )}
             </p>
-            <p className="mt-2 text-sm text-[#D5D7E0]">
-              {PHYSICAL_ADDON.label}
-              <span className="ml-2 font-latin font-semibold text-white">{addon.text}</span>
-            </p>
+            {/* 後台「加購實體書」關閉時不顯示 */}
+            {addon.available && (
+              <p className="mt-2 text-sm text-[#D5D7E0]">
+                {PHYSICAL_ADDON.label}
+                <span className="ml-2 font-latin font-semibold text-white">{addon.text}</span>
+              </p>
+            )}
             <StartButton className="mt-6 w-full" />
             <p className="mt-3 text-center text-caption text-[#D5D7E0]">約 3 分鐘填完資料，付款前可以先預覽。</p>
           </div>

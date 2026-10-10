@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--
+  實體書加購流程模擬（演示用，2026-10-10 定案版）
+  - 直接用瀏覽器開啟即可，不需要登入、不連任何後台；所有資料與價格都是示意。
+  - 有網路時會載入 Google 字型，沒網路會退回系統字型，版面不受影響。
+  - 來源：docs/report-physical-addon-plan.md
+-->
+<style>
+  html { color-scheme: light; }
+  body { margin: 0; -webkit-text-size-adjust: 100%; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>實體書加購模擬</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=Archivo:wght@500;700;800&display=swap">
+<style>
+/* 版面：左側旅程步驟／中間手機畫面（親紫之間前台或後台）／右側「這一步發生什麼事」。手機寬度改為上下堆疊。 */
+:root {
+  /* 外框（跟隨檢視者深淺色） */
+  --bg: #f4f6fb;
+  --panel: #ffffff;
+  --fg: #1f2333;
+  --muted: #5d6275;
+  --line: #e1e4ee;
+  --accent: #0967e7;
+  --accent-soft: #e6efff;
+  --future: #a2620a;
+  --future-soft: #fff3dc;
+  /* 手機畫面＝實際網站，固定淺色（品牌規範 v3） */
+  --s-paper: #fcfaf6;
+  --s-white: #ffffff;
+  --s-ink: #1f2333;
+  --s-text: #4b5063;
+  --s-muted: #8a8fa3;
+  --s-line: #e3e5ee;
+  --s-line-strong: #c6c9d4;
+  --s-tint: #f3f1ec;
+  --s-blue: #0967e7;
+  --s-blue-50: #eef5ff;
+  --s-blue-700: #064196;
+  --s-success-bg: #dcf5ea; --s-success-fg: #0f6646;
+  --s-warn-bg: #fff4d6; --s-warn-fg: #8a5a00;
+  --s-admin-bg: #f6f7fb; --s-admin-accent: #4f46e5; --s-admin-accent-soft: #eef0ff;
+  --f-head: "Zen Maru Gothic", "Microsoft JhengHei", sans-serif;
+  --f-body: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --f-latin: "Archivo", "Noto Sans TC", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151d; --panel: #1b1f2a; --fg: #e8eaf2; --muted: #a3a8ba; --line: #2c3242;
+    --accent: #6ea8ff; --accent-soft: #1d2b46; --future: #f0b55a; --future-soft: #3a2c14; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151d; --panel: #1b1f2a; --fg: #e8eaf2; --muted: #a3a8ba; --line: #2c3242;
+  --accent: #6ea8ff; --accent-soft: #1d2b46; --future: #f0b55a; --future-soft: #3a2c14; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; }
+header.top h1 { font-family: var(--f-head); font-weight: 400; font-size: clamp(24px, 4vw, 34px); margin: 0; text-wrap: balance; }
+header.top p { margin: 6px 0 0; color: var(--muted); max-width: 68ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.tag { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.tag.now { background: var(--accent-soft); color: var(--accent); }
+.tag.future { background: var(--future-soft); color: var(--future); }
+
+.grid { display: grid; grid-template-columns: 260px minmax(0, 390px) minmax(0, 1fr); gap: 28px; margin-top: 28px; align-items: start; }
+@media (max-width: 1000px) { .grid { grid-template-columns: minmax(0, 390px) minmax(0, 1fr); } .steps { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* 步驟清單 */
+.steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+@media (max-width: 1000px) { .steps ol { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 6px; } }
+.steps button { width: 100%; text-align: left; display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start;
+  background: transparent; border: 0; border-radius: 12px; padding: 9px 10px; color: var(--fg); font: inherit; cursor: pointer; }
+@media (max-width: 1000px) { .steps button { width: auto; min-width: 180px; background: var(--panel); border: 1px solid var(--line); } }
+.steps button:hover { background: var(--panel); }
+.steps button[aria-current="step"] { background: var(--panel); box-shadow: 0 0 0 1.5px var(--accent) inset; }
+.steps button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-latin); font-size: 13px; font-weight: 700;
+  border: 1.5px solid var(--line); color: var(--muted); }
+button[aria-current="step"] .num { background: var(--accent); border-color: var(--accent); color: #fff; }
+.steps .t { font-size: 14px; font-weight: 500; line-height: 1.35; }
+.steps .who { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; font-weight: 400; }
+
+/* 手機 */
+.phone { width: 100%; max-width: 390px; margin: 0 auto; border-radius: 36px; background: #0d0f15; padding: 10px; box-shadow: 0 24px 60px rgba(9,40,100,.18); }
+.screen { border-radius: 28px; overflow: hidden; background: var(--s-paper); color: var(--s-ink); height: 720px; display: flex; flex-direction: column; font-size: 14px; }
+@media (max-width: 720px) { .screen { height: 640px; } }
+.bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--s-white); border-bottom: 1px solid var(--s-line); font-size: 13px; flex-shrink: 0; }
+.bar .url { flex: 1; min-width: 0; background: var(--s-tint); border-radius: 999px; padding: 5px 12px; color: var(--s-text); font-family: var(--f-latin); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scroll { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.s-eyebrow { font-size: 12px; color: var(--s-blue); font-weight: 500; }
+.s-h1 { font-family: var(--f-head); font-weight: 400; font-size: 24px; line-height: 1.3; margin: 0; }
+.s-h2 { font-family: var(--f-head); font-weight: 400; font-size: 17px; margin: 0; }
+.s-card { background: var(--s-white); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.s-p { margin: 0; color: var(--s-text); font-size: 13px; }
+.s-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--s-line); }
+.s-row:last-child { border-bottom: 0; }
+.s-row dt { color: var(--s-muted); } .s-row dd { margin: 0; text-align: right; }
+.latin { font-family: var(--f-latin); }
+.pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 10px; font-size: 12px; line-height: 1; }
+.pill.ok { background: var(--s-success-bg); color: var(--s-success-fg); }
+.pill.warn { background: var(--s-warn-bg); color: var(--s-warn-fg); }
+.pill.tint { background: var(--s-tint); color: var(--s-text); }
+.pill.blue { background: var(--s-blue-50); color: var(--s-blue-700); }
+.s-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: 999px; padding: 0 18px; font: 500 14px var(--f-body);
+  border: 0; cursor: pointer; background: var(--s-blue); color: #fff; }
+.s-btn.soft { background: var(--s-blue-50); color: var(--s-blue-700); }
+.s-btn.full { width: 100%; }
+.s-btn:focus-visible { outline: 3px solid #b5d3ff; outline-offset: 2px; }
+.s-btn[disabled] { opacity: .45; cursor: not-allowed; }
+.hl { box-shadow: 0 0 0 3px #ffc23d; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(255,194,61,.35); } }
+@media (prefers-reduced-motion: reduce) { .hl { animation: none; } }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1.5px solid var(--s-line); border-radius: 16px; padding: 11px 12px; cursor: pointer; font-size: 13px; background: var(--s-white); }
+.opt.on { border-color: var(--s-blue); background: var(--s-blue-50); }
+.opt input { accent-color: var(--s-blue); }
+.stepper { display: flex; align-items: center; gap: 12px; }
+.stepper button { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--s-line-strong); background: var(--s-white); font-size: 18px; color: var(--s-ink); cursor: pointer; }
+.stepper button[disabled] { opacity: .3; cursor: not-allowed; }
+.stepper output { min-width: 52px; text-align: center; font: 700 17px var(--f-latin); }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--s-ink); }
+.field span.v { border: 1.5px solid var(--s-line-strong); border-radius: 14px; padding: 9px 12px; font-size: 13px; background: var(--s-white); }
+.alert { border-radius: 14px; padding: 10px 12px; font-size: 12.5px; }
+.alert.info { background: var(--s-blue-50); color: var(--s-blue-700); }
+.alert.ok { background: var(--s-success-bg); color: var(--s-success-fg); }
+.alert.warn { background: var(--s-warn-bg); color: var(--s-warn-fg); }
+.prog { display: flex; flex-wrap: wrap; gap: 4px 2px; font-size: 12px; }
+.prog li { list-style: none; display: inline-flex; align-items: center; gap: 4px; color: var(--s-muted); }
+.prog .d { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--s-line-strong); display: grid; place-items: center; font: 600 11px var(--f-latin); }
+.prog li.done { color: var(--s-blue); } .prog li.done .d { background: var(--s-blue); border-color: var(--s-blue); color: #fff; }
+.prog li.cur { color: var(--s-blue); font-weight: 600; } .prog li.cur .d { border: 1.5px solid var(--s-blue); }
+.prog .sep { color: var(--s-line-strong); margin: 0 2px; }
+.mail { background: var(--s-white); border: 1px solid var(--s-line); border-radius: 16px; padding: 12px; font-size: 12.5px; white-space: pre-line; color: var(--s-text); }
+.mail b { color: var(--s-ink); display: block; margin-bottom: 4px; white-space: normal; }
+.preview-stamp { border: 2px dashed var(--future); border-radius: 18px; padding: 10px 12px; color: var(--future); background: var(--future-soft); font-size: 12.5px; font-weight: 500; }
+.s-admin .screen { background: var(--s-admin-bg); }
+.adm-card { background: var(--s-white); border: 1px solid var(--s-line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.adm-tag { display: inline-block; border-radius: 6px; padding: 2px 7px; font-size: 11px; font-weight: 500; background: var(--s-admin-accent-soft); color: var(--s-admin-accent); }
+.adm-btn { min-height: 40px; border-radius: 8px; border: 0; background: var(--s-admin-accent); color: #fff; font: 500 13px var(--f-body); cursor: pointer; }
+.adm-btn.ghost { background: var(--s-white); color: var(--s-ink); border: 1px solid var(--s-line); }
+.adm-in { border: 1px solid var(--s-line); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--s-ink); background: var(--s-white); }
+.adm-tabs { display: flex; gap: 4px; overflow-x: auto; font-size: 12px; }
+.adm-tabs span { white-space: nowrap; padding: 6px 9px; border-radius: 6px; color: var(--s-text); }
+.adm-tabs span.on { background: var(--s-ink); color: #fff; }
+
+/* 說明欄 */
+.explain { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.explain .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; }
+.explain h2 { font-family: var(--f-head); font-weight: 400; font-size: 22px; margin: 6px 0 0; text-wrap: balance; }
+.explain h3 { font-size: 13px; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; font-weight: 500; }
+.explain ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.explain p { margin: 0; }
+.nav { display: flex; gap: 10px; flex-wrap: wrap; }
+.nav button { min-height: 44px; border-radius: 999px; padding: 0 18px; font: 500 14px var(--f-body); cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--fg); }
+.nav button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav button[disabled] { opacity: .4; cursor: not-allowed; }
+.hint { font-size: 13px; color: var(--muted); }
+.num-tab { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <h1>只買數位版，之後加購實體書</h1>
+    <p>以「小明」的報告為例，從拿到數位報告，一路走到實體書出貨。點左邊的步驟或下方的「下一步」，手機畫面裡亮黃框的按鈕也可以直接按。價格照你提供的清單計算，之後都可以在後台調整。</p>
+    <div class="legend">
+      <span class="tag now">階段 1・已完成</span>
+      <span class="tag future">預覽：已定案、還沒做（含改寫中的階段 1）</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <nav class="steps" aria-label="流程步驟"><ol id="steps"></ol></nav>
+    <div id="device"></div>
+    <div class="explain" id="explain"></div>
+  </div>
+</div>
+
+<script>
+// ── 範例設定（後台「實體書設定」）──────────────────────────────
+const CFG = {
+  digital: 1980,
+  base: 1200,          // 第一本
+  extra: 600,          // 第二本起每本
+  specs: [
+    { key: 'soft', label: '平裝', delta: -300 },
+    { key: 'coated', label: '精裝（銅西卡紙質）', delta: 0 },
+    { key: 'thin', label: '精裝（薄紙版）', delta: 0 },
+  ],
+  custom: [
+    { key: 'cover', label: '客製封面', price: 300, note: '需自行提供封面圖片；如需另外設計封面，費用另計。' },
+    { key: 'text', label: '解鎖內容文字修改', price: 500, note: '打樣時可以要求改寫報告裡的文字。' },
+    { key: 'image', label: '修改及置入指定圖片', price: 500, note: '把書裡的圖片換成你指定的圖片。' },
+  ],
+  spreadPrice: 300,
+  maxSpreads: 10,
+  consult: { price: 1500, minutes: 30, max: 4 },
+};
+const state = {
+  step: 0, spec: 'coated', qty: 2, customOpen: false, custom: { cover: false, text: false, image: false }, spreads: 0, consult: 0,
+  // 設計你的書（付款前就填）
+  style: 'blue', coverName: '小明', dedication: '給最勇敢的小明：\n願你一直保有好奇心。生日快樂！',
+  coverUploaded: false, imageUploaded: false, spreadFilled: [],
+  // 整本書預覽
+  view: 0, panel: null, annoType: 'text', annoText: '', annoPhoto: false, spreadAfter: [],
+  annotations: [
+    { page: 7, type: 'fix', text: '「小名」應該是「小明」。' },
+  ],
+};
+// 數位版報告的頁面（示意；實際來自這份報告的完整 PDF）
+const REPORT_PAGES = [
+  { kind: 'title', title: '小明的本命報告' },
+  { kind: 'toc', title: '目錄' },
+  { kind: 'chart', title: '小明的命盤' },
+  { kind: 'text', title: '第一章　天生的好奇心' },
+  { kind: 'text', title: '' },
+  { kind: 'text', title: '第二章　情緒的來去' },
+  { kind: 'photo', title: '' },
+  { kind: 'text', title: '' },
+  { kind: 'text', title: '第三章　和人相處的方式' },
+  { kind: 'text', title: '' },
+  { kind: 'text', title: '第四章　適合他的學習節奏' },
+  { kind: 'text', title: '' },
+  { kind: 'text', title: '給陪伴者的話' },
+  { kind: 'text', title: '結語' },
+];
+const ANNO_TYPES = {
+  text: { label: '改寫文字', need: 'text', hint: '例如：把這段改成更口語的說法。' },
+  image: { label: '換成指定圖片', need: 'image', hint: '上傳圖片，並說明要放在這頁的哪裡。' },
+  fix: { label: '回報錯誤（免費）', need: null, hint: '錯字、稱呼或資料錯誤。' },
+};
+const STYLES = [
+  { key: 'blue', label: '封面款式一', bg: 'linear-gradient(160deg,#0967e7,#08326f)', fg: '#ffffff' },
+  { key: 'rose', label: '封面款式二', bg: 'linear-gradient(160deg,#ffdcec,#ff7ab8)', fg: '#4d0a2d' },
+];
+// 示意用的「上傳圖片」：純 CSS 色塊，代表客人上傳的照片
+const PHOTO = 'linear-gradient(135deg,#ffc23d 0%,#ff7ab8 55%,#3d8af2 100%)';
+const nt = (n) => (n < 0 ? '−' : '') + 'NT$' + Math.abs(n).toLocaleString('zh-TW');
+const specObj = () => CFG.specs.find((s) => s.key === state.spec);
+const specLabel = () => specObj().label;
+const firstCopy = () => CFG.base + specObj().delta;
+const bookTotal = () => firstCopy() + (state.qty - 1) * CFG.extra;
+const chosenCustom = () => CFG.custom.filter((c) => state.custom[c.key]);
+const customTotal = () => chosenCustom().reduce((a, c) => a + c.price, 0) + state.spreads * CFG.spreadPrice;
+const consultTotal = () => state.consult * CFG.consult.price;
+const total = () => bookTotal() + customTotal() + consultTotal();
+const customNames = () => [...chosenCustom().map((c) => c.label), ...(state.spreads ? [`指定跨頁 ${state.spreads} 個`] : [])];
+
+/** 即時預覽：封面、扉頁贈言、指定跨頁縮圖 */
+function bookPreview() {
+  const st = STYLES.find((x) => x.key === state.style);
+  const coverBg = state.custom.cover && state.coverUploaded ? PHOTO : st.bg;
+  const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const spreads = Array.from({ length: state.spreads }, (_, i) => {
+    const filled = state.spreadFilled[i];
+    return `<div style="flex:0 0 auto;width:120px;aspect-ratio:2/1.3;border-radius:6px;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;box-shadow:0 2px 6px rgba(9,40,100,.15)">
+      <span style="background:${filled ? PHOTO : 'var(--s-tint)'}"></span>
+      <span style="background:#fff;font-size:8px;padding:6px;color:var(--s-text);line-height:1.4">${filled ? '我們家的夏天，第一次一起去海邊。' : `第 ${i + 1} 個跨頁`}</span></div>`;
+  }).join('');
+  return `<div aria-label="書本預覽" style="display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px">
+    <div style="flex:0 0 auto;width:120px;aspect-ratio:3/4;border-radius:4px 10px 10px 4px;background:${coverBg};color:${st.fg};display:flex;flex-direction:column;justify-content:flex-end;padding:12px;box-shadow:0 8px 18px rgba(9,40,100,.25)">
+      <span style="font-size:9px;letter-spacing:.1em;opacity:.8">本命客製報告</span>
+      <span style="font-family:var(--f-head);font-size:20px;line-height:1.2;text-shadow:${state.custom.cover && state.coverUploaded ? '0 1px 4px rgba(0,0,0,.4)' : 'none'}">${esc(state.coverName || '（名字）')}</span>
+    </div>
+    <div style="flex:0 0 auto;width:120px;aspect-ratio:3/4;border-radius:4px;background:#fff;box-shadow:0 2px 6px rgba(9,40,100,.15);padding:14px 10px;font-family:var(--f-head);font-size:10px;line-height:1.7;color:var(--s-ink);white-space:pre-line;display:flex;align-items:center;text-align:center">${esc(state.dedication || '（扉頁贈言）')}</div>
+    ${spreads}
+  </div>`;
+}
+
+/** 整本書：封面 → 扉頁 → 報告內文 → 指定跨頁 → 封底。回傳頁面清單（含頁碼）。 */
+function bookPages() {
+  const pages = [{ kind: 'cover' }, { kind: 'dedication' }];
+  REPORT_PAGES.forEach((x, rid) => {
+    pages.push({ ...x, rid });
+    for (let i = 0; i < state.spreads; i++) {
+      if (state.spreadAfter[i] === rid) pages.push({ kind: 'custom-l', i }, { kind: 'custom-r', i });
+    }
+  });
+  pages.push({ kind: 'back' });
+  return pages.map((x, n) => ({ ...x, no: n }));
+}
+/** 跨頁：封面單獨一頁，之後兩頁一組 */
+function bookSpreads() {
+  const pages = bookPages();
+  const out = [[pages[0]]];
+  for (let i = 1; i < pages.length; i += 2) out.push(pages.slice(i, i + 2));
+  return out;
+}
+const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const lines = (n, w = [96, 88, 92, 70]) => Array.from({ length: n }, (_, i) => `<span style="display:block;height:3px;border-radius:2px;background:#d9dce6;margin:4px 0;width:${w[i % w.length]}%"></span>`).join('');
+
+function renderPage(pg, big) {
+  const st = STYLES.find((x) => x.key === state.style);
+  const count = state.annotations.filter((a) => a.page === pg.no).length;
+  const badge = count ? `<span style="position:absolute;top:4px;right:4px;background:#ff3d9b;color:#fff;border-radius:999px;font:700 9px var(--f-latin);padding:2px 5px">✎${count}</span>` : '';
+  const num = pg.kind === 'cover' || pg.kind === 'back' ? '' : `<span style="position:absolute;bottom:3px;left:0;right:0;text-align:center;font:9px var(--f-latin);color:var(--s-muted)">${pg.no}</span>`;
+  const base = `position:relative;flex:1;min-width:0;aspect-ratio:3/4;background:#fff;overflow:hidden;`;
+  let inner = '';
+  if (pg.kind === 'cover') {
+    const bg = state.custom.cover && state.coverUploaded ? PHOTO : st.bg;
+    return `<div style="${base}background:${bg};color:${st.fg};border-radius:3px 8px 8px 3px;display:flex;flex-direction:column;justify-content:flex-end;padding:${big ? 14 : 5}px">${badge}
+      <span style="font-size:${big ? 9 : 5}px;letter-spacing:.1em;opacity:.85">本命客製報告</span>
+      <span style="font-family:var(--f-head);font-size:${big ? 22 : 9}px;line-height:1.15">${esc(state.coverName || '（名字）')}</span></div>`;
+  }
+  if (pg.kind === 'back') return `<div style="${base}background:${st.bg};border-radius:8px 3px 3px 8px;opacity:.9">${badge}</div>`;
+  if (pg.kind === 'dedication') inner = `<div style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre-line;font-family:var(--f-head);font-size:${big ? 11 : 5}px;line-height:1.7;padding:10%">${esc(state.dedication || '（扉頁贈言）')}</div>`;
+  else if (pg.kind === 'chart') inner = `<div style="padding:10%"><b style="font-size:${big ? 10 : 5}px">${pg.title}</b><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:6px">${Array.from({ length: 16 }, (_, i) => `<span style="aspect-ratio:1;border:1px solid #c6c9d4;${[5, 6, 9, 10].includes(i) ? 'border-color:transparent' : ''}"></span>`).join('')}</div></div>`;
+  else if (pg.kind === 'photo') inner = `<div style="height:62%;background:linear-gradient(135deg,#dceaff,#b5d3ff)"></div><div style="padding:8%">${lines(3)}</div>`;
+  else if (pg.kind === 'custom-l') inner = `<div style="height:100%;background:${state.spreadFilled[pg.i] ? PHOTO : 'repeating-linear-gradient(45deg,#f3f1ec 0 6px,#ebe8e1 6px 12px)'};display:grid;place-items:center;font-size:${big ? 11 : 5}px;color:var(--s-text)">${state.spreadFilled[pg.i] ? '' : `你的跨頁 ${pg.i + 1}<br>（左頁：照片）`}</div>`;
+  else if (pg.kind === 'custom-r') inner = `<div style="padding:12%;font-size:${big ? 10 : 5}px;color:var(--s-text)">${state.spreadFilled[pg.i] ? '我們家的夏天，第一次一起去海邊。' : `你的跨頁 ${pg.i + 1}<br>（右頁：文字）`}</div>`;
+  else inner = `<div style="padding:10%">${pg.title ? `<b style="display:block;font-family:var(--f-head);font-weight:400;font-size:${big ? 11 : 5}px;margin-bottom:5px">${pg.title}</b>` : ''}${lines(big ? 14 : 9)}</div>`;
+  return `<div style="${base}box-shadow:inset ${pg.no % 2 ? '-' : ''}6px 0 8px -6px rgba(0,0,0,.18)">${badge}${inner}${num}</div>`;
+}
+
+/** 翻書檢視器：大跨頁＋上下頁＋縮圖列 */
+function flipbook() {
+  const spreads = bookSpreads();
+  const v = Math.min(state.view, spreads.length - 1);
+  const cur = spreads[v];
+  const nos = cur.map((x) => x.no);
+  const label = cur[0].kind === 'cover' ? '封面' : `第 ${nos.join('–')} 頁`;
+  return `<div style="display:flex;justify-content:center;gap:0;max-width:100%;${cur.length === 1 ? 'width:50%;margin-left:50%' : ''}">${cur.map((pg) => renderPage(pg, true)).join('')}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <button class="s-btn soft" data-view="-1" ${v === 0 ? 'disabled' : ''} aria-label="上一頁" style="min-width:44px;padding:0">‹</button>
+      <span class="latin" style="font-size:12px;color:var(--s-text)">${label}・共 ${bookPages().length} 頁</span>
+      <button class="s-btn soft" data-view="1" ${v === spreads.length - 1 ? 'disabled' : ''} aria-label="下一頁" style="min-width:44px;padding:0">›</button>
+    </div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px" aria-label="全部頁面">
+      ${spreads.map((sp, i) => `<button data-goto="${i}" aria-label="跳到${sp[0].kind === 'cover' ? '封面' : '第 ' + sp.map((x) => x.no).join('–') + ' 頁'}" style="all:unset;cursor:pointer;flex:0 0 auto;width:${sp.length === 1 ? 26 : 52}px;display:flex;border-radius:3px;outline:${i === v ? '2px solid var(--s-blue)' : '1px solid var(--s-line)'};outline-offset:1px">${sp.map((pg) => renderPage(pg, false)).join('')}</button>`).join('')}
+    </div>`;
+}
+
+/** 目前跨頁可以做的事：封面／扉頁直接編輯；指定跨頁上傳；每一頁都能提出修改 */
+function spreadTools() {
+  const cur = bookSpreads()[Math.min(state.view, bookSpreads().length - 1)];
+  const parts = [];
+  if (cur.some((x) => x.kind === 'cover')) parts.push(`
+    <label class="field">封面上的名字<input data-field="coverName" value="${esc(state.coverName).replace(/"/g, '&quot;')}" maxlength="20" style="border:1.5px solid var(--s-line-strong);border-radius:14px;padding:9px 12px;font:inherit;font-size:14px"></label>
+    ${state.custom.cover
+      ? `<button class="opt ${state.coverUploaded ? 'on' : ''}" data-upload="cover" style="justify-content:center;border-style:dashed;font:inherit">${state.coverUploaded ? '✓ 已上傳封面圖片（點一下移除）' : '＋ 上傳封面圖片'}</button><p class="s-p">如需另外設計封面，費用另計。</p>`
+      : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${STYLES.map((x) => `<button class="opt ${state.style === x.key ? 'on' : ''}" data-style="${x.key}" style="font:inherit;gap:8px;justify-content:flex-start"><span style="width:18px;height:24px;border-radius:3px;background:${x.bg}"></span>${x.label}</button>`).join('')}</div>`}`);
+  if (cur.some((x) => x.kind === 'dedication')) parts.push(`
+    <label class="field">扉頁贈言（選填，200 字以內）<textarea data-field="dedication" maxlength="200" rows="3" style="border:1.5px solid var(--s-line-strong);border-radius:14px;padding:9px 12px;font:inherit;font-size:14px;resize:vertical">${esc(state.dedication)}</textarea></label>`);
+  const custom = cur.find((x) => x.kind === 'custom-l' || x.kind === 'custom-r');
+  if (custom) parts.push(`<b style="font-size:13px">你的跨頁 ${custom.i + 1}</b>
+    <button class="opt ${state.spreadFilled[custom.i] ? 'on' : ''}" data-spread="${custom.i}" style="justify-content:center;border-style:dashed;font:inherit">${state.spreadFilled[custom.i] ? '✓ 已放照片和文字（點一下移除）' : '＋ 放上這個跨頁的照片和文字'}</button>
+    <button class="s-btn soft" data-unplace="${custom.i}" style="min-height:36px">移到別的位置</button>`);
+  // 還沒選位置的跨頁：在目前這頁後面插入
+  const lastReport = [...cur].reverse().find((x) => x.rid !== undefined);
+  const unplaced = Array.from({ length: state.spreads }, (_, i) => i).filter((i) => state.spreadAfter[i] == null);
+  if (lastReport && unplaced.length) parts.push(`<button class="opt" data-place="${unplaced[0]}" data-after="${lastReport.rid}" style="justify-content:center;border:1.5px dashed var(--s-blue);color:var(--s-blue);font:inherit">＋ 在第 ${lastReport.no} 頁後面插入「你的跨頁 ${unplaced[0] + 1}」</button>`);
+
+  const reportPages = cur.filter((x) => !['cover', 'back', 'dedication', 'custom-l', 'custom-r'].includes(x.kind));
+  if (reportPages.length) {
+    if (state.panel === 'annotate') {
+      const t = ANNO_TYPES[state.annoType];
+      const locked = t.need && !state.custom[t.need];
+      parts.push(`<div style="border:1.5px solid var(--s-blue);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px">
+        <b style="font-size:13px">在第 ${reportPages.map((x) => x.no).join('–')} 頁提出修改</b>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${Object.entries(ANNO_TYPES).map(([k, v]) => `<button class="pill ${state.annoType === k ? 'blue' : 'tint'}" data-anno-type="${k}" style="border:0;cursor:pointer;min-height:32px;font:inherit;font-size:12px">${v.label}</button>`).join('')}</div>
+        ${locked
+          ? `<div class="alert warn">「${t.label}」需要加購「${CFG.custom.find((c) => c.key === t.need).label}」+${nt(CFG.custom.find((c) => c.key === t.need).price)}。<button class="s-btn" data-unlock="${t.need}" style="min-height:36px;margin-top:6px">加入並繼續</button></div>`
+          : `<textarea data-field="annoText" rows="2" placeholder="${t.hint}" style="border:1.5px solid var(--s-line-strong);border-radius:12px;padding:8px 10px;font:inherit;font-size:13px">${esc(state.annoText)}</textarea>
+             ${state.annoType === 'image' ? `<button class="opt ${state.annoPhoto ? 'on' : ''}" data-anno-photo style="justify-content:center;border-style:dashed;font:inherit">${state.annoPhoto ? '✓ 已選圖片' : '＋ 選擇圖片'}</button>` : ''}
+             <div style="display:flex;gap:8px"><button class="s-btn soft" data-anno-cancel>取消</button><button class="s-btn" data-anno-save style="flex:1">加入修改清單</button></div>`}
+      </div>`);
+    } else {
+      parts.push(`<button class="s-btn soft full" data-annotate>✎ 在這一頁提出修改</button>`);
+    }
+  }
+  return parts.join('');
+}
+
+function annotationList() {
+  if (!state.annotations.length) return '<p class="s-p">還沒有標註。翻到想修改的頁面，按「在這一頁提出修改」。</p>';
+  return `<ul style="margin:0;padding:0;list-style:none">${state.annotations.map((a, i) => `<li class="s-row" style="align-items:flex-start">
+    <button data-goto-page="${a.page}" style="all:unset;cursor:pointer;color:var(--s-blue);font:600 12px var(--f-latin);white-space:nowrap">第 ${a.page} 頁</button>
+    <span style="flex:1;min-width:0;font-size:12.5px"><span class="pill tint" style="margin-right:4px">${ANNO_TYPES[a.type].label.replace('（免費）', '')}</span>${esc(a.text)}${a.photo ? '（附圖）' : ''}</span>
+    <button data-anno-del="${i}" aria-label="刪除這則標註" style="all:unset;cursor:pointer;color:var(--s-muted);padding:0 4px">✕</button></li>`).join('')}</ul>`;
+}
+
+/** 金額明細（加購頁、說明欄共用） */
+function breakdown() {
+  const rows = [[`第一本・${specLabel()}`, firstCopy()]];
+  if (state.qty > 1) rows.push([`第二本起 ${nt(CFG.extra)} × ${state.qty - 1}`, (state.qty - 1) * CFG.extra]);
+  chosenCustom().forEach((c) => rows.push([c.label, c.price]));
+  if (state.spreads) rows.push([`指定跨頁 ${nt(CFG.spreadPrice)} × ${state.spreads}`, state.spreads * CFG.spreadPrice]);
+  if (state.consult) rows.push([`專人解讀 ${CFG.consult.minutes} 分鐘 × ${state.consult}`, consultTotal()]);
+  return rows.map(([l, v]) => `<div class="s-row"><dt>${l}</dt><dd class="latin">${nt(v)}</dd></div>`).join('')
+    + `<div class="s-row" style="font-weight:700"><dt style="color:var(--s-ink)">合計（含運費）</dt><dd class="latin" style="font-size:18px">${nt(total())}</dd></div>`;
+}
+
+const PARENT = 'ORD-20261003-7F2KQ9';
+const ADDON = 'ORD-20261009-B41C8E';
+
+function progress(cur) {
+  const labels = ['待付款', '填寫內容', '確認打樣', '印製', '出貨'];
+  return '<ol class="prog" aria-label="實體書進度">' + labels.map((l, i) =>
+    `<li class="${i < cur ? 'done' : i === cur ? 'cur' : ''}"><span class="d">${i + 1}</span>${l}${i < labels.length - 1 ? '<span class="sep">—</span>' : ''}</li>`).join('') + '</ol>';
+}
+
+function physicalCard(statusLabel, cur, extra = '') {
+  return `<div class="s-card">
+    <div style="display:flex;align-items:center;gap:8px"><h2 class="s-h2">實體書</h2><span class="pill tint" style="margin-left:auto">${statusLabel}</span></div>
+    <dl style="margin:0">
+      <div class="s-row"><dt>規格</dt><dd>${specLabel()}</dd></div>
+      <div class="s-row"><dt>數量</dt><dd>${state.qty} 本</dd></div>
+      ${customNames().length ? `<div class="s-row"><dt>特殊客製</dt><dd>${customNames().join('、')}</dd></div>` : ''}
+    </dl>
+    ${progress(cur)}
+    ${extra}
+  </div>`;
+}
+
+const site = (url, body) => `<div class="phone"><div class="screen"><div class="bar"><span aria-hidden="true">🔒</span><span class="url">${url}</span></div><div class="scroll">${body}</div></div></div>`;
+const admin = (url, body) => `<div class="phone s-admin"><div class="screen"><div class="bar"><span aria-hidden="true">🔒</span><span class="url">${url}</span></div><div class="scroll">${body}</div></div></div>`;
+
+// ── 每一步 ────────────────────────────────────────────────────
+const STEPS = [
+  {
+    title: '在會員中心找到報告訂單', who: '會員', phase: 'now',
+    screen: () => site('polaris-parent.com/account', `
+      <p class="s-eyebrow">會員中心</p><h1 class="s-h1">你好，王媽媽</h1>
+      <div style="display:flex;gap:6px;overflow-x:auto;font-size:12px">
+        <span class="pill tint">我的命盤</span><span class="pill blue">我的報告訂單</span><span class="pill tint">我的收藏</span><span class="pill tint">我的訂單 / 折扣券</span>
+      </div>
+      <button class="s-card hl" data-next style="text-align:left;border:0;cursor:pointer;font:inherit;color:inherit">
+        <span style="font-weight:500">本命客製報告（數位版）<span style="color:var(--s-text)">・小明</span></span>
+        <span class="s-p latin">${PARENT}・2026/10/3・NT$1,980</span>
+        <span style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill tint">已付款</span><span class="pill blue">可加購實體書</span></span>
+      </button>`),
+    explain: {
+      h: '會員中心多了「我的報告訂單」',
+      what: ['列出這個帳號的所有報告訂單，已付款的會標「可加購實體書」。', '從付款通知信點進訂單頁也可以，網址是 /report/orders/訂單號。'],
+      sys: ['後台「實體書設定」沒開放時，不會出現「可加購實體書」。'],
+    },
+  },
+  {
+    title: '打開原本的數位版訂單', who: '會員', phase: 'now',
+    screen: () => site(`polaris-parent.com/report/orders/${PARENT}`, `
+      <p class="s-eyebrow">訂單已成立</p><h1 class="s-h1">訂單 <span class="latin">${PARENT}</span></h1>
+      <div class="s-card"><dl style="margin:0">
+        <div class="s-row"><dt>品項</dt><dd>本命客製報告（數位版）</dd></div>
+        <div class="s-row"><dt>報告主角</dt><dd>王小明</dd></div>
+        <div class="s-row"><dt>金額</dt><dd class="latin"><b>NT$1,980</b></dd></div>
+        <div class="s-row"><dt>狀態</dt><dd><span class="pill ok">報告已完成</span></dd></div>
+      </dl></div>
+      <div class="s-card">
+        <h2 class="s-h2">加購實體書</h2>
+        <p class="s-p">把這份報告印成精裝實體書，可以選規格、加入自己的照片或文字頁，也可以多買幾本送人。送印前會請你確認完整內容。</p>
+        <button class="s-btn hl" data-next>＋ 加購實體書</button>
+      </div>
+      <div class="s-card">
+        <h2 class="s-h2">加購專人解讀</h2>
+        <p class="s-p">由專人陪你一起讀這份報告，每次 ${CFG.consult.minutes} 分鐘 ${nt(CFG.consult.price)}。付款後我們以 Email 或電話跟你約時間。</p>
+        <button class="s-btn soft">＋ 加購專人解讀</button>
+      </div>`),
+    explain: {
+      h: '原訂單頁出現「加購實體書」',
+      what: ['這個情境是：小明的數位版報告已經完成，會員也看過了。', '只有「已付款」的報告訂單會出現這兩塊。', '加購沒有期限；報告還在製作中也能先買，等報告完成再設計。', '同一份報告可以加購很多次，例如之後再多買幾本送人。', '只想要專人解讀、不要實體書，也可以單獨加購。'],
+      sys: ['這裡還不會建立任何訂單，只是入口。'],
+    },
+  },
+  {
+    title: '選規格、數量與客製', who: '會員', phase: 'future', phaseNo: 1, interactive: true,
+    screen: () => site(`polaris-parent.com/report/orders/${PARENT}/addon`, `
+      <p class="s-p">← 回到訂單</p>
+      <h1 class="s-h1">加購實體書</h1>
+      <p class="s-p">為「小明」的報告（訂單 <span class="latin">${PARENT}</span>）加印實體書。內容沿用這份報告，不需要重新填寫資料。</p>
+
+      <div class="s-card">
+        <h2 class="s-h2">一、選擇規格</h2>
+        ${CFG.specs.map((x) => `<label class="opt ${state.spec === x.key ? 'on' : ''}"><span style="display:flex;gap:8px;align-items:center"><input type="radio" name="spec" value="${x.key}" ${state.spec === x.key ? 'checked' : ''}> ${x.label}</span><span class="latin">${x.delta ? nt(x.delta) : '原價'}</span></label>`).join('')}
+      </div>
+
+      <div class="s-card">
+        <h2 class="s-h2">二、數量</h2>
+        <p class="s-p">第一本 ${nt(firstCopy())}，第二本起每本 ${nt(CFG.extra)}。每本內容相同，寄到同一個地址。</p>
+        <div class="stepper"><button data-qty="-1" aria-label="減少數量" ${state.qty <= 1 ? 'disabled' : ''}>−</button><output>${state.qty} 本</output><button data-qty="1" aria-label="增加數量" ${state.qty >= 20 ? 'disabled' : ''}>＋</button></div>
+      </div>
+
+      <div class="s-card">
+        <button data-toggle-custom style="all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:40px">
+          <h2 class="s-h2" style="flex:1">三、特殊客製（選填）</h2><span class="pill ${customTotal() ? 'blue' : 'tint'}">${customTotal() ? '已選 ' + nt(customTotal()) : state.customOpen ? '收合 ▲' : '展開 ▼'}</span>
+        </button>
+        <p class="s-p">需要自己的封面、改寫文字、放指定圖片或頁面時再展開。費用一張訂單只收一次。</p>
+        ${state.customOpen ? CFG.custom.map((c) => `<label class="opt ${state.custom[c.key] ? 'on' : ''}" style="align-items:flex-start">
+            <span style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" data-custom="${c.key}" ${state.custom[c.key] ? 'checked' : ''} style="margin-top:3px;accent-color:var(--s-blue)">
+              <span><span style="font-weight:500">${c.label}</span><span class="s-p" style="display:block">${c.note}</span></span></span>
+            <span class="latin" style="white-space:nowrap">+${nt(c.price)}</span></label>`).join('') + `
+          <div class="opt ${state.spreads ? 'on' : ''}" style="flex-wrap:wrap">
+            <span><span style="font-weight:500">加入自己的指定頁面</span><span class="s-p" style="display:block">每一個跨頁 +${nt(CFG.spreadPrice)}，下一步在書裡選位置、放照片和文字。</span></span>
+            <div class="stepper"><button data-spreads="-1" aria-label="減少跨頁" ${state.spreads <= 0 ? 'disabled' : ''}>−</button><output>${state.spreads} 跨頁</output><button data-spreads="1" aria-label="增加跨頁" ${state.spreads >= CFG.maxSpreads ? 'disabled' : ''}>＋</button></div>
+          </div>` : ''}
+      </div>
+
+      <div class="s-card">
+        <h2 class="s-h2">四、專人解讀（選填）</h2>
+        <p class="s-p">每次 ${CFG.consult.minutes} 分鐘 ${nt(CFG.consult.price)}，付款後我們以 Email 或電話跟你約時間。</p>
+        <div class="stepper"><button data-consult="-1" aria-label="減少次數" ${state.consult <= 0 ? 'disabled' : ''}>−</button><output>${state.consult} 次</output><button data-consult="1" aria-label="增加次數" ${state.consult >= CFG.consult.max ? 'disabled' : ''}>＋</button></div>
+      </div>
+
+      <div class="s-card"><h2 class="s-h2">金額</h2><dl style="margin:0">${breakdown()}</dl></div>
+      <button class="s-btn full hl" data-next>下一步：設計你的書 →</button>`),
+    explain: {
+      h: '四個區塊，金額即時更新',
+      what: [
+        '規格必選一個；平裝 −300 只影響第一本。',
+        '數量：第一本依規格計價，第二本起每本 600。',
+        '特殊客製預設收合，一般客人不會被一堆選項嚇到；需要的人再展開。客製費一張訂單只收一次。',
+        '專人解讀可以跟實體書一起買，也能在訂單頁單獨加購。',
+        '試試看：在手機畫面裡改規格、數量，展開特殊客製勾幾項。',
+      ],
+      sys: [
+        '所有選項、名稱、價格都在後台設定，之後可以新增或調價。',
+        '真正收多少錢，由後端送出當下重新計算，前端顯示只是參考。',
+        '客製內容（封面圖、指定圖片、跨頁位置與內容）在下一步「設計你的書」填寫。',
+      ],
+    },
+  },
+  {
+    title: '設計你的書（整本預覽）', who: '會員', phase: 'future', phaseNo: 2, interactive: true,
+    screen: () => site(`polaris-parent.com/report/orders/${PARENT}/addon/design`, `
+      <div class="preview-stamp">階段 2 預覽：用這份報告的完整內容翻書預覽，並在頁面上標註修改。</div>
+      <h1 class="s-h1">設計你的書</h1>
+      <p class="s-p">這是小明的報告印成書的樣子。翻到封面和扉頁可以直接填寫；看到想調整的地方，就在那一頁提出修改。</p>
+      ${(() => { const n = Array.from({ length: state.spreads }, (_, i) => i).filter((i) => state.spreadAfter[i] == null).length; return n ? `<div class="alert warn">還有 ${n} 個跨頁沒選位置：翻到想放的地方，按「在這裡插入」。</div>` : ''; })()}
+      <div class="s-card" style="background:#eef1f7;gap:10px">${flipbook()}</div>
+      <div class="s-card">${spreadTools()}</div>
+      <div class="s-card">
+        <div style="display:flex;align-items:center;gap:8px"><h2 class="s-h2">修改清單</h2><span class="pill ${state.annotations.length ? 'blue' : 'tint'}" style="margin-left:auto">${state.annotations.length} 則</span></div>
+        ${annotationList()}
+      </div>
+      <div class="s-card" style="position:sticky;bottom:0;box-shadow:0 -6px 18px rgba(9,40,100,.08)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="s-p">${specLabel()}・${state.qty} 本${customNames().length ? '・' + customNames().join('、') : ''}</span><b class="latin" style="font-size:17px">${nt(total())}</b></div>
+        <button class="s-btn full hl" data-next>下一步：收件資料 →</button>
+      </div>`),
+    explain: {
+      h: '整本書預覽，在書上標註修改',
+      what: [
+        '用這份報告的完整內容，像翻書一樣一次看兩頁；下方縮圖可以直接跳頁，有標註的頁面會出現粉紅色 ✎。',
+        '封面、扉頁直接在預覽上填：翻到封面改名字、選款式（或上傳客製封面）；翻到扉頁寫贈言，預覽即時更新。',
+        '報告內文的每一頁都能「提出修改」，分三種：改寫文字、換成指定圖片、回報錯誤（免費）。',
+        '選了「改寫文字」或「換圖片」但還沒買對應的特殊客製，會提示加購，按一下就加進訂單、金額跟著更新。',
+        '有買指定跨頁的，由客人自己選位置：翻到想放的地方按「在第 N 頁後面插入」，再上傳照片和文字；放錯可以「移到別的位置」。',
+        '試試看：翻到第 6–7 頁按「在這一頁提出修改」，選「改寫文字」。',
+      ],
+      sys: [
+        '預覽頁面來自客人已經拿到的數位版完整 PDF，不是重新排版；實際印刷版由你依修改清單排好後，再請客人確認打樣。',
+        '報告還在製作中就加購的人，可以先付款；報告完成後才開放這個設計頁，並寄信通知客人來設計。第一次下單就選實體書版的人也一樣。',
+        '封面、扉頁、修改清單、上傳的照片都存成「設計草稿」，跟著訂單送出；付款前離開，回來還在。',
+        '照片存在不公開的雲端空間，只有本人和你看得到。',
+      ],
+    },
+  },
+  {
+    title: '填收件資料並送出', who: '會員', phase: 'now',
+    screen: () => site(`polaris-parent.com/report/orders/${PARENT}/addon`, `
+      <div class="s-card">
+        <h2 class="s-h2">收件資料</h2>
+        <p class="s-p">由合作印刷廠寄出，收件人可以不是你本人。</p>
+        <label class="field">收件人姓名 *<span class="v">王大明</span></label>
+        <label class="field">聯絡電話 *<span class="v latin">0912-345-678</span></label>
+        <label class="field">收件地址 *<span class="v">台北市中正區某某路 1 號</span></label>
+      </div>
+      <div class="s-card">
+        <h2 class="s-h2">金額與付款</h2>
+        <dl style="margin:0">${breakdown()}</dl>
+        <div class="alert info">銀行轉帳。送出後會顯示匯款帳號，請於 3 天內轉帳並回報轉出帳號末五碼。</div>
+      </div>
+      <label class="s-card" style="flex-direction:row;font-size:12.5px;color:var(--s-text)"><input type="checkbox" checked style="accent-color:var(--s-blue)"> 我了解實體書為客製化商品，不適用七日解除權；在我確認打樣、送印之前可以取消並退款，確認送印後不受理取消。</label>
+      <button class="s-btn full hl" data-next>送出加購（${nt(total())}）</button>`),
+    explain: {
+      h: '送出後會產生一張「新的」訂單',
+      what: ['不會改動原本的數位版訂單，而是另開一張加購訂單，連回原報告。實體書、特殊客製、專人解讀都在同一張訂單、一次付款。', '上一步設計好的書（封面、贈言、上傳的內容）跟著訂單一起送出。', '需要已完成 Email 驗證；同意交易政策才能送出。'],
+      sys: ['不會重新排盤，也不會重新製作報告。', '同一次填寫重複按送出，只會建立一張訂單。', '寄出「訂單成立」通知信，內含匯款資訊。'],
+    },
+  },
+  {
+    title: '加購訂單：轉帳與回報', who: '會員', phase: 'now',
+    screen: () => site(`polaris-parent.com/report/orders/${ADDON}`, `
+      <p class="s-eyebrow">訂單已成立</p><h1 class="s-h1">訂單 <span class="latin">${ADDON}</span></h1>
+      <div class="s-card"><dl style="margin:0">
+        <div class="s-row"><dt>品項</dt><dd>本命客製報告（實體書加購）× ${state.qty} 本</dd></div>
+        <div class="s-row"><dt>原報告訂單</dt><dd class="latin" style="color:var(--s-blue)">${PARENT}</dd></div>
+        <div class="s-row"><dt>金額</dt><dd class="latin"><b>${nt(total())}</b></dd></div>
+        <div class="s-row"><dt>狀態</dt><dd><span class="pill warn">待付款</span></dd></div>
+      </dl></div>
+      <div class="s-card"><h2 class="s-h2">轉帳資訊</h2>
+        <div class="s-row"><dt>帳號</dt><dd class="latin">（你的收款帳戶）</dd></div>
+        <div class="s-row"><dt>金額</dt><dd class="latin"><b>${nt(total())}</b></dd></div>
+        <button class="s-btn soft">送出轉帳回報</button>
+      </div>
+      ${physicalCard('待付款', 0, '<p class="s-p" style="border-top:1px solid var(--s-line);padding-top:10px">確認送印前都可以取消實體書。</p><button class="s-btn soft">取消實體書</button>')}
+      <div class="mail"><b>📧 【親紫之間】訂單成立 ${ADDON}</b>品項：本命客製報告（實體書加購）（小明）× ${state.qty} 本
+金額：${nt(total())}
+請於期限內轉帳至以下帳戶……</div>`),
+    explain: {
+      h: '付款流程和一般訂單完全一樣',
+      what: ['轉帳 → 回報末五碼 → 等你在後台確認收款。', '還沒付款也可以直接按「取消實體書」，整張加購訂單就取消。', '超過匯款期限沒回報，系統自動取消。'],
+      sys: ['這時實體書狀態是「待付款」。'],
+    },
+  },
+  {
+    title: '你在後台確認收款', who: '你（後台）', phase: 'now',
+    screen: () => admin('polaris-parent.com/admin/report-payments', `
+      <div style="font-weight:600;font-size:16px">人工收款</div>
+      <div class="adm-card">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span class="latin" style="font-weight:600">${ADDON}</span><span class="pill warn">待付款</span><span class="adm-tag">實體書加購 × ${state.qty}・原訂單 ${PARENT}</span></div>
+        <div>本命客製報告（實體書加購）・主角 王小明</div>
+        <div style="color:var(--s-text)">訂單金額 <b>${nt(total())}</b></div>
+        <div style="background:var(--s-admin-bg);border-radius:8px;padding:8px;font-size:12px">會員已回報，待確認・末五碼 <span class="latin">54321</span></div>
+        <span class="adm-in">實收金額 ${total()}</span>
+        <button class="adm-btn hl" data-next>確認收款</button>
+      </div>`),
+    explain: {
+      h: '收款頁會標出這是「實體書加購」',
+      what: ['一眼看出是哪份報告的加購、買了幾本。', '確認收款的方式和數位版訂單一樣：實收金額要等於訂單金額。'],
+      sys: ['確認後，實體書進入「填寫內容」。', '寄給會員：「已確認收款，實體書將開始準備」。'],
+    },
+  },
+  {
+    title: '付款後：最後確認內容', who: '會員', phase: 'future', phaseNo: 2,
+    screen: () => site(`polaris-parent.com/report/orders/${ADDON}`, `
+      <div class="preview-stamp">階段 2 預覽：內容在付款前已經填好，這裡只做最後確認。</div>
+      ${physicalCard('待確認內容', 1)}
+      <div class="s-card">
+        <h2 class="s-h2">你的書</h2>
+        <div style="background:#eef1f7;border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px">${flipbook()}</div>
+        <dl style="margin:0">
+          <div class="s-row"><dt>封面</dt><dd>${state.custom.cover ? (state.coverUploaded ? '客製封面圖片' : '<span style="color:#9c2a14">還沒上傳封面圖片</span>') : STYLES.find((x) => x.key === state.style).label}・「${state.coverName}」</dd></div>
+          <div class="s-row"><dt>扉頁贈言</dt><dd>${state.dedication ? '已填寫' : '不放'}</dd></div>
+          ${state.custom.image ? `<div class="s-row"><dt>指定圖片</dt><dd>${state.imageUploaded ? '已上傳' : '<span style="color:#9c2a14">還沒上傳</span>'}</dd></div>` : ''}
+          ${state.spreads ? `<div class="s-row"><dt>指定跨頁</dt><dd>已選位置 ${state.spreadAfter.filter((x) => x != null).length} / ${state.spreads}・已放內容 ${state.spreadFilled.filter(Boolean).length} / ${state.spreads}</dd></div>` : ''}
+          <div class="s-row"><dt>修改清單</dt><dd>${state.annotations.length} 則</dd></div>
+        </dl>
+        <button class="s-btn soft full">修改內容</button>
+        <button class="s-btn full hl" data-next>確認內容，開始製作打樣</button>
+      </div>`),
+    explain: {
+      h: '付款後只要最後確認',
+      what: [
+        '付款前填好的內容與修改清單都在，這裡可以再翻一次整本書並檢查。',
+        '還沒上傳完的項目（例如客製封面圖片）會用紅字提醒，可以按「修改內容」補上。',
+        '按「確認內容，開始製作打樣」後鎖定，之後想改請在打樣時提出。',
+      ],
+      sys: ['確認後，你的「實體書出貨」頁會出現在「待出打樣」頁籤，附上全部內容與照片。'],
+    },
+  },
+  {
+    title: '你排版，會員確認打樣', who: '你＋會員', phase: 'future',
+    screen: () => site(`polaris-parent.com/report/orders/${ADDON}`, `
+      <div class="preview-stamp">階段 3 預覽：打樣確認流程還沒做。</div>
+      ${physicalCard('待確認打樣', 2)}
+      <div class="s-card">
+        <h2 class="s-h2">打樣確認（第 1 版）</h2>
+        <div style="aspect-ratio:3/4;max-height:200px;border-radius:12px;background:var(--s-tint);display:grid;place-items:center;color:var(--s-text);font-size:13px">📄 小明的實體書・打樣.pdf（48 頁）</div>
+        <p class="s-p">請完整看過一遍。確認送印後就不能再修改或取消。</p>
+        <button class="s-btn full hl" data-next>確認送印</button>
+        ${state.custom.text
+          ? '<button class="s-btn soft full">我要修改內容（已解鎖文字修改）</button>'
+          : `<button class="s-btn soft full">回報錯誤（錯字、稱呼、資料）</button>
+             <p class="s-p">想改寫報告內容？<b style="color:var(--s-blue)">補購「解鎖內容文字修改」+${nt(500)}</b></p>`}
+      </div>`),
+    explain: {
+      h: '沒有會員確認，就不能送印',
+      what: ['你排好打樣 PDF，在後台上傳。', '會員在手機上看完整 PDF，選「確認送印」或提出修改。', '沒買「解鎖內容文字修改」的人，只能免費回報錯字、稱呼或資料錯誤；想改寫內容可以當場補購。（回到第 3 步勾選「解鎖內容文字修改」，這裡的按鈕會不一樣。）', '修改次數不限，每一版和每次意見都留紀錄。'],
+      sys: ['確認前會員都還能取消，已付款的全額退款。', '確認後狀態變成「已確認，待送印」，後台才能按送印。'],
+    },
+  },
+  {
+    title: '送印與出貨', who: '你（後台）', phase: 'now',
+    screen: () => admin('polaris-parent.com/admin/report-shipments', `
+      <div style="font-weight:600;font-size:16px">實體書出貨</div>
+      <div class="adm-tabs"><span>待填內容</span><span>待出打樣</span><span>待會員確認</span><span>待送印</span><span class="on">印製中 1</span><span>已出貨</span><span>待退款</span></div>
+      <div class="adm-card">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"><span class="latin" style="font-weight:600">${ADDON}</span><span class="adm-tag">印製中</span><span class="adm-tag" style="background:var(--s-admin-bg);color:var(--s-text)">事後加購・原訂單 ${PARENT}</span></div>
+        <div>主角 王小明（小明）・${specLabel()}・${state.qty} 本${customNames().length ? `・${customNames().join('、')}` : ''}${state.consult ? `・專人解讀 ${state.consult} 次` : ''}</div>
+        <div style="background:var(--s-admin-bg);border-radius:8px;padding:8px;font-size:12px">收件人 王大明・<span class="latin">0912-345-678</span><br>台北市中正區某某路 1 號</div>
+        <span style="font-size:12px;color:var(--s-admin-accent)">⧉ 複製實體書資料</span>
+        <span class="adm-in">黑貓宅急便</span><span class="adm-in latin">9001-2345-6789</span>
+        <button class="adm-btn hl" data-next>🚚 登錄出貨並通知會員</button>
+      </div>`),
+    explain: {
+      h: '一頁管完印製到出貨',
+      what: ['依狀態分頁籤：待填內容、待出打樣、待會員確認、待送印、印製中、已出貨、待退款…', '「複製實體書資料」一鍵複製給排版或印刷廠的資料。', '登錄物流單號時，系統自動寄出貨通知。'],
+      sys: ['階段 1 目前可以從付款後直接按「標記送印」；階段 3 上線後改成會員確認打樣才能送印。'],
+    },
+  },
+  {
+    title: '會員收到書', who: '會員', phase: 'now',
+    screen: () => site(`polaris-parent.com/report/orders/${PARENT}`, `
+      <div class="mail"><b>📧 【親紫之間】實體書已出貨 ${ADDON}</b>你的實體書已經出貨。
+物流：黑貓宅急便
+單號：9001-2345-6789</div>
+      <h1 class="s-h1">訂單 <span class="latin">${PARENT}</span></h1>
+      <div class="s-card">
+        <h2 class="s-h2">再加購實體書</h2>
+        <ul style="margin:0;padding:0;list-style:none;font-size:13px">
+          <li class="s-row"><span class="latin" style="color:var(--s-blue)">${ADDON}</span><span>${state.qty} 本・${nt(total())}</span><span class="pill tint">已出貨</span></li>
+        </ul>
+        <button class="s-btn">＋ 再加購一筆</button>
+      </div>`),
+    explain: {
+      h: '原訂單頁看得到所有加購',
+      what: ['原本的數位版訂單頁會列出每一筆加購和它的進度。', '想再多印幾本，可以「再加購一筆」，流程從第 3 步重來。'],
+      sys: ['數位報告的交付不受實體書影響。'],
+    },
+  },
+  {
+    title: '如果中途想取消', who: '會員＋你', phase: 'now',
+    screen: () => site(`polaris-parent.com/report/orders/${ADDON}`, `
+      <h1 class="s-h1">訂單 <span class="latin">${ADDON}</span></h1>
+      <div class="s-card">
+        <div style="display:flex;align-items:center;gap:8px"><h2 class="s-h2">實體書</h2><span class="pill tint" style="margin-left:auto">已取消</span></div>
+        <div class="alert info">實體書已取消。應退金額 ${nt(total())}，我們會以轉帳退款，完成後寄信通知你。</div>
+      </div>
+      <div class="mail"><b>📧 【親紫之間】退款完成 ${ADDON}</b>退款金額：${nt(total())}
+若一週內沒有收到款項，請直接回信與我們聯絡。</div>`),
+    explain: {
+      h: '送印前都可以取消',
+      what: ['會員在訂單頁按「取消實體書」，或你在後台代為取消（要填原因）。', '已付款的：你在「待退款」頁籤轉帳後登錄退款，系統寄退款通知。', '已確認送印、印製中之後就不能取消。'],
+      sys: ['加購訂單取消＝整張取消、全額退款。', '下單時選實體書版的訂單取消實體書＝改成只交付數位版，退差價。'],
+    },
+  },
+];
+
+// ── 繪製 ──────────────────────────────────────────────────────
+const $steps = document.getElementById('steps');
+const $device = document.getElementById('device');
+const $explain = document.getElementById('explain');
+
+function render() {
+  const s = STEPS[state.step];
+  $steps.innerHTML = STEPS.map((x, i) => `<li><button type="button" data-go="${i}" ${i === state.step ? 'aria-current="step"' : ''}>
+    <span class="num">${i + 1}</span><span class="t">${x.title}<span class="who">${x.who}${x.phase === 'future' ? '・預覽' : ''}</span></span></button></li>`).join('');
+  $device.innerHTML = s.screen();
+  const e = s.explain;
+  $explain.innerHTML = `
+    <div class="card">
+      <span class="tag ${s.phase}">${s.phase === 'now' ? '階段 1・已完成' : '階段 ' + (s.phaseNo || 3) + '・預覽，還沒做'}</span>
+      <h2>${e.h}</h2>
+    </div>
+    <div class="card"><h3>這一步${s.who.includes('會員') ? '會員' : '你'}會看到／做什麼</h3><ul>${e.what.map((x) => `<li>${x}</li>`).join('')}</ul></div>
+    <div class="card"><h3>系統在背後做了什麼</h3><ul>${e.sys.map((x) => `<li>${x}</li>`).join('')}</ul></div>
+    <div class="card num-tab"><h3>目前的範例金額</h3>
+      <p>${specLabel()}・${state.qty} 本${customNames().length ? '・' + customNames().join('、') : ''}${state.consult ? `・專人解讀 ${state.consult} 次` : ''}</p>
+      <p style="margin-top:4px">合計 <b>${nt(total())}</b>（實體書 ${nt(bookTotal())}${customTotal() ? `＋客製 ${nt(customTotal())}` : ''}${state.consult ? `＋解讀 ${nt(consultTotal())}` : ''}）</p>
+      <p class="hint" style="margin-top:6px">價格照你給的清單：第一本 1,200、第二本起 600、平裝 −300、客製封面 +300、文字修改 +500、指定圖片 +500、每跨頁 +300、解讀 30 分鐘 1,500。</p>
+    </div>
+    <div class="nav">
+      <button type="button" data-prev ${state.step === 0 ? 'disabled' : ''}>上一步</button>
+      <button type="button" class="primary" data-next ${state.step === STEPS.length - 1 ? 'disabled' : ''}>下一步</button>
+    </div>`;
+}
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('button, input[name="spec"], input[data-custom]');
+  if (t && t.dataset.view) { state.view = Math.max(0, state.view + Number(t.dataset.view)); state.panel = null; rerender(); return; }
+  if (t && t.dataset.goto !== undefined) { state.view = Number(t.dataset.goto); state.panel = null; rerender(); return; }
+  if (t && t.dataset.gotoPage !== undefined) { const n = Number(t.dataset.gotoPage); state.view = n === 0 ? 0 : Math.floor((n + 1) / 2); state.panel = null; rerender(); return; }
+  if (t && t.hasAttribute('data-annotate')) { state.panel = 'annotate'; state.annoText = ''; state.annoPhoto = false; rerender(); return; }
+  if (t && t.dataset.annoType) { state.annoType = t.dataset.annoType; rerender(); return; }
+  if (t && t.dataset.unlock) { state.custom[t.dataset.unlock] = true; state.customOpen = true; rerender(); return; }
+  if (t && t.hasAttribute('data-anno-photo')) { state.annoPhoto = !state.annoPhoto; rerender(); return; }
+  if (t && t.hasAttribute('data-anno-cancel')) { state.panel = null; rerender(); return; }
+  if (t && t.hasAttribute('data-anno-save')) {
+    const cur = bookSpreads()[state.view].filter((x) => !['cover', 'back', 'dedication', 'custom-l', 'custom-r'].includes(x.kind));
+    if (state.annoText.trim() && cur.length) state.annotations.push({ page: cur[0].no, type: state.annoType, text: state.annoText.trim(), photo: state.annoType === 'image' && state.annoPhoto });
+    state.panel = null; rerender(); return;
+  }
+  if (t && t.dataset.annoDel !== undefined) { state.annotations.splice(Number(t.dataset.annoDel), 1); rerender(); return; }
+  if (t && t.dataset.place !== undefined) {
+    state.spreadAfter[Number(t.dataset.place)] = Number(t.dataset.after);
+    const i = Number(t.dataset.place);
+    const idx = bookPages().findIndex((x) => x.kind === 'custom-l' && x.i === i);
+    state.view = Math.floor((idx + 1) / 2); rerender(); return;
+  }
+  if (t && t.dataset.unplace !== undefined) { state.spreadAfter[Number(t.dataset.unplace)] = null; rerender(); return; }
+  if (t && t.dataset.upload) { const k = t.dataset.upload === 'cover' ? 'coverUploaded' : 'imageUploaded'; state[k] = !state[k]; rerender(); return; }
+  if (t && t.dataset.style) { state.style = t.dataset.style; rerender(); return; }
+  if (t && t.dataset.spread !== undefined) { const i = Number(t.dataset.spread); state.spreadFilled[i] = !state.spreadFilled[i]; rerender(); return; }
+  if (!t) return;
+  if (t.dataset.go !== undefined) state.step = Number(t.dataset.go);
+  else if (t.hasAttribute('data-next')) state.step = Math.min(STEPS.length - 1, state.step + 1);
+  else if (t.hasAttribute('data-prev')) state.step = Math.max(0, state.step - 1);
+  else if (t.dataset.spreads) state.spreads = Math.min(CFG.maxSpreads, Math.max(0, state.spreads + Number(t.dataset.spreads)));
+  else if (t.dataset.consult) state.consult = Math.min(CFG.consult.max, Math.max(0, state.consult + Number(t.dataset.consult)));
+  else if (t.dataset.qty) state.qty = Math.min(20, Math.max(1, state.qty + Number(t.dataset.qty)));
+  else if (t.hasAttribute('data-toggle-custom')) state.customOpen = !state.customOpen;
+  else if (t.dataset.custom) state.custom[t.dataset.custom] = t.checked;
+  else if (t.name === 'spec') state.spec = t.value;
+  else return;
+  const keepScroll = !(t.dataset.go !== undefined || t.hasAttribute('data-next') || t.hasAttribute('data-prev'));
+  const sc = document.querySelector('.scroll');
+  const top = sc ? sc.scrollTop : 0;
+  render();
+  if (keepScroll) { const n = document.querySelector('.scroll'); if (n) n.scrollTop = top; }
+});
+
+// 打字時只更新預覽，不重畫整頁（避免輸入框失去焦點）
+document.addEventListener('input', (ev) => {
+  const f = ev.target.dataset && ev.target.dataset.field;
+  if (!f) return;
+  state[f] = ev.target.value;
+  if (f === 'annoText') return;
+  // 封面／扉頁：只更新目前跨頁的大圖（不重畫整頁，輸入框才不會失去焦點）
+  const pv = document.querySelector('.s-card[style*="#eef1f7"] > div');
+  const cur = bookSpreads()[Math.min(state.view, bookSpreads().length - 1)];
+  if (pv) pv.innerHTML = cur.map((pg) => renderPage(pg, true)).join('');
+});
+function rerender() {
+  const sc = document.querySelector('.scroll');
+  const top = sc ? sc.scrollTop : 0;
+  render();
+  const n = document.querySelector('.scroll');
+  if (n) n.scrollTop = top;
+}
+
+render();
+</script>
+
+</body>
+</html>

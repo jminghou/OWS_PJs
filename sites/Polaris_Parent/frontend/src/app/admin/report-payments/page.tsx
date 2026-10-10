@@ -213,8 +213,15 @@ export default function ReportPaymentsPage() {
                         {o.payment.mode !== 'manual' && (
                           <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">佔位訂單</span>
                         )}
+                        {o.item?.kind !== 'purchase' && (
+                          <span className="rounded bg-admin-accent-100 px-2 py-0.5 text-[11px] font-medium text-admin-accent-800 dark:bg-admin-accent-800/40 dark:text-admin-accent-100">
+                            加購・原訂單 {o.item?.parent_order_no}
+                          </span>
+                        )}
+                        {o.physical && <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">實體書 × {o.physical.quantity}</span>}
+                        {o.consult && <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">專人解讀 × {o.consult.sessions}</span>}
                       </div>
-                      <p>{o.item?.name}・主角 {o.item?.subject_name}</p>
+                      <p>{o.lines.map((l) => l.name).join('、')}・主角 {o.item?.subject_name}</p>
                       <p className="text-muted-foreground">購買者 {o.buyer_email ?? '—'}・成立 {formatDate(o.created_at)}</p>
                       <p>訂單金額 <strong>NT${o.amount.toLocaleString('zh-TW')}</strong>
                         {o.payment.deadline && o.status === 'pending' && (

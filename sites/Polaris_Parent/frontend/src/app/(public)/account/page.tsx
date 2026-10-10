@@ -1,5 +1,6 @@
 'use client';
 
+import MyReportOrders from '@/components/report/orders/MyReportOrders';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -84,7 +85,11 @@ export default function AccountPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
 
-  const [tab, setTab] = useState<'charts' | 'favorites' | 'orders' | 'articles'>('charts');
+  const [tab, setTab] = useState<'charts' | 'reports' | 'favorites' | 'orders' | 'articles'>('charts');
+  // 從訂單頁或通知信帶 ?tab=reports 進來時直接開「我的報告訂單」
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'reports') setTab('reports');
+  }, []);
   const [people, setPeople] = useState<MyPerson[]>([]);
   const [favorites, setFavorites] = useState<MyFavorite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -559,6 +564,9 @@ export default function AccountPage() {
         <button type="button" role="tab" aria-selected={tab === 'charts'} className={pillCls(tab === 'charts')} onClick={() => setTab('charts')}>
           我的命盤
         </button>
+        <button type="button" role="tab" aria-selected={tab === 'reports'} className={pillCls(tab === 'reports')} onClick={() => setTab('reports')}>
+          我的報告訂單
+        </button>
         <button type="button" role="tab" aria-selected={tab === 'favorites'} className={pillCls(tab === 'favorites')} onClick={() => setTab('favorites')}>
           我的收藏
         </button>
@@ -603,7 +611,9 @@ export default function AccountPage() {
         </div>
       )}
 
-      {loading ? (
+      {tab === 'reports' ? (
+        <MyReportOrders />
+      ) : loading ? (
         <p className="text-muted">載入中…</p>
       ) : tab === 'charts' ? (
         people.length === 0 ? (

@@ -1,40 +1,62 @@
 /**
- * 客製報告各版本的售價：向商品後台（shop.products）讀取，伺服器端與瀏覽器端皆可用。
- * 這裡只供顯示；實際金額以後端建單時讀到的價格為準（extensions/report_orders/service.py）。
+ * 客製報告的售價：伺服器端與瀏覽器端皆可用。
+ * - 數位版：讀商品後台（shop.products 的 natal-report-digital）
+ * - 實體書：讀後端的實體書設定（/report-physical-config；後台「實體書設定」分頁），
+ *   實體書＝第一本（含規格）＋第二本起×數量＋特殊客製。這裡的 physical 是「數位版＋一本最便宜規格」的起價。
+ * 這裡只供顯示；實際金額以後端建單時計算的為準（extensions/report_orders/physical.py）。
  */
-import { productApi } from '@/lib/api';
-import { REPORT_VARIANTS, type ReportVariant } from './catalog';
+import { productApi, reportOrdersApi } from '@/lib/api';
+import type { PhysicalConfig } from '@/lib/api/reportOrders';
+import type { ReportVariant } from './catalog';
 
 export type PriceLabel = { text: string; available: boolean; amount: number | null };
-export type ReportPrices = Record<ReportVariant, PriceLabel> & { symbol: string };
+export type ReportPrices = Record<ReportVariant, PriceLabel> & { symbol: string; physicalConfig: PhysicalConfig | null };
 
 const UNAVAILABLE: PriceLabel = { text: '價格即將公布', available: false, amount: null };
 
 export const formatPrice = (amount: number, symbol = 'NT$') => `${symbol}${amount.toLocaleString('zh-TW')}`;
 
-export async function loadReportPrices(): Promise<ReportPrices> {
-  let symbol = 'NT$';
-  const entries = await Promise.all(
-    REPORT_VARIANTS.map(async (v) => {
-      try {
-        const p: any = await productApi.getById(v.productId, 'zh-TW', 'TWD');
-        if (typeof p?.price === 'number') {
-          if (p.currency_symbol) symbol = p.currency_symbol;
-          return [v.variant, { text: formatPrice(p.price, p.currency_symbol || 'NT$'), available: true, amount: p.price }];
-        }
-      } catch {
-        /* 後台尚未建立此商品 */
-      }
-      return [v.variant, UNAVAILABLE];
-    })
-  );
-  return { ...(Object.fromEntries(entries) as Record<ReportVariant, PriceLabel>), symbol };
+const label = (amount: number, symbol: string): PriceLabel => ({ text: formatPrice(amount, symbol), available: true, amount });
+
+/** 實體書與專人解讀設定；兩者都沒開放或 API 失敗時回 null（實體書是否開放看 cfg.enabled） */
+export async function loadPhysicalConfig(): Promise<PhysicalConfig | null> {
+  try {
+    const { config } = await reportOrdersApi.physicalConfig();
+    return config && (config.enabled || config.consult) ? config : null;
+  } catch {
+    return null;
+  }
 }
 
-/** 加購實體書的價差（physical − digital）；任一版本沒有價格就顯示「價格即將公布」 */
+/** 一本實體書（不含數位版）的最低價：第一本＋最便宜的規格 */
+export function physicalStartPrice(cfg: PhysicalConfig): number {
+  const minDelta = cfg.specs.length ? Math.min(...cfg.specs.map((s) => s.price_delta)) : 0;
+  return cfg.first_copy_price + minDelta;
+}
+
+export async function loadReportPrices(): Promise<ReportPrices> {
+  let symbol = 'NT$';
+  let digital: PriceLabel = UNAVAILABLE;
+  const [digitalRes, physicalConfig] = await Promise.all([
+    productApi.getById('natal-report-digital', 'zh-TW', 'TWD').catch(() => null),
+    loadPhysicalConfig(),
+  ]);
+  const p: any = digitalRes;
+  if (typeof p?.price === 'number') {
+    if (p.currency_symbol) symbol = p.currency_symbol;
+    digital = label(p.price, symbol);
+  }
+  const physical = physicalConfig?.enabled && digital.amount != null
+    ? label(digital.amount + physicalStartPrice(physicalConfig), symbol)
+    : UNAVAILABLE;
+  return { digital, physical, symbol, physicalConfig };
+}
+
+/** 加購實體書的起價（不含數位版）；沒開放實體書就顯示「價格即將公布」且 available=false */
 export function addonPrice(prices: ReportPrices): PriceLabel {
-  const d = prices.digital.amount;
-  const p = prices.physical.amount;
-  if (d == null || p == null) return UNAVAILABLE;
-  return { text: `+${formatPrice(p - d, prices.symbol)}`, available: true, amount: p - d };
+  const cfg = prices.physicalConfig;
+  if (!cfg || !prices.physical.available) return UNAVAILABLE;
+  const start = physicalStartPrice(cfg);
+  const varies = cfg.specs.some((s) => s.price_delta !== cfg.specs[0].price_delta);
+  return { text: `+${formatPrice(start, prices.symbol)}${varies ? ' 起' : ''}`, available: true, amount: start };
 }

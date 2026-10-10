@@ -21,6 +21,8 @@ export interface ProductAttributesSectionProps {
   productId: string;
   attributes: Record<string, any>;
   onChange: (attributes: Record<string, any>) => void;
+  /** 表單上目前的售價（尚未儲存的也算） */
+  price?: number;
 }
 
 /** 站台自訂的分頁：在編輯產品時排在「價格與庫存」之後 */
@@ -36,6 +38,10 @@ interface ProductsPageProps {
   attributeTabs?: ProductAttributeTab[];
   /** @deprecated 改用 attributeTabs；仍傳入時會變成一個「前台顯示設定」分頁 */
   AttributesSection?: ComponentType<ProductAttributesSectionProps>;
+  /** 不在產品清單出現的商品代碼（例如由別件商品的分頁代管的加購品） */
+  hiddenProductIds?: string[];
+  /** 編輯儲存成功後呼叫（站台可同步代管的商品）；丟出錯誤會提示但不影響已存的資料 */
+  onAfterSave?: (saved: { productId: string; price: number; attributes: Record<string, any> }) => Promise<void> | void;
 }
 
 const emptyCreateForm: CreateFormData = {
@@ -82,7 +88,7 @@ export default function ProductsPage() {
   return <ProductsAdmin />;
 }
 
-export function ProductsAdmin({ attributeTabs, AttributesSection }: ProductsPageProps) {
+export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductIds = [], onAfterSave }: ProductsPageProps) {
   const siteTabs: ProductAttributeTab[] = [
     ...(attributeTabs ?? []),
     ...(AttributesSection ? [{ key: 'attributes', label: '前台顯示設定', Component: AttributesSection }] : []),
@@ -134,20 +140,22 @@ export function ProductsAdmin({ attributeTabs, AttributesSection }: ProductsPage
       if (searchTerm.trim()) params.search = searchTerm.trim();
 
       const response = await productApi.adminGetList(params);
-      setProducts(response.products);
+      const visible = response.products.filter((p) => !hiddenProductIds.includes(p.product_id));
+      setProducts(visible);
       setPagination({
         page: response.pagination.page || currentPage,
         pages: response.pagination.pages,
         has_prev: currentPage > 1,
         has_next: currentPage < response.pagination.pages,
-        total: response.pagination.total,
+        total: response.pagination.total - (response.products.length - visible.length),
       });
     } catch (error) {
       console.error('Failed to fetch products:', error);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, searchTerm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, statusFilter, searchTerm, hiddenProductIds.join(',')]);
 
   useEffect(() => {
     fetchProducts();
@@ -286,10 +294,19 @@ export function ProductsAdmin({ attributeTabs, AttributesSection }: ProductsPage
         meta_description: editForm.meta_description,
         detail_content_id: editForm.detail_content_id ? parseInt(editForm.detail_content_id) : undefined,
         // 只有站台掛了自訂區塊才送；後端依頂層鍵合併
-        ...(AttributesSection ? { attributes } : {}),
+        ...(siteTabs.length > 0 ? { attributes } : {}),
       };
 
       await productApi.adminUpdate(selectedId, updateData);
+      if (onAfterSave) {
+        try {
+          await onAfterSave({ productId: editForm.product_id, price: updateData.price, attributes });
+        } catch (syncError: any) {
+          alert(`產品已更新，但同步失敗：${syncError?.message || syncError}`);
+          fetchProducts();
+          return;
+        }
+      }
       alert('產品更新成功');
       fetchProducts();
     } catch (error: any) {
@@ -398,7 +415,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection }: ProductsPage
                   key,
                   label,
                   content: (
-                    <Component productId={selectedProduct!.product_id} attributes={attributes} onChange={setAttributes} />
+                    <Component productId={selectedProduct!.product_id} attributes={attributes} onChange={setAttributes} price={parseInt(editForm.price) || 0} />
                   ),
                 }))}
             />

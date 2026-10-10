@@ -19,6 +19,9 @@ import {
 } from '@/lib/report/catalog';
 import { clearDraft, loadDraft, saveDraft, type ReportDraft } from '@/lib/report/draft';
 import { addonPrice, type ReportPrices } from '@/lib/report/prices';
+import { priceConsult, pricePhysical } from '@/lib/api/reportOrders';
+import PhysicalOptions, { ConsultOption, normaliseSelection } from '@/components/report/PhysicalOptions';
+import { formatPrice } from '@/lib/report/prices';
 import { firstIncompleteStep, stepHref } from '@/lib/report/steps';
 
 const CHECKOUT = '/report/checkout';
@@ -49,9 +52,16 @@ export default function ReportPreview({ prices }: { prices: ReportPrices }) {
       router.replace(stepHref(pending.slug));
       return;
     }
-    setDraft(d);
+    // 後台關閉加購實體書（或實體書沒有價格）時，舊草稿選的實體書改回數位版
+    if (d && d.variant === 'physical' && !addonPrice(prices).available) {
+      const next: ReportDraft = { ...d, variant: 'digital' };
+      saveDraft(next);
+      setDraft(next);
+    } else {
+      setDraft(d);
+    }
     setLoaded(true);
-  }, [router]);
+  }, [router, prices]);
 
   if (!loaded) return null;
 
@@ -69,8 +79,23 @@ export default function ReportPreview({ prices }: { prices: ReportPrices }) {
   }
 
   const physical = draft.variant === 'physical';
+  const cfg = prices.physicalConfig;
   const toggleAddon = (on: boolean) => {
-    const next: ReportDraft = { ...draft, variant: on ? 'physical' : 'digital' };
+    const next: ReportDraft = {
+      ...draft,
+      variant: on ? 'physical' : 'digital',
+      physical: on && cfg ? normaliseSelection(cfg, draft.physical) : draft.physical,
+    };
+    setDraft(next);
+    saveDraft(next);
+  };
+  const setPhysical = (sel: ReportDraft['physical']) => {
+    const next: ReportDraft = { ...draft, physical: sel };
+    setDraft(next);
+    saveDraft(next);
+  };
+  const setConsult = (n: number) => {
+    const next: ReportDraft = { ...draft, consult_sessions: n };
     setDraft(next);
     saveDraft(next);
   };
@@ -86,7 +111,12 @@ export default function ReportPreview({ prices }: { prices: ReportPrices }) {
 
   const digital = variantInfo('digital');
   const addon = addonPrice(prices);
-  const total = prices[draft.variant];
+  const selection = physical && cfg?.enabled ? normaliseSelection(cfg, draft.physical) : null;
+  const sessions = cfg?.consult ? Math.min(draft.consult_sessions ?? 0, cfg.consult.max_sessions) : 0;
+  const extras = (selection && cfg ? pricePhysical(cfg, selection).total : 0) + (cfg ? priceConsult(cfg, sessions)?.amount ?? 0 : 0);
+  const total = prices.digital.amount != null
+    ? { text: formatPrice(prices.digital.amount + extras, prices.symbol), available: true }
+    : prices[draft.variant];
 
   return (
     <div className="pb-28">
@@ -172,6 +202,7 @@ export default function ReportPreview({ prices }: { prices: ReportPrices }) {
             </div>
           </div>
 
+          {addon.available && (
           <label
             className={`mt-3 flex cursor-pointer items-start gap-4 rounded-card border-[1.5px] p-6 transition-colors duration-150 ease-out has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-blue-100 md:p-8 ${
               physical ? 'border-blue-500 bg-blue-50' : 'border-transparent bg-white hover:border-blue-500'
@@ -209,7 +240,22 @@ export default function ReportPreview({ prices }: { prices: ReportPrices }) {
               </ul>
             </span>
           </label>
-          {physical && <p className="mt-3 text-sm text-muted">收件人與地址會在結帳時填寫。</p>}
+          )}
+          {physical && cfg && selection && (
+            <div className="mt-3 rounded-card bg-white p-6 md:p-8">
+              <PhysicalOptions cfg={cfg} value={selection} onChange={setPhysical} symbol={prices.symbol} />
+            </div>
+          )}
+          {physical && (
+            <p className="mt-3 text-sm text-muted">
+              收件人與地址會在結帳時填寫。報告完成後，我們會寄信請你用整本書的預覽設計封面、扉頁與要修改的地方；送印前會請你確認完整內容，確認前都可以取消實體書。
+            </p>
+          )}
+          {cfg?.consult && (
+            <div className="mt-3 rounded-card bg-white p-6 md:p-8">
+              <ConsultOption cfg={cfg} value={sessions} onChange={setConsult} symbol={prices.symbol} />
+            </div>
+          )}
           <p className="mt-6 rounded-inner bg-tint px-[18px] py-[14px] text-sm leading-relaxed text-text">
             本報告依你提供的出生資料個別製作，屬客製化商品，不適用七日解除權；付款後不受理取消或退款。
             結帳前會再請你確認一次。
@@ -221,7 +267,7 @@ export default function ReportPreview({ prices }: { prices: ReportPrices }) {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3 md:px-6">
           <div className="min-w-0 text-sm">
-            <span className="text-muted">{physical ? '數位版＋實體書' : '數位版'}・合計</span>
+            <span className="text-muted">{physical ? '數位版＋實體書' : '數位版'}{sessions ? '＋專人解讀' : ''}・合計</span>
             <span className="ml-2 font-latin font-extrabold text-ink">{total.text}</span>
           </div>
           <BrandButton onClick={proceed} variant="primary" className="shrink-0">

@@ -8,23 +8,18 @@ import { clsx } from 'clsx';
 import Alert from '@/components/ui/Alert';
 import BrandButton, { brandButton } from '@/components/ui/BrandButton';
 import EmailVerifyBox from '@/components/report/EmailVerifyBox';
+import ShippingFields, { EMPTY_SHIPPING, SHIPPING_LABELS } from '@/components/report/ShippingFields';
 import ReportDraftSummary from '@/components/report/ReportDraftSummary';
 import { useAuthStore } from '@/store/auth';
 import { memberAccountApi, reportOrdersApi, type ShippingInfo } from '@/lib/api';
 import { PHYSICAL_ADDON, POLICY_VERSION, REPORT_PRODUCT, variantInfo } from '@/lib/report/catalog';
 import { clearDraft, isReadyForCheckout, loadDraft, type ReportDraft } from '@/lib/report/draft';
-import { addonPrice, loadReportPrices, type ReportPrices } from '@/lib/report/prices';
+import { loadReportPrices, type ReportPrices } from '@/lib/report/prices';
+import { priceConsult, pricePhysical, type PriceLine } from '@/lib/api/reportOrders';
+import { PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
 import { PREVIEW_HREF } from '@/lib/report/steps';
 
 const CHECKOUT = '/report/checkout';
-const EMPTY_SHIPPING: ShippingInfo = { recipient_name: '', recipient_phone: '', postal_code: '', address: '' };
-const SHIPPING_LABELS: Record<keyof ShippingInfo, string> = {
-  recipient_name: '收件人姓名',
-  recipient_phone: '聯絡電話',
-  postal_code: '郵遞區號',
-  address: '收件地址',
-};
-
 // 表單（docs/BRAND_GUIDELINES.md §6.3）
 const inputBase =
   'w-full rounded-2xl border-[1.5px] px-[18px] py-[13px] text-base text-ink placeholder:text-muted ' +
@@ -101,7 +96,18 @@ export default function ReportCheckoutPage() {
   }
 
   const physical = draft.variant === 'physical';
-  const setShip = (k: keyof ShippingInfo, v: string) => setShipping((s) => ({ ...s, [k]: v }));
+  const cfg = prices?.physicalConfig ?? null;
+  const selection = physical && cfg?.enabled ? normaliseSelection(cfg, draft.physical) : null;
+  const sessions = cfg?.consult ? Math.min(draft.consult_sessions ?? 0, cfg.consult.max_sessions) : 0;
+  // 金額明細：數位版＋實體書（第一本／第二本起／特殊客製）＋專人解讀
+  const lines: PriceLine[] = [];
+  if (prices?.digital.amount != null) {
+    lines.push({ label: `${REPORT_PRODUCT.name}・${variantInfo('digital').label}`, amount: prices.digital.amount });
+    if (selection && cfg) lines.push(...pricePhysical(cfg, selection).lines.map((l) => ({ ...l, label: `實體書・${l.label}` })));
+    const consultLine = cfg ? priceConsult(cfg, sessions) : null;
+    if (consultLine) lines.push(consultLine);
+  }
+  const total = lines.reduce((a, l) => a + l.amount, 0);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +123,8 @@ export default function ReportCheckoutPage() {
         ...draft,
         policy_consented: true,
         policy_version: POLICY_VERSION,
-        ...(physical ? { shipping } : {}),
+        ...(physical ? { shipping, physical: selection ?? undefined } : {}),
+        consult_sessions: sessions,
       });
       clearDraft();
       router.push(`/report/orders/${res.order.order_no}`);
@@ -157,30 +164,9 @@ export default function ReportCheckoutPage() {
 
         <section className={cardCls}>
           <h2 className={cardTitleCls}>金額</h2>
-          <dl className="mt-3 text-sm">
-            <div className="flex justify-between gap-4 py-1.5">
-              <dt className="text-text">{REPORT_PRODUCT.name}・{variantInfo('digital').label}</dt>
-              <dd className="font-latin text-ink">{prices ? prices.digital.text : '…'}</dd>
-            </div>
-            {physical && (
-              <>
-                <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-text">{PHYSICAL_ADDON.label}</dt>
-                  <dd className="font-latin text-ink">{prices ? addonPrice(prices).text : '…'}</dd>
-                </div>
-                <div className="flex justify-between gap-4 py-1.5">
-                  <dt className="text-text">運費</dt>
-                  <dd className="text-ink">［佔位］含在售價內</dd>
-                </div>
-              </>
-            )}
-            <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-line pt-3">
-              <dt className="font-bold text-ink">合計</dt>
-              <dd className="font-latin text-[22px] font-extrabold text-ink">
-                {prices ? prices[draft.variant].text : '…'}
-              </dd>
-            </div>
-          </dl>
+          <div className="mt-3">
+            {lines.length ? <PriceBreakdown lines={lines} total={total} symbol={prices?.symbol} /> : <p className="text-sm text-muted">載入中…</p>}
+          </div>
           <p className="mt-2 text-caption text-muted">實際金額以送出訂單時的售價為準。</p>
         </section>
 
@@ -189,45 +175,7 @@ export default function ReportCheckoutPage() {
             <section className={clsx(cardCls, 'space-y-5')}>
               <h2 className={cardTitleCls}>收件資料</h2>
               <p className="text-sm text-text">實體書由合作印刷廠寄出，收件人可以不是你本人。</p>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="ck-name" className={labelCls}>收件人姓名 *</label>
-                  <input id="ck-name" value={shipping.recipient_name} maxLength={50} autoComplete="name"
-                         onChange={(e) => setShip('recipient_name', e.target.value)} required
-                         aria-invalid={!!fieldErrors.recipient_name}
-                         className={inputCls(!!fieldErrors.recipient_name)} />
-                </div>
-                <div>
-                  <label htmlFor="ck-phone" className={labelCls}>聯絡電話 *</label>
-                  <input id="ck-phone" type="tel" value={shipping.recipient_phone} autoComplete="tel"
-                         onChange={(e) => setShip('recipient_phone', e.target.value)}
-                         aria-invalid={!!fieldErrors.recipient_phone}
-                         className={clsx(inputCls(!!fieldErrors.recipient_phone), 'font-latin')}
-                         placeholder="例如：0912-345-678" required />
-                </div>
-                <div>
-                  <label htmlFor="ck-postal" className={labelCls}>郵遞區號</label>
-                  <input id="ck-postal" inputMode="numeric" value={shipping.postal_code} maxLength={6}
-                         autoComplete="postal-code"
-                         onChange={(e) => setShip('postal_code', e.target.value.replace(/\D/g, ''))}
-                         aria-invalid={!!fieldErrors.postal_code}
-                         className={clsx(inputCls(!!fieldErrors.postal_code), 'font-latin')} />
-                </div>
-                <div className="sm:col-span-2">
-                  <label htmlFor="ck-address" className={labelCls}>收件地址 *</label>
-                  <input id="ck-address" value={shipping.address} maxLength={200} autoComplete="street-address"
-                         onChange={(e) => setShip('address', e.target.value)} required
-                         aria-invalid={!!fieldErrors.address}
-                         className={inputCls(!!fieldErrors.address)} />
-                </div>
-              </div>
-              {Object.keys(fieldErrors).length > 0 && (
-                <ul className="space-y-1 text-[13px] text-error-fg">
-                  {Object.entries(fieldErrors).map(([k, v]) => (
-                    <li key={k}>{SHIPPING_LABELS[k as keyof ShippingInfo] ?? k}：{v}</li>
-                  ))}
-                </ul>
-              )}
+              <ShippingFields value={shipping} onChange={setShipping} errors={fieldErrors} idPrefix="ck" />
             </section>
           )}
 

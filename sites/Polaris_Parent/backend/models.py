@@ -320,3 +320,107 @@ class Shipment(db.Model):
 
     def __repr__(self):
         return f'<Shipment item={self.order_item_id} {self.status}>'
+
+
+# 實體書生命週期（docs/report-physical-addon-plan.md §5）
+PRINT_JOB_STATUSES = (
+    'awaiting_payment',        # 訂單尚未付款
+    'awaiting_customization',  # 已付款，待會員填實體書內容設定
+    'awaiting_proof',          # 待管理者出打樣
+    'proof_ready',             # 打樣已上傳，待會員確認
+    'changes_requested',       # 會員提出修改，待管理者改版
+    'approved',                # 會員已確認送印
+    'printing',                # 已送印
+    'shipped',                 # 已出貨
+    'delivered',               # 已送達
+    'cancelled',               # 已取消（送印前）
+)
+# 會員還能取消的狀態（確認送印前）
+PRINT_JOB_CANCELLABLE = ('awaiting_payment', 'awaiting_customization', 'awaiting_proof', 'proof_ready',
+                         'changes_requested')
+
+
+class ReportPrintJob(db.Model):
+    """shop.report_print_jobs — 每個實體書訂單項目一筆（下單選實體書版、或事後加購）。
+
+    規格、特殊客製、計價明細是下單時的快照（影響價格）；options／pages 是會員設計的內容（階段 2）。
+    物流資訊仍記在 shop.shipments；status 是實體書流程的唯一真相，出貨表的 status 跟著同步。
+    取消後若已付款，refund_due 記應退金額，管理者人工退款後登錄 refunded_*。
+    """
+    __tablename__ = 'report_print_jobs'
+    __table_args__ = (
+        db.CheckConstraint(
+            "status IN ('awaiting_payment','awaiting_customization','awaiting_proof','proof_ready',"
+            "'changes_requested','approved','printing','shipped','delivered','cancelled')",
+            name='ck_report_print_jobs_status'),
+        {'schema': 'shop'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    order_item_id = db.Column(
+        db.Integer, db.ForeignKey(_ORDER_ITEMS_FK), nullable=False, unique=True)
+    status = db.Column(db.String(30), nullable=False, server_default='awaiting_payment', index=True)
+    spec = db.Column(JSONB, nullable=False, default=dict)          # {key, label, price_delta} 快照
+    custom = db.Column(JSONB, nullable=False, default=dict)        # 特殊客製 {options: [key…], spreads: n}
+    pricing = db.Column(JSONB, nullable=False, default=dict)       # 計價明細快照（見 physical.price_physical）
+    options = db.Column(JSONB, nullable=False, default=dict)       # 封面名字／款式／贈言（設計內容）
+    pages = db.Column(JSONB, nullable=False, default=list)         # 頁面標註與指定跨頁（設計內容）
+    customized_at = db.Column(db.DateTime(timezone=True))
+    approved_at = db.Column(db.DateTime(timezone=True))
+    approved_proof_id = db.Column(db.BigInteger)                   # 確認送印的那一版打樣
+    cancelled_at = db.Column(db.DateTime(timezone=True))
+    cancelled_by = db.Column(db.String(10))                        # member / admin / system
+    cancel_reason = db.Column(db.Text)
+    refund_due = db.Column(db.Integer)                             # 取消時應退金額（未付款為 None）
+    refund_amount = db.Column(db.Integer)
+    refunded_at = db.Column(db.DateTime(timezone=True))
+    refund_note = db.Column(db.Text)
+    refunded_by = db.Column(
+        db.BigInteger, db.ForeignKey('account.app_users.id', ondelete='SET NULL'))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f'<ReportPrintJob item={self.order_item_id} {self.status}>'
+
+
+CONSULTATION_STATUSES = ('awaiting_payment', 'to_schedule', 'scheduled', 'completed', 'cancelled')
+
+
+class ReportConsultation(db.Model):
+    """shop.report_consultations — 專人解讀（每個解讀訂單項目一筆，可含多次 30 分鐘）。
+
+    付款後進入「待安排」，由管理者以 Email／電話約時間後登錄；可由管理者代為取消並登錄退款
+    （取消規則不對外公開）。
+    """
+    __tablename__ = 'report_consultations'
+    __table_args__ = (
+        db.CheckConstraint(
+            "status IN ('awaiting_payment','to_schedule','scheduled','completed','cancelled')",
+            name='ck_report_consultations_status'),
+        {'schema': 'shop'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    order_item_id = db.Column(
+        db.Integer, db.ForeignKey(_ORDER_ITEMS_FK), nullable=False, unique=True)
+    report_item_id = db.Column(db.Integer, db.ForeignKey(_ORDER_ITEMS_FK))  # 解讀的是哪一份報告
+    sessions = db.Column(db.Integer, nullable=False, server_default='1')
+    minutes = db.Column(db.Integer, nullable=False, server_default='30')
+    status = db.Column(db.String(20), nullable=False, server_default='awaiting_payment', index=True)
+    scheduled_at = db.Column(db.DateTime(timezone=True))
+    admin_note = db.Column(db.Text)
+    completed_at = db.Column(db.DateTime(timezone=True))
+    cancelled_at = db.Column(db.DateTime(timezone=True))
+    cancel_reason = db.Column(db.Text)
+    refund_due = db.Column(db.Integer)
+    refund_amount = db.Column(db.Integer)
+    refunded_at = db.Column(db.DateTime(timezone=True))
+    refund_note = db.Column(db.Text)
+    updated_by = db.Column(
+        db.BigInteger, db.ForeignKey('account.app_users.id', ondelete='SET NULL'))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f'<ReportConsultation item={self.order_item_id} {self.status}>'

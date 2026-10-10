@@ -198,12 +198,12 @@ def admin_get_products():
         query = query.filter_by(is_active=False)
 
     if search:
-        query = query.filter(
-            or_(
-                Product.product_id.ilike(f'%{search}%'),
-                func.json_extract(Product.names, '$.zh-TW').ilike(f'%{search}%')
-            )
-        )
+        # PostgreSQL（JSONB）沒有 json_extract；把整個 names 轉成文字比對（中文以原字輸出）
+        if db.engine.name == 'postgresql':
+            name_match = func.cast(Product.names, db.Text).ilike(f'%{search}%')
+        else:
+            name_match = func.json_extract(Product.names, '$.zh-TW').ilike(f'%{search}%')
+        query = query.filter(or_(Product.product_id.ilike(f'%{search}%'), name_match))
 
     query = query.order_by(Product.sort_order.asc(), Product.id.desc())
     products_page = query.paginate(page=page, per_page=per_page, error_out=False)

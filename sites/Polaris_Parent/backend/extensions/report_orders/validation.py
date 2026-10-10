@@ -94,10 +94,15 @@ def validate_order(data: dict, today: date = None):
     if len(dedication) > DEDICATION_MAX:
         errors['dedication'] = f'題字請在 {DEDICATION_MAX} 字以內'
 
-    shipping = None
+    shipping = physical = None
     if variant == 'physical':
         shipping, ship_errors = validate_shipping(data.get('shipping') or {})
         errors.update(ship_errors)
+        # 規格／數量／特殊客製的合法值依後台設定，在 physical.price_physical 檢查；這裡只取出原始值
+        raw = data.get('physical') if isinstance(data.get('physical'), dict) else {}
+        physical = {'spec_key': raw.get('spec_key') if isinstance(raw.get('spec_key'), str) else None,
+                    'quantity': raw.get('quantity', 1), 'custom': raw.get('custom') or [],
+                    'spreads': raw.get('spreads', 0)}
 
     if errors:
         return None, errors
@@ -115,6 +120,9 @@ def validate_order(data: dict, today: date = None):
         'relation_label': relation,
         'audience': {'reader': reader, 'call_name': call_name, 'dedication': dedication},
         'shipping': shipping,
+        'physical': physical,
+        # 專人解讀次數（0＝不買），合法範圍依後台設定，在 physical.price_consult 檢查
+        'consult_sessions': data.get('consult_sessions') or 0,
     }
     return clean, {}
 

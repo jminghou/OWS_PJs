@@ -19,7 +19,7 @@ from flask import current_app
 
 from core.backend_engine.factory import db
 from packages.commerce.models import Order, OrderCheckout, PaymentAttempt
-from sites.Polaris_Parent.backend.models import ReportFulfillment, Shipment
+from sites.Polaris_Parent.backend.models import ReportFulfillment
 
 from .service import OrderError
 
@@ -141,6 +141,8 @@ def mark_paid(order, attempt, paid_at=None):
     attempt.paid_at = paid_at
     order.status = 'paid'
     order.paid_at = paid_at
+    from . import physical
+    physical.on_paid(order)
     for item in order.order_items:
         f = ReportFulfillment.query.filter_by(order_item_id=item.id).first()
         if f is not None and f.handoff_status == 'not_ready':
@@ -203,9 +205,8 @@ def expire_overdue(now=None):
             f = ReportFulfillment.query.filter_by(order_item_id=item.id).first()
             if f is not None and f.handoff_status == 'not_ready':
                 f.handoff_status = 'cancelled'
-            s = Shipment.query.filter_by(order_item_id=item.id).first()
-            if s is not None and s.status == 'pending':
-                s.status = 'cancelled'
+        from . import physical
+        physical.on_order_cancelled(order, by='system', reason='逾期未付款')
         expired.append(order)
     if expired:
         db.session.commit()

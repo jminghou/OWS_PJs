@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import Alert from '@/components/ui/Alert';
 import BrandButton from '@/components/ui/BrandButton';
 import { useAuthStore } from '@/store/auth';
 import { reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
+import { AddonSection, ConsultStatus, PhysicalStatus } from '@/components/report/orders/PhysicalSections';
 
 const ORDER_STATUS: Record<string, string> = { pending: '待付款', paid: '已付款，報告製作中', cancelled: '已取消' };
 
@@ -200,6 +202,7 @@ export default function ReportOrderPage() {
   if (!order) return null;
 
   const pending = order.status === 'pending';
+  const isAddon = order.item?.kind !== 'purchase';
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 md:px-6 md:py-16">
@@ -212,8 +215,21 @@ export default function ReportOrderPage() {
 
       <div className={clsx(cardCls, 'mt-8')}>
         <dl className="divide-y divide-line text-sm">
-          <Row label="品項">{order.item?.name}</Row>
+          <Row label="品項">
+            {order.lines.map((l) => (
+              <span key={l.name} className="block">
+                {l.name}{l.variant === 'consult' ? ` × ${l.quantity} 次` : l.kind === 'addon' ? ` × ${l.quantity} 本` : ''}
+              </span>
+            ))}
+          </Row>
           <Row label="報告主角">{order.item?.subject_name}</Row>
+          {isAddon && order.item?.parent_order_no && (
+            <Row label="原報告訂單">
+              <Link href={`/report/orders/${order.item.parent_order_no}`} className="font-latin text-blue-600 underline-offset-[3px] hover:underline">
+                {order.item.parent_order_no}
+              </Link>
+            </Row>
+          )}
           <Row label="金額">
             <span className="font-latin text-base font-extrabold">NT${order.amount.toLocaleString('zh-TW')}</span>
           </Row>
@@ -222,7 +238,7 @@ export default function ReportOrderPage() {
               'inline-flex items-center rounded-full px-3 py-1.5 text-[13px] leading-none',
               STATUS_TONE[order.status] ?? 'bg-tint text-text'
             )}>
-              {ORDER_STATUS[order.status] ?? order.status}
+              {isAddon && order.status === 'paid' ? '已付款' : ORDER_STATUS[order.status] ?? order.status}
             </span>
           </Row>
           {order.paid_at && <Row label="確認收款"><span className="font-latin">{fmtDateTime(order.paid_at)}</span></Row>}
@@ -235,14 +251,17 @@ export default function ReportOrderPage() {
         </Alert>
       )}
       {pending && order.payment.mode === 'manual' && <ManualPayment order={order} onUpdated={setOrder} />}
-      {order.status === 'paid' && (
+      {order.status === 'paid' && !isAddon && (
         <Alert tone="success" className="mt-6">
           已確認收款，報告製作中。完成後會寄信通知你到會員中心下載。
         </Alert>
       )}
+      <PhysicalStatus order={order} onUpdated={setOrder} />
+      <ConsultStatus order={order} />
+      <AddonSection order={order} />
       {order.status === 'cancelled' && (
         <p className="mt-6 rounded-inner bg-white px-[18px] py-[14px] text-sm leading-relaxed text-text">
-          這筆訂單已取消。若你其實已經轉帳，請直接回覆訂單通知信與我們聯絡。
+          這筆訂單已取消。{order.paid_at ? '已付款的金額會以轉帳退還，完成後寄信通知你。' : '若你其實已經轉帳，請直接回覆訂單通知信與我們聯絡。'}
         </p>
       )}
     </div>

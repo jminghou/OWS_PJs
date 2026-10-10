@@ -6,6 +6,7 @@
  * 送出時的內容會成為 order_items.customization 的快照，所以欄位名稱與後端契約一致。
  */
 import type { TimeType } from '@/lib/api/astrology';
+import type { PhysicalSelection } from '@/lib/api/reportOrders';
 import { CALL_NAME_MAX, DEDICATION_MAX, RELATION_OPTIONS, READER_OPTIONS, type ReportVariant } from './catalog';
 
 export interface ReportDraft {
@@ -26,6 +27,10 @@ export interface ReportDraft {
     call_name: string;
     dedication: string;
   };
+  /** 實體書版的規格、數量、特殊客製（後台「實體書設定」） */
+  physical?: PhysicalSelection;
+  /** 專人解讀次數（0＝不買） */
+  consult_sessions?: number;
   /** 每份草稿一個固定鍵，建單時作為 submission_key，重送不會重複建單 */
   submission_key: string;
 }
