@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { MessageCircle } from 'lucide-react';
-import { reportOrdersApi, type AdminConsultation, type ConsultAction } from '@/lib/api/reportOrders';
+import { CONSULT_PERIOD_LABELS, reportOrdersApi, type AdminConsultation, type ConsultAction } from '@/lib/api/reportOrders';
 
 type Filter = 'to_schedule' | 'scheduled' | 'completed' | 'refund_pending' | 'cancelled' | 'awaiting_payment' | 'all';
 
@@ -192,6 +192,12 @@ export default function ReportConsultationsPage() {
                     </div>
                     <p>主角 {c.subject_name}（{c.call_name}）・{c.sessions} 次 × {c.minutes} 分鐘・{nt(c.amount)}</p>
                     <p className="text-muted-foreground">購買者 {c.buyer_email ?? '—'}・付款 {formatDate(c.paid_at)}</p>
+                    {c.preferences && c.status === 'to_schedule' && (
+                      <div className="rounded-md bg-muted px-3 py-2 text-xs leading-5">
+                        <p>會員方便的時段：{c.preferences.slots.map((x) => `${x.date} ${CONSULT_PERIOD_LABELS[x.period]}`).join('、')}</p>
+                        {c.preferences.note && <p className="whitespace-pre-line">備註：{c.preferences.note}</p>}
+                      </div>
+                    )}
                     {c.scheduled_at && <p>約定時間 <strong>{formatDate(c.scheduled_at)}</strong>{c.admin_note ? `・${c.admin_note}` : ''}</p>}
                     {c.status === 'cancelled' && (
                       <p className="text-xs text-muted-foreground">

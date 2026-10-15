@@ -3,7 +3,7 @@
 /**
  * 訂單頁的實體書與專人解讀區塊：
  * - PhysicalStatus：這張訂單的實體書進度（實體書版或加購訂單）、取消、退款狀態
- * - ConsultStatus：這張訂單的專人解讀（待安排／已約時間／已完成）
+ * - ConsultStatus：這張訂單的專人解讀（待安排時可填方便的時段／已約時間／已完成）
  * - AddonSection：原報告訂單底下「加購實體書」「加購專人解讀」入口與已加購的訂單
  */
 import Link from 'next/link';
@@ -13,6 +13,7 @@ import { BookOpen, MessageCircle, Plus } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
 import BrandButton, { brandButton } from '@/components/ui/BrandButton';
 import { reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
+import { CONSULT_PERIOD_LABELS, type ConsultPeriod } from '@/lib/api/reportOrders';
 
 const cardCls = 'rounded-card bg-white p-6 md:p-8';
 const cardTitleCls = 'font-heading text-[18px] font-normal text-ink md:text-h4';
@@ -40,6 +41,8 @@ export function PhysicalStatus({ order, onUpdated }: { order: ReportOrderSummary
   const current = STEPS.findIndex((s) => s.key.includes(p.status));
   // 實體書版：未付款時不提供取消（逾期會自動取消）；加購訂單未付款也可以直接取消
   const canCancel = p.cancellable && (isAddon || order.status === 'paid');
+  const needsActivation = order.commerce?.entitlements.some((e) =>
+    e.kind === 'book' && e.activation && e.activation.status !== 'redeemed');
 
   const cancel = async () => {
     setBusy(true);
@@ -94,9 +97,22 @@ export function PhysicalStatus({ order, onUpdated }: { order: ReportOrderSummary
       )}
 
       {p.status === 'awaiting_customization' && (
-        <p className="mt-4 text-sm text-text">
-          付款已確認。接下來會用這份報告的完整內容做整本書預覽，讓你設計封面、扉頁並標註想修改的地方（功能即將開放，開放後會寄信通知你）。
-        </p>
+        needsActivation ? <p className="mt-4 text-sm text-text">請先在訂單頁兌換書籍啟用碼，再開始設計。</p> : p.report_ready ? (
+          <div className="mt-4 rounded-inner bg-blue-50 p-4">
+            <p className="text-sm text-blue-800">
+              {p.design_status === 'submitted'
+                ? '你已經開始設計了。檢查一下整本書，沒問題就按「確認內容」，我們就開始製作打樣。'
+                : '報告完成了！用整本書的預覽設計封面、扉頁，並標註想修改的地方。'}
+            </p>
+            <Link href={`/report/orders/${order.order_no}/design`} className={brandButton({ variant: 'primary', size: 'S', className: 'mt-3' })}>
+              {p.design_status === 'submitted' ? '繼續設計並確認內容' : '開始設計你的書'}
+            </Link>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-text">
+            付款已確認。報告完成後，我們會寄信請你用整本書的預覽設計封面、扉頁，並標註想修改的地方。
+          </p>
+        )
       )}
 
       {error && <Alert tone="error" className="mt-4">{error}</Alert>}
@@ -124,11 +140,93 @@ export function PhysicalStatus({ order, onUpdated }: { order: ReportOrderSummary
   );
 }
 
-export function ConsultStatus({ order }: { order: ReportOrderSummary }) {
-  const c = order.consult;
-  if (!c) return null;
+const INPUT_CLS =
+  'w-full rounded-2xl border-[1.5px] border-line-strong bg-white px-4 py-2.5 text-base text-ink ' +
+  'focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100';
+const isoDay = (offset: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const fmtSlot = (s: { date: string; period: ConsultPeriod }) =>
+  `${new Date(`${s.date}T00:00:00`).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' })} ${CONSULT_PERIOD_LABELS[s.period]}`;
+
+/** 會員填方便的時段（最多 3 個）＋備註，給我們約時間參考 */
+function ConsultPreferenceForm({ order, onUpdated, onDone }: {
+  order: ReportOrderSummary; onUpdated: (o: ReportOrderSummary) => void; onDone: () => void;
+}) {
+  const saved = order.consult?.preferences;
+  const [slots, setSlots] = useState<{ date: string; period: ConsultPeriod }[]>(
+    saved?.slots.length ? saved.slots : [{ date: '', period: 'afternoon' }]);
+  const [note, setNote] = useState(saved?.note ?? '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const set = (i: number, patch: Partial<{ date: string; period: ConsultPeriod }>) =>
+    setSlots((xs) => xs.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+
+  const submit = async () => {
+    const filled = slots.filter((x) => x.date);
+    if (!filled.length) {
+      setError('請至少選一個日期');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const r = await reportOrdersApi.consultPreferences(order.order_no, { slots: filled, note });
+      onUpdated(r.order);
+      onDone();
+    } catch (e: any) {
+      setError(e.message || '送出失敗，請稍後再試');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <section className={clsx(cardCls, 'mt-6')} aria-labelledby="consult-title">
+    <div className="mt-4 space-y-3 rounded-inner bg-tint p-4">
+      <p className="text-sm text-text">選 1–3 個你方便的時段（明天起 60 天內），我們會從中挑一個跟你確認。</p>
+      {slots.map((x, i) => (
+        <div key={i} className="flex flex-wrap items-center gap-2">
+          <input type="date" aria-label={`第 ${i + 1} 個日期`} className={clsx(INPUT_CLS, 'w-auto flex-1 font-latin')}
+            min={isoDay(1)} max={isoDay(60)} value={x.date} onChange={(e) => set(i, { date: e.target.value })} />
+          <select aria-label={`第 ${i + 1} 個時段`} className={clsx(INPUT_CLS, 'w-auto')} value={x.period}
+            onChange={(e) => set(i, { period: e.target.value as ConsultPeriod })}>
+            {(Object.keys(CONSULT_PERIOD_LABELS) as ConsultPeriod[]).map((k) => <option key={k} value={k}>{CONSULT_PERIOD_LABELS[k]}</option>)}
+          </select>
+          {slots.length > 1 && (
+            <button type="button" onClick={() => setSlots((xs) => xs.filter((_, j) => j !== i))}
+              className="min-h-[44px] px-2 text-sm text-muted hover:text-ink">移除</button>
+          )}
+        </div>
+      ))}
+      {slots.length < 3 && (
+        <button type="button" onClick={() => setSlots((xs) => [...xs, { date: '', period: 'afternoon' }])}
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-blue-500 hover:underline">
+          <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 再加一個時段
+        </button>
+      )}
+      <textarea rows={2} maxLength={500} className={INPUT_CLS} value={note} onChange={(e) => setNote(e.target.value)}
+        placeholder="想先讓我們知道的事（選填），例如：平日 19:00 後、想聚焦感情與工作" aria-label="備註" />
+      {error && <Alert tone="error">{error}</Alert>}
+      <div className="flex flex-wrap gap-2">
+        <BrandButton variant="primary" size="S" onClick={submit} disabled={busy}>{busy ? '送出中…' : '送出時段'}</BrandButton>
+        {saved && <BrandButton variant="soft" size="S" onClick={onDone}>取消</BrandButton>}
+      </div>
+    </div>
+  );
+}
+
+export function ConsultStatus({ order, onUpdated }: { order: ReportOrderSummary; onUpdated?: (o: ReportOrderSummary) => void }) {
+  const c = order.consult;
+  const [editing, setEditing] = useState(false);
+  if (!c) return null;
+  const prefs = c.preferences;
+  const canEdit = c.status === 'to_schedule' && !!onUpdated;
+  const needsActivation = order.commerce?.entitlements.some((e) =>
+    e.kind === 'consult' && e.activation && e.activation.status !== 'redeemed');
+  return (
+    <section id="consult" className={clsx(cardCls, 'mt-6 scroll-mt-24')} aria-labelledby="consult-title">
       <div className="flex items-center gap-2">
         <MessageCircle className="h-5 w-5 text-blue-500" strokeWidth={2} aria-hidden="true" />
         <h2 id="consult-title" className={cardTitleCls}>專人解讀</h2>
@@ -137,8 +235,25 @@ export function ConsultStatus({ order }: { order: ReportOrderSummary }) {
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
         <dt className="text-muted">次數</dt><dd className="text-ink">{c.sessions} 次（共 {c.sessions * c.minutes} 分鐘）</dd>
         {c.scheduled_at && <><dt className="text-muted">約定時間</dt><dd className="text-ink">{fmtDateTime(c.scheduled_at)}</dd></>}
+        {prefs && c.status === 'to_schedule' && (
+          <>
+            <dt className="text-muted">你方便的時段</dt>
+            <dd className="text-ink">{prefs.slots.map(fmtSlot).join('、')}{prefs.note && <span className="block text-text">{prefs.note}</span>}</dd>
+          </>
+        )}
       </dl>
-      {c.status === 'to_schedule' && <p className="mt-4 text-sm text-text">付款已確認，我們會以 Email 或電話跟你約時間。</p>}
+      {c.status === 'to_schedule' && (
+        canEdit && (editing || !prefs) ? (
+          <ConsultPreferenceForm order={order} onUpdated={onUpdated!} onDone={() => setEditing(false)} />
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <p className="text-sm text-text">{prefs ? '收到你的時段了，我們會盡快以 Email 跟你確認時間。' : '付款已確認，我們會以 Email 或電話跟你約時間。'}</p>
+            {canEdit && <BrandButton variant="soft" size="S" onClick={() => setEditing(true)}>修改時段</BrandButton>}
+          </div>
+        )
+      )}
+      {c.status === 'to_schedule' && needsActivation && <p className="mt-3 text-sm text-text">可先填寫方便的時段；完成啟用後，我們才能安排解讀。</p>}
+      {c.status === 'scheduled' && <p className="mt-4 text-sm text-text">需要更改時間，請直接回覆確認信。</p>}
       {c.status === 'cancelled' && (
         <Alert tone="info" className="mt-4">
           專人解讀已取消。{c.refund_due ? (c.refunded_at ? '已完成退款。' : `應退金額 ${nt(c.refund_due)}，我們會以轉帳退款。`) : ''}
@@ -201,5 +316,44 @@ export function AddonSection({ order }: { order: ReportOrderSummary }) {
         </section>
       )}
     </>
+  );
+}
+
+/** 報告完成：線上閱讀／下載 PDF（短效網址，每次點擊重新取得） */
+export function ReportDownload({ order }: { order: ReportOrderSummary }) {
+  const [busy, setBusy] = useState<'' | 'read' | 'download'>('');
+  const [error, setError] = useState('');
+  const doc = order.report;
+  if (!doc) return null;
+
+  const open = async (mode: 'read' | 'download') => {
+    setBusy(mode);
+    setError('');
+    // 先開新分頁再填網址，避免瀏覽器把非同步開啟的視窗擋掉
+    const win = mode === 'read' ? window.open('', '_blank') : null;
+    try {
+      const { url } = await reportOrdersApi.reportPdfLink(order.order_no);
+      if (mode === 'read' && win) win.location.href = url;
+      else window.location.assign(`${url}?download=1`);
+    } catch (e: any) {
+      win?.close();
+      setError(e.message || '暫時無法取得報告，請稍後再試');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  return (
+    <section className={clsx(cardCls, 'mt-6')} aria-labelledby="report-title">
+      <h2 id="report-title" className={cardTitleCls}>你的報告完成了</h2>
+      <p className="mt-2 text-sm text-text">
+        {doc.filename}・{(doc.bytes / 1024 / 1024).toFixed(1)} MB{doc.uploaded_at ? `・${fmtDateTime(doc.uploaded_at)}` : ''}
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <BrandButton variant="primary" size="S" onClick={() => open('read')} disabled={!!busy}>{busy === 'read' ? '開啟中…' : '線上閱讀'}</BrandButton>
+        <BrandButton variant="soft" size="S" onClick={() => open('download')} disabled={!!busy}>{busy === 'download' ? '準備中…' : '下載 PDF'}</BrandButton>
+      </div>
+      {error && <Alert tone="error" className="mt-4">{error}</Alert>}
+    </section>
   );
 }

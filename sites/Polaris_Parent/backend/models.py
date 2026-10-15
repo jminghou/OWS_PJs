@@ -16,6 +16,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from core.backend_engine.factory import db
 from core.backend_engine.models import SHOP_SCHEMA as _SHOP_SCHEMA, qualify as _q
 
+# Additive commerce tables are owned by this site's migration chain.
+from .commerce_models import CommerceSource, CommerceLine, CommerceEntitlement, CommerceTask, CommerceEvent  # noqa: F401
+
 
 class AppUser(db.Model):
     """account.app_users — 唯一身分/登入帳號（與紫微系統共用）。"""
@@ -390,7 +393,8 @@ CONSULTATION_STATUSES = ('awaiting_payment', 'to_schedule', 'scheduled', 'comple
 class ReportConsultation(db.Model):
     """shop.report_consultations — 專人解讀（每個解讀訂單項目一筆，可含多次 30 分鐘）。
 
-    付款後進入「待安排」，由管理者以 Email／電話約時間後登錄；可由管理者代為取消並登錄退款
+    付款後進入「待安排」，會員可在訂單頁填幾個方便的時段（preferences），
+    管理者參考後以 Email／電話約時間並登錄；可由管理者代為取消並登錄退款
     （取消規則不對外公開）。
     """
     __tablename__ = 'report_consultations'
@@ -409,6 +413,9 @@ class ReportConsultation(db.Model):
     minutes = db.Column(db.Integer, nullable=False, server_default='30')
     status = db.Column(db.String(20), nullable=False, server_default='awaiting_payment', index=True)
     scheduled_at = db.Column(db.DateTime(timezone=True))
+    # 會員填的方便時段：{'slots': [{'date': 'YYYY-MM-DD', 'period': 'morning|afternoon|evening'}], 'note': str}
+    preferences = db.Column(JSONB)
+    preferences_at = db.Column(db.DateTime(timezone=True))
     admin_note = db.Column(db.Text)
     completed_at = db.Column(db.DateTime(timezone=True))
     cancelled_at = db.Column(db.DateTime(timezone=True))
@@ -424,3 +431,82 @@ class ReportConsultation(db.Model):
 
     def __repr__(self):
         return f'<ReportConsultation item={self.order_item_id} {self.status}>'
+
+
+class ReportDocument(db.Model):
+    """shop.report_documents — 報告成品檔（PDF），存在私有檔案儲存（extensions/report_orders/private_storage.py）。
+
+    一份報告可以有多次上傳（例如更正後重傳），最新一筆 is_current=True；會員下載與整本預覽都用最新一筆。
+    目前由管理者在後台上傳；之後紫微交接自動化時改由紫微提供。
+    """
+    __tablename__ = 'report_documents'
+    __table_args__ = {'schema': 'shop'}
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    order_item_id = db.Column(db.Integer, db.ForeignKey(_ORDER_ITEMS_FK), nullable=False, index=True)
+    kind = db.Column(db.String(20), nullable=False, server_default='book_pdf')  # book_pdf（會員版）
+    file_key = db.Column(db.Text, nullable=False)          # 私有儲存的路徑
+    filename = db.Column(db.Text, nullable=False)          # 原始檔名（下載時使用）
+    bytes = db.Column(db.BigInteger, nullable=False)
+    sha256 = db.Column(db.String(64), nullable=False)
+    is_current = db.Column(db.Boolean, nullable=False, server_default='true')
+    uploaded_by = db.Column(
+        db.BigInteger, db.ForeignKey('account.app_users.id', ondelete='SET NULL'))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+    def __repr__(self):
+        return f'<ReportDocument item={self.order_item_id} {self.filename}>'
+
+
+DESIGN_STATUSES = ('draft', 'submitted', 'confirmed')
+
+
+class ReportBookDesign(db.Model):
+    """shop.report_book_designs — 實體書「設計你的書」的內容（docs/report-physical-addon-plan.md 階段 2）。
+
+    - draft：付款前在加購頁設計中，還沒有訂單（print_job_id 為空）
+    - submitted：已連到某本實體書（下單時帶入，或付款後在訂單頁開始設計），還能修改
+    - confirmed：會員按「確認內容，開始製作打樣」後鎖定
+    data：{cover_name, cover_style, cover_asset_id, dedication,
+           annotations: [{id, page, type: text|image|fix, text, asset_ids}],
+           spreads: [{index, after_page, text, asset_ids}]}
+    放棄的草稿與已取消實體書的設計，30 天後由 cleanup-designs 指令刪除（含照片）。
+    """
+    __tablename__ = 'report_book_designs'
+    __table_args__ = (
+        db.CheckConstraint("status IN ('draft','submitted','confirmed')", name='ck_report_book_designs_status'),
+        {'schema': 'shop'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    user_id = db.Column(db.BigInteger, db.ForeignKey('account.app_users.id', ondelete='CASCADE'), nullable=False,
+                        index=True)
+    report_item_id = db.Column(db.Integer, db.ForeignKey(_ORDER_ITEMS_FK), nullable=False, index=True)
+    print_job_id = db.Column(db.BigInteger, db.ForeignKey('shop.report_print_jobs.id', ondelete='SET NULL'),
+                             unique=True)
+    status = db.Column(db.String(20), nullable=False, server_default='draft', index=True)
+    data = db.Column(JSONB, nullable=False, default=dict)
+    confirmed_at = db.Column(db.DateTime(timezone=True))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f'<ReportBookDesign {self.id} {self.status}>'
+
+
+class ReportDesignAsset(db.Model):
+    """shop.report_design_assets — 會員為實體書上傳的照片（私有儲存）。"""
+    __tablename__ = 'report_design_assets'
+    __table_args__ = {'schema': 'shop'}
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    design_id = db.Column(db.BigInteger, db.ForeignKey('shop.report_book_designs.id', ondelete='CASCADE'),
+                          nullable=False, index=True)
+    file_key = db.Column(db.Text, nullable=False)
+    filename = db.Column(db.Text, nullable=False)
+    content_type = db.Column(db.String(50), nullable=False)
+    bytes = db.Column(db.BigInteger, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+    def __repr__(self):
+        return f'<ReportDesignAsset {self.id} design={self.design_id}>'

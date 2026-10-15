@@ -284,6 +284,31 @@ class PhysicalTests(_Base):
         self.assertEqual([x['report_order_no'] for x in listing['consultations']], [o['order_no']])
         self.assertEqual(listing['consultations'][0]['call_name'], '小明')
 
+    def test_member_consult_preferences(self):
+        from datetime import date, timedelta
+        self.configure()
+        o = self.paid_order(consult_sessions=1)
+        url = f'/api/v1/report-orders/{o["order_no"]}/consult-preferences'
+        d1, d2 = (date.today() + timedelta(days=2)).isoformat(), (date.today() + timedelta(days=3)).isoformat()
+        r = self.client.post(url, json={'slots': [{'date': date.today().isoformat(), 'period': 'morning'}]},
+                             headers=self.headers())
+        self.assertEqual(r.get_json()['code'], 'invalid')  # 今天不行
+        r = self.client.post(url, headers=self.headers(), json={'note': '平日晚上較方便', 'slots': [
+            {'date': d1, 'period': 'evening'}, {'date': d1, 'period': 'evening'}, {'date': d2, 'period': 'noon'},
+            {'date': d2, 'period': 'morning'}]})
+        self.assertEqual(r.status_code, 200, r.get_json())
+        prefs = r.get_json()['order']['consult']['preferences']
+        self.assertEqual(prefs, {'note': '平日晚上較方便', 'slots': [{'date': d1, 'period': 'evening'},
+                                                                  {'date': d2, 'period': 'morning'}]})
+        other = self.make_user('other@example.com', verified=True)
+        self.assertEqual(self.client.post(url, json={}, headers=self.headers(other)).status_code, 404)
+        c = ReportConsultation.query.one()
+        listing = self.client.get('/api/v1/admin/report-consultations', headers=self.headers(self.admin)).get_json()
+        self.assertEqual(listing['consultations'][0]['preferences']['slots'][0]['date'], d1)
+        self.admin_post(f'report-consultations/{c.id}/schedule', {'scheduled_at': '2026-10-20T14:00:00+08:00'})
+        r = self.client.post(url, json={'slots': [{'date': d1, 'period': 'morning'}]}, headers=self.headers())
+        self.assertEqual(r.get_json()['code'], 'invalid_status')  # 約好之後不能再改
+
     def test_consult_admin_cancel_and_refund(self):
         self.configure()
         o = self.paid_order()

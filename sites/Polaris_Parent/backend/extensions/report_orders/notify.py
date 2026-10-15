@@ -62,7 +62,10 @@ def _item_line(order):
         if item.variant == 'consult':
             names.append(f'{item.name} × {item.quantity} 次')
         elif item.kind == 'addon':
-            names.append(f'{item.name} × {item.quantity} 本')
+            from .physical import print_job_for
+            job = print_job_for(item)
+            copies = (job.pricing or {}).get('quantity', item.quantity) if job else item.quantity
+            names.append(f'{item.name} × {copies} 本')
         else:
             names.append(item.name)
     return '品項：' + '、'.join(names) + (f'（{call_name}）' if call_name else '')
@@ -199,11 +202,48 @@ def send_refund_recorded(order, job, recipient):
                     key=f'refund_recorded:{job.id}')
 
 
+# ── 報告完成 ─────────────────────────────────────────────────────────────────
+def send_report_ready(order, recipient, design_jobs):
+    lines = ['你的客製報告已經完成，可以到訂單頁下載。', '', f'訂單編號：{order.order_no}', _item_line(order), '']
+    if design_jobs:
+        lines += ['你也訂購了實體書：現在可以到訂單頁，用整本書的預覽設計封面、扉頁，並標註想修改的地方。', '']
+    lines += [f'訂單詳情：{_order_link(order)}']
+    return _deliver(order, 'report_ready', recipient, f'【親紫之間】你的報告完成了 {order.order_no}', '\n'.join(lines))
+
+
+def send_design_confirmed(order, buyer_email):
+    """通知管理者：會員確認了實體書內容，可以開始製作打樣。未設定 REPORT_ADMIN_NOTIFY_EMAIL 時不寄。"""
+    to = (current_app.config.get('REPORT_ADMIN_NOTIFY_EMAIL') or '').strip()
+    if not to:
+        return False
+    body = '\n'.join(['會員確認了實體書的設計內容，可以開始製作打樣。', '',
+                      f'訂單編號：{order.order_no}', f'購買者：{buyer_email}', '',
+                      f'後台：{_frontend_url()}/admin/report-shipments'])
+    return _deliver(order, 'design_confirmed', to, f'【親紫之間後台】實體書內容已確認 {order.order_no}', body)
+
+
 # ── 專人解讀 ─────────────────────────────────────────────────────────────────
 def _fmt_time(dt):
     # 存的是含時區的時間；信件以台灣時間顯示
     from datetime import timedelta, timezone
     return dt.astimezone(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M') if dt else '-'
+
+
+def send_consult_preferences(order, consult, buyer_email):
+    """通知管理者：會員填了專人解讀的方便時段。未設定 REPORT_ADMIN_NOTIFY_EMAIL 時不寄。"""
+    from .physical import CONSULT_PERIODS
+
+    to = (current_app.config.get('REPORT_ADMIN_NOTIFY_EMAIL') or '').strip()
+    if not to:
+        return False
+    prefs = consult.preferences or {}
+    slots = [f"・{s['date']} {CONSULT_PERIODS.get(s['period'], s['period'])}" for s in prefs.get('slots') or []]
+    body = '\n'.join(['會員填了專人解讀方便的時段：', '', *slots,
+                      *([f"備註：{prefs['note']}"] if prefs.get('note') else []), '',
+                      f'訂單編號：{order.order_no}', f'購買者：{buyer_email}', '',
+                      f'後台：{_frontend_url()}/admin/report-consultations'])
+    key = f'consult_prefs:{consult.id}:{consult.preferences_at.isoformat() if consult.preferences_at else ""}'
+    return _deliver(order, 'consult_preferences', to, f'【親紫之間後台】專人解讀時段 {order.order_no}', body, key=key)
 
 
 def send_consult_scheduled(order, consult, recipient):

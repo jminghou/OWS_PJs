@@ -6,6 +6,8 @@ import { useAuthStore } from '@ows/platform-api';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { Banknote } from 'lucide-react';
 import { reportOrdersApi, type AdminReportOrder } from '@/lib/api';
+import EntitlementActivation, { type IssuedActivation } from '@/components/admin/EntitlementActivation';
+import CommerceBackfillReview from '@/components/admin/CommerceBackfillReview';
 
 type Filter = 'awaiting' | 'pending' | 'paid' | 'cancelled' | 'all';
 
@@ -133,6 +135,9 @@ function ConfirmForm({ order, onDone, onError }: {
 
 /** 人工收款：會員回報轉帳後，管理者對帳確認（會員 v2，docs/membership-v2-architecture.md §3）。 */
 export default function ReportPaymentsPage() {
+  const canBackfill = useAuthStore((s) => s.user?.permissions?.includes('report_orders.backfill') ?? false);
+  const canManageActivation = useAuthStore((s) => s.user?.permissions?.includes('report_orders.activation') ?? false);
+  const [issuedActivation, setIssuedActivation] = useState<IssuedActivation | null>(null);
   const canConfirm = useAuthStore((s) => s.user?.permissions?.includes('report_orders.confirm_payment') ?? false);
   const [filter, setFilter] = useState<Filter>('awaiting');
   const [orders, setOrders] = useState<AdminReportOrder[]>([]);
@@ -183,6 +188,12 @@ export default function ReportPaymentsPage() {
           ))}
         </div>
 
+        {issuedActivation && <div className="mb-4 space-y-2 rounded-md border border-border bg-card p-4 text-sm" role="status">
+          <p>已發放給會員 #{issuedActivation.recipient_id}。明碼只顯示此次，關閉後無法再次查閱。</p>
+          <code className="block select-all break-all font-mono">{issuedActivation.code}</code>
+          <p>到期：{new Date(issuedActivation.expires_at).toLocaleString('zh-TW')}。請將此碼交付指定會員；系統不會自動寄送。</p>
+          <button type="button" className={btnGhost} onClick={() => setIssuedActivation(null)}>關閉明碼</button>
+        </div>}
         {message && (
           <div className={`mb-4 rounded-md border px-3 py-2 text-sm ${
             message.type === 'success'
@@ -222,6 +233,38 @@ export default function ReportPaymentsPage() {
                         {o.consult && <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">專人解讀 × {o.consult.sessions}</span>}
                       </div>
                       <p>{o.lines.map((l) => l.name).join('、')}・主角 {o.item?.subject_name}</p>
+                      {o.commerce?.version === 1 && (
+                        <details className="rounded border border-border p-2">
+                          <summary className="cursor-pointer font-medium">成交明細與製作資格（{o.commerce.entitlements.length} 項）</summary>
+                          <div className="mt-2 space-y-2">
+                            <p>來源：{o.commerce.source === 'website' ? '品牌官網' : o.commerce.source}</p>
+                            {o.commerce.lines?.map((line) => (
+                              <div key={line.item_no}>
+                                <p>{line.item_no}：{line.currency} {line.line_total.toLocaleString('zh-TW')}
+                                  {line.print_copies > 0 && `・同內容印製 ${line.print_copies} 本`}</p>
+                                <p className="text-xs text-muted-foreground">{line.components.map((c) => `${c.label} ${c.amount.toLocaleString('zh-TW')}`).join(' ＋ ')}</p>
+                              </div>
+                            ))}
+                            {o.commerce.entitlements.length === 0 && <p>付款確認後發放資格。</p>}
+                            {o.commerce.entitlements.map((e) => (
+                              <div key={e.id} className="border-t border-border pt-2">
+                                <p>{({ report: '報告製作', book: '書籍客製', consult: '專人解讀' } as Record<string, string>)[e.kind] ?? e.kind}
+                                  {' '}#{e.unit_index}・{({ available: '可使用', in_use: '使用中', completed: '已完成', revoked: '已撤銷' } as Record<string, string>)[e.status] ?? e.status}</p>
+                                <p className="text-xs text-muted-foreground">持有人 #{e.holder_id}・操作者 #{e.operator_id}
+                                  {e.task && `・工作 #${e.task.id}`}</p>
+                                  {e.revoke_reason && <p>撤銷原因：{e.revoke_reason}</p>}
+                                  <EntitlementActivation entitlement={e} enabled={!!o.commerce?.activation_enabled}
+                                    canManage={canManageActivation}
+                                    onIssued={(result) => { setIssuedActivation(result); load(); }}
+                                    onChanged={() => { setIssuedActivation(null); load(); }}
+                                    onError={(text) => setMessage({ type: 'error', text })} />
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                      {canBackfill && o.commerce?.version === 0 && <CommerceBackfillReview orderNo={o.order_no}
+                        onApplied={() => { setMessage({ type: 'success', text: `已完成歷史交易回填：${o.order_no}` }); load(); }} />}
                       <p className="text-muted-foreground">購買者 {o.buyer_email ?? '—'}・成立 {formatDate(o.created_at)}</p>
                       <p>訂單金額 <strong>NT${o.amount.toLocaleString('zh-TW')}</strong>
                         {o.payment.deadline && o.status === 'pending' && (

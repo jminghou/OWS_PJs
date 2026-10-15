@@ -9,7 +9,7 @@
  * 編輯介面在 components/admin/ReportDisplaySection.tsx。
  */
 import { productApi } from '@/lib/api';
-import { REPORT_PRODUCTS, type CoverPalette, type ReportProduct } from './catalog';
+import { REPORT_CATALOG, REPORT_PRODUCTS, type CoverPalette, type ReportProduct } from './catalog';
 
 /** attributes 裡的頂層鍵；後端依頂層鍵合併，不會動到其他鍵 */
 export const REPORT_DISPLAY_KEY = 'report_display';
@@ -68,10 +68,13 @@ export function applyReportDisplay(base: ReportProduct, remote: RemoteProduct | 
   };
 }
 
-/** 單一報告的顯示資料；與 loadReportPrices 用同一組參數，伺服器端同一次渲染只會打一次 API */
+/** 即時讀取後台顯示設定；preview 跳過後端公開回應快取，no-store 跳過 Next 資料快取。 */
 export async function loadReportProduct(base: ReportProduct): Promise<ReportProduct> {
   try {
-    const remote = await productApi.getById(base.displayProductId, 'zh-TW', 'TWD');
+    const remote = await productApi.getById(base.displayProductId, 'zh-TW', 'TWD', {
+      cache: 'no-store',
+      params: { language: 'zh-TW', currency: 'TWD', preview: 'true' },
+    });
     return applyReportDisplay(base, remote);
   } catch {
     return base; // 後台尚未建立此商品
@@ -79,3 +82,20 @@ export async function loadReportProduct(base: ReportProduct): Promise<ReportProd
 }
 
 export const loadReportProducts = () => Promise.all(REPORT_PRODUCTS.map(loadReportProduct));
+
+/** 目錄頁 FAQ 存於主報告商品的獨立屬性，避免被前台文字編輯分頁覆蓋。 */
+export async function loadReportCatalogFaq(): Promise<{ q: string; a: string }[]> {
+  try {
+    const remote = await productApi.getById(REPORT_PRODUCTS[0].displayProductId, 'zh-TW', 'TWD', {
+      cache: 'no-store',
+      params: { language: 'zh-TW', currency: 'TWD', preview: 'true' },
+    });
+    const faq: unknown = remote.attributes?.report_catalog_faq;
+    if (Array.isArray(faq) && faq.length > 0 && faq.every(
+      (item) => item && typeof item.q === 'string' && item.q.trim() && typeof item.a === 'string' && item.a.trim(),
+    )) return faq;
+  } catch {
+    // API 暫時無法使用時，保留已定稿的本地版本。
+  }
+  return REPORT_CATALOG.faq;
+}

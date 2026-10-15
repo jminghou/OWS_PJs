@@ -90,6 +90,8 @@ def _ensure_open_manual_order(order):
 
 def report_transfer(order, data, today=None):
     """會員回報轉帳。回傳付款嘗試；驗證失敗拋 OrderError(errors=...)。"""
+    from . import commerce
+    commerce.lock_order(order)
     _ensure_open_manual_order(order)
     if order.checkout and order.checkout.expires_at and order.checkout.expires_at < datetime.utcnow():
         raise OrderError('已超過匯款期限，訂單將會取消；若已轉帳請聯絡客服', 409, 'expired')
@@ -136,23 +138,44 @@ def report_transfer(order, data, today=None):
 # ── 管理者 ──────────────────────────────────────────────────────────────────
 def mark_paid(order, attempt, paid_at=None):
     """付款成功的共用處理（人工收款與之後的綠界通知都走這裡）。不 commit，由呼叫端提交。"""
+    from . import commerce
+    if commerce.tracked(order):
+        commerce.lock_order(order)
+        if attempt.order_id != order.id or attempt.currency != order.currency or attempt.amount != order.amount:
+            raise OrderError('付款與訂單資料不一致', 409, 'amount_mismatch')
+        if order.status == 'paid':
+            if attempt.status == 'succeeded':
+                return
+            raise OrderError('這筆訂單已有成功付款', 409, 'already_paid')
+        if order.status != 'pending':
+            raise OrderError('這筆訂單目前不能收款', 409, 'not_pending')
     paid_at = paid_at or datetime.utcnow()
     attempt.status = 'succeeded'
     attempt.paid_at = paid_at
     order.status = 'paid'
     order.paid_at = paid_at
+    prepare_fulfilment(order, attempt.confirmed_by, attempt.environment)
+
+
+def prepare_fulfilment(order, actor, environment, confirmation='payment_confirmed'):
+    """Paid contract -> existing work; caller must establish payment evidence first."""
+    from . import commerce
+    commerce.grant_paid(order, actor, confirmation=confirmation)
     from . import physical
     physical.on_paid(order)
     for item in order.order_items:
         f = ReportFulfillment.query.filter_by(order_item_id=item.id).first()
         if f is not None and f.handoff_status == 'not_ready':
             f.handoff_status = 'pending'  # 待送出：交給紫微建立工作單
-            f.environment = attempt.environment
+            f.environment = environment
+            commerce.start(item, 'report', 'report_fulfillment', f.id)
 
 
 def confirm_manual_payment(order, admin_id, received_amount, last5=None, note=None):
+    from . import commerce
+    commerce.lock_order(order)
     _ensure_open_manual_order(order)
-    if not isinstance(received_amount, int) or received_amount != order.amount:
+    if type(received_amount) is not int or received_amount != order.amount:
         raise OrderError(f'實收金額必須等於訂單金額 NT${order.amount:,}；金額不符請先與會員聯絡', 400,
                          'amount_mismatch')
     last5 = (str(last5).strip() if last5 else '') or None
@@ -175,6 +198,8 @@ def confirm_manual_payment(order, admin_id, received_amount, last5=None, note=No
 
 
 def reject_transfer(order, admin_id, reason):
+    from . import commerce
+    commerce.lock_order(order)
     _ensure_open_manual_order(order)
     reason = (reason or '').strip()
     if not reason:
@@ -198,6 +223,10 @@ def expire_overdue(now=None):
                   .all())
     expired = []
     for order in candidates:
+        from . import commerce
+        commerce.lock_order(order)
+        if order.status != 'pending':
+            continue
         if pending_manual_attempt(order) is not None:
             continue  # 已回報轉帳：留給管理者對帳
         order.status = 'cancelled'

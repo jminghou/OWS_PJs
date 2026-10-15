@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { Copy, Truck } from 'lucide-react';
-import { reportOrdersApi, type AdminPrintJob, type PrintJobAction } from '@/lib/api/reportOrders';
+import { privateFileUrl, reportOrdersApi, type AdminPrintJob, type DesignView, type PrintJobAction } from '@/lib/api/reportOrders';
 
 type Filter = 'all' | 'awaiting_payment' | 'awaiting_customization' | 'awaiting_proof' | 'proof_ready' | 'changes_requested'
   | 'approved' | 'printing' | 'shipped' | 'delivered' | 'cancelled' | 'refund_pending';
@@ -55,6 +55,72 @@ function summaryText(j: AdminPrintJob) {
     j.dedication ? `扉頁贈言：${j.dedication}` : '',
     j.shipping ? `收件：${j.shipping.recipient_name}・${j.shipping.recipient_phone}・${j.shipping.postal_code ?? ''} ${j.shipping.address}` : '',
   ].filter(Boolean).join('\n');
+}
+
+const DESIGN_STATUS: Record<DesignView['status'], string> = { draft: '草稿', submitted: '會員設計中', confirmed: '會員已確認內容' };
+const ANNOTATION_LABEL = { text: '改寫文字', image: '換成指定圖片', fix: '回報錯誤' } as const;
+
+/** 會員在「設計你的書」填的內容：封面、扉頁、跨頁與每頁的修改標註（照片以短效連結開啟） */
+function DesignPanel({ design }: { design: DesignView }) {
+  const d = design.data;
+  const asset = (id: number | null) => design.assets.find((a) => a.id === id);
+  const thumbs = (ids: number[]) => ids.map((id) => asset(id)).filter(Boolean).map((a) => (
+    <a key={a!.id} href={privateFileUrl(a!.token)} target="_blank" rel="noreferrer" title={a!.filename}
+      className="block h-16 w-16 overflow-hidden rounded border border-border bg-muted">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={privateFileUrl(a!.token)} alt={a!.filename} className="h-full w-full object-cover" />
+    </a>
+  ));
+  const cover = asset(d.cover_asset_id);
+  const spreads = [...d.spreads].sort((a, b) => (a.after_page ?? 9999) - (b.after_page ?? 9999));
+  const annotations = [...d.annotations].sort((a, b) => a.page - b.page);
+  return (
+    <details className="mt-2 rounded-md border border-border px-3 py-2 text-xs leading-5">
+      <summary className="flex min-h-[40px] cursor-pointer items-center gap-2 md:min-h-0">
+        <span className="font-medium">設計內容</span>
+        <span className="text-muted-foreground">
+          {DESIGN_STATUS[design.status]}{design.confirmed_at ? `（${formatDate(design.confirmed_at)}）` : ''}
+          ・修改 {annotations.length} 處・跨頁 {spreads.length}
+        </span>
+      </summary>
+      <div className="mt-2 space-y-3">
+        {design.report_token && (
+          <a href={privateFileUrl(design.report_token)} target="_blank" rel="noreferrer"
+            className="inline-flex text-admin-accent-600 hover:underline dark:text-admin-accent-200">開啟報告 PDF</a>
+        )}
+        <div>
+          <p>封面名字：{d.cover_name || '—'}・款式 {d.cover_style || '—'}</p>
+          {cover && <div className="mt-1 flex gap-2">{thumbs([cover.id])}<span className="self-end text-muted-foreground">客製封面圖</span></div>}
+          {d.dedication && <p className="whitespace-pre-line">扉頁：{d.dedication}</p>}
+        </div>
+        {spreads.length > 0 && (
+          <div className="space-y-2">
+            <p className="font-medium">指定跨頁</p>
+            {spreads.map((s) => (
+              <div key={s.index} className="rounded bg-muted px-2 py-1.5">
+                <p>{s.after_page ? `插在第 ${s.after_page} 頁後` : '尚未選位置'}{s.text ? `：${s.text}` : ''}</p>
+                {s.asset_ids.length > 0 && <div className="mt-1 flex flex-wrap gap-2">{thumbs(s.asset_ids)}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+        {annotations.length > 0 && (
+          <div className="space-y-2">
+            <p className="font-medium">頁面修改</p>
+            {annotations.map((a) => (
+              <div key={a.id} className="rounded bg-muted px-2 py-1.5">
+                <p>第 {a.page} 頁・{ANNOTATION_LABEL[a.type]}：<span className="whitespace-pre-line">{a.text || '—'}</span></p>
+                {a.asset_ids.length > 0 && <div className="mt-1 flex flex-wrap gap-2">{thumbs(a.asset_ids)}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+        {design.problems.length > 0 && design.status !== 'confirmed' && (
+          <p className="text-amber-700 dark:text-amber-300">尚未完成：{design.problems.join('；')}</p>
+        )}
+      </div>
+    </details>
+  );
 }
 
 function Actions({ job, onDone, onError }: {
@@ -238,6 +304,7 @@ export default function ReportShipmentsPage() {
                         {j.shipping.tracking_no && <p>物流 {j.shipping.carrier}・<span className="font-mono">{j.shipping.tracking_no}</span>・出貨 {formatDate(j.shipping.shipped_at)}</p>}
                       </div>
                     )}
+                    {j.design && <DesignPanel design={j.design} />}
                     {j.status === 'cancelled' && (
                       <p className="text-xs text-muted-foreground">
                         {j.cancelled_by === 'member' ? '會員取消' : j.cancelled_by === 'admin' ? '管理者取消' : '系統取消'}

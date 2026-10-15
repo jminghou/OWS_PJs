@@ -28,7 +28,7 @@ export {
 export type { FetchOptions, I18nSettings, AuthorContentCard, AuthorDetailResponse } from './api/index';
 export type { ColumnProfile, ColumnProfileFields, ColumnProfileLink, ColumnHighlight } from './api/index';
 export type {
-  ReportOrderSummary, ShippingInfo, AdminReportOrder, BankInfo, TransferReport, PaymentMode,
+  ReportOrderSummary, ShippingInfo, AdminReportOrder, BankInfo, TransferReport, PaymentMode, CommerceSummary,
 } from './api/index';
 export type {
   ZiweiCalcRequest,

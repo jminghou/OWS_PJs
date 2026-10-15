@@ -229,6 +229,18 @@ class Config:
     # 之後會有 manual（人工收款）、ecpay_test、ecpay_live。後端以此判斷，不靠前端隱藏按鈕。
     REPORT_PAYMENT_MODE = os.environ.get('REPORT_PAYMENT_MODE', 'placeholder')
 
+    # Apply 0010_commerce_foundation before enabling new-contract orders.
+    # Existing tracked orders keep enforcing their contract even after disabling this switch.
+    COMMERCE_FOUNDATION_ENABLED = _bool_env('COMMERCE_FOUNDATION_ENABLED', False)
+    # Requires migration 0011. Existing activation gates survive disabling this switch.
+    COMMERCE_ACTIVATION_ENABLED = _bool_env('COMMERCE_ACTIVATION_ENABLED', False)
+    # Per-order reviewed conversion; never automatic on deploy or ordinary reads.
+    COMMERCE_BACKFILL_ENABLED = _bool_env('COMMERCE_BACKFILL_ENABLED', False)
+    # Requires migration 0012; evidence staging only, never grants paid rights.
+    COMMERCE_INTAKE_ENABLED = _bool_env('COMMERCE_INTAKE_ENABLED', False)
+    # Requires 0013; only reviewed, exact-match single digital report contracts.
+    COMMERCE_BINDING_ENABLED = _bool_env('COMMERCE_BINDING_ENABLED', False)
+
     # 人工收款（REPORT_PAYMENT_MODE=manual）：四項匯款資訊都要設定才接受下單
     MANUAL_PAYMENT_BANK_NAME = os.environ.get('MANUAL_PAYMENT_BANK_NAME', '')
     MANUAL_PAYMENT_BANK_CODE = os.environ.get('MANUAL_PAYMENT_BANK_CODE', '')

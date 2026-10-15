@@ -25,7 +25,9 @@ CLI：flask --app <site> report_orders expire-overdue   取消逾期未回報轉
 付款模式記在每筆訂單（orders.payment_method），切換模式不影響已成立的訂單。
 """
 
-from flask import Blueprint, current_app, jsonify, request
+from urllib.parse import quote
+
+from flask import Blueprint, Response, current_app, jsonify, request, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from datetime import datetime, timedelta
@@ -37,13 +39,13 @@ import click
 from core.backend_engine.factory import db
 from core.backend_engine.models import User
 from core.backend_engine.services.member_auth import normalise_email
-from core.backend_engine.services.rbac import require_permission
+from core.backend_engine.services.rbac import RBACService, require_permission
 from core.backend_engine.services.rbac_seed import register_permissions
 from packages.commerce.models import Order, OrderItem
 from sites.Polaris_Parent.backend.models import ReportConsultation, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import notify, payment, physical, service
+from . import delivery, design, notify, payment, physical, private_storage, service
 from .validation import validate_order, validate_shipping
 
 try:
@@ -54,9 +56,15 @@ except Exception:  # pragma: no cover
 bp = Blueprint('report_orders', __name__)
 
 SUPPORTED_PAYMENT_MODES = ('placeholder', 'manual')
+ORDER_LIST_PAYMENT_MODES = (*SUPPORTED_PAYMENT_MODES, 'external_verified')
 
 # (code, module, action, name_zh, name_en)；admin 角色自動擁有，其他角色需另行指派
 REPORT_ORDER_PERMISSIONS = [
+    ('report_orders.contracts', 'report_orders', 'contracts', '對應外部成交與發放資格', 'Bind External Contracts'),
+    ('report_orders.channels', 'report_orders', 'channels', '審查渠道設定', 'Review Commerce Channels'),
+    ('report_orders.intake', 'report_orders', 'intake', '匯入與審查外部訂單', 'Review External Orders'),
+    ('report_orders.backfill', 'report_orders', 'backfill', '審查與回填歷史交易資格', 'Review Historical Commerce'),
+    ('report_orders.activation', 'report_orders', 'activation', '管理資格啟用碼', 'Manage Activation Codes'),
     ('report_orders.read', 'report_orders', 'read', '檢視報告訂單', 'Read Report Orders'),
     ('report_orders.confirm_payment', 'report_orders', 'confirm_payment', '確認人工收款',
      'Confirm Manual Payments'),
@@ -89,6 +97,153 @@ def _engine():
     from sites.Polaris_Parent.backend.extensions.astrology import _get_engine
 
     return _get_engine()
+
+
+def _intake_response(operation):
+    """Keep receipt mutations and their audit trail in one transaction."""
+    from sqlalchemy.exc import IntegrityError
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error('請提供 JSON 物件', 400)
+    try:
+        result = operation(data, user.id)
+        db.session.commit()
+        response = jsonify({'success': True, **result})
+        response.headers['Cache-Control'] = 'no-store'
+        return response
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    except IntegrityError:
+        db.session.rollback()
+        return _error('資料已存在或關聯已變更，請重新載入後核對', 409, code='intake_conflict')
+
+
+@bp.route('/admin/commerce-channels', methods=['GET', 'POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.channels')
+def admin_commerce_channels():
+    from . import intake
+    from sites.Polaris_Parent.backend.commerce_models import CommerceChannel
+    if request.method == 'POST':
+        return _intake_response(lambda data, actor: dict(channel=intake.channel_view(intake.save_channel(data, actor))))
+    if _current_user() is None:
+        return _error('會員不存在或已停用', 401)
+    return jsonify(success=True, enabled=bool(current_app.config.get('COMMERCE_INTAKE_ENABLED')),
+                   channels=[intake.channel_view(row) for row in CommerceChannel.query.order_by(CommerceChannel.id).all()])
+
+
+@bp.route('/admin/commerce-channels/<int:channel_id>', methods=['PUT'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.channels')
+def admin_update_commerce_channel(channel_id):
+    from . import intake
+    return _intake_response(lambda data, actor: dict(channel=intake.channel_view(intake.save_channel(data, actor, channel_id))))
+
+
+@bp.route('/admin/commerce-intake-channels', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.intake')
+def admin_intake_channels():
+    from . import intake
+    from sites.Polaris_Parent.backend.commerce_models import CommerceChannel
+    if _current_user() is None:
+        return _error('會員不存在或已停用', 401)
+    return jsonify(success=True, enabled=bool(current_app.config.get('COMMERCE_INTAKE_ENABLED')),
+                   channels=[intake.channel_view(row) for row in CommerceChannel.query.order_by(CommerceChannel.id).all()])
+
+
+@bp.route('/admin/commerce-product-mappings', methods=['GET', 'POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.channels')
+def admin_product_mappings():
+    from . import binding
+    from sites.Polaris_Parent.backend.commerce_models import CommerceProductMapping
+    if request.method == 'POST':
+        return _intake_response(lambda data, actor: dict(mapping=binding.mapping_view(binding.save_mapping(data, actor))))
+    if _current_user() is None:
+        return _error('會員不存在或已停用', 401)
+    return jsonify(success=True, enabled=binding.enabled(), mappings=[binding.mapping_view(row)
+                   for row in CommerceProductMapping.query.order_by(CommerceProductMapping.id).all()])
+
+
+@bp.route('/admin/commerce-receipts/<int:receipt_id>/contract-preview', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.contracts')
+def admin_external_contract_preview(receipt_id):
+    from . import binding, intake
+    return _intake_response(lambda data, actor: dict(review=binding.preview(receipt_id, intake.text(data, 'order_no', 100), actor)))
+
+
+@bp.route('/admin/commerce-receipts/<int:receipt_id>/contract', methods=['POST'])
+@_limit('10 per minute')
+@jwt_required()
+@require_permission('report_orders.contracts')
+def admin_external_contract_apply(receipt_id):
+    from . import binding
+    def perform(data, actor):
+        order, changed = binding.apply(receipt_id, data, actor)
+        return dict(order=service.order_summary(order), changed=changed)
+    return _intake_response(perform)
+
+
+@bp.route('/admin/commerce-receipts', methods=['GET', 'POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.intake')
+def admin_commerce_receipts():
+    from . import intake
+    from sites.Polaris_Parent.backend.commerce_models import CommerceExternalReceipt
+    if request.method == 'POST':
+        def perform(data, actor):
+            row, created = intake.import_receipt(data, actor)
+            return dict(receipt=intake.receipt_view(row), created=created)
+        return _intake_response(perform)
+    if _current_user() is None:
+        return _error('會員不存在或已停用', 401)
+    before = request.args.get('before', type=int)
+    query = CommerceExternalReceipt.query
+    if before is not None:
+        query = query.filter(CommerceExternalReceipt.id < before)
+    rows = query.order_by(CommerceExternalReceipt.id.desc()).limit(51).all()
+    response = jsonify(success=True, receipts=[intake.receipt_view(row) for row in rows[:50]],
+                       next_before=rows[49].id if len(rows) > 50 else None)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@bp.route('/admin/commerce-receipts/<int:receipt_id>/review', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.intake')
+def admin_review_commerce_receipt(receipt_id):
+    from . import intake
+    def perform(data, actor):
+        row, changed = intake.review(receipt_id, data, actor)
+        return dict(receipt=intake.receipt_view(row), changed=changed)
+    return _intake_response(perform)
+
+
+@bp.route('/admin/commerce-receipts/<int:receipt_id>/events', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.intake')
+def admin_commerce_receipt_events(receipt_id):
+    from . import intake
+    from sites.Polaris_Parent.backend.commerce_models import CommerceIntakeEvent
+    if _current_user() is None:
+        return _error('會員不存在或已停用', 401)
+    rows = CommerceIntakeEvent.query.filter_by(receipt_id=receipt_id).order_by(CommerceIntakeEvent.id).all()
+    response = jsonify(success=True, events=[dict(id=row.id, actor_id=row.actor_id,
+        event_type=row.event_type, detail=row.detail, created_at=intake.utc(row.created_at).isoformat()) for row in rows])
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 def _save_chart(payload):
@@ -237,7 +392,7 @@ def _admin_row(order):
 def admin_list_orders():
     _expire_overdue()
     status = request.args.get('status', 'pending')
-    q = Order.query.filter(Order.payment_method.in_(SUPPORTED_PAYMENT_MODES))
+    q = Order.query.filter(Order.payment_method.in_(ORDER_LIST_PAYMENT_MODES))
     if status != 'all':
         q = q.filter(Order.status == status)
     orders = [o for o in q.order_by(Order.created_at.desc()).limit(200).all() if o.order_items]
@@ -250,6 +405,102 @@ def admin_list_orders():
 def _admin_order(order_no):
     order = Order.query.filter_by(order_no=order_no).first()
     return order if order is not None and order.order_items else None
+
+
+@bp.route('/admin/report-orders/<order_no>/commerce-review', methods=['GET', 'POST'])
+@jwt_required()
+@require_permission('report_orders.backfill')
+def admin_commerce_review(order_no):
+    from . import backfill
+    user = _current_user()
+    if user is None:
+        return _error('帳號不存在或已停用', 401)
+    order = Order.query.filter_by(order_no=order_no).first()
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    if request.method == 'GET':
+        response = jsonify({'success': True, 'review': backfill.review(order, user.id)})
+    else:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return _error('請提供審查確認資料', 400, code='invalid')
+        try:
+            changed = backfill.apply(order, user.id, data.get('review_token'), data.get('note'), data.get('confirmed'))
+            db.session.commit()
+        except service.OrderError as exc:
+            db.session.rollback()
+            return _error(exc.message, exc.status, code=exc.code)
+        response = jsonify({'success': True, 'changed': changed, 'order': _admin_row(order)})
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@bp.route('/admin/report-entitlements/<int:entitlement_id>/activation', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.activation')
+@_limit('10 per minute')
+def admin_issue_activation(entitlement_id):
+    from . import activation
+    user = _current_user()
+    if user is None:
+        return _error('帳號不存在或已停用', 401)
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error('請提供發碼資料', 400, code='invalid')
+    try:
+        row, code = activation.issue(entitlement_id, user.id, data.get('days', 14))
+        db.session.commit()
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    response = jsonify({'success': True, 'activation_id': row.id, 'code': code,
+                        'recipient_id': row.recipient_id, 'expires_at': row.expires_at.isoformat()})
+    response.headers['Cache-Control'] = 'no-store'
+    return response, 201
+
+
+@bp.route('/admin/report-activations/<int:activation_id>/revoke', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.activation')
+def admin_revoke_activation(activation_id):
+    from . import activation
+    user = _current_user()
+    if user is None:
+        return _error('帳號不存在或已停用', 401)
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error('請提供撤銷原因', 400, code='invalid')
+    try:
+        activation.revoke(activation_id, user.id, data.get('reason'))
+        db.session.commit()
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    return jsonify({'success': True})
+
+
+@bp.route('/report-activations/redeem', methods=['POST'])
+@jwt_required()
+@_limit('5 per minute')
+def redeem_activation():
+    from . import activation
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    if not is_email_verified(user.id, normalise_email(user.email or user.username)):
+        return _error('請先完成 Email 驗證', 403, code='email_unverified')
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _error('請填寫啟用碼', 400, code='invalid_activation')
+    try:
+        order, redeemed = activation.redeem(data.get('code'), user.id, data.get('order_no'))
+        db.session.commit()
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    response = jsonify({'success': True, 'redeemed': redeemed, 'order': service.order_summary(order)})
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @bp.route('/admin/report-orders/<order_no>/confirm-payment', methods=['POST'])
@@ -372,6 +623,28 @@ def cancel_physical(order_no):
     return jsonify({'success': True, 'order': service.order_summary(order)})
 
 
+@bp.route('/report-orders/<order_no>/consult-preferences', methods=['POST'])
+@_limit('10 per minute')
+@jwt_required()
+def consult_preferences(order_no):
+    """會員填專人解讀方便的時段（付款後、約好時間前）。"""
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    order = Order.query.filter_by(order_no=order_no, user_id=user.id).first()
+    item = next((i for i in (order.order_items if order else []) if i.variant == 'consult'), None)
+    consult = ReportConsultation.query.filter_by(order_item_id=item.id).first() if item else None
+    if consult is None:
+        return _error('找不到這筆專人解讀', 404)
+    try:
+        physical.set_consult_preferences(consult, request.get_json(silent=True) or {})
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    notify.send_consult_preferences(order, consult, normalise_email(user.email or user.username))
+    return jsonify({'success': True, 'order': service.order_summary(order)})
+
+
 # ── 實體書出貨管理（後台） ───────────────────────────────────────────────────
 def _print_job_row(job):
     item = db.session.get(OrderItem, job.order_item_id)
@@ -396,6 +669,7 @@ def _print_job_row(job):
         'dedication': audience.get('dedication') or '',
         'options': job.options or {},
         'pages': job.pages or [],
+        'design': _admin_design(job),
         'cancel_reason': job.cancel_reason,
         'cancelled_by': job.cancelled_by,
         'refund_note': job.refund_note,
@@ -408,6 +682,13 @@ def _print_job_row(job):
         },
     })
     return row
+
+
+def _admin_design(job):
+    from sites.Polaris_Parent.backend.models import ReportBookDesign
+
+    d = ReportBookDesign.query.filter_by(print_job_id=job.id).first()
+    return design.design_view(d, int(get_jwt_identity())) if d is not None else None
 
 
 @bp.route('/admin/report-print-jobs', methods=['GET'])
@@ -580,6 +861,255 @@ def dev_mark_paid_command(order_no):
     click.echo(f'{order_no} 已標成已付款（NT${order.amount:,}）')
 
 
+# ── 報告交付：上傳報告 PDF、會員下載 ─────────────────────────────────────────
+def _report_item_of(order):
+    return next((i for i in order.order_items if i.kind == 'purchase'), None)
+
+
+def _file_link(doc, user_id):
+    token = private_storage.issue_file_token('doc', doc.id, user_id)
+    return url_for('report_orders.report_file', token=token, _external=True)
+
+
+@bp.route('/report-orders/<order_no>/report-pdf/link', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+def report_pdf_link(order_no):
+    """會員取得報告 PDF 的短效網址（10 分鐘），給下載與整本預覽用。"""
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    order = Order.query.filter_by(order_no=order_no, user_id=user.id).first()
+    item = _report_item_of(order) if order is not None else None
+    if item is None or order.status != 'paid':
+        return _error('找不到這筆訂單', 404)
+    doc = delivery.current_document(item)
+    if doc is None:
+        return _error('報告還在製作中，完成後會寄信通知你', 404, code='not_ready')
+    return jsonify({'success': True, 'url': _file_link(doc, user.id), 'document': delivery.document_view(doc)})
+
+
+@bp.route('/report-files/<token>', methods=['GET'])
+@_limit('60 per minute')
+def report_file(token):
+    """以短效憑證串流私有檔案：報告 PDF（doc）或會員上傳的照片（asset）。
+    不必帶登入標頭，<a>、<img> 與 pdf.js 都能直接用。?download=1 下載，否則在瀏覽器開啟。"""
+    parsed = private_storage.read_file_token(token, max_age=7200)
+    if parsed is None:
+        return _error('連結已過期，請重新整理頁面', 410)
+    kind, file_id, user_id = parsed
+    is_admin = 'report_orders.fulfill' in (RBACService.get_user_permissions(user_id) or set())
+    try:
+        if kind == 'doc':
+            row, data = delivery.document_for_download(file_id, user_id, is_admin)
+            mimetype = 'application/pdf'
+        elif kind == 'asset':
+            row, data = design.asset_for_download(file_id, user_id, is_admin)
+            mimetype = row.content_type
+        else:
+            return _error('連結不正確', 404)
+    except service.OrderError as exc:
+        return _error(exc.message, exc.status, code=exc.code)
+    except private_storage.StorageError as exc:
+        current_app.logger.error(f'private file {kind}:{file_id} read failed: {exc}')
+        return _error('檔案暫時無法讀取，請稍後再試', 503)
+    disposition = 'attachment' if request.args.get('download') == '1' else 'inline'
+    resp = Response(data, mimetype=mimetype)
+    resp.headers['Content-Disposition'] = f"{disposition}; filename*=UTF-8''{quote(row.filename)}"
+    resp.headers['Cache-Control'] = 'private, max-age=300'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    return resp
+
+
+@bp.route('/admin/report-deliveries', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_list_deliveries():
+    """已付款的報告訂單與報告檔狀態。status=pending（待上傳）／delivered（已上傳）／all。"""
+    status = request.args.get('status', 'pending')
+    orders = (Order.query.filter(Order.status == 'paid', Order.payment_method.in_(ORDER_LIST_PAYMENT_MODES))
+              .order_by(Order.paid_at.desc().nullslast(), Order.id.desc()).limit(300).all())
+    rows, counts = [], {'pending': 0, 'delivered': 0}
+    for o in orders:
+        item = _report_item_of(o)
+        if item is None:
+            continue
+        doc = delivery.current_document(item)
+        key = 'delivered' if doc else 'pending'
+        counts[key] += 1
+        if status != 'all' and status != key:
+            continue
+        c = item.customization or {}
+        rows.append({
+            'order_no': o.order_no, 'item_no': item.item_no, 'name': item.name, 'variant': item.variant,
+            'subject_name': c.get('subject_name'), 'call_name': (c.get('audience') or {}).get('call_name'),
+            'buyer_email': _buyer_email(o), 'paid_at': o.paid_at.isoformat() if o.paid_at else None,
+            'document': delivery.document_view(doc),
+        })
+    return jsonify({'success': True, 'deliveries': rows, 'counts': counts})
+
+
+@bp.route('/admin/report-orders/<order_no>/report-pdf', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_upload_report_pdf(order_no):
+    order = _admin_order(order_no)
+    item = _report_item_of(order) if order is not None else None
+    if item is None:
+        return _error('找不到這筆報告訂單', 404)
+    upload = request.files.get('file')
+    if upload is None:
+        return _error('請選擇要上傳的 PDF')
+    admin_id = int(get_jwt_identity())
+    try:
+        doc, first_time = delivery.upload_report_pdf(item, admin_id, upload.filename, upload.read())
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    except private_storage.StorageError as exc:
+        db.session.rollback()
+        return _error(str(exc), 503)
+    email = _buyer_email(order)
+    if first_time and email:
+        notify.send_report_ready(order, email, physical.pending_design_jobs(item))
+    current_app.logger.info(f'report pdf uploaded {order.order_no} doc {doc.id} by admin {admin_id}')
+    return jsonify({'success': True, 'document': delivery.document_view(doc), 'first_time': first_time})
+
+
+@bp.route('/admin/report-orders/<order_no>/report-pdf/link', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_report_pdf_link(order_no):
+    order = _admin_order(order_no)
+    item = _report_item_of(order) if order is not None else None
+    doc = delivery.current_document(item)
+    if doc is None:
+        return _error('這筆訂單還沒有上傳報告', 404)
+    return jsonify({'success': True, 'url': _file_link(doc, int(get_jwt_identity()))})
+
+
+# ── 設計你的書 ───────────────────────────────────────────────────────────────
+def _design_response(d, user_id, status=200):
+    return jsonify({'success': True, 'design': design.design_view(d, user_id)}), status
+
+
+@bp.route('/report-orders/<order_no>/design-draft', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+def design_draft(order_no):
+    """付款前：在已付款的報告訂單上加購實體書時的設計草稿。"""
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    order = Order.query.filter_by(order_no=order_no, user_id=user.id).first()
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    try:
+        d = design.draft_for_addon(user, order)
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    return _design_response(d, user.id)
+
+
+@bp.route('/report-orders/<order_no>/design', methods=['GET'])
+@jwt_required()
+def order_design(order_no):
+    """付款後：這張訂單裡那本實體書的設計（第一次進來時建立）。"""
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    order = Order.query.filter_by(order_no=order_no, user_id=user.id).first()
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    try:
+        d = design.design_for_job(user, order)
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    return _design_response(d, user.id)
+
+
+def _owned_design(design_id):
+    user = _current_user()
+    if user is None:
+        return None, None, _error('會員不存在或已停用', 401)
+    try:
+        return user, design.get_owned(design_id, user.id), None
+    except service.OrderError as exc:
+        return None, None, _error(exc.message, exc.status, code=exc.code)
+
+
+@bp.route('/report-designs/<int:design_id>', methods=['GET', 'PUT'])
+@_limit('120 per minute')
+@jwt_required()
+def report_design(design_id):
+    user, d, err = _owned_design(design_id)
+    if err:
+        return err
+    if request.method == 'PUT':
+        body = request.get_json(silent=True) or {}
+        page_count = body.get('page_count') if isinstance(body.get('page_count'), int) else None
+        try:
+            design.save(d, body.get('data'), page_count)
+        except service.OrderError as exc:
+            db.session.rollback()
+            return _error(exc.message, exc.status, code=exc.code)
+    return _design_response(d, user.id)
+
+
+@bp.route('/report-designs/<int:design_id>/assets', methods=['POST'])
+@_limit('60 per minute')
+@jwt_required()
+def report_design_upload(design_id):
+    user, d, err = _owned_design(design_id)
+    if err:
+        return err
+    upload = request.files.get('file')
+    if upload is None:
+        return _error('請選擇圖片')
+    try:
+        asset = design.add_asset(d, upload.filename, upload.mimetype, upload.read())
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    except private_storage.StorageError as exc:
+        db.session.rollback()
+        return _error(str(exc), 503)
+    return jsonify({'success': True, 'asset': design.asset_view(asset, user.id)}), 201
+
+
+@bp.route('/report-designs/<int:design_id>/assets/<int:asset_id>', methods=['DELETE'])
+@jwt_required()
+def report_design_delete_asset(design_id, asset_id):
+    user, d, err = _owned_design(design_id)
+    if err:
+        return err
+    try:
+        design.remove_asset(d, asset_id)
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    return _design_response(d, user.id)
+
+
+@bp.route('/report-designs/<int:design_id>/confirm', methods=['POST'])
+@_limit('10 per minute')
+@jwt_required()
+def report_design_confirm(design_id):
+    user, d, err = _owned_design(design_id)
+    if err:
+        return err
+    try:
+        job = design.confirm(d)
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code, errors=getattr(exc, 'errors', None))
+    item = db.session.get(OrderItem, job.order_item_id)
+    notify.send_design_confirmed(item.order, normalise_email(user.email or user.username))
+    return _design_response(d, user.id)
+
+
 DEMO_EMAIL = 'demo-member@polaris.local'
 DEMO_PASSWORD = 'Demo12345'
 
@@ -671,7 +1201,40 @@ def dev_seed_demo_command():
     click.echo(f'會員中心：{front}/account?tab=reports')
 
 
+@bp.cli.command('cleanup-designs')
+def cleanup_designs_command():
+    """刪除放棄的設計草稿與已取消實體書的設計（含照片），超過 30 天沒更新的（建議每天排程一次）。"""
+    click.echo(f'removed {design.cleanup()} design(s)')
+
+
 @bp.cli.command('expire-overdue')
 def expire_overdue_command():
     """取消逾期未回報轉帳的人工收款訂單（建議每小時排程一次）。"""
     click.echo(f'cancelled {_expire_overdue()} overdue order(s)')
+
+
+@bp.cli.command('commerce-preview')
+@click.option('--order-no', default=None, help='只盤點指定訂單；不提供則逐筆盤點全部報告訂單。')
+def commerce_preview_command(order_no):
+    """唯讀歷史訂單盤點（不建單、不補發資格、不寄信）。輸出不包含出生資料。"""
+    import json
+    from . import commerce
+
+    query = Order.query.filter(Order.payment_method.in_(SUPPORTED_PAYMENT_MODES)).order_by(Order.id)
+    if order_no:
+        query = query.filter_by(order_no=order_no)
+    for order in query.yield_per(100):
+        click.echo(json.dumps(commerce.historical_preview(order), ensure_ascii=False))
+
+
+@bp.cli.command('commerce-backfill-preview')
+@click.option('--order-no', default=None, help='只預覽指定訂單；不提供則盤點全部報告訂單。')
+def commerce_backfill_preview_command(order_no):
+    """輸出詳細唯讀回填計畫；套用須由有權限的管理者在後台逐筆審查。"""
+    import json
+    from . import backfill
+    query = Order.query.filter(Order.payment_method.in_(SUPPORTED_PAYMENT_MODES)).order_by(Order.id)
+    if order_no:
+        query = query.filter_by(order_no=order_no)
+    for order in query.yield_per(100):
+        click.echo(json.dumps(backfill.preview(order), ensure_ascii=False))

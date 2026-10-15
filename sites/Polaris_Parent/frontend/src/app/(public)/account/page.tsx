@@ -1,36 +1,35 @@
 'use client';
 
+/**
+ * 會員中心：以訂單為中心（2026-10-12 改版）。
+ * 最上方「需要你處理」→ 分頁：我的報告（一份報告一張卡，加購掛在底下）／訂單紀錄／折扣券／命盤資料（唯讀）。
+ */
 import MyReportOrders from '@/components/report/orders/MyReportOrders';
+import AccountTodos from '@/components/account/AccountTodos';
+import MyReports from '@/components/account/MyReports';
+import { buildTodos } from '@/components/account/orderModel';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
 import { StarfieldSection } from '@ows/ziwei-app';
 import { useAuthStore } from '@/store/auth';
-import { astrologyApi, membershipApi } from '@/lib/api';
+import { astrologyApi, membershipApi, reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
 import type {
   MyPerson,
   MyChart,
-  MyFavorite,
   ZiweiCalcResponse,
-  SaveMyChartRequest,
 } from '@/lib/api/astrology';
-import { MemberChartForm as MemberChartForm } from '@ows/ziwei-app';
 import type {
   ExternalProduct,
   OrderSubmission,
   MemberReward,
-  SavedArticle,
 } from '@/lib/api/membership';
 import {
-  BookOpen,
-  Bookmark,
-  ChevronUp,
   Copy,
   Download,
   LayoutGrid,
   LogOut,
-  Plus,
   Receipt,
   RotateCcw,
   Ticket,
@@ -55,6 +54,13 @@ const pillCls = (active: boolean) =>
   'whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors duration-150 ease-out ' +
   'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 ' +
   (active ? 'bg-blue-50 text-blue-800' : 'text-ink hover:bg-tint active:bg-line');
+type Tab = 'reports' | 'orders' | 'coupons' | 'charts';
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'reports', label: '我的報告' },
+  { key: 'orders', label: '訂單紀錄' },
+  { key: 'coupons', label: '折扣券' },
+  { key: 'charts', label: '命盤資料' },
+];
 // 低調的文字按鈕（關閉）
 const QUIET_BTN =
   'inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm text-muted transition-colors duration-150 ease-out ' +
@@ -85,14 +91,17 @@ export default function AccountPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
 
-  const [tab, setTab] = useState<'charts' | 'reports' | 'favorites' | 'orders' | 'articles'>('charts');
-  // 從訂單頁或通知信帶 ?tab=reports 進來時直接開「我的報告訂單」
+  const [tab, setTab] = useState<Tab>('reports');
+  // 通知信或其他頁面帶 ?tab=orders／coupons／charts 進來時直接開該分頁
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('tab') === 'reports') setTab('reports');
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t && TABS.some((x) => x.key === t)) setTab(t as Tab);
   }, []);
+  const [reportOrders, setReportOrders] = useState<ReportOrderSummary[] | null>(null);
+  const [ordersErr, setOrdersErr] = useState('');
   const [people, setPeople] = useState<MyPerson[]>([]);
-  const [favorites, setFavorites] = useState<MyFavorite[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [chartsLoaded, setChartsLoaded] = useState(false);
   const [err, setErr] = useState('');
   const [viewing, setViewing] = useState<ZiweiCalcResponse | null>(null);
   const [viewBusy, setViewBusy] = useState(false);
@@ -102,12 +111,6 @@ export default function AccountPage() {
   /** 互動命盤上點到的宮位（1…C）；星場分析的星曜能量分頁會收斂到這一宮。 */
   const [axisPalace, setAxisPalace] = useState<string | null>(null);
   const [pngBusy, setPngBusy] = useState(false);
-
-  // 會員中心排盤：表單開關 + 未儲存的草稿盤（排好後按「儲存命盤」才歸檔）
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [draft, setDraft] = useState<SaveMyChartRequest | null>(null);
-  const [saveBusy, setSaveBusy] = useState(false);
-  const [saveMsg, setSaveMsg] = useState('');
 
   // 我的訂單 / 折扣券
   const [submissions, setSubmissions] = useState<OrderSubmission[]>([]);
@@ -123,10 +126,6 @@ export default function AccountPage() {
   const [resubmitNote, setResubmitNote] = useState('');
   const [resubmitBusy, setResubmitBusy] = useState(false);
 
-  // 收藏文章
-  const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([]);
-  const [articlesLoaded, setArticlesLoaded] = useState(false);
-
   // 守衛：未登入 → 導向登入頁
   useEffect(() => {
     checkAuth();
@@ -135,28 +134,22 @@ export default function AccountPage() {
     if (!isLoading && !isAuthenticated) router.push('/login');
   }, [isLoading, isAuthenticated, router]);
 
-  // 載入資料（儲存命盤後也會重載）
-  const loadCharts = async () => {
-    setLoading(true);
-    setErr('');
-    try {
-      const [c, f] = await Promise.all([
-        astrologyApi.myCharts(),
-        astrologyApi.myFavorites(),
-      ]);
-      setPeople(c.people || []);
-      setFavorites(f.favorites || []);
-    } catch (e: any) {
-      setErr(e.message || '載入失敗');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 報告訂單：一進來就載入（需要你處理、我的報告、訂單紀錄共用）
   useEffect(() => {
     if (!isAuthenticated) return;
-    loadCharts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    reportOrdersApi.list().then((r) => setReportOrders(r.orders)).catch((e) => setOrdersErr(e.message || '無法載入訂單'));
   }, [isAuthenticated]);
+
+  // 命盤資料：切到「命盤資料」或打開「登錄訂單號」時才載入（命盤服務沒開時不影響其他分頁）
+  const needCharts = tab === 'charts' || submitOpen;
+  useEffect(() => {
+    if (!needCharts || !isAuthenticated || chartsLoaded) return;
+    setLoading(true);
+    astrologyApi.myCharts()
+      .then((c) => { setPeople(c.people || []); setChartsLoaded(true); })
+      .catch((e) => { if (tab === 'charts') setErr(e.message || '載入命盤失敗'); })
+      .finally(() => setLoading(false));
+  }, [needCharts, isAuthenticated, chartsLoaded, tab]);
 
   const viewChart = async (c: MyChart) => {
     if (!c.birth) {
@@ -183,45 +176,12 @@ export default function AccountPage() {
         include_readings: true,
       });
       setViewMode('interactive');
-      setDraft(null); // 檢視已儲存的命盤 → 不顯示「儲存命盤」按鈕
-      setSaveMsg('');
       setViewing(res);
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e: any) {
       setErr(e.message || '重繪失敗');
     } finally {
       setViewBusy(false);
-    }
-  };
-
-  // ── 會員中心排盤：計算完成 → 以草稿盤呈現（待按「儲存命盤」歸檔）──
-  const onComposed = (res: ZiweiCalcResponse, payload: SaveMyChartRequest) => {
-    setViewMode('interactive');
-    setViewing(res);
-    setDraft(payload);
-    setSaveMsg('');
-    setErr('');
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const saveDraft = async () => {
-    if (!draft) return;
-    setSaveBusy(true);
-    setErr('');
-    try {
-      const res = await astrologyApi.saveMyChart(draft);
-      setDraft(null);
-      setSaveMsg(
-        res.is_existing
-          ? '這張命盤先前已儲存過，已沿用既有命盤（未重複建檔）。'
-          : '已儲存！這張命盤已歸檔到你的帳號。'
-      );
-      setComposerOpen(false);
-      await loadCharts();
-    } catch (e: any) {
-      setErr(e.message || '儲存失敗，請稍後再試');
-    } finally {
-      setSaveBusy(false);
     }
   };
 
@@ -288,18 +248,9 @@ export default function AccountPage() {
     }
   };
 
-  const unfavorite = async (chartId: string) => {
-    try {
-      await astrologyApi.removeFavorite(chartId);
-      setFavorites((prev) => prev.filter((f) => f.chart_id !== chartId));
-    } catch (e: any) {
-      setErr(e.message || '取消收藏失敗');
-    }
-  };
-
   // 切到「我的訂單」時載入商業循環資料
   useEffect(() => {
-    if (tab !== 'orders' || !isAuthenticated || commerceLoaded) return;
+    if (tab !== 'coupons' || !isAuthenticated || commerceLoaded) return;
     (async () => {
       try {
         const [s, r, p] = await Promise.all([
@@ -316,29 +267,6 @@ export default function AccountPage() {
       }
     })();
   }, [tab, isAuthenticated, commerceLoaded]);
-
-  // 切到「收藏文章」時載入
-  useEffect(() => {
-    if (tab !== 'articles' || !isAuthenticated || articlesLoaded) return;
-    (async () => {
-      try {
-        const r = await membershipApi.savedArticles();
-        setSavedArticles(r.articles || []);
-        setArticlesLoaded(true);
-      } catch (e: any) {
-        setErr(e.message || '載入收藏文章失敗');
-      }
-    })();
-  }, [tab, isAuthenticated, articlesLoaded]);
-
-  const unsaveArticle = async (contentId: number) => {
-    try {
-      await membershipApi.unsaveArticle(contentId);
-      setSavedArticles((prev) => prev.filter((a) => a.content_id !== contentId));
-    } catch (e: any) {
-      setErr(e.message || '取消收藏失敗');
-    }
-  };
 
   const selectedProduct = products.find((p) => p.id === Number(form.product_type_id));
 
@@ -442,14 +370,32 @@ export default function AccountPage() {
         </div>
       </div>
 
+      {/* 需要你處理 */}
+      {ordersErr && <Alert tone="error" className="mb-6">{ordersErr}</Alert>}
+      {reportOrders && <div className="mb-8"><AccountTodos todos={buildTodos(reportOrders)} /></div>}
+
+      <div className="-mx-4 mb-5 overflow-x-auto px-4">
+        <div className="flex gap-2" role="tablist" aria-label="會員中心分頁">
+          {TABS.map((t) => (
+            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={pillCls(tab === t.key)}
+              onClick={() => { setTab(t.key); setErr(''); }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {err && <Alert tone="error" className="mb-4">{err}</Alert>}
+      {tab === 'charts' && viewBusy && <p className="mb-4 text-sm text-muted">重繪命盤中…</p>}
+
       {/* 重繪的命盤（互動命盤 + 進階工具列：會員專區限定）*/}
-      {viewing && (viewing.chart_json || viewing.svg) && (
+      {tab === 'charts' && viewing && (viewing.chart_json || viewing.svg) && (
         <div className="mb-8 rounded-card bg-white p-6 md:p-8">
           <div className="mb-3 flex items-center justify-between text-sm text-text">
             <span>命盤 ID：<span className="font-latin">{viewing.chart_id}</span></span>
             <button
               type="button"
-              onClick={() => { setViewing(null); setDraft(null); }}
+              onClick={() => setViewing(null)}
               className={QUIET_BTN}
             >
               關閉
@@ -457,17 +403,6 @@ export default function AccountPage() {
             </button>
           </div>
 
-          {/* 草稿盤：尚未歸檔，顯示儲存列 */}
-          {draft && (
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-inner bg-warning-bg px-[18px] py-[14px]">
-              <span className="text-sm text-warning-fg">
-                這張命盤尚未儲存。按「儲存命盤」即可歸檔到你的帳號。
-              </span>
-              <BrandButton variant="primary" size="S" onClick={saveDraft} disabled={saveBusy}>
-                {saveBusy ? '儲存中…' : '儲存命盤'}
-              </BrandButton>
-            </div>
-          )}
 
           <div className="mb-4 flex flex-wrap items-center gap-3">
             {/* 互動 / 靜態 檢視切換 */}
@@ -560,78 +495,23 @@ export default function AccountPage() {
         </div>
       )}
 
-      <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="會員中心分頁">
-        <button type="button" role="tab" aria-selected={tab === 'charts'} className={pillCls(tab === 'charts')} onClick={() => setTab('charts')}>
-          我的命盤
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'reports'} className={pillCls(tab === 'reports')} onClick={() => setTab('reports')}>
-          我的報告訂單
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'favorites'} className={pillCls(tab === 'favorites')} onClick={() => setTab('favorites')}>
-          我的收藏
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'orders'} className={pillCls(tab === 'orders')} onClick={() => setTab('orders')}>
-          我的訂單 / 折扣券
-        </button>
-        <button type="button" role="tab" aria-selected={tab === 'articles'} className={pillCls(tab === 'articles')} onClick={() => setTab('articles')}>
-          收藏文章
-        </button>
-      </div>
 
-      {err && <Alert tone="error" className="mb-4">{err}</Alert>}
-      {saveMsg && <Alert tone="success" className="mb-4">{saveMsg}</Alert>}
-      {viewBusy && <p className="mb-4 text-sm text-muted">重繪命盤中…</p>}
-
-      {/* 排新命盤（會員中心排盤 + 儲存）*/}
-      {tab === 'charts' && (
-        <div className="mb-6">
-          <BrandButton
-            variant="soft"
-            size="S"
-            aria-expanded={composerOpen}
-            onClick={() => setComposerOpen((o) => !o)}
-          >
-            {composerOpen ? (
-              <>
-                收合排盤表單
-                <ChevronUp className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                排新命盤
-              </>
-            )}
-          </BrandButton>
-          {composerOpen && (
-            <div className="mt-4">
-              <MemberChartForm onComputed={onComposed} />
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === 'reports' ? (
-        <MyReportOrders />
-      ) : loading ? (
-        <p className="text-muted">載入中…</p>
+      {tab === 'reports' || tab === 'orders' ? (
+        !reportOrders ? (
+          !ordersErr && <p className="text-muted">載入中…</p>
+        ) : tab === 'reports' ? (
+          <MyReports orders={reportOrders} />
+        ) : (
+          <MyReportOrders orders={reportOrders} />
+        )
       ) : tab === 'charts' ? (
-        people.length === 0 ? (
-          <EmptyState
-            icon={LayoutGrid}
-            action={
-              !composerOpen && (
-                <BrandButton variant="soft" size="S" onClick={() => setComposerOpen(true)}>
-                  <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                  排新命盤
-                </BrandButton>
-              )
-            }
-          >
-            還沒有命盤。按上方「＋ 排新命盤」排一張並儲存，就會歸檔到這裡。
-          </EmptyState>
+        loading ? (
+          <p className="text-muted">載入中…</p>
+        ) : people.length === 0 ? (
+          <EmptyState icon={LayoutGrid}>還沒有命盤資料。訂購報告時填的生辰資料會存在這裡，方便核對訂單。</EmptyState>
         ) : (
           <div className="space-y-6">
+            <p className="text-sm text-text">這裡是你訂購報告時使用的生辰資料，方便核對訂單；需要修改請聯絡我們。</p>
             {people.map((p) => (
               <div key={p.user_id}>
                 <div className="mb-2 flex items-center gap-2">
@@ -663,35 +543,11 @@ export default function AccountPage() {
             ))}
           </div>
         )
-      ) : tab === 'favorites' ? (
-        favorites.length === 0 ? (
-          <EmptyState icon={Bookmark}>尚無收藏的命盤。</EmptyState>
-        ) : (
-          <div className="space-y-2">
-            {favorites.map((f) => (
-              <div key={f.chart_id} className={cardCls}>
-                <div className="text-sm text-text">
-                  <span className="mr-2 font-medium text-ink">{f.name || '（未命名）'}</span>
-                  {f.gender === 'F' || f.gender === '女' ? '女' : '男'}　<span className="font-latin">{birthText(f)}</span>
-                  {f.note && <span className="ml-2 text-muted">— {f.note}</span>}
-                </div>
-                <div className="flex gap-2">
-                  <BrandButton variant="secondary" size="S" onClick={() => viewChart(f)}>
-                    檢視
-                  </BrandButton>
-                  <BrandButton variant="soft" size="S" onClick={() => unfavorite(f.chart_id)}>
-                    取消收藏
-                  </BrandButton>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      ) : tab === 'orders' ? (
-        // ── 我的訂單 / 折扣券 ──────────────────────────────
+      ) : tab === 'coupons' ? (
+        // ── 折扣券（含外部訂單登錄） ──────────────────────────────
         <div className="space-y-8">
           <div className="space-y-3">
-            <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">我的折扣券</h2>
+            <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">可用的折扣券</h2>
             {rewards.length === 0 ? (
               <EmptyState icon={Ticket}>尚無折扣券。完成購買並登錄訂單號、經審核通過後即可領取。</EmptyState>
             ) : (
@@ -714,7 +570,10 @@ export default function AccountPage() {
 
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">訂單登錄</h2>
+              <div>
+                <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">登錄外部訂單換折扣券</h2>
+                <p className="mt-1 text-sm text-text">在蝦皮、Pinkoi 買過我們的商品？登錄訂單號，審核通過就會發折扣券給你。</p>
+              </div>
               <BrandButton
                 variant="secondary"
                 size="S"
@@ -755,37 +614,7 @@ export default function AccountPage() {
             )}
           </div>
         </div>
-      ) : (
-        // ── 收藏文章 ──────────────────────────────────────
-        savedArticles.length === 0 ? (
-          <EmptyState
-            icon={BookOpen}
-            action={
-              <Link href="/articles" className={brandButton({ variant: 'soft', size: 'S' })}>
-                逛逛專欄
-              </Link>
-            }
-          >
-            尚無收藏文章。在文章頁點「收藏文章」即可加入。
-          </EmptyState>
-        ) : (
-          <div className="space-y-2">
-            {savedArticles.map((a) => (
-              <div key={a.id} className={cardCls}>
-                <a
-                  href={`/posts/${a.slug}`}
-                  className="min-w-0 flex-1 truncate rounded-sm2 text-sm font-medium text-blue-500 underline-offset-[3px] transition-colors duration-150 ease-out hover:text-pink-600 hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
-                >
-                  {a.title}
-                </a>
-                <BrandButton variant="soft" size="S" onClick={() => unsaveArticle(a.content_id)}>
-                  取消收藏
-                </BrandButton>
-              </div>
-            ))}
-          </div>
-        )
-      )}
+      ) : null}
 
       {/* 登錄訂單號 Modal */}
       {submitOpen && (

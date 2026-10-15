@@ -1,34 +1,40 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, ChevronDown } from 'lucide-react';
 import ReportBookCover from '@/components/report/ReportBookCover';
 import Tag from '@/components/ui/Tag';
 import { REPORT_CATALOG, productHref } from '@/lib/report/catalog';
-import { loadReportProducts } from '@/lib/report/display';
+import { loadReportCatalogFaq, loadReportProducts } from '@/lib/report/display';
 import { loadReportPrices } from '@/lib/report/prices';
 
-// 價格與卡片文字由商品後台設定；每 10 分鐘重新取得
+// 價格沿用快取；卡片文字由 loadReportProducts 即時讀取後台設定。
 export const revalidate = 600;
+
+export const metadata: Metadata = {
+  title: '所有客製報告｜理解自己，重新看見孩子｜親紫之間',
+  description: '親紫之間以紫微斗數命盤為線索，製作聚焦一個人的客製報告。從自己的反應到孩子的日常，透過生命描繪與觀察問題，把理解帶回生活核對。',
+};
 
 /** 所有客製報告的目錄頁：每份報告以書封呈現，點進去是該報告的商品頁。 */
 export default async function ReportCatalogPage() {
   // 目前所有報告共用同一組商品代碼；之後報告各自定價時改成依報告讀取
-  const [prices, products] = await Promise.all([loadReportPrices(), loadReportProducts()]);
+  const [prices, products, faq] = await Promise.all([loadReportPrices(), loadReportProducts(), loadReportCatalogFaq()]);
 
   return (
     <div>
       <p className="bg-ink px-4 py-2.5 text-center text-sm text-white">{REPORT_CATALOG.promo}</p>
 
-      <div className="mx-auto max-w-content px-4 py-12 md:px-6 md:py-16">
+      <div className="mx-auto max-w-content px-4 pt-8 pb-12 md:px-6 md:pt-10 md:pb-16">
         <section className="max-w-2xl">
           <h1 className="font-heading text-[32px] font-normal text-ink md:text-h1">{REPORT_CATALOG.title}</h1>
-          <p className="mt-4 text-[17px] text-text md:text-lead">{REPORT_CATALOG.subtitle}</p>
+          <p className="mt-2 text-[17px] text-text md:text-lead">{REPORT_CATALOG.subtitle}</p>
         </section>
 
-        <section id="reports" aria-label="報告列表" className="mt-12 scroll-mt-24">
+        <section id="reports" aria-label="報告列表" className="mt-8 scroll-mt-24">
           <p className="text-caption text-muted">
-            共 <span className="font-latin">{products.length}</span> 份報告
+            共 <span className="font-latin">{products.length}</span> 款報告
           </p>
-          <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 md:gap-x-6">
+          <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-10 md:gap-x-6">
             {products.map((p) => (
               <li key={p.slug}>
                 <Link
@@ -54,31 +60,21 @@ export default async function ReportCatalogPage() {
                     {prices.digital.available ? (
                       <>
                         <span className="font-latin font-extrabold text-ink">{prices.digital.text}</span>
-                        <span className="text-muted"> 起・數位版</span>
+                        <span className="text-muted">・數位報告</span>
                       </>
                     ) : (
                       <span className="text-muted">{prices.digital.text}</span>
                     )}
                   </p>
-                  <p className="text-caption text-muted">可加購精裝實體書</p>
                 </Link>
               </li>
             ))}
           </ul>
         </section>
 
-        <section
-          aria-label="服務特色"
-          className="mt-16 grid grid-cols-2 gap-3 rounded-card bg-white p-6 text-center text-sm text-text md:mt-24 md:grid-cols-4 md:p-8"
-        >
-          {REPORT_CATALOG.usps.map((u) => (
-            <p key={u} className="py-2">{u}</p>
-          ))}
-        </section>
-
-        <section aria-labelledby="catalog-audience" className="mt-16 md:mt-24">
+        <section aria-labelledby="catalog-audience" className="mt-12 md:mt-20">
           <h2 id="catalog-audience" className="font-heading text-[26px] font-normal text-ink md:text-h2">
-            你想送給誰？
+            {REPORT_CATALOG.audienceTitle}
           </h2>
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
             {REPORT_CATALOG.audiences.map((a) => (
@@ -87,9 +83,6 @@ export default async function ReportCatalogPage() {
                 href="#reports"
                 className="group flex flex-col rounded-card bg-white p-3 pb-5 transition-shadow duration-300 ease-out hover:shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
               >
-                <div className="flex aspect-[4/3] items-center justify-center rounded-[24px] bg-tint text-caption text-muted">
-                  ［佔位］情境照片
-                </div>
                 <div className="px-3 pt-4">
                   <p className="font-heading text-[18px] text-ink md:text-h4">{a.label}</p>
                   <p className="mt-1 text-small text-text">{a.note}</p>
@@ -100,14 +93,15 @@ export default async function ReportCatalogPage() {
               </Link>
             ))}
           </div>
+          <p className="mt-5 max-w-2xl text-small text-muted">{REPORT_CATALOG.audienceConsent}</p>
         </section>
 
         <section aria-labelledby="catalog-faq" className="mt-16 max-w-[720px] md:mt-24">
           <h2 id="catalog-faq" className="font-heading text-[26px] font-normal text-ink md:text-h2">
-            客製報告常見問題
+            {REPORT_CATALOG.faqTitle}
           </h2>
           <div className="mt-6 space-y-3">
-            {REPORT_CATALOG.faq.map((f) => (
+            {faq.map((f) => (
               <details key={f.q} className="group rounded-inner bg-white">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-inner px-6 py-5 font-medium text-ink transition-colors duration-150 hover:text-blue-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 [&::-webkit-details-marker]:hidden">
                   {f.q}

@@ -4,6 +4,7 @@
  * 事後加購：已付款的報告訂單 → 實體書（規格／數量／特殊客製）與／或專人解讀 → 收件資料（有實體書才需要）
  * → 同意交易政策 → 建立新的待付款訂單。加購訂單連回原報告（不重新排盤、不重新製作報告）。
  * 網址帶 ?item=consult 時預設只買專人解讀。
+ * 報告已完成時，付款前就能用整本書的預覽「設計你的書」（可略過，付款後再做）；草稿隨加購送出連到訂單。
  */
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -14,10 +15,11 @@ import Alert from '@/components/ui/Alert';
 import BrandButton from '@/components/ui/BrandButton';
 import EmailVerifyBox from '@/components/report/EmailVerifyBox';
 import PhysicalOptions, { ConsultOption, PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
+import BookDesigner from '@/components/report/design/BookDesigner';
 import ShippingFields, { EMPTY_SHIPPING, SHIPPING_LABELS } from '@/components/report/ShippingFields';
 import { useAuthStore } from '@/store/auth';
 import { memberAccountApi, reportOrdersApi, type ReportOrderSummary, type ShippingInfo } from '@/lib/api';
-import { priceConsult, pricePhysical, type PhysicalConfig, type PhysicalSelection, type PriceLine } from '@/lib/api/reportOrders';
+import { priceConsult, pricePhysical, type DesignView, type PhysicalConfig, type PhysicalSelection, type PriceLine } from '@/lib/api/reportOrders';
 import { POLICY_VERSION } from '@/lib/report/catalog';
 import { newSubmissionKey } from '@/lib/report/draft';
 import { formatPrice } from '@/lib/report/prices';
@@ -66,6 +68,10 @@ function ReportAddonContent() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [design, setDesign] = useState<DesignView | null>(null);
+  const [designOpen, setDesignOpen] = useState(false);
+  const [designBusy, setDesignBusy] = useState(false);
+  const [designError, setDesignError] = useState('');
   const submissionKey = useSubmissionKey(orderNo);
 
   useEffect(() => {
@@ -125,6 +131,26 @@ function ReportAddonContent() {
   const total = lines.reduce((a, l) => a + l.amount, 0);
   const manualOpen = payMode?.mode === 'manual' && payMode.available;
 
+  const reportReady = !!order.report;
+
+  const openDesign = async () => {
+    setDesignError('');
+    if (design) {
+      setDesignOpen(true);
+      return;
+    }
+    setDesignBusy(true);
+    try {
+      const r = await reportOrdersApi.designDraft(orderNo);
+      setDesign(r.design);
+      setDesignOpen(true);
+    } catch (e: any) {
+      setDesignError(e.message || '無法開啟設計，請稍後再試');
+    } finally {
+      setDesignBusy(false);
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -144,7 +170,7 @@ function ReportAddonContent() {
         policy_consented: true,
         policy_version: POLICY_VERSION,
         consult_sessions: consultLine ? sessions : 0,
-        ...(book ? { physical: selection, shipping } : {}),
+        ...(book ? { physical: selection, shipping, ...(design ? { design_id: design.id } : {}) } : {}),
       });
       try { sessionStorage.removeItem(`polaris_addon_key_${orderNo}`); } catch { /* ignore */ }
       router.push(`/report/orders/${res.order.order_no}`);
@@ -187,6 +213,38 @@ function ReportAddonContent() {
             {wantBook && selection && (
               <div className="mt-6 border-t border-line pt-6">
                 <PhysicalOptions cfg={cfg} value={selection} onChange={setSelection} />
+              </div>
+            )}
+          </section>
+        )}
+
+        {book && (
+          <section className={cardCls}>
+            <h2 className={cardTitleCls}>設計你的書</h2>
+            {!reportReady ? (
+              <p className="mt-2 text-sm text-text">
+                報告完成後，我們會寄信請你用整本書的預覽設計封面、扉頁與要修改的地方；送印前也會請你確認完整內容。
+              </p>
+            ) : !designOpen ? (
+              <>
+                <p className="mt-2 text-sm text-text">
+                  翻閱整本書的樣子，填上封面名字與扉頁贈言，看到想調整的地方直接標註。可以現在做，也可以付款後再做；內容會自動儲存。
+                </p>
+                {designError && <Alert tone="error" className="mt-3">{designError}</Alert>}
+                <BrandButton variant="soft" className="mt-4" onClick={openDesign} disabled={designBusy}>
+                  {designBusy ? '開啟中…' : design ? '繼續設計' : '開始設計'}
+                </BrandButton>
+              </>
+            ) : design && (
+              <div className="mt-4 space-y-4">
+                <BookDesigner
+                  design={design}
+                  onDesignChange={setDesign}
+                  cfg={cfg}
+                  purchased={{ custom: selection.custom ?? [], spreads: selection.spreads ?? 0 }}
+                  onAddCustom={(k) => setSelection((s) => (s && !(s.custom ?? []).includes(k) ? { ...s, custom: [...(s.custom ?? []), k] } : s))}
+                />
+                <BrandButton variant="soft" size="S" onClick={() => setDesignOpen(false)}>收合預覽</BrandButton>
               </div>
             )}
           </section>

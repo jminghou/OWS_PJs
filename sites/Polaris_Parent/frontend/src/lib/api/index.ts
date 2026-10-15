@@ -101,7 +101,7 @@ export type { AdminOrderSubmission, CouponConfig } from './admin-commerce';
 export { memberAccountApi } from './memberAccount';
 export { reportOrdersApi } from './reportOrders';
 export type {
-  ReportOrderSummary, ShippingInfo, AdminReportOrder, BankInfo, TransferReport, PaymentMode,
+  ReportOrderSummary, ShippingInfo, AdminReportOrder, BankInfo, TransferReport, PaymentMode, CommerceSummary,
 } from './reportOrders';
 export type { EmailCodePurpose, VerificationStatus } from './memberAccount';
 

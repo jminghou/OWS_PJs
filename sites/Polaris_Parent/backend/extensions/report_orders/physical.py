@@ -21,6 +21,7 @@
 """
 
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 from core.backend_engine.factory import db
 from packages.commerce.models import Order, OrderCheckout, OrderInvoice, OrderItem, Product
@@ -256,6 +257,7 @@ def price_consult(cfg, sessions):
 
 
 def create_print_job(item, cfg, selection, call_name=''):
+    """建立實體書紀錄（不 commit），回傳 job。"""
     job = ReportPrintJob(
         order_item_id=item.id, status='awaiting_payment', spec=selection['spec'],
         custom={'options': selection['custom'], 'spreads': selection['spreads'],
@@ -297,6 +299,8 @@ def report_item(order):
 
 def addon_offer(order, cfg=None):
     """這筆訂單現在能加購什麼（給訂單頁顯示用）。"""
+    if order.payment_method == 'external_verified':
+        return None  # External cross-sell policy has not been reviewed/implemented.
     item = report_item(order)
     if order.status != 'paid' or item is None:
         return None
@@ -306,6 +310,10 @@ def addon_offer(order, cfg=None):
 
 def create_addon_order(user, parent_order, data, shipping, submission_key, payment_mode, expires_at=None):
     """事後加購：實體書與／或專人解讀，建立一張新訂單。回傳 (order, created)。"""
+    from . import commerce
+    commerce.lock_order(parent_order)
+    if parent_order.payment_method == 'external_verified':
+        raise OrderError('此平台成交的訂單尚未開放官網加購', 409, 'external_addon_unavailable')
     existing = find_by_submission_key(submission_key)
     if existing is not None:
         if existing.user_id != user.id:
@@ -359,7 +367,12 @@ def create_addon_order(user, parent_order, data, shipping, submission_key, payme
                                         'parent_item_no': parent.item_no, 'parent_order_no': parent_order.order_no})
         db.session.add(item)
         db.session.flush()
-        create_print_job(item, cfg, physical_sel, audience.get('call_name') or '')
+        job = create_print_job(item, cfg, physical_sel, audience.get('call_name') or '')
+        db.session.flush()
+        if data.get('design_id'):
+            from . import design as design_mod
+
+            design_mod.attach_draft(data.get('design_id'), user, parent, job)
         db.session.add(Shipment(order_item_id=item.id, recipient_name=shipping['recipient_name'],
                                 recipient_phone=shipping['recipient_phone'],
                                 postal_code=shipping['postal_code'] or None, address=shipping['address'],
@@ -375,7 +388,16 @@ def create_addon_order(user, parent_order, data, shipping, submission_key, payme
     order.amount = amount
     order.items = [item_snapshot(i) for i in items]
     db.session.add(OrderInvoice(order_id=order.id, status='not_applicable'))
-    db.session.commit()
+    from . import commerce
+    try:
+        commerce.finalize_order(order)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        existing = find_by_submission_key(submission_key)
+        if existing is not None and existing.user_id == user.id:
+            return existing, False
+        raise
     return order, True
 
 
@@ -411,6 +433,8 @@ def on_order_cancelled(order, by='system', reason=None):
     """整張訂單取消（逾期、未付款加購單取消）：實體書、出貨、專人解讀一併取消。不 commit。"""
     now = datetime.utcnow()
     for item in order.order_items:
+        from . import commerce
+        commerce.revoke(item, None, reason or 'order_cancelled')
         job = print_job_for(item)
         if job is not None and job.status != 'cancelled':
             job.status, job.cancelled_at, job.cancelled_by, job.cancel_reason = 'cancelled', now, by, reason
@@ -441,8 +465,12 @@ def cancel_physical(order, by, reason=None):
     - 下單選實體書版但還沒付款：不在這裡處理（逾期會自動取消）。
     回傳 print job。
     """
+    from . import commerce
+    commerce.lock_order(order)
     item = physical_item(order)
     job = print_job_for(item)
+    if job is not None:
+        db.session.refresh(job)
     if job is None:
         raise OrderError('這筆訂單沒有實體書', 404, 'no_physical')
     if job.status not in PRINT_JOB_CANCELLABLE:
@@ -458,6 +486,7 @@ def cancel_physical(order, by, reason=None):
         return job
 
     pricing = job.pricing or {}
+    commerce.revoke(item, 'book', reason or 'physical_cancelled')
     job.refund_due = item.unit_price if item.kind == 'addon' else pricing.get('line_total')
     job.status, job.cancelled_at, job.cancelled_by, job.cancel_reason = 'cancelled', datetime.utcnow(), by, reason
     s = Shipment.query.filter_by(order_item_id=item.id).first()
@@ -470,11 +499,16 @@ def cancel_physical(order, by, reason=None):
 
 
 def mark_printing(job, admin_id):
+    from . import commerce
+    item = db.session.get(OrderItem, job.order_item_id)
+    commerce.require(item, 'book')
+    db.session.refresh(job)
     allowed = ('approved',) if PROOF_APPROVAL_REQUIRED else _PRE_PRINT
     if job.status not in allowed:
         raise OrderError('這本實體書目前不能送印' + ('（會員尚未確認打樣）' if PROOF_APPROVAL_REQUIRED else ''),
                          409, 'invalid_status')
     job.status = 'printing'
+    commerce.start(item, 'book', 'print_job', job.id)
     s = Shipment.query.filter_by(order_item_id=job.order_item_id).first()
     if s is not None:
         s.status, s.print_sent_at, s.updated_by = 'printing', datetime.utcnow(), admin_id
@@ -482,6 +516,10 @@ def mark_printing(job, admin_id):
 
 
 def mark_shipped(job, admin_id, carrier, tracking_no, note=None):
+    from . import commerce
+    item = db.session.get(OrderItem, job.order_item_id)
+    commerce.require(item, 'book')
+    db.session.refresh(job)
     if job.status != 'printing':
         raise OrderError('送印後才能登錄出貨', 409, 'invalid_status')
     carrier, tracking_no = (carrier or '').strip(), (tracking_no or '').strip()
@@ -498,9 +536,14 @@ def mark_shipped(job, admin_id, carrier, tracking_no, note=None):
 
 
 def mark_delivered(job, admin_id):
+    from . import commerce
+    item = db.session.get(OrderItem, job.order_item_id)
+    commerce.require(item, 'book')
+    db.session.refresh(job)
     if job.status != 'shipped':
         raise OrderError('出貨後才能標記送達', 409, 'invalid_status')
     job.status = 'delivered'
+    commerce.complete(item, 'book', 'print_job', job.id, admin_id)
     s = Shipment.query.filter_by(order_item_id=job.order_item_id).first()
     if s is not None:
         s.status, s.delivered_at, s.updated_by = 'delivered', datetime.utcnow(), admin_id
@@ -508,12 +551,18 @@ def mark_delivered(job, admin_id):
 
 
 def _record_refund(row, amount, note):
+    from . import commerce
+    item = db.session.get(OrderItem, row.order_item_id)
+    commerce.lock_order(item.order)
+    db.session.refresh(row)
     if row.status != 'cancelled':
         raise OrderError('取消後才能登錄退款', 409, 'invalid_status')
     if row.refunded_at is not None:
         raise OrderError('這筆已登錄過退款', 409, 'already_refunded')
     if not isinstance(amount, int) or isinstance(amount, bool) or amount <= 0:
         raise OrderError('請填寫退款金額', 400, 'invalid')
+    if row.refund_due is None or amount > row.refund_due:
+        raise OrderError('退款金額不可超過應退金額', 400, 'refund_exceeds_due')
     row.refund_amount, row.refunded_at = amount, datetime.utcnow()
     row.refund_note = (note or '').strip()[:500] or None
 
@@ -533,26 +582,78 @@ def _parse_dt(value):
 
 
 def schedule_consult(consult, admin_id, scheduled_at, note=None):
+    from . import commerce
+    item = db.session.get(OrderItem, consult.order_item_id)
+    commerce.require(item, 'consult')
+    db.session.refresh(consult)
     if consult.status not in ('to_schedule', 'scheduled'):
         raise OrderError('付款後才能安排時間', 409, 'invalid_status')
     when = _parse_dt(scheduled_at) if scheduled_at else None
     if when is None:
         raise OrderError('請填寫約定的日期與時間', 400, 'invalid')
     consult.status, consult.scheduled_at, consult.updated_by = 'scheduled', when, admin_id
+    commerce.start(item, 'consult', 'consultation', consult.id)
     if note is not None:
         consult.admin_note = note.strip()[:1000] or None
     db.session.commit()
 
 
+CONSULT_PERIODS = {'morning': '上午', 'afternoon': '下午', 'evening': '晚上'}
+CONSULT_MAX_SLOTS = 3
+CONSULT_PREF_DAYS = 60
+
+
+def set_consult_preferences(consult, raw, today=None):
+    """會員填方便的時段（1–3 個，明天起 60 天內）與備註；待安排時間時才能填、可重填。"""
+    from datetime import date, timedelta
+    from . import commerce
+
+    item = db.session.get(OrderItem, consult.order_item_id)
+    commerce.lock_order(item.order)
+    db.session.refresh(consult)
+
+    if consult.status != 'to_schedule':
+        raise OrderError('目前無法更改時段；已約好時間的話，請直接回覆確認信', 409, 'invalid_status')
+    raw = raw if isinstance(raw, dict) else {}
+    today = today or date.today()
+    first, last = today + timedelta(days=1), today + timedelta(days=CONSULT_PREF_DAYS)
+    slots, seen = [], set()
+    for s in raw.get('slots') or []:
+        if not isinstance(s, dict) or s.get('period') not in CONSULT_PERIODS:
+            continue
+        try:
+            d = date.fromisoformat(str(s.get('date') or ''))
+        except ValueError:
+            continue
+        if not (first <= d <= last) or (d, s['period']) in seen:
+            continue
+        seen.add((d, s['period']))
+        slots.append({'date': d.isoformat(), 'period': s['period']})
+    if not slots:
+        raise OrderError(f'請至少選一個時段（明天起 {CONSULT_PREF_DAYS} 天內）', 400, 'invalid')
+    consult.preferences = {'slots': slots[:CONSULT_MAX_SLOTS], 'note': str(raw.get('note') or '').strip()[:500]}
+    consult.preferences_at = datetime.utcnow()
+    db.session.commit()
+
+
 def complete_consult(consult, admin_id):
+    from . import commerce
+    item = db.session.get(OrderItem, consult.order_item_id)
+    commerce.require(item, 'consult')
+    db.session.refresh(consult)
     if consult.status != 'scheduled':
         raise OrderError('安排時間後才能標記完成', 409, 'invalid_status')
     consult.status, consult.completed_at, consult.updated_by = 'completed', datetime.utcnow(), admin_id
+    commerce.complete(item, 'consult', 'consultation', consult.id, admin_id)
     db.session.commit()
 
 
 def cancel_consult(consult, admin_id, reason):
     """由管理者代為取消（取消規則不對外公開）。已付款的記應退金額。"""
+    from . import commerce
+    item = db.session.get(OrderItem, consult.order_item_id)
+    commerce.lock_order(item.order)
+    db.session.refresh(consult)
     if consult.status in ('completed', 'cancelled'):
         raise OrderError('這筆專人解讀已完成或已取消', 409, 'invalid_status')
     reason = (reason or '').strip()
@@ -560,6 +661,7 @@ def cancel_consult(consult, admin_id, reason):
         raise OrderError('請填寫取消原因', 400, 'invalid')
     item = db.session.get(OrderItem, consult.order_item_id)
     order = item.order
+    commerce.revoke(item, 'consult', reason[:500], admin_id)
     if order.status == 'paid':
         consult.refund_due = item.unit_price * item.quantity
     consult.status, consult.cancelled_at, consult.cancel_reason = 'cancelled', datetime.utcnow(), reason[:500]
@@ -610,9 +712,23 @@ def _custom_labels(job):
     return names
 
 
+def _design_state(job):
+    """設計狀態：報告 PDF 好了沒、設計做到哪（給訂單頁決定要不要顯示「設計你的書」）。"""
+    from sites.Polaris_Parent.backend.models import ReportBookDesign
+
+    from . import delivery
+
+    item = db.session.get(OrderItem, job.order_item_id)
+    report_item = db.session.get(OrderItem, item.parent_item_id) if item.kind == 'addon' else item
+    d = ReportBookDesign.query.filter_by(print_job_id=job.id).first()
+    return {'report_ready': delivery.current_document(report_item) is not None,
+            'design_status': d.status if d is not None else None}
+
+
 def job_view(job, item):
     pricing = job.pricing or {}
     return {
+        **_design_state(job),
         'id': job.id,
         'status': job.status,
         'status_label': STATUS_LABELS.get(job.status, job.status),
@@ -640,10 +756,21 @@ def consult_view(consult, item):
         'minutes': consult.minutes,
         'amount': item.unit_price * item.quantity,
         'scheduled_at': consult.scheduled_at.isoformat() if consult.scheduled_at else None,
+        'preferences': consult.preferences or None,
+        'preferences_at': consult.preferences_at.isoformat() if consult.preferences_at else None,
         'cancelled_at': consult.cancelled_at.isoformat() if consult.cancelled_at else None,
         'refund_due': consult.refund_due,
         'refunded_at': consult.refunded_at.isoformat() if consult.refunded_at else None,
     }
+
+
+def pending_design_jobs(report_item):
+    """這份報告底下已付款、還在等客人設計內容的實體書（報告完成時通知客人來設計）。"""
+    if report_item is None:
+        return []
+    ids = [report_item.id] + [i.id for i in OrderItem.query.filter_by(parent_item_id=report_item.id, variant='physical').all()]
+    return ReportPrintJob.query.filter(ReportPrintJob.order_item_id.in_(ids),
+                                       ReportPrintJob.status == 'awaiting_customization').all()
 
 
 def addon_children(item):
@@ -662,7 +789,7 @@ def addon_children(item):
         })
         job, consult = print_job_for(child), consultation_for(child)
         if job is not None:
-            entry['physical'] = {'quantity': child.quantity, 'status': job.status,
+            entry['physical'] = {'quantity': (job.pricing or {}).get('quantity') or child.quantity, 'status': job.status,
                                  'status_label': STATUS_LABELS.get(job.status, '')}
         if consult is not None:
             entry['consult'] = {'sessions': consult.sessions, 'status': consult.status,

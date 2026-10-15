@@ -1,0 +1,217 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/v1/report-orders",
+    "status": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/report-orders",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/studio/card-kinds",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-channels",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-product-mappings",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts",
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts/1/review",
+    "status": 400
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts/1/review",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts/1/contract-preview",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts/1/contract",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/homepage",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/i18n",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/homepage",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/studio/card-kinds",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts/1/review",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/homepage",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/i18n",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/homepage",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/studio/card-kinds",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/studio/card-kinds",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/report-orders/ACCEPTANCE-ORDER-1/report-pdf",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/homepage",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/studio/card-kinds",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/studio/card-kinds",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/report-orders/ACCEPTANCE-ORDER-1/report-pdf",
+    "status": 409
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/studio/card-kinds",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts/2/review",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts/2/contract-preview",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/commerce-receipts/2/contract",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/studio/card-kinds",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/report-orders/ACCEPTANCE-ORDER-2/report-pdf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/i18n",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/i18n",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/report-orders/ACCEPTANCE-ORDER-2/report-pdf/link",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/i18n",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/i18n",
+    "status": 404
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/report-orders/ACCEPTANCE-ORDER-2/report-pdf/link",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/homepage",
+    "status": 404
+  }
+]

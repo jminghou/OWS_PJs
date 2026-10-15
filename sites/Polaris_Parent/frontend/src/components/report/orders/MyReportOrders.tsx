@@ -1,6 +1,6 @@
 'use client';
 
-/** 會員中心「我的報告訂單」：列出客製報告訂單與實體書加購，點進去是訂單頁。 */
+/** 會員中心「訂單紀錄」：所有訂單（報告、實體書、專人解讀）照時間排，看金額與付款狀態，點進去是訂單頁。 */
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ChevronRight, FileText } from 'lucide-react';
@@ -12,13 +12,15 @@ const STATUS: Record<string, string> = { pending: '待付款', paid: '已付款'
 const fmtDate = (iso: string | null) =>
   iso ? new Date(iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`).toLocaleDateString('zh-TW') : '';
 
-export default function MyReportOrders() {
-  const [orders, setOrders] = useState<ReportOrderSummary[] | null>(null);
+export default function MyReportOrders({ orders: given }: { orders?: ReportOrderSummary[] }) {
+  const [loaded, setLoaded] = useState<ReportOrderSummary[] | null>(null);
   const [error, setError] = useState('');
+  const orders = given ?? loaded;
 
   useEffect(() => {
-    reportOrdersApi.list().then((r) => setOrders(r.orders)).catch((e) => setError(e.message || '無法載入訂單'));
-  }, []);
+    if (given) return;
+    reportOrdersApi.list().then((r) => setLoaded(r.orders)).catch((e) => setError(e.message || '無法載入訂單'));
+  }, [given]);
 
   if (error) return <Alert tone="error">{error}</Alert>;
   if (!orders) return <p className="text-muted">載入中…</p>;
@@ -36,6 +38,7 @@ export default function MyReportOrders() {
     <ul className="space-y-3">
       {orders.map((o) => {
         const isAddon = o.item?.kind !== 'purchase';
+        const transferPending = o.status === 'pending' && o.payment.transfer?.status === 'created';
         const subs = [
           o.physical && o.physical.status !== 'awaiting_payment' ? `實體書：${o.physical.status_label}` : '',
           o.consult && o.consult.status !== 'awaiting_payment' ? `專人解讀：${o.consult.status_label}` : '',
@@ -44,6 +47,7 @@ export default function MyReportOrders() {
         const title = isAddon
           ? o.lines.map((l) => (l.variant === 'consult' ? `專人解讀 × ${l.quantity} 次` : `實體書加購 × ${l.quantity} 本`)).join('＋')
           : o.item?.name;
+        const parent = o.item?.parent_order_no;
         return (
           <li key={o.order_no}>
             <Link href={`/report/orders/${o.order_no}`}
@@ -54,12 +58,13 @@ export default function MyReportOrders() {
                   {o.item?.call_name && <span className="text-text">・{o.item.call_name}</span>}
                 </p>
                 <p className="mt-1 text-caption text-muted">
-                  <span className="font-latin">{o.order_no}</span>・{fmtDate(o.created_at)}・
+                  <span className="font-latin">{o.order_no}</span>・{fmtDate(o.created_at)}・{parent && <>加購自 <span className="font-latin">{parent}</span>・</>}
                   <span className="font-latin">NT${o.amount.toLocaleString('zh-TW')}</span>
                 </p>
                 <p className="mt-2 flex flex-wrap gap-2 text-[13px]">
-                  <span className="rounded-full bg-tint px-2.5 py-1 text-text">{STATUS[o.status] ?? o.status}</span>
+                  <span className="rounded-full bg-tint px-2.5 py-1 text-text">{transferPending ? '匯款確認中' : STATUS[o.status] ?? o.status}</span>
                   {subs.map((x) => <span key={x} className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">{x}</span>)}
+                  {o.commerce?.external?.fulfilment_blocked && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">後續履約暫停</span>}
                   {canAddon && <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">可加購</span>}
                 </p>
               </div>

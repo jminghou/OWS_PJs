@@ -171,7 +171,9 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
         db.session.add(Shipment(order_item_id=item.id, recipient_name=s['recipient_name'],
                                 recipient_phone=s['recipient_phone'], postal_code=s['postal_code'] or None,
                                 address=s['address'], status='pending'))
+    from . import commerce
     try:
+        commerce.finalize_order(order)
         db.session.commit()
     except IntegrityError:
         # 同一份草稿同時送出兩次：另一個請求已先建好（紫微端會回傳同一張盤）
@@ -184,8 +186,10 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
 
 
 def order_summary(order):
+    from . import commerce
     from .payment import attempt_view, latest_manual_attempt, manual_bank_info
 
+    from . import delivery
     from . import physical as phys
 
     # 主項目：報告（purchase）＞實體書加購＞其他（例如單獨加購的專人解讀）
@@ -195,6 +199,8 @@ def order_summary(order):
             or (items[0] if items else None))
     payment = {'mode': order.payment_method,
                'deadline': order.checkout.expires_at.isoformat() if order.checkout and order.checkout.expires_at else None}
+    if order.payment_method == 'external_verified':
+        payment['deadline'] = None
     if order.payment_method == 'manual':
         payment['transfer'] = attempt_view(latest_manual_attempt(order))
         if order.status == 'pending':
@@ -207,6 +213,7 @@ def order_summary(order):
     c_item = phys.consult_item(order)
     c_row = phys.consultation_for(c_item)
     return {
+        'commerce': commerce.view(order),
         'order_no': order.order_no,
         'status': order.status,
         'amount': order.amount,
@@ -226,8 +233,10 @@ def order_summary(order):
             'parent_order_no': c.get('parent_order_no'),
         },
         'lines': [{'name': i.name, 'kind': i.kind, 'variant': i.variant, 'quantity': i.quantity,
-                   'amount': i.unit_price if i.variant == 'physical' and i.kind == 'addon' else i.unit_price * i.quantity}
+                   'amount': commerce.legacy_line_total(i)}
                   for i in items],
+        'report': (lambda d: d and delivery.document_view(d))(delivery.current_document(item))
+        if item is not None and item.kind == 'purchase' and order.status == 'paid' else None,
         'physical': p_job and phys.job_view(p_job, p_item),
         'consult': c_row and phys.consult_view(c_row, c_item),
         'addons': phys.addon_children(item) if item is not None and item.kind == 'purchase' else [],

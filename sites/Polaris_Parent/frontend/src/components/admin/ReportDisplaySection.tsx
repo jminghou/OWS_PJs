@@ -83,7 +83,7 @@ function ReportTextTab(props: ProductAttributesSectionProps) {
     <>
       <p className="rounded-lg bg-muted px-4 py-3 text-xs leading-relaxed text-muted-foreground">
         對應前台「{report.name}」的目錄卡片與商品頁。報告名稱、卡片描述、價格分別取自「基本資料」的產品名稱、
-        簡短描述與「價格與庫存」的售價。以下留空就用灰字的預設；儲存後約 10 分鐘更新到前台。
+        簡短描述與「價格與庫存」的售價。以下留空就用灰字的預設；前台文字與圖片儲存成功後，重新整理報告頁即可看到更新。
       </p>
 
       <Group title="卡片與商品頁">

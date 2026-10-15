@@ -8,7 +8,8 @@ import Alert from '@/components/ui/Alert';
 import BrandButton from '@/components/ui/BrandButton';
 import { useAuthStore } from '@/store/auth';
 import { reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
-import { AddonSection, ConsultStatus, PhysicalStatus } from '@/components/report/orders/PhysicalSections';
+import { AddonSection, ConsultStatus, PhysicalStatus, ReportDownload } from '@/components/report/orders/PhysicalSections';
+import ActivationSection from '@/components/report/orders/ActivationSection';
 
 const ORDER_STATUS: Record<string, string> = { pending: '待付款', paid: '已付款，報告製作中', cancelled: '已取消' };
 
@@ -238,10 +239,10 @@ export default function ReportOrderPage() {
               'inline-flex items-center rounded-full px-3 py-1.5 text-[13px] leading-none',
               STATUS_TONE[order.status] ?? 'bg-tint text-text'
             )}>
-              {isAddon && order.status === 'paid' ? '已付款' : ORDER_STATUS[order.status] ?? order.status}
+              {order.commerce?.external?.fulfilment_blocked ? '後續履約暫停' : isAddon && order.status === 'paid' ? '已付款' : order.report ? '報告已完成' : ORDER_STATUS[order.status] ?? order.status}
             </span>
           </Row>
-          {order.paid_at && <Row label="確認收款"><span className="font-latin">{fmtDateTime(order.paid_at)}</span></Row>}
+          {order.paid_at && <Row label={order.payment.mode === 'external_verified' ? '平台成交確認' : '確認收款'}><span className="font-latin">{fmtDateTime(order.paid_at)}</span></Row>}
         </dl>
       </div>
 
@@ -251,13 +252,18 @@ export default function ReportOrderPage() {
         </Alert>
       )}
       {pending && order.payment.mode === 'manual' && <ManualPayment order={order} onUpdated={setOrder} />}
-      {order.status === 'paid' && !isAddon && (
+      {order.commerce?.external?.fulfilment_blocked && <Alert tone="warning" className="mt-6">
+        平台成交證據需要重新釐清，後續製作已暫停，請聯絡客服。此狀態不表示平台已完成退款。
+      </Alert>}
+      {order.status === 'paid' && !isAddon && !order.report && !order.commerce?.external?.fulfilment_blocked && (
         <Alert tone="success" className="mt-6">
-          已確認收款，報告製作中。完成後會寄信通知你到會員中心下載。
+          {order.payment.mode === 'external_verified' ? '已核對平台成交，無須再向官網付款。' : '已確認收款，'}報告製作中。完成後會寄信通知你，到這個頁面就能下載。
         </Alert>
       )}
+      <ReportDownload order={order} />
+      <ActivationSection order={order} onUpdated={setOrder} />
       <PhysicalStatus order={order} onUpdated={setOrder} />
-      <ConsultStatus order={order} />
+      <ConsultStatus order={order} onUpdated={setOrder} />
       <AddonSection order={order} />
       {order.status === 'cancelled' && (
         <p className="mt-6 rounded-inner bg-white px-[18px] py-[14px] text-sm leading-relaxed text-text">

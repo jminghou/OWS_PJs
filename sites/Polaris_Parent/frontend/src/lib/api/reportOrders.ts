@@ -14,10 +14,20 @@
  *   POST /api/v1/admin/report-orders/:orderNo/reject-transfer        （report_orders.confirm_payment）
  *   GET  /api/v1/admin/report-print-jobs                             （report_orders.fulfill）
  *   POST /api/v1/admin/report-print-jobs/:id/:action                 （report_orders.fulfill）
+ *   POST /api/v1/report-orders/:orderNo/report-pdf/link              （會員，報告 PDF 短效網址）
+ *   GET  /api/v1/admin/report-deliveries                             （report_orders.fulfill）
+ *   POST /api/v1/admin/report-orders/:orderNo/report-pdf             （report_orders.fulfill，上傳報告 PDF）
+ *   POST /api/v1/admin/report-orders/:orderNo/report-pdf/link        （report_orders.fulfill）
+ *   POST /api/v1/report-orders/:orderNo/design-draft                 （會員，付款前的設計草稿）
+ *   GET  /api/v1/report-orders/:orderNo/design                       （會員，付款後那本實體書的設計）
+ *   GET|PUT /api/v1/report-designs/:id                               （會員，讀取／儲存設計）
+ *   POST /api/v1/report-designs/:id/assets、DELETE …/assets/:assetId  （會員，上傳／刪除照片）
+ *   POST /api/v1/report-designs/:id/confirm                          （會員，確認內容，開始製作打樣）
+ *   GET  /api/v1/report-files/:token                                 （私有檔案：報告 PDF／照片，短效憑證）
  *   GET  /api/v1/admin/report-consultations                          （report_orders.fulfill）
  *   POST /api/v1/admin/report-consultations/:id/:action              （report_orders.fulfill）
  */
-import { request } from '@ows/platform-api/client';
+import { getBaseUrl, request } from '@ows/platform-api/client';
 import type { ReportDraft } from '@/lib/report/draft';
 
 export type PaymentMode = 'placeholder' | 'manual';
@@ -108,6 +118,10 @@ export type ConsultStatus = 'awaiting_payment' | 'to_schedule' | 'scheduled' | '
 
 export interface PhysicalView {
   id: number;
+  /** 報告 PDF 已上傳（可以開始設計） */
+  report_ready: boolean;
+  /** 設計狀態；還沒開始設計為 null */
+  design_status: 'draft' | 'submitted' | 'confirmed' | null;
   status: PrintJobStatus;
   status_label: string;
   spec_label: string;
@@ -132,9 +146,21 @@ export interface ConsultView {
   minutes: number;
   amount: number;
   scheduled_at: string | null;
+  /** 會員填的方便時段（付款後、約好時間前可填） */
+  preferences: ConsultPreferences | null;
+  preferences_at: string | null;
   cancelled_at: string | null;
   refund_due: number | null;
   refunded_at: string | null;
+}
+
+export type ConsultPeriod = 'morning' | 'afternoon' | 'evening';
+export const CONSULT_PERIOD_LABELS: Record<ConsultPeriod, string> = { morning: '上午', afternoon: '下午', evening: '晚上' };
+
+export interface ConsultPreferences {
+  /** date 為 YYYY-MM-DD（明天起 60 天內），最多 3 個 */
+  slots: { date: string; period: ConsultPeriod }[];
+  note: string;
 }
 
 export interface AddonChild {
@@ -166,6 +192,7 @@ export interface TransferReport {
 }
 
 export interface ReportOrderSummary {
+  commerce?: CommerceSummary;
   order_no: string;
   status: 'pending' | 'paid' | 'cancelled' | string;
   amount: number;
@@ -188,6 +215,8 @@ export interface ReportOrderSummary {
   lines: { name: string; kind: string; variant: string; quantity: number; amount: number }[];
   production: { handoff_status: string; ziwei_status: string | null; member_note: string | null } | null;
   shipment: { status: string; carrier: string | null; tracking_no: string | null } | null;
+  /** 報告成品檔（已付款的報告訂單、管理者已上傳時才有） */
+  report: ReportDocumentView | null;
   /** 這張訂單的實體書 */
   physical: PhysicalView | null;
   /** 這張訂單的專人解讀 */
@@ -198,8 +227,69 @@ export interface ReportOrderSummary {
   addon_offer: { physical: boolean; consult: boolean; available: boolean } | null;
 }
 
+export interface ReportDocumentView {
+  id: number;
+  filename: string;
+  bytes: number;
+  uploaded_at: string | null;
+}
+
+export interface AdminDelivery {
+  order_no: string;
+  item_no: string;
+  name: string;
+  variant: string;
+  subject_name: string | null;
+  call_name: string | null;
+  buyer_email: string | null;
+  paid_at: string | null;
+  document: ReportDocumentView | null;
+}
+
 export interface AdminReportOrder extends ReportOrderSummary {
   buyer_email: string | null;
+}
+
+export interface CommerceBackfillReview {
+  order_no: string;
+  decision: 'review_required' | 'blocked' | 'skip_unpaid' | 'already_tracked';
+  apply_enabled: boolean;
+  reasons: { code: string; message: string }[];
+  owner_id?: number;
+  amount?: number;
+  currency?: string;
+  payment_attempt_id?: number;
+  review_token?: string;
+  valid_for_seconds?: number;
+  lines: {
+    item_no: string; name: string; original_unit_amount: number; original_quantity: number;
+    unit_amount: number; quantity: number; line_total: number; print_copies: number;
+    components: { label: string; amount: number }[];
+    grants: { kind: string; units: number; status: string; target_kind: string; target_id: number }[];
+  }[];
+}
+
+export interface ActivationView {
+  id: number;
+  status: 'issued' | 'expired' | 'redeemed' | 'revoked';
+  recipient_id: number;
+  expires_at: string;
+  redeemed_at: string | null;
+}
+
+export interface CommerceSummary {
+  external?: { receipt_id: number | null; evidence_status: string; fulfilment_blocked: boolean } | null;
+    version: number;
+    activation_enabled?: boolean;
+    source?: string;
+    migration?: string;
+    lines?: { item_no: string; unit_amount: number; quantity: number; line_total: number;
+      currency: string; print_copies: number; components: { label: string; amount: number }[] }[];
+    entitlements: { id: number; item_no: string; kind: string; unit_index: number; holder_id: number;
+      operator_id: number; status: string; revoke_reason: string | null;
+      activation?: ActivationView | null;
+      rights: { print_copies?: number; minutes?: number };
+      task: { id: number; status: string; target_kind: string; target_id: number } | null }[];
 }
 
 export interface AdminPrintJob extends PhysicalView {
@@ -217,7 +307,9 @@ export interface AdminPrintJob extends PhysicalView {
   call_name: string | null;
   dedication: string;
   options: Record<string, any>;
-  pages: any[];
+  pages: any;
+  /** 客人的設計（設計頁內容、照片憑證、報告 PDF 憑證）；還沒開始設計為 null */
+  design: DesignView | null;
   cancel_reason: string | null;
   cancelled_by: string | null;
   refund_note: string | null;
@@ -262,12 +354,87 @@ export interface CreateAddonRequest {
   /** 專人解讀次數，0＝不買 */
   consult_sessions: number;
   shipping?: ShippingInfo;
+  /** 付款前設計好的草稿（連到這次加購的實體書） */
+  design_id?: number;
 }
+
+// ── 設計你的書 ───────────────────────────────────────────────────────────
+
+export type AnnotationType = 'text' | 'image' | 'fix';
+
+export interface DesignAnnotation {
+  id: string;
+  /** 報告 PDF 的頁碼（1 起算） */
+  page: number;
+  type: AnnotationType;
+  text: string;
+  asset_ids: number[];
+}
+
+export interface DesignSpread {
+  index: number;
+  /** 插在報告第幾頁之後；null＝還沒選位置 */
+  after_page: number | null;
+  text: string;
+  asset_ids: number[];
+}
+
+export interface DesignData {
+  cover_name: string;
+  cover_style: string;
+  cover_asset_id: number | null;
+  dedication: string;
+  annotations: DesignAnnotation[];
+  spreads: DesignSpread[];
+}
+
+export interface DesignAsset {
+  id: number;
+  filename: string;
+  bytes: number;
+  content_type: string;
+  /** 用 privateFileUrl(token) 顯示 */
+  token: string;
+}
+
+export interface DesignView {
+  id: number;
+  status: 'draft' | 'submitted' | 'confirmed';
+  editable: boolean;
+  data: DesignData;
+  assets: DesignAsset[];
+  /** 已購買的特殊客製與跨頁數；付款前的草稿為 null（由加購頁的選擇決定） */
+  purchased: { custom: CustomKey[]; spreads: number } | null;
+  /** 確認前還沒完成的項目 */
+  problems: string[];
+  confirmable: boolean;
+  order_no: string | null;
+  report_order_no: string;
+  /** 報告 PDF 的檔案憑證（整本預覽用） */
+  report_token: string | null;
+  confirmed_at: string | null;
+}
+
+/** 私有檔案（報告 PDF、照片）的網址：短效憑證，不需要登入標頭 */
+export const privateFileUrl = (token: string) => `${getBaseUrl()}/report-files/${token}`;
 
 const post = <T>(path: string, body: unknown) =>
   request<T>(path, { method: 'POST', body: JSON.stringify(body) });
 
 export const reportOrdersApi = {
+  reviewBackfill: (orderNo: string) => request<{ success: boolean; review: CommerceBackfillReview }>(
+    `/admin/report-orders/${encodeURIComponent(orderNo)}/commerce-review`),
+  applyBackfill: (orderNo: string, review_token: string, note: string, confirmed: boolean) =>
+    post<{ success: boolean; changed: boolean; order: AdminReportOrder }>(
+      `/admin/report-orders/${encodeURIComponent(orderNo)}/commerce-review`, { review_token, note, confirmed }),
+  issueActivation: (entitlementId: number, days = 14) =>
+    post<{ success: boolean; activation_id: number; code: string; recipient_id: number; expires_at: string }>(
+      `/admin/report-entitlements/${entitlementId}/activation`, { days }),
+  revokeActivation: (activationId: number, reason: string) =>
+    post<{ success: boolean }>(`/admin/report-activations/${activationId}/revoke`, { reason }),
+  redeemActivation: (code: string, orderNo: string) =>
+    post<{ success: boolean; redeemed: boolean; order: ReportOrderSummary }>('/report-activations/redeem',
+      { code, order_no: orderNo }),
   paymentMode: () =>
     request<{ success: boolean; mode: PaymentMode | string; available: boolean; deadline_days: number | null }>(
       '/report-payment-mode'
@@ -280,6 +447,9 @@ export const reportOrdersApi = {
 
   list: () => request<{ success: boolean; orders: ReportOrderSummary[] }>('/report-orders'),
 
+  consultPreferences: (orderNo: string, body: ConsultPreferences) =>
+    post<{ success: boolean; order: ReportOrderSummary }>(`/report-orders/${encodeURIComponent(orderNo)}/consult-preferences`, body),
+
   get: (orderNo: string) =>
     request<{ success: boolean; order: ReportOrderSummary }>(`/report-orders/${encodeURIComponent(orderNo)}`),
 
@@ -290,6 +460,36 @@ export const reportOrdersApi = {
     post<{ success: boolean; created: boolean; order: ReportOrderSummary }>(
       `/report-orders/${encodeURIComponent(orderNo)}/addons`, body
     ),
+
+  /** 報告 PDF 的短效網址（10 分鐘）；加 ?download=1 會下載，否則在瀏覽器開啟 */
+  reportPdfLink: (orderNo: string) =>
+    post<{ success: boolean; url: string; document: ReportDocumentView }>(
+      `/report-orders/${encodeURIComponent(orderNo)}/report-pdf/link`, {}
+    ),
+
+  designDraft: (orderNo: string) =>
+    post<{ success: boolean; design: DesignView }>(`/report-orders/${encodeURIComponent(orderNo)}/design-draft`, {}),
+
+  orderDesign: (orderNo: string) =>
+    request<{ success: boolean; design: DesignView }>(`/report-orders/${encodeURIComponent(orderNo)}/design`),
+
+  getDesign: (id: number) => request<{ success: boolean; design: DesignView }>(`/report-designs/${id}`),
+
+  saveDesign: (id: number, data: DesignData, pageCount?: number) =>
+    request<{ success: boolean; design: DesignView }>(`/report-designs/${id}`, {
+      method: 'PUT', body: JSON.stringify({ data, page_count: pageCount }),
+    }),
+
+  uploadDesignAsset: (id: number, file: File) => {
+    const body = new FormData();
+    body.append('file', file);
+    return request<{ success: boolean; asset: DesignAsset }>(`/report-designs/${id}/assets`, { method: 'POST', body });
+  },
+
+  deleteDesignAsset: (id: number, assetId: number) =>
+    request<{ success: boolean; design: DesignView }>(`/report-designs/${id}/assets/${assetId}`, { method: 'DELETE' }),
+
+  confirmDesign: (id: number) => post<{ success: boolean; design: DesignView }>(`/report-designs/${id}/confirm`, {}),
 
   cancelPhysical: (orderNo: string, reason?: string) =>
     post<{ success: boolean; order: ReportOrderSummary }>(
@@ -319,6 +519,22 @@ export const reportOrdersApi = {
 
   adminPrintJobAction: (id: number, action: PrintJobAction, body: Record<string, unknown> = {}) =>
     post<{ success: boolean; job: AdminPrintJob }>(`/admin/report-print-jobs/${id}/${action}`, body),
+
+  adminDeliveries: (status = 'pending') =>
+    request<{ success: boolean; deliveries: AdminDelivery[]; counts: Record<string, number> }>(
+      '/admin/report-deliveries', { params: { status } }
+    ),
+
+  adminUploadReportPdf: (orderNo: string, file: File) => {
+    const body = new FormData();
+    body.append('file', file);
+    return request<{ success: boolean; document: ReportDocumentView; first_time: boolean }>(
+      `/admin/report-orders/${encodeURIComponent(orderNo)}/report-pdf`, { method: 'POST', body }
+    );
+  },
+
+  adminReportPdfLink: (orderNo: string) =>
+    post<{ success: boolean; url: string }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/report-pdf/link`, {}),
 
   adminConsultations: (status = 'all') =>
     request<{ success: boolean; consultations: AdminConsultation[]; counts: Record<string, number> }>(
