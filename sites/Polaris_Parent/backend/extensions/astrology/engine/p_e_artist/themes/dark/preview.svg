@@ -11,7 +11,7 @@
 .palace-name { font-family: Georgia, serif; font-size: 11px; fill: #E94560; font-weight: bold; letter-spacing: 0.02em; }
 .palace-name-en { font-family: Georgia, serif; font-size: 8px; fill: rgba(26,26,46,0.38); letter-spacing: 0.04em; }
 .palace-header-line { stroke: #E94560; stroke-width: 0.5; }
-.branch-name { font-family: HarmonyOS Sans TC, Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif; font-size: 14px; fill: rgba(255, 255, 255, 0.45); }
+.branch-name, .stem-name { font-family: HarmonyOS Sans TC, Microsoft JhengHei, PingFang TC, Noto Sans TC, sans-serif; font-size: 14px; fill: rgba(255, 255, 255, 0.45); }
 .stars-minor { font-family: Georgia, serif; font-size: 10px; fill: #A8A8A8; letter-spacing: 0.01em; }
 .stars-overflow { font-family: Georgia, serif; font-size: 10px; fill: #A8A8A8; font-weight: bold; opacity: 0.7; }
 .sihua-badge { fill: #111111; stroke: none; }
@@ -54,10 +54,12 @@
   <line x1="600" y1="600" x2="200" y2="500.0" class="palace-link"/>
 </g>
 <g class="palace palace-1">
-  <text x="409" y="18" class="palace-name">命宮</text>
-  <text x="591" y="18" class="branch-name" text-anchor="end">未</text>
-  <line x1="409" y1="24" x2="591" y2="24" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="420.5" y="24" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>破軍</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="470.75" y="10.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>命宮</title>
+<g id="palace-ming" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-116 0 H-35 M-24 0 L0 -27 L24 0 L0 27 Z M35 0 H116"/></g>
+</svg>
+  <text x="591" y="195" class="branch-name" text-anchor="end">08</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="420.5" y="41.3575" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>破軍</title>
   <defs>
     <style>
       .sBRE_EAEAEA-cls-1 {
@@ -73,7 +75,7 @@
     <path class="sBRE_EAEAEA-cls-1" d="M92.12,87.78c23.28-31.59,36.58,13.3,34.92,41.57-1.66,46.56,9.98,86.47,46.56,81.48,15.52-1.11,24.39-7.21,26.61-18.29M88.8,132.68c6.65,33.26,68.18,33.26,78.15-1.66"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="502.5" y="24" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>紫微</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="502.5" y="41.3575" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>紫微</title>
   <defs>
     <style>
       .sPOL_EAEAEA-cls-1 {
@@ -89,92 +91,96 @@
     <path class="sPOL_EAEAEA-cls-1" d="M144.5,74.27v139.68M74.66,144.11h139.68M94.62,94.22l99.77,99.77M94.62,193.99l99.77-99.77"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="410.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>地空</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="410.5" y="126.1845" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>地空</title>
   <defs>
     <style>
-      .sEVO_EAEAEA-cls-1 {
+      .sEVO_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="dikong">
-    <path class="sEVO_EAEAEA-cls-1" d="M76.33,75.93l136.35,136.35M76.33,212.29L212.68,75.93M102.93,102.54h83.14v83.14h-83.14v-83.14Z"/>
+    <path class="sEVO_EAEAEA_w2_2-cls-1" d="M76.33,75.93l136.35,136.35M76.33,212.29L212.68,75.93M102.93,102.54h83.14v83.14h-83.14v-83.14Z"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="446.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>陀羅</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="446.5" y="126.1845" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>陀羅</title>
   <defs>
     <style>
-      .sSTO_EAEAEA-cls-1 {
+      .sSTO_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
-  <g id="qingyang">
-    <path class="sSTO_EAEAEA-cls-1" d="M144.5,77.6l38.25,66.51-38.25,66.51-38.25-66.51,38.25-66.51ZM134.53,155.75l19.95-23.28"/>
+  <g id="tuoluo">
+    <circle class="sSTO_EAEAEA_w2_2-cls-1" cx="139.51" cy="144.11" r="53.21"/>
+    <path class="sSTO_EAEAEA_w2_2-cls-1" d="M126.21,157.41l26.61-26.61"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="482.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>天鉞</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="482.5" y="126.1845" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>天鉞</title>
   <defs>
     <style>
-      .sCAI_EAEAEA-cls-1 {
+      .sCAI_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="tianyue">
-    <circle class="sCAI_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-    <path class="sCAI_EAEAEA-cls-1" d="M144.5,190.67l36.58-29.93v-26.61c0-20.2-16.38-36.58-36.58-36.58s-36.58,16.38-36.58,36.58v26.61l36.58,29.93Z"/>
+    <circle class="sCAI_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+    <path class="sCAI_EAEAEA_w2_2-cls-1" d="M144.5,190.67l36.58-29.93v-26.61c0-20.2-16.38-36.58-36.58-36.58s-36.58,16.38-36.58,36.58v26.61l36.58,29.93Z"/>
+    <line class="sCAI_EAEAEA_w2_2-cls-1" x1="144.5" y1="157.5" x2="144.5" y2="189.1"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="518.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>截空</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="518.5" y="126.1845" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>截空</title>
   <defs>
     <style>
-      .sINT_EAEAEA-cls-1 {
+      .sINT_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="jiekong">
-    <path class="sINT_EAEAEA-cls-1" d="M76.33,75.93l136.35,136.35M76.33,212.29L212.68,75.93M92.95,112.52h103.1M92.95,175.7h103.1"/>
+    <path class="sINT_EAEAEA_w2_2-cls-1" d="M76.33,75.93l136.35,136.35M76.33,212.29L212.68,75.93M92.95,112.52h103.1M92.95,175.7h103.1"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="554.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>紅鸞</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="554.5" y="126.1845" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>紅鸞</title>
   <defs>
     <style>
-      .sRPH_EAEAEA-cls-1 {
+      .sRPH_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
-  <path class="sRPH_EAEAEA-cls-1" d="M104.59,114.18l39.91,24.94,39.91-24.94M144.5,139.12v34.92"/>
-  <circle class="sRPH_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+  <path class="sRPH_EAEAEA_w2_2-cls-1" d="M104.59,114.18l39.91,24.94,39.91-24.94M144.5,139.12v34.92"/>
+  <circle class="sRPH_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
 </svg>
 </g>
 <g class="palace palace-2">
-  <text x="209" y="18" class="palace-name">兄弟</text>
-  <text x="391" y="18" class="branch-name" text-anchor="end">午</text>
-  <line x1="209" y1="24" x2="391" y2="24" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="261.5" y="24" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天機</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="270.75" y="10.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>兄弟宮</title>
+<g id="palace-siblings" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-100 23 V-23 H-25 V23 M25 23 V-23 H100 V23 M-25 0 H25"/></g>
+</svg>
+  <text x="391" y="195" class="branch-name" text-anchor="end">07</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="261.5" y="40.8031" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天機</title>
   <defs>
     <style>
       .sHPI_EAEAEA-cls-1 {
@@ -190,68 +196,72 @@
     <path class="sHPI_EAEAEA-cls-1" d="M84.64,105.03l26.61-26.61,33.26,31.59,33.26-31.59,26.61,26.61M144.5,110.02v49.88M102.93,159.91h83.14M74.66,179.86h59.86c0,16.53-13.4,29.93-29.93,29.93s-29.93-13.4-29.93-29.93ZM154.48,179.86h59.86c0,16.53-13.4,29.93-29.93,29.93s-29.93-13.4-29.93-29.93Z"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="264.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>火星</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="264.5" y="125.6301" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>火星</title>
   <defs>
     <style>
-      .sFSP_EAEAEA-cls-1 {
+      .sFSP_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="huoxing">
-    <path class="sFSP_EAEAEA-cls-1" d="M144.5,92.56l58.2,103.1h-116.4l58.2-103.1ZM131.2,172.38l21.62-21.62"/>
+    <path class="sFSP_EAEAEA_w2_2-cls-1" d="M144.5,92.56l58.2,103.1h-116.4l58.2-103.1ZM131.2,172.38l21.62-21.62"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="300.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>文昌</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="300.5" y="125.6301" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>文昌</title>
   <defs>
     <style>
-      .sAAC_EAEAEA-cls-1 {
+      .sAAC_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="wenchang">
-    <circle class="sAAC_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-    <path class="sAAC_EAEAEA-cls-1" d="M144.5,95.89h0c14.69,0,26.61,11.91,26.61,26.61v43.23c0,14.69-11.91,26.61-26.61,26.61h0c-14.69,0-26.61-11.91-26.61-26.61v-43.23c0-14.69,11.91-26.61,26.61-26.61Z"/>
-    <path class="sAAC_EAEAEA-cls-1" d="M117.9,144.11h53.21"/>
+    <circle class="sAAC_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+    <path class="sAAC_EAEAEA_w2_2-cls-1" d="M144.5,95.89h0c14.69,0,26.61,11.91,26.61,26.61v43.23c0,14.69-11.91,26.61-26.61,26.61h0c-14.69,0-26.61-11.91-26.61-26.61v-43.23c0-14.69,11.91-26.61,26.61-26.61Z"/>
+    <path class="sAAC_EAEAEA_w2_2-cls-1" d="M117.9,144.11h53.21"/>
   </g>
 </svg>
 </g>
 <g class="palace palace-3">
-  <text x="9" y="18" class="palace-name">夫妻</text>
-  <text x="191" y="18" class="branch-name" text-anchor="end">巳</text>
-  <line x1="9" y1="24" x2="191" y2="24" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="82.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>天馬</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="70.75" y="10.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>夫妻宮</title>
+<g id="palace-spouse" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-79 -24 L-107 0 L-79 24 M79 -24 L107 0 L79 24 M-76 0 H76"/></g>
+</svg>
+  <text x="191" y="195" class="branch-name" text-anchor="end">06</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="82.5" y="89.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>天馬</title>
   <defs>
     <style>
-      .sHHO_EAEAEA-cls-1 {
+      .sHHO_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="_29-HHO" data-name="29-HHO">
-    <circle class="sHHO_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-    <path class="sHHO_EAEAEA-cls-1" d="M189.4,104.2c-34.37-18.85-59.31-15.52-74.83,9.98-11.09,16.63-11.09,29.38,0,38.25M156.14,94.22c-8.87,27.71-26.05,50.99-51.55,69.84M117.9,105.86l59.86,18.29M104.59,164.06c4.43-13.3,16.63-14.97,36.58-4.99,19.95,9.98,36.58,10.53,49.88,1.66M124.55,159.07l-8.31,23.28M146.17,167.39l-8.31,23.28M167.78,170.71l-4.99,19.95"/>
+    <circle class="sHHO_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+    <path class="sHHO_EAEAEA_w2_2-cls-1" d="M189.4,104.2c-34.37-18.85-59.31-15.52-74.83,9.98-11.09,16.63-11.09,29.38,0,38.25M156.14,94.22c-8.87,27.71-26.05,50.99-51.55,69.84M117.9,105.86l59.86,18.29M104.59,164.06c4.43-13.3,16.63-14.97,36.58-4.99,19.95,9.98,36.58,10.53,49.88,1.66M124.55,159.07l-8.31,23.28M146.17,167.39l-8.31,23.28M167.78,170.71l-4.99,19.95"/>
   </g>
 </svg>
 </g>
 <g class="palace palace-4">
-  <text x="9" y="218" class="palace-name">子女</text>
-  <text x="191" y="218" class="branch-name" text-anchor="end">辰</text>
-  <line x1="9" y1="224" x2="191" y2="224" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="61.5" y="224" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>太陽</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="70.75" y="210.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>子女宮</title>
+<g id="palace-children" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-88 -25 H88 M0 -25 V5 M-88 24 V5 H88 V24"/></g>
+</svg>
+  <text x="191" y="395" class="branch-name" text-anchor="end">05</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="61.5" y="257.39480000000003" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>太陽</title>
   <defs>
     <style>
       .sSUN_EAEAEA-cls-1 {
@@ -275,7 +285,7 @@
     <circle class="sSUN_EAEAEA-cls-2" cx="144.5" cy="144.11" r="9.15"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="89.5" y="302" width="21" height="21" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" class="sihua-badge">
+  <svg xmlns="http://www.w3.org/2000/svg" x="89.5" y="316.22180000000003" width="21" height="21" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" class="sihua-badge">
   <defs>
     <style>
       .sF_EF5350-cls-1 {
@@ -287,10 +297,13 @@
 </svg>
 </g>
 <g class="palace palace-5">
-  <text x="9" y="418" class="palace-name">財帛(身)</text>
-  <text x="191" y="418" class="branch-name" text-anchor="end">卯</text>
-  <line x1="9" y1="424" x2="191" y2="424" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="20.5" y="424" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>武曲</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="70.75" y="410.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>財帛宮</title>
+<g id="palace-wealth" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><circle r="30"/><rect x="-9" y="-9" width="18" height="18" rx="0.5"/><path d="M-106 0 H-44 M44 0 H106"/></g>
+</svg>
+  <rect x="67.75" y="407.0" width="64.5" height="24.0" rx="1.5" ry="1.5" class="palace-body-frame" fill="none" stroke="#E94560" stroke-width="1.33" stroke-linejoin="round"/>
+  <text x="191" y="595" class="branch-name" text-anchor="end">04</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="20.5" y="441.2357" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>武曲</title>
   <defs>
     <style>
       .sMAR_EAEAEA-cls-1 {
@@ -306,7 +319,7 @@
     <path class="sMAR_EAEAEA-cls-1" d="M86.3,79.26h43.23v83.14h73.16v46.56h-116.4V79.26ZM86.3,208.96l43.23-46.56"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="48.5" y="502" width="21" height="21" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" class="sihua-badge">
+  <svg xmlns="http://www.w3.org/2000/svg" x="48.49615" y="498.73060000000004" width="21" height="21" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" class="sihua-badge">
   <defs>
     <style>
       .sP_EF5350-cls-1 {
@@ -317,7 +330,7 @@
   <path class="sP_EF5350-cls-1" d="M42.66,26.11c-1.32-.82-3-1.23-5.03-1.23h-3.76v10.41h3.76c2.07,0,3.75-.4,5.06-1.2,1.3-.8,1.95-2.14,1.95-4s-.66-3.16-1.98-3.98Z"/>
   <path class="sP_EF5350-cls-1" d="M36,4.82l-27,15.59v31.18l27,15.59,27-15.59v-31.18l-27-15.59ZM51.82,36.65c-1.22,1.87-2.96,3.31-5.23,4.33-2.27,1.02-4.94,1.53-8.01,1.53h-4.71v11.82h-8.56V17.68h13.27c3.07,0,5.74.51,8.01,1.53,2.27,1.02,4.01,2.46,5.23,4.33s1.83,4.05,1.83,6.56-.61,4.69-1.83,6.56Z"/>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="102.5" y="424" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>七殺</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="102.5" y="441.2357" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>七殺</title>
   <defs>
     <style>
       .sVAN_EAEAEA-cls-1 {
@@ -335,28 +348,30 @@
     <circle class="sVAN_EAEAEA-cls-1" cx="196.05" cy="127.48" r="18.29"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="82.5" y="527.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>地劫</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="82.5" y="526.0627" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>地劫</title>
   <defs>
     <style>
-      .sMAE_EAEAEA-cls-1 {
+      .sMAE_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="dijie">
-    <path class="sMAE_EAEAEA-cls-1" d="M76.33,75.93l136.35,136.35M76.33,212.29L212.68,75.93M144.5,80.92l63.19,63.19-63.19,63.19-63.19-63.19,63.19-63.19Z"/>
+    <path class="sMAE_EAEAEA_w2_2-cls-1" d="M76.33,75.93l136.35,136.35M76.33,212.29L212.68,75.93M144.5,80.92l63.19,63.19-63.19,63.19-63.19-63.19,63.19-63.19Z"/>
   </g>
 </svg>
 </g>
 <g class="palace palace-6">
-  <text x="9" y="618" class="palace-name">疾厄</text>
-  <text x="191" y="618" class="branch-name" text-anchor="end">寅</text>
-  <line x1="9" y1="624" x2="191" y2="624" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="20.5" y="624" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天同</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="70.75" y="610.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>疾厄宮</title>
+<g id="palace-health" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-122 0 H-52 L-25 -27 L20 25 L49 0 H122"/></g>
+</svg>
+  <text x="191" y="795" class="branch-name" text-anchor="end">03</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="20.5" y="640.91335" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天同</title>
   <defs>
     <style>
       .sHAR_EAEAEA-cls-1 {
@@ -372,7 +387,7 @@
     <path class="sHAR_EAEAEA-cls-1" d="M82.98,85.91c29.93,38.8,29.93,77.6,0,116.4M206.03,85.91c-29.93,38.8-29.93,77.6,0,116.4M106.26,135.8h76.49M116.23,157.41h56.54c0,15.61-12.66,28.27-28.27,28.27s-28.27-12.66-28.27-28.27Z"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="48.5" y="702" width="21" height="21" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" class="sihua-badge">
+  <svg xmlns="http://www.w3.org/2000/svg" x="48.50385" y="696.62955" width="21" height="21" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" class="sihua-badge">
   <defs>
     <style>
       .sH_EF5350-cls-1 {
@@ -382,7 +397,7 @@
   </defs>
   <path class="sH_EF5350-cls-1" d="M7.49,7.49v57.01h57.01V7.49H7.49ZM52.12,54.32h-8.56v-15.22h-15.12v15.22h-8.56V17.67h8.56v13.87h15.12v-13.87h8.56v36.65Z"/>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="102.5" y="624" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天梁</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="102.5" y="640.91335" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天梁</title>
   <defs>
     <style>
       .sBLE_EAEAEA-cls-1 {
@@ -398,29 +413,30 @@
     <path class="sBLE_EAEAEA-cls-1" d="M102.93,92.98v49.88M186.07,92.98v49.88M76.33,92.98c0,22.17,8.87,33.26,26.61,33.26s26.61-11.09,26.61-33.26M159.47,92.98c0,22.17,8.87,33.26,26.61,33.26s26.61-11.09,26.61-33.26M73,186.1c15.52-12.19,31.59-12.19,48.22,0,16.63,12.19,32.15,12.19,46.56,0,14.41-12.19,30.49-12.19,48.22,0"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="82.5" y="727.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>鈴星</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="82.5" y="725.74035" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>鈴星</title>
   <defs>
     <style>
-      .sCHI_EAEAEA-cls-1 {
+      .sCHI_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
-  <g id="tuoluo">
-    <circle class="sCHI_EAEAEA-cls-1" cx="144.5" cy="144.11" r="53.21"/>
-    <path class="sCHI_EAEAEA-cls-1" d="M131.2,157.41l26.61-26.61"/>
+  <g id="lingxing">
+    <path class="sCHI_EAEAEA_w2_2-cls-1" d="M86.3,92.56h116.4l-58.2,103.1-58.2-103.1ZM136.19,142.45l21.62-21.62"/>
   </g>
 </svg>
 </g>
 <g class="palace palace-7">
-  <text x="209" y="618" class="palace-name">遷移</text>
-  <text x="391" y="618" class="branch-name" text-anchor="end">丑</text>
-  <line x1="209" y1="624" x2="391" y2="624" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="261.5" y="624" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天相</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="270.75" y="610.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>遷移宮</title>
+<g id="palace-travel" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-110 -20 V20 M-91 0 H99 M79 -18 L99 0 L79 18"/></g>
+</svg>
+  <text x="391" y="795" class="branch-name" text-anchor="end">02</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="261.5" y="639.8021" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天相</title>
   <defs>
     <style>
       .sMIN_EAEAEA-cls-1 {
@@ -437,7 +453,7 @@
     <path class="sMIN_EAEAEA-cls-1" d="M161.13,125.82h44.9c10.1,0,18.29,8.19,18.29,18.29h0c0,10.1-8.19,18.29-18.29,18.29h-44.9c-10.1,0-18.29-8.19-18.29-18.29h0c0-10.1,8.19-18.29,18.29-18.29Z"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="289.5" y="702" width="21" height="21" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" class="sihua-badge">
+  <svg xmlns="http://www.w3.org/2000/svg" x="289.5" y="695.5183" width="21" height="21" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" class="sihua-badge">
   <defs>
     <style>
       .sI_EF5350-cls-1 {
@@ -447,78 +463,81 @@
   </defs>
   <path class="sI_EF5350-cls-1" d="M36,9.11L3.54,62.89h64.92L36,9.11ZM31.72,57.25V24.48h8.56v32.77h-8.56Z"/>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="228.5" y="727.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>左輔</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="228.5" y="724.6291" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>左輔</title>
   <defs>
     <style>
-      .sLHA_EAEAEA-cls-1 {
+      .sLHA_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="zuofu">
-    <circle class="sLHA_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-    <path class="sLHA_EAEAEA-cls-1" d="M106.26,104.2h29.93c22.04,0,39.91,17.87,39.91,39.91s-17.87,39.91-39.91,39.91h-29.93v-79.82ZM106.26,144.11h31.59"/>
+    <circle class="sLHA_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+    <path class="sLHA_EAEAEA_w2_2-cls-1" d="M106.26,104.2h29.93c22.04,0,39.91,17.87,39.91,39.91s-17.87,39.91-39.91,39.91h-29.93v-79.82ZM106.26,144.11h31.59"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="264.5" y="727.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>右弼</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="264.5" y="724.6291" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>右弼</title>
   <defs>
     <style>
-      .sRHA_EAEAEA-cls-1 {
+      .sRHA_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="youbi">
-    <circle class="sRHA_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-    <path class="sRHA_EAEAEA-cls-1" d="M182.75,104.2h-29.93c-22.04,0-39.91,17.87-39.91,39.91s17.87,39.91,39.91,39.91h29.93v-79.82ZM182.75,144.11h-31.59"/>
+    <circle class="sRHA_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+    <path class="sRHA_EAEAEA_w2_2-cls-1" d="M182.75,104.2h-29.93c-22.04,0-39.91,17.87-39.91,39.91s17.87,39.91,39.91,39.91h29.93v-79.82ZM182.75,144.11h-31.59"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="300.5" y="727.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>天魁</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="300.5" y="724.6291" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>天魁</title>
   <defs>
     <style>
-      .sCPA_EAEAEA-cls-1 {
+      .sCPA_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="tiankui">
-    <circle class="sCPA_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-    <path class="sCPA_EAEAEA-cls-1" d="M144.5,97.55l36.58,29.93v26.61c0,20.2-16.38,36.58-36.58,36.58s-36.58-16.38-36.58-36.58v-26.61l36.58-29.93Z"/>
+    <circle class="sCPA_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+    <path class="sCPA_EAEAEA_w2_2-cls-1" d="M144.5,97.55l36.58,29.93v26.61c0,20.2-16.38,36.58-36.58,36.58s-36.58-16.38-36.58-36.58v-26.61l36.58-29.93Z"/>
+    <line class="sCPA_EAEAEA_w2_2-cls-1" x1="144.5" y1="98.97" x2="144.5" y2="130.56"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="336.5" y="727.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>天喜</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="336.5" y="724.6291" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>天喜</title>
   <defs>
     <style>
-      .sHJO_EAEAEA-cls-1 {
+      .sHJO_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
-  <circle class="sHJO_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-  <path class="sHJO_EAEAEA-cls-1" d="M104.59,117.5l39.91,39.91,39.91-39.91v53.21h-79.82v-53.21Z"/>
+  <circle class="sHJO_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+  <path class="sHJO_EAEAEA_w2_2-cls-1" d="M104.59,117.5l39.91,39.91,39.91-39.91v53.21h-79.82v-53.21Z"/>
 </svg>
 </g>
 <g class="palace palace-8">
-  <text x="409" y="618" class="palace-name">交友</text>
-  <text x="591" y="618" class="branch-name" text-anchor="end">子</text>
-  <line x1="409" y1="624" x2="591" y2="624" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="461.5" y="624" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>巨門</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="470.75" y="610.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>交友宮</title>
+<g id="palace-friends" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-122 -17 H122 M-86 -8 V18 H-32 V-8 M32 -8 V18 H86 V-8"/></g>
+</svg>
+  <text x="591" y="795" class="branch-name" text-anchor="end">01</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="461.5" y="668.0" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>巨門</title>
   <defs>
     <style>
       .sGGA_EAEAEA-cls-1 {
@@ -536,10 +555,12 @@
 </svg>
 </g>
 <g class="palace palace-9">
-  <text x="609" y="618" class="palace-name">官祿</text>
-  <text x="791" y="618" class="branch-name" text-anchor="end">亥</text>
-  <line x1="609" y1="624" x2="791" y2="624" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="620.5" y="624" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>廉貞</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="670.75" y="610.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>官祿宮</title>
+<g id="palace-career" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-108 23 V0 H-35 V-19 H35 V0 H108 V23 Z"/></g>
+</svg>
+  <text x="791" y="795" class="branch-name" text-anchor="end">12</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="620.5" y="668.0" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>廉貞</title>
   <defs>
     <style>
       .sMAG_EAEAEA-cls-1 {
@@ -556,7 +577,7 @@
     <path class="sMAG_EAEAEA-cls-1" d="M144.5,109.19v48.22M109.58,185.68l34.92-28.27,34.92,28.27"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="702.5" y="624" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>貪狼</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="702.5" y="668.0" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>貪狼</title>
   <defs>
     <style>
       .sAWO_EAEAEA-cls-1 {
@@ -575,10 +596,12 @@
 </svg>
 </g>
 <g class="palace palace-A">
-  <text x="609" y="418" class="palace-name">田宅</text>
-  <text x="791" y="418" class="branch-name" text-anchor="end">戌</text>
-  <line x1="609" y1="424" x2="791" y2="424" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="661.5" y="424" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>太陰</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="670.75" y="410.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>田宅宮</title>
+<g id="palace-property" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-86 27 V-3 L0 -29 L86 -3 V27 Z"/></g>
+</svg>
+  <text x="791" y="595" class="branch-name" text-anchor="end">11</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="661.5" y="468.0" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>太陰</title>
   <defs>
     <style>
       .sMOO_EAEAEA-cls-1 {
@@ -596,10 +619,12 @@
 </svg>
 </g>
 <g class="palace palace-B">
-  <text x="609" y="218" class="palace-name">福德</text>
-  <text x="791" y="218" class="branch-name" text-anchor="end">酉</text>
-  <line x1="609" y1="224" x2="791" y2="224" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="661.5" y="224" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天府</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="670.75" y="210.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>福德宮</title>
+<g id="palace-fortune" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-122 0 H-64 M-48 -12 C-37 28 37 28 48 -12 M64 0 H122"/></g>
+</svg>
+  <text x="791" y="395" class="branch-name" text-anchor="end">10</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="661.5" y="240.33619999999996" width="77" height="77" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-major"><title>天府</title>
   <defs>
     <style>
       .sTRE_EAEAEA-cls-1 {
@@ -615,60 +640,62 @@
     <path class="sTRE_EAEAEA-cls-1" d="M111.25,83.42l81.48,46.56-98.11,54.87h99.77v19.95M132.86,95.06l-9.98,74.83"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="682.5" y="327.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>擎羊</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="682.5" y="325.16319999999996" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>擎羊</title>
   <defs>
     <style>
-      .sGLA_EAEAEA-cls-1 {
+      .sGLA_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
-  <g id="lingxing">
-    <path class="sGLA_EAEAEA-cls-1" d="M86.3,92.56h116.4l-58.2,103.1-58.2-103.1ZM136.19,142.45l21.62-21.62"/>
+  <g id="qingyang">
+    <path class="sGLA_EAEAEA_w2_2-cls-1" d="M144.5,77.6l38.25,66.51-38.25,66.51-38.25-66.51,38.25-66.51ZM134.53,155.75l19.95-23.28"/>
   </g>
 </svg>
 </g>
 <g class="palace palace-C">
-  <text x="609" y="18" class="palace-name">父母</text>
-  <text x="791" y="18" class="branch-name" text-anchor="end">申</text>
-  <line x1="609" y1="24" x2="791" y2="24" class="palace-header-line"/>
-  <svg xmlns="http://www.w3.org/2000/svg" x="664.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>文曲</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="670.75" y="10.0" width="58.5" height="18.0" viewBox="0 0 260 80" preserveAspectRatio="xMidYMid meet" class="palace-icon">
+<title>父母宮</title>
+<g id="palace-parents" fill="none" stroke="#E94560" stroke-width="5.92" stroke-linecap="round" stroke-linejoin="round" transform="translate(130 40)"><path d="M-96 -25 V25 M96 -25 V25 M-96 -1 H-44 L-31 21 H31 L44 -1 H96"/></g>
+</svg>
+  <text x="791" y="195" class="branch-name" text-anchor="end">09</text>
+  <svg xmlns="http://www.w3.org/2000/svg" x="664.5" y="89.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>文曲</title>
   <defs>
     <style>
-      .sAAR_EAEAEA-cls-1 {
+      .sAAR_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="wenqu">
-    <circle class="sAAR_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-    <path class="sAAR_EAEAEA-cls-1" d="M122.89,117.5h43.23c14.69,0,26.61,11.91,26.61,26.61h0c0,14.69-11.91,26.61-26.61,26.61h-43.23c-14.69,0-26.61-11.91-26.61-26.61h0c0-14.69,11.91-26.61,26.61-26.61Z"/>
-    <path class="sAAR_EAEAEA-cls-1" d="M144.5,117.5v53.21"/>
+    <circle class="sAAR_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+    <path class="sAAR_EAEAEA_w2_2-cls-1" d="M122.89,117.5h43.23c14.69,0,26.61,11.91,26.61,26.61h0c0,14.69-11.91,26.61-26.61,26.61h-43.23c-14.69,0-26.61-11.91-26.61-26.61h0c0-14.69,11.91-26.61,26.61-26.61Z"/>
+    <path class="sAAR_EAEAEA_w2_2-cls-1" d="M144.5,117.5v53.21"/>
   </g>
 </svg>
-  <svg xmlns="http://www.w3.org/2000/svg" x="700.5" y="127.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>祿存</title>
+  <svg xmlns="http://www.w3.org/2000/svg" x="700.5" y="89.0" width="35" height="35" viewBox="0 0 289 288.22" preserveAspectRatio="xMidYMid meet" class="star-sub"><title>祿存</title>
   <defs>
     <style>
-      .sDIV_EAEAEA-cls-1 {
+      .sDIV_EAEAEA_w2_2-cls-1 {
         fill: none;
         stroke: #EAEAEA;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 5px;
+        stroke-width: 11px;
       }
     </style>
   </defs>
   <g id="_28-DIV" data-name="28-DIV">
-    <circle class="sDIV_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
-    <path class="sDIV_EAEAEA-cls-1" d="M144.5,94.22v38.25M124.55,110.85h39.91M144.5,132.47l36.58,34.92-36.58,34.92-36.58-34.92,36.58-34.92Z"/>
+    <circle class="sDIV_EAEAEA_w2_2-cls-1" cx="144.5" cy="144.11" r="69.84"/>
+    <path class="sDIV_EAEAEA_w2_2-cls-1" d="M144.5,94.22v38.25M124.55,110.85h39.91M144.5,132.47l36.58,34.92-36.58,34.92-36.58-34.92,36.58-34.92Z"/>
   </g>
 </svg>
 </g>
@@ -941,6 +968,7 @@
   <g id="tianyue">
     <circle class="sCAI_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
     <path class="sCAI_EAEAEA-cls-1" d="M144.5,190.67l36.58-29.93v-26.61c0-20.2-16.38-36.58-36.58-36.58s-36.58,16.38-36.58,36.58v26.61l36.58,29.93Z"/>
+    <line class="sCAI_EAEAEA-cls-1" x1="144.5" y1="157.5" x2="144.5" y2="189.1"/>
   </g>
 </svg>
 <text x="44.0" y="1020.85" class="legend-name">天鉞</text>
@@ -956,8 +984,9 @@
       }
     </style>
   </defs>
-  <g id="qingyang">
-    <path class="sSTO_EAEAEA-cls-1" d="M144.5,77.6l38.25,66.51-38.25,66.51-38.25-66.51,38.25-66.51ZM134.53,155.75l19.95-23.28"/>
+  <g id="tuoluo">
+    <circle class="sSTO_EAEAEA-cls-1" cx="139.51" cy="144.11" r="53.21"/>
+    <path class="sSTO_EAEAEA-cls-1" d="M126.21,157.41l26.61-26.61"/>
   </g>
 </svg>
 <text x="237.0" y="1020.85" class="legend-name">陀羅</text>
@@ -1094,9 +1123,8 @@
       }
     </style>
   </defs>
-  <g id="tuoluo">
-    <circle class="sCHI_EAEAEA-cls-1" cx="144.5" cy="144.11" r="53.21"/>
-    <path class="sCHI_EAEAEA-cls-1" d="M131.2,157.41l26.61-26.61"/>
+  <g id="lingxing">
+    <path class="sCHI_EAEAEA-cls-1" d="M86.3,92.56h116.4l-58.2,103.1-58.2-103.1ZM136.19,142.45l21.62-21.62"/>
   </g>
 </svg>
 <text x="237.0" y="1080.85" class="legend-name">鈴星</text>
@@ -1151,6 +1179,7 @@
   <g id="tiankui">
     <circle class="sCPA_EAEAEA-cls-1" cx="144.5" cy="144.11" r="69.84"/>
     <path class="sCPA_EAEAEA-cls-1" d="M144.5,97.55l36.58,29.93v26.61c0,20.2-16.38,36.58-36.58,36.58s-36.58-16.38-36.58-36.58v-26.61l36.58-29.93Z"/>
+    <line class="sCPA_EAEAEA-cls-1" x1="144.5" y1="98.97" x2="144.5" y2="130.56"/>
   </g>
 </svg>
 <text x="44.0" y="1110.85" class="legend-name">天魁</text>
@@ -1182,8 +1211,8 @@
       }
     </style>
   </defs>
-  <g id="lingxing">
-    <path class="sGLA_EAEAEA-cls-1" d="M86.3,92.56h116.4l-58.2,103.1-58.2-103.1ZM136.19,142.45l21.62-21.62"/>
+  <g id="qingyang">
+    <path class="sGLA_EAEAEA-cls-1" d="M144.5,77.6l38.25,66.51-38.25,66.51-38.25-66.51,38.25-66.51ZM134.53,155.75l19.95-23.28"/>
   </g>
 </svg>
 <text x="430.0" y="1110.85" class="legend-name">擎羊</text>

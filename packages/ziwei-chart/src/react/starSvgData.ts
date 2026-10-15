@@ -28,15 +28,15 @@ export const STAR_SVG_DATA: Record<string, StarSvg> = {
   },
   "CAI": {
     "viewBox": "0 0 289 288.22",
-    "inner": "<defs> <style> .CAIcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"tianyue\"> <circle class=\"CAIcls-1\" cx=\"144.5\" cy=\"144.11\" r=\"69.84\"/> <path class=\"CAIcls-1\" d=\"M144.5,190.67l36.58-29.93v-26.61c0-20.2-16.38-36.58-36.58-36.58s-36.58,16.38-36.58,36.58v26.61l36.58,29.93Z\"/> </g>"
+    "inner": "<defs> <style> .CAIcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"tianyue\"> <circle class=\"CAIcls-1\" cx=\"144.5\" cy=\"144.11\" r=\"69.84\"/> <path class=\"CAIcls-1\" d=\"M144.5,190.67l36.58-29.93v-26.61c0-20.2-16.38-36.58-36.58-36.58s-36.58,16.38-36.58,36.58v26.61l36.58,29.93Z\"/> <line class=\"CAIcls-1\" x1=\"144.5\" y1=\"157.5\" x2=\"144.5\" y2=\"189.1\"/> </g>"
   },
   "CHI": {
     "viewBox": "0 0 289 288.22",
-    "inner": "<defs> <style> .CHIcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"tuoluo\"> <circle class=\"CHIcls-1\" cx=\"144.5\" cy=\"144.11\" r=\"53.21\"/> <path class=\"CHIcls-1\" d=\"M131.2,157.41l26.61-26.61\"/> </g>"
+    "inner": "<defs> <style> .CHIcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"lingxing\"> <path class=\"CHIcls-1\" d=\"M86.3,92.56h116.4l-58.2,103.1-58.2-103.1ZM136.19,142.45l21.62-21.62\"/> </g>"
   },
   "CPA": {
     "viewBox": "0 0 289 288.22",
-    "inner": "<defs> <style> .CPAcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"tiankui\"> <circle class=\"CPAcls-1\" cx=\"144.5\" cy=\"144.11\" r=\"69.84\"/> <path class=\"CPAcls-1\" d=\"M144.5,97.55l36.58,29.93v26.61c0,20.2-16.38,36.58-36.58,36.58s-36.58-16.38-36.58-36.58v-26.61l36.58-29.93Z\"/> </g>"
+    "inner": "<defs> <style> .CPAcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"tiankui\"> <circle class=\"CPAcls-1\" cx=\"144.5\" cy=\"144.11\" r=\"69.84\"/> <path class=\"CPAcls-1\" d=\"M144.5,97.55l36.58,29.93v26.61c0,20.2-16.38,36.58-36.58,36.58s-36.58-16.38-36.58-36.58v-26.61l36.58-29.93Z\"/> <line class=\"CPAcls-1\" x1=\"144.5\" y1=\"98.97\" x2=\"144.5\" y2=\"130.56\"/> </g>"
   },
   "DIV": {
     "viewBox": "0 0 289 288.22",
@@ -60,7 +60,7 @@ export const STAR_SVG_DATA: Record<string, StarSvg> = {
   },
   "GLA": {
     "viewBox": "0 0 289 288.22",
-    "inner": "<defs> <style> .GLAcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"lingxing\"> <path class=\"GLAcls-1\" d=\"M86.3,92.56h116.4l-58.2,103.1-58.2-103.1ZM136.19,142.45l21.62-21.62\"/> </g>"
+    "inner": "<defs> <style> .GLAcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"qingyang\"> <path class=\"GLAcls-1\" d=\"M144.5,77.6l38.25,66.51-38.25,66.51-38.25-66.51,38.25-66.51ZM134.53,155.75l19.95-23.28\"/> </g>"
   },
   "H": {
     "viewBox": "0 0 72 72",
@@ -132,7 +132,7 @@ export const STAR_SVG_DATA: Record<string, StarSvg> = {
   },
   "STO": {
     "viewBox": "0 0 289 288.22",
-    "inner": "<defs> <style> .STOcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"qingyang\"> <path class=\"STOcls-1\" d=\"M144.5,77.6l38.25,66.51-38.25,66.51-38.25-66.51,38.25-66.51ZM134.53,155.75l19.95-23.28\"/> </g>"
+    "inner": "<defs> <style> .STOcls-1 { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5px; } </style> </defs> <g id=\"tuoluo\"> <circle class=\"STOcls-1\" cx=\"139.51\" cy=\"144.11\" r=\"53.21\"/> <path class=\"STOcls-1\" d=\"M126.21,157.41l26.61-26.61\"/> </g>"
   },
   "SUN": {
     "viewBox": "0 0 289 288.22",
