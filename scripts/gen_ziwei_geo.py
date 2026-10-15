@@ -14,6 +14,7 @@
   3. 產生 packages/ziwei-engine/src/data/geo_cities.json（階層＋每城座標／時區）。
   4. 產生 packages/ziwei-engine/test/golden/solar.json：每城 × 樣本時刻 × 兩種時間類型，
      由後端 birthplace.resolve 算出，TS 的 resolveBirthTime 逐筆比對。
+  5. 把 birthplace.py 與資料檔複製到 P_Union/p01_count/02_scraper_updated/（PolarisUI 建盤用，兩邊同一份）。
 
 用法：venv/Scripts/python.exe -m pip install timezonefinder  （一次）
       venv/Scripts/python.exe scripts/gen_ziwei_geo.py
@@ -21,6 +22,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -29,6 +32,8 @@ ROOT = Path(__file__).resolve().parent.parent
 EXT_DIR = ROOT / "sites" / "Polaris_Parent" / "backend" / "extensions"
 DATA_FILE = EXT_DIR / "astrology" / "birthplace_cities.json"
 PKG = ROOT / "packages" / "ziwei-engine"
+# PolarisUI 建盤用的副本（同一個 birthplace.py＋資料檔）；目錄不存在就略過（例如 CI）
+PUNION_DIR = Path(os.environ.get("PUNION_DIR", r"D:\P_Polaris_Parent\1_run\P_Union"))
 
 SAMPLE_TIMES = [
     (1980, 11, 17, 10, 0),
@@ -127,6 +132,14 @@ def main():
         '{"sample_times":' + json.dumps(SAMPLE_TIMES) + ',"samples":[\n' + lines + "\n]}\n", encoding="utf-8")
     dst = sum(1 for s in samples if s["dst_minutes"])
     print(f"cities: {len(ts_cities)}, samples: {len(samples)} (含夏令時 {dst} 筆)")
+
+    target = PUNION_DIR / "p01_count" / "02_scraper_updated"
+    if target.is_dir():
+        for src in (EXT_DIR / "astrology" / "birthplace.py", DATA_FILE):
+            shutil.copyfile(src, target / src.name)
+        print(f"已同步 birthplace.py 與 {DATA_FILE.name} 到 {target}")
+    else:
+        print(f"略過 P_Union 同步（找不到 {target}，可用環境變數 PUNION_DIR 指定）")
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ class LookupTests(unittest.TestCase):
 
     def test_corrected_coordinates_and_zones(self):
         self.assertEqual(birthplace.lookup('成都', '中國').tz, 'Asia/Shanghai')
-        self.assertEqual(birthplace.lookup('拜林', '柬埔寨').coordinates, '12n50, 102e36')
+        self.assertEqual(birthplace.lookup('拜林', '柬埔寨').coordinates, '12n51, 102e36')
         self.assertEqual(birthplace.lookup('新德里', '印度').tz, 'Asia/Kolkata')
 
     def test_unknown_place_raises(self):

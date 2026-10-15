@@ -13,6 +13,10 @@
               沒給出生地（舊呼叫端）維持照填的時間。
 
 前端 @ows/ziwei-engine 的 resolveBirthTime 與這裡逐條同義，黃金檔 test/golden/solar.json 互相比對。
+
+真源在 OWS（sites/Polaris_Parent/backend/extensions/astrology/）。scripts/gen_ziwei_geo.py 會把本檔與
+birthplace_cities.json 原樣複製到 P_Union/p01_count/02_scraper_updated/ 給 PolarisUI 建盤用；
+那邊的副本勿手改。本檔只依賴標準函式庫（＋tzdata），兩邊都能直接載入。
 """
 
 import json
@@ -47,7 +51,8 @@ class Birthplace:
         def part(value, pos, neg):
             v = abs(value)
             deg = int(v)
-            return f"{deg}{pos if value >= 0 else neg}{int((v - deg) * 60):02d}"
+            # 加 1e-6 分再截尾：資料檔的度數是「度＋分/60」存成小數，17/60 浮點換回來是 16.99999…
+            return f"{deg}{pos if value >= 0 else neg}{int((v - deg) * 60 + 1e-6):02d}"
         return f"{part(self.lat, 'n', 's')}, {part(self.lon, 'e', 'w')}"
 
     @property
@@ -86,7 +91,7 @@ def lookup(city: str, country: str) -> Birthplace:
     return Birthplace(city, country, row['place_en'], row['lat'], row['lon'], row['tz'])
 
 
-def _offset_seconds(tz: str, wall: datetime) -> int:
+def utc_offset_seconds(tz: str, wall: datetime) -> int:
     """當地牆上時間的 UTC 時差（秒）。fold=0：重疊時段取較早那次、跳過的時段取跳轉前的時差。"""
     return int(ZoneInfo(tz).utcoffset(wall.replace(fold=0)).total_seconds())
 
@@ -94,8 +99,8 @@ def _offset_seconds(tz: str, wall: datetime) -> int:
 def dst_minutes(tz: str, clock: Clock) -> int:
     """夏令時差＝當下時差 − 當年 1/15 與 7/15 正午時差較小者（不用 ZoneInfo.dst()，前端 Intl 拿不到它）。"""
     year = clock[0]
-    standard = min(_offset_seconds(tz, datetime(year, 1, 15, 12)), _offset_seconds(tz, datetime(year, 7, 15, 12)))
-    return max(0, (_offset_seconds(tz, datetime(*clock)) - standard) // 60)
+    standard = min(utc_offset_seconds(tz, datetime(year, 1, 15, 12)), utc_offset_seconds(tz, datetime(year, 7, 15, 12)))
+    return max(0, (utc_offset_seconds(tz, datetime(*clock)) - standard) // 60)
 
 
 def offset_token(offset_seconds: int) -> str:
@@ -103,6 +108,12 @@ def offset_token(offset_seconds: int) -> str:
     hours = abs(offset_seconds) / 3600
     text = f'{hours:.6f}'.rstrip('0').rstrip('.')
     return f"h{text}{'w' if offset_seconds < 0 else 'e'}"
+
+
+def timezone_label(tz: str, clock: Clock) -> str:
+    """出生當下的時區字串（SolarTimeCalculator 可解析）：'h8e (is standard time)'、'h9e (daylight saving time)'。"""
+    note = 'daylight saving time' if dst_minutes(tz, clock) else 'is standard time'
+    return f'{offset_token(utc_offset_seconds(tz, datetime(*clock)))} ({note})'
 
 
 def resolve(eng, clock: Clock, time_type: str, city: str = '', country: str = '') -> BirthTime:
@@ -113,7 +124,7 @@ def resolve(eng, clock: Clock, time_type: str, city: str = '', country: str = ''
         if not has_place:
             raise BirthplaceError('使用真太陽時需選擇出生的國家與城市')
         place = lookup(city, country)
-        offset = _offset_seconds(place.tz, datetime(*clock))
+        offset = utc_offset_seconds(place.tz, datetime(*clock))
         solar = eng.compute_solar_time(eng.build_clock_time_str(*clock),
                                        f'{place.place_en}, {place.coordinates}', offset_token(offset))
         if not solar:
@@ -130,4 +141,4 @@ def resolve(eng, clock: Clock, time_type: str, city: str = '', country: str = ''
         t = datetime(*clock) - timedelta(minutes=dst)
         resolved = (t.year, t.month, t.day, t.hour, t.minute)
     return BirthTime(clock, resolved, time_type, None, place.label, place.tz,
-                     _offset_seconds(place.tz, datetime(*clock)) // 60, dst)
+                     utc_offset_seconds(place.tz, datetime(*clock)) // 60, dst)

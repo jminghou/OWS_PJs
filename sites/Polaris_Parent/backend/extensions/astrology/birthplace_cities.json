@@ -1,6 +1,6 @@
 {
  "_comment": "出生地：place_en/lat/lon 人工維護；tz 由 scripts/gen_ziwei_geo.py 依座標產生，勿手改",
- "generated_at": "2026-10-15T23:22:14",
+ "generated_at": "2026-10-15T23:48:45",
  "cities": {
   "北京|中國": {
    "place_en": "Beijing, China",
@@ -10,19 +10,19 @@
   },
   "上海|中國": {
    "place_en": "Shanghai, China",
-   "lat": 31.2167,
-   "lon": 121.4667,
+   "lat": 31.21666667,
+   "lon": 121.46666667,
    "tz": "Asia/Shanghai"
   },
   "廣州|中國": {
    "place_en": "Guangzhou, China",
-   "lat": 23.1167,
+   "lat": 23.11666667,
    "lon": 113.25,
    "tz": "Asia/Shanghai"
   },
   "深圳|中國": {
    "place_en": "Shenzhen, China",
-   "lat": 22.5333,
+   "lat": 22.53333333,
    "lon": 114.05,
    "tz": "Asia/Shanghai"
   },
@@ -46,37 +46,37 @@
   },
   "武漢|中國": {
    "place_en": "Wuhan, China",
-   "lat": 30.5667,
-   "lon": 114.2833,
+   "lat": 30.56666667,
+   "lon": 114.28333333,
    "tz": "Asia/Shanghai"
   },
   "西安|中國": {
    "place_en": "Xi'an, China",
    "lat": 34.25,
-   "lon": 108.9333,
+   "lon": 108.93333333,
    "tz": "Asia/Shanghai"
   },
   "南京|中國": {
    "place_en": "Nanjing, China",
-   "lat": 32.0333,
-   "lon": 118.7667,
+   "lat": 32.03333333,
+   "lon": 118.76666667,
    "tz": "Asia/Shanghai"
   },
   "杭州|中國": {
    "place_en": "Hangzhou, China",
-   "lat": 30.2333,
+   "lat": 30.23333333,
    "lon": 120.2,
    "tz": "Asia/Shanghai"
   },
   "蘇州|中國": {
    "place_en": "Suzhou, China",
    "lat": 31.3,
-   "lon": 120.6167,
+   "lon": 120.61666667,
    "tz": "Asia/Shanghai"
   },
   "台北|台灣": {
    "place_en": "Taipei, Taiwan",
-   "lat": 25.0167,
+   "lat": 25.01666667,
    "lon": 121.55,
    "tz": "Asia/Taipei"
   },
@@ -88,44 +88,44 @@
   },
   "桃園|台灣": {
    "place_en": "Taoyuan, Taiwan",
-   "lat": 24.9833,
+   "lat": 24.98333333,
    "lon": 121.3,
    "tz": "Asia/Taipei"
   },
   "台中|台灣": {
    "place_en": "Taichung, Taiwan",
    "lat": 24.15,
-   "lon": 120.6333,
+   "lon": 120.63333333,
    "tz": "Asia/Taipei"
   },
   "台南|台灣": {
    "place_en": "Tainan, Taiwan",
-   "lat": 22.9833,
-   "lon": 120.1833,
+   "lat": 22.98333333,
+   "lon": 120.18333333,
    "tz": "Asia/Taipei"
   },
   "高雄|台灣": {
    "place_en": "Kaohsiung, Taiwan",
-   "lat": 22.6167,
+   "lat": 22.61666667,
    "lon": 120.3,
    "tz": "Asia/Taipei"
   },
   "基隆|台灣": {
    "place_en": "Keelung, Taiwan",
-   "lat": 25.1167,
-   "lon": 121.7333,
+   "lat": 25.11666667,
+   "lon": 121.73333333,
    "tz": "Asia/Taipei"
   },
   "新竹|台灣": {
    "place_en": "Hsinchu, Taiwan",
    "lat": 24.8,
-   "lon": 120.9667,
+   "lon": 120.96666667,
    "tz": "Asia/Taipei"
   },
   "嘉義|台灣": {
    "place_en": "Chiayi, Taiwan",
    "lat": 23.45,
-   "lon": 120.2833,
+   "lon": 120.28333333,
    "tz": "Asia/Taipei"
   },
   "宜蘭|台灣": {
@@ -136,8 +136,8 @@
   },
   "花蓮|台灣": {
    "place_en": "Hualien, Taiwan",
-   "lat": 23.9833,
-   "lon": 121.6167,
+   "lat": 23.98333333,
+   "lon": 121.61666667,
    "tz": "Asia/Taipei"
   },
   "台東|台灣": {
@@ -149,67 +149,67 @@
   "南投|台灣": {
    "place_en": "Nantou, Taiwan",
    "lat": 23.9,
-   "lon": 120.6833,
+   "lon": 120.68333333,
    "tz": "Asia/Taipei"
   },
   "金門|台灣": {
    "place_en": "Kinmen, Taiwan",
-   "lat": 24.4333,
-   "lon": 118.3833,
+   "lat": 24.43333333,
+   "lon": 118.38333333,
    "tz": "Asia/Taipei"
   },
   "澎湖|台灣": {
    "place_en": "Penghu, Taiwan",
-   "lat": 23.5667,
+   "lat": 23.56666667,
    "lon": 119.55,
    "tz": "Asia/Taipei"
   },
   "馬祖|台灣": {
    "place_en": "Matsu, Taiwan",
-   "lat": 26.3667,
-   "lon": 120.4833,
+   "lat": 26.36666667,
+   "lon": 120.48333333,
    "tz": "Asia/Taipei"
   },
   "東京|日本": {
    "place_en": "Tokyo, Japan",
-   "lat": 35.6667,
+   "lat": 35.66666667,
    "lon": 139.65,
    "tz": "Asia/Tokyo"
   },
   "大阪|日本": {
    "place_en": "Osaka, Japan",
-   "lat": 34.6833,
+   "lat": 34.68333333,
    "lon": 135.5,
    "tz": "Asia/Tokyo"
   },
   "京都|日本": {
    "place_en": "Kyoto, Japan",
    "lat": 35.0,
-   "lon": 135.7667,
+   "lon": 135.76666667,
    "tz": "Asia/Tokyo"
   },
   "橫濱|日本": {
    "place_en": "Yokohama, Japan",
    "lat": 35.45,
-   "lon": 139.6333,
+   "lon": 139.63333333,
    "tz": "Asia/Tokyo"
   },
   "名古屋|日本": {
    "place_en": "Nagoya, Japan",
-   "lat": 35.1833,
-   "lon": 136.8833,
+   "lat": 35.18333333,
+   "lon": 136.88333333,
    "tz": "Asia/Tokyo"
   },
   "神戶|日本": {
    "place_en": "Kobe, Japan",
-   "lat": 34.6833,
-   "lon": 135.1833,
+   "lat": 34.68333333,
+   "lon": 135.18333333,
    "tz": "Asia/Tokyo"
   },
   "福岡|日本": {
    "place_en": "Fukuoka, Japan",
-   "lat": 33.6167,
-   "lon": 130.6167,
+   "lat": 33.61666667,
+   "lon": 130.61666667,
    "tz": "Asia/Tokyo"
   },
   "札幌|日本": {
@@ -220,14 +220,14 @@
   },
   "廣島|日本": {
    "place_en": "廣島, Japan",
-   "lat": 34.3833,
-   "lon": 132.4667,
+   "lat": 34.38333333,
+   "lon": 132.46666667,
    "tz": "Asia/Tokyo"
   },
   "仙台|日本": {
    "place_en": "仙台, Japan",
-   "lat": 38.2667,
-   "lon": 140.8667,
+   "lat": 38.26666667,
+   "lon": 140.86666667,
    "tz": "Asia/Tokyo"
   },
   "千葉|日本": {
@@ -245,18 +245,18 @@
   "首爾|韓國": {
    "place_en": "Seoul, South Korea",
    "lat": 37.55,
-   "lon": 126.9667,
+   "lon": 126.96666667,
    "tz": "Asia/Seoul"
   },
   "釜山|韓國": {
    "place_en": "Busan, South Korea",
-   "lat": 35.1667,
-   "lon": 129.0667,
+   "lat": 35.16666667,
+   "lon": 129.06666667,
    "tz": "Asia/Seoul"
   },
   "大邱|韓國": {
    "place_en": "Daegu, South Korea",
-   "lat": 35.8667,
+   "lat": 35.86666667,
    "lon": 128.6,
    "tz": "Asia/Seoul"
   },
@@ -269,18 +269,18 @@
   "光州|韓國": {
    "place_en": "光州, South Korea",
    "lat": 35.15,
-   "lon": 126.8167,
+   "lon": 126.81666667,
    "tz": "Asia/Seoul"
   },
   "大田|韓國": {
    "place_en": "大田, South Korea",
-   "lat": 36.3333,
-   "lon": 127.3833,
+   "lat": 36.33333333,
+   "lon": 127.38333333,
    "tz": "Asia/Seoul"
   },
   "蔚山|韓國": {
    "place_en": "蔚山, South Korea",
-   "lat": 35.5333,
+   "lat": 35.53333333,
    "lon": 129.3,
    "tz": "Asia/Seoul"
   },
@@ -293,25 +293,25 @@
   "高陽|韓國": {
    "place_en": "高陽, South Korea",
    "lat": 37.65,
-   "lon": 126.8167,
+   "lon": 126.81666667,
    "tz": "Asia/Seoul"
   },
   "龍仁|韓國": {
    "place_en": "龍仁, South Korea",
-   "lat": 37.2333,
-   "lon": 127.1667,
+   "lat": 37.23333333,
+   "lon": 127.16666667,
    "tz": "Asia/Seoul"
   },
   "城南|韓國": {
    "place_en": "城南, South Korea",
-   "lat": 37.3833,
-   "lon": 127.1167,
+   "lat": 37.38333333,
+   "lon": 127.11666667,
    "tz": "Asia/Seoul"
   },
   "清州|韓國": {
    "place_en": "清州, South Korea",
-   "lat": 36.6333,
-   "lon": 127.3833,
+   "lat": 36.63333333,
+   "lon": 127.38333333,
    "tz": "Asia/Seoul"
   },
   "新德里|印度": {
@@ -323,73 +323,73 @@
   "孟買|印度": {
    "place_en": "孟買, India",
    "lat": 19.05,
-   "lon": 72.8667,
+   "lon": 72.86666667,
    "tz": "Asia/Kolkata"
   },
   "班加羅爾|印度": {
    "place_en": "班加羅爾, India",
-   "lat": 12.9667,
-   "lon": 77.5833,
+   "lat": 12.96666667,
+   "lon": 77.58333333,
    "tz": "Asia/Kolkata"
   },
   "海德拉巴|印度": {
    "place_en": "海德拉巴, India",
    "lat": 17.35,
-   "lon": 78.4667,
+   "lon": 78.46666667,
    "tz": "Asia/Kolkata"
   },
   "艾哈邁達巴德|印度": {
    "place_en": "艾哈邁達巴德, India",
-   "lat": 23.0167,
-   "lon": 72.5667,
+   "lat": 23.01666667,
+   "lon": 72.56666667,
    "tz": "Asia/Kolkata"
   },
   "清奈|印度": {
    "place_en": "清奈, India",
-   "lat": 13.0833,
-   "lon": 80.2667,
+   "lat": 13.08333333,
+   "lon": 80.26666667,
    "tz": "Asia/Kolkata"
   },
   "加爾各答|印度": {
    "place_en": "加爾各答, India",
-   "lat": 22.5667,
+   "lat": 22.56666667,
    "lon": 88.35,
    "tz": "Asia/Kolkata"
   },
   "蘇拉特|印度": {
    "place_en": "蘇拉特, India",
    "lat": 21.2,
-   "lon": 72.8167,
+   "lon": 72.81666667,
    "tz": "Asia/Kolkata"
   },
   "浦那|印度": {
    "place_en": "浦那, India",
-   "lat": 18.5167,
+   "lat": 18.51666667,
    "lon": 73.85,
    "tz": "Asia/Kolkata"
   },
   "齋浦爾|印度": {
    "place_en": "齋浦爾, India",
    "lat": 26.9,
-   "lon": 75.8167,
+   "lon": 75.81666667,
    "tz": "Asia/Kolkata"
   },
   "新加坡|新加坡": {
    "place_en": "新加坡, Singapore",
-   "lat": 1.2833,
+   "lat": 1.28333333,
    "lon": 103.85,
    "tz": "Asia/Singapore"
   },
   "曼谷|泰國": {
    "place_en": "曼谷, Thailand",
    "lat": 13.75,
-   "lon": 100.4833,
+   "lon": 100.48333333,
    "tz": "Asia/Bangkok"
   },
   "清邁|泰國": {
    "place_en": "清邁, Thailand",
-   "lat": 18.7833,
-   "lon": 98.9833,
+   "lat": 18.78333333,
+   "lon": 98.98333333,
    "tz": "Asia/Bangkok"
   },
   "芭達雅|泰國": {
@@ -400,38 +400,38 @@
   },
   "普吉|泰國": {
    "place_en": "普吉, Thailand",
-   "lat": 7.9333,
+   "lat": 7.93333333,
    "lon": 98.35,
    "tz": "Asia/Bangkok"
   },
   "華欣|泰國": {
    "place_en": "華欣, Thailand",
-   "lat": 12.5667,
+   "lat": 12.56666667,
    "lon": 99.95,
    "tz": "Asia/Bangkok"
   },
   "春武里|泰國": {
    "place_en": "春武里, Thailand",
    "lat": 13.35,
-   "lon": 100.9833,
+   "lon": 100.98333333,
    "tz": "Asia/Bangkok"
   },
   "合艾|泰國": {
    "place_en": "合艾, Thailand",
    "lat": 7.0,
-   "lon": 100.4667,
+   "lon": 100.46666667,
    "tz": "Asia/Bangkok"
   },
   "烏汶|泰國": {
    "place_en": "烏汶, Thailand",
-   "lat": 15.2167,
+   "lat": 15.21666667,
    "lon": 104.85,
    "tz": "Asia/Bangkok"
   },
   "吉隆坡|馬來西亞": {
    "place_en": "吉隆坡, Malaysia",
    "lat": 3.15,
-   "lon": 101.6833,
+   "lon": 101.68333333,
    "tz": "Asia/Kuala_Lumpur"
   },
   "檳城|馬來西亞": {
@@ -448,97 +448,97 @@
   },
   "馬六甲|馬來西亞": {
    "place_en": "馬六甲, Malaysia",
-   "lat": 2.3167,
-   "lon": 102.2833,
+   "lat": 2.31666667,
+   "lon": 102.28333333,
    "tz": "Asia/Kuala_Lumpur"
   },
   "怡保|馬來西亞": {
    "place_en": "怡保, Malaysia",
-   "lat": 4.5833,
-   "lon": 101.0833,
+   "lat": 4.58333333,
+   "lon": 101.08333333,
    "tz": "Asia/Kuala_Lumpur"
   },
   "古晉|馬來西亞": {
    "place_en": "古晉, Malaysia",
    "lat": 1.55,
-   "lon": 110.3333,
+   "lon": 110.33333333,
    "tz": "Asia/Kuching"
   },
   "亞庇|馬來西亞": {
    "place_en": "亞庇, Malaysia",
-   "lat": 5.9667,
-   "lon": 116.0667,
+   "lat": 5.96666667,
+   "lon": 116.06666667,
    "tz": "Asia/Kuching"
   },
   "亞羅士打|馬來西亞": {
    "place_en": "亞羅士打, Malaysia",
-   "lat": 6.1167,
-   "lon": 100.3667,
+   "lat": 6.11666667,
+   "lon": 100.36666667,
    "tz": "Asia/Kuala_Lumpur"
   },
   "河內|越南": {
    "place_en": "Hanoi, Vietnam",
-   "lat": 21.0167,
+   "lat": 21.01666667,
    "lon": 105.85,
    "tz": "Asia/Bangkok"
   },
   "胡志明市|越南": {
    "place_en": "Ho Chi Minh City, Vietnam",
-   "lat": 10.7667,
+   "lat": 10.76666667,
    "lon": 106.7,
    "tz": "Asia/Ho_Chi_Minh"
   },
   "海防|越南": {
    "place_en": "Hai Phong, Vietnam",
-   "lat": 20.8667,
-   "lon": 106.6667,
+   "lat": 20.86666667,
+   "lon": 106.66666667,
    "tz": "Asia/Bangkok"
   },
   "峴港|越南": {
    "place_en": "Da Nang, Vietnam",
-   "lat": 16.0667,
-   "lon": 108.2167,
+   "lat": 16.06666667,
+   "lon": 108.21666667,
    "tz": "Asia/Ho_Chi_Minh"
   },
   "芽莊|越南": {
    "place_en": "Nha Trang, Vietnam",
    "lat": 12.2,
-   "lon": 109.2833,
+   "lon": 109.28333333,
    "tz": "Asia/Ho_Chi_Minh"
   },
   "順化|越南": {
    "place_en": "Hue, Vietnam",
    "lat": 16.45,
-   "lon": 107.5833,
+   "lon": 107.58333333,
    "tz": "Asia/Ho_Chi_Minh"
   },
   "會安|越南": {
    "place_en": "Hoi An, Vietnam",
-   "lat": 15.8833,
-   "lon": 108.3333,
+   "lat": 15.88333333,
+   "lon": 108.33333333,
    "tz": "Asia/Ho_Chi_Minh"
   },
   "大叻|越南": {
    "place_en": "Da Lat, Vietnam",
-   "lat": 11.9333,
-   "lon": 108.4333,
+   "lat": 11.93333333,
+   "lon": 108.43333333,
    "tz": "Asia/Ho_Chi_Minh"
   },
   "美奈|越南": {
    "place_en": "美奈, Vietnam",
-   "lat": 10.9333,
-   "lon": 108.2667,
+   "lat": 10.93333333,
+   "lon": 108.26666667,
    "tz": "Asia/Ho_Chi_Minh"
   },
   "頭頓|越南": {
    "place_en": "頭頓, Vietnam",
-   "lat": 10.3667,
-   "lon": 107.0833,
+   "lat": 10.36666667,
+   "lon": 107.08333333,
    "tz": "Asia/Ho_Chi_Minh"
   },
   "金邊|柬埔寨": {
    "place_en": "Phnom Penh, Cambodia",
-   "lat": 11.5667,
+   "lat": 11.56666667,
    "lon": 104.85,
    "tz": "Asia/Phnom_Penh"
   },
@@ -550,20 +550,20 @@
   },
   "馬德望|柬埔寨": {
    "place_en": "Battambang, Cambodia",
-   "lat": 12.9167,
-   "lon": 103.2167,
+   "lat": 12.91666667,
+   "lon": 103.21666667,
    "tz": "Asia/Phnom_Penh"
   },
   "西哈努克市|柬埔寨": {
    "place_en": "Sihanoukville, Cambodia",
-   "lat": 10.6167,
-   "lon": 103.5167,
+   "lat": 10.61666667,
+   "lon": 103.51666667,
    "tz": "Asia/Phnom_Penh"
   },
   "貢布|柬埔寨": {
    "place_en": "貢布, Cambodia",
-   "lat": 10.6167,
-   "lon": 104.1167,
+   "lat": 10.61666667,
+   "lon": 104.11666667,
    "tz": "Asia/Phnom_Penh"
   },
   "拜林|柬埔寨": {
@@ -575,7 +575,7 @@
   "上丁|柬埔寨": {
    "place_en": "上丁, Cambodia",
    "lat": 13.85,
-   "lon": 106.0833,
+   "lon": 106.08333333,
    "tz": "Asia/Phnom_Penh"
   },
   "桔井|柬埔寨": {
@@ -586,62 +586,62 @@
   },
   "仰光|緬甸": {
    "place_en": "Yangon, Myanmar",
-   "lat": 16.7833,
+   "lat": 16.78333333,
    "lon": 96.15,
    "tz": "Asia/Yangon"
   },
   "奈比多|緬甸": {
    "place_en": "Naypyidaw, Myanmar",
-   "lat": 19.7667,
+   "lat": 19.76666667,
    "lon": 96.1,
    "tz": "Asia/Yangon"
   },
   "曼德勒|緬甸": {
    "place_en": "Mandalay, Myanmar",
    "lat": 21.95,
-   "lon": 96.0833,
+   "lon": 96.08333333,
    "tz": "Asia/Yangon"
   },
   "毛淡棉|緬甸": {
    "place_en": "Mawlamyine, Myanmar",
-   "lat": 16.4833,
-   "lon": 97.6167,
+   "lat": 16.48333333,
+   "lon": 97.61666667,
    "tz": "Asia/Yangon"
   },
   "勃生|緬甸": {
    "place_en": "勃生, Myanmar",
-   "lat": 16.7667,
-   "lon": 94.7167,
+   "lat": 16.76666667,
+   "lon": 94.71666667,
    "tz": "Asia/Yangon"
   },
   "密支那|緬甸": {
    "place_en": "密支那, Myanmar",
-   "lat": 25.3667,
-   "lon": 97.3833,
+   "lat": 25.36666667,
+   "lon": 97.38333333,
    "tz": "Asia/Yangon"
   },
   "實兌|緬甸": {
    "place_en": "實兌, Myanmar",
-   "lat": 20.1333,
-   "lon": 92.8833,
+   "lat": 20.13333333,
+   "lon": 92.88333333,
    "tz": "Asia/Yangon"
   },
   "東枝|緬甸": {
    "place_en": "東枝, Myanmar",
-   "lat": 20.7833,
-   "lon": 97.0333,
+   "lat": 20.78333333,
+   "lon": 97.03333333,
    "tz": "Asia/Yangon"
   },
   "馬尼拉|菲律賓": {
    "place_en": "Manila, Philippines",
-   "lat": 14.5833,
-   "lon": 120.9667,
+   "lat": 14.58333333,
+   "lon": 120.96666667,
    "tz": "Asia/Manila"
   },
   "宿霧|菲律賓": {
    "place_en": "Cebu, Philippines",
-   "lat": 10.4667,
-   "lon": 123.8167,
+   "lat": 10.46666667,
+   "lon": 123.81666667,
    "tz": "Asia/Manila"
   },
   "達沃|菲律賓": {
@@ -653,7 +653,7 @@
   "怡朗|菲律賓": {
    "place_en": "Iloilo, Philippines",
    "lat": 10.95,
-   "lon": 122.5667,
+   "lon": 122.56666667,
    "tz": "Asia/Manila"
   },
   "三寶淵|菲律賓": {
@@ -664,104 +664,104 @@
   },
   "卡加延德奧羅|菲律賓": {
    "place_en": "卡加延德奧羅, Philippines",
-   "lat": 8.4667,
-   "lon": 124.6333,
+   "lat": 8.46666667,
+   "lon": 124.63333333,
    "tz": "Asia/Manila"
   },
   "巴科洛德|菲律賓": {
    "place_en": "巴科洛德, Philippines",
-   "lat": 10.6667,
+   "lat": 10.66666667,
    "lon": 122.95,
    "tz": "Asia/Manila"
   },
   "安吉利斯|菲律賓": {
    "place_en": "Angeles City, Philippines",
-   "lat": 15.1333,
-   "lon": 120.5833,
+   "lat": 15.13333333,
+   "lon": 120.58333333,
    "tz": "Asia/Manila"
   },
   "奧隆阿波|菲律賓": {
    "place_en": "奧隆阿波, Philippines",
-   "lat": 14.8333,
-   "lon": 120.2833,
+   "lat": 14.83333333,
+   "lon": 120.28333333,
    "tz": "Asia/Manila"
   },
   "打拉|菲律賓": {
    "place_en": "打拉, Philippines",
-   "lat": 14.5333,
-   "lon": 120.9667,
+   "lat": 14.53333333,
+   "lon": 120.96666667,
    "tz": "Asia/Manila"
   },
   "雅加達|印尼": {
    "place_en": "Jakarta, Indonesia",
-   "lat": -6.1667,
-   "lon": 106.8167,
+   "lat": -6.16666667,
+   "lon": 106.81666667,
    "tz": "Asia/Jakarta"
   },
   "泗水|印尼": {
    "place_en": "Surabaya, Indonesia",
-   "lat": -7.2333,
-   "lon": 112.7333,
+   "lat": -7.23333333,
+   "lon": 112.73333333,
    "tz": "Asia/Jakarta"
   },
   "萬隆|印尼": {
    "place_en": "Bandung, Indonesia",
-   "lat": -6.9167,
+   "lat": -6.91666667,
    "lon": 107.6,
    "tz": "Asia/Jakarta"
   },
   "棉蘭|印尼": {
    "place_en": "Medan, Indonesia",
-   "lat": 3.5833,
-   "lon": 98.6667,
+   "lat": 3.58333333,
+   "lon": 98.66666667,
    "tz": "Asia/Jakarta"
   },
   "三寶壟|印尼": {
    "place_en": "Semarang, Indonesia",
-   "lat": -6.9833,
-   "lon": 110.4167,
+   "lat": -6.98333333,
+   "lon": 110.41666667,
    "tz": "Asia/Jakarta"
   },
   "巴淡|印尼": {
    "place_en": "Batam, Indonesia",
    "lat": 1.1,
-   "lon": 104.0333,
+   "lon": 104.03333333,
    "tz": "Asia/Jakarta"
   },
   "北干巴魯|印尼": {
    "place_en": "北干巴魯, Indonesia",
-   "lat": 0.5167,
+   "lat": 0.51666667,
    "lon": 101.45,
    "tz": "Asia/Jakarta"
   },
   "巴里巴板|印尼": {
    "place_en": "Balikpapan, Indonesia",
-   "lat": -1.2333,
+   "lat": -1.23333333,
    "lon": 116.85,
    "tz": "Asia/Makassar"
   },
   "馬卡薩|印尼": {
    "place_en": "Makassar, Indonesia",
-   "lat": -5.1333,
+   "lat": -5.13333333,
    "lon": 119.4,
    "tz": "Asia/Makassar"
   },
   "巴東|印尼": {
    "place_en": "巴東, Indonesia",
-   "lat": -0.9167,
+   "lat": -0.91666667,
    "lon": 100.35,
    "tz": "Asia/Jakarta"
   },
   "斯里巴加灣市|汶萊": {
    "place_en": "Bandar Seri Begawan, Brunei",
-   "lat": 4.8833,
-   "lon": 114.9333,
+   "lat": 4.88333333,
+   "lon": 114.93333333,
    "tz": "Asia/Brunei"
   },
   "瓜拉勿洞|汶萊": {
    "place_en": "Kuala Belait, Brunei",
-   "lat": 4.5833,
-   "lon": 114.1833,
+   "lat": 4.58333333,
+   "lon": 114.18333333,
    "tz": "Asia/Brunei"
   },
   "馬來奕|汶萊": {
@@ -778,14 +778,14 @@
   },
   "柏林|德國": {
    "place_en": "Berlin, Germany",
-   "lat": 52.5167,
+   "lat": 52.51666667,
    "lon": 13.4,
    "tz": "Europe/Berlin"
   },
   "慕尼黑|德國": {
    "place_en": "Munich, Germany",
-   "lat": 48.1333,
-   "lon": 11.5667,
+   "lat": 48.13333333,
+   "lon": 11.56666667,
    "tz": "Europe/Berlin"
   },
   "漢堡|德國": {
@@ -796,26 +796,26 @@
   },
   "科隆|德國": {
    "place_en": "Cologne, Germany",
-   "lat": 50.9333,
+   "lat": 50.93333333,
    "lon": 6.95,
    "tz": "Europe/Berlin"
   },
   "法蘭克福|德國": {
    "place_en": "Frankfurt, Germany",
    "lat": 50.1,
-   "lon": 8.6667,
+   "lon": 8.66666667,
    "tz": "Europe/Berlin"
   },
   "斯圖加特|德國": {
    "place_en": "Stuttgart, Germany",
-   "lat": 48.7667,
-   "lon": 9.1667,
+   "lat": 48.76666667,
+   "lon": 9.16666667,
    "tz": "Europe/Berlin"
   },
   "杜塞道夫|德國": {
    "place_en": "Düsseldorf, Germany",
-   "lat": 51.2167,
-   "lon": 6.7667,
+   "lat": 51.21666667,
+   "lon": 6.76666667,
    "tz": "Europe/Berlin"
   },
   "多特蒙德|德國": {
@@ -832,13 +832,13 @@
   },
   "萊比錫|德國": {
    "place_en": "萊比錫, Germany",
-   "lat": 51.3333,
-   "lon": 12.3667,
+   "lat": 51.33333333,
+   "lon": 12.36666667,
    "tz": "Europe/Berlin"
   },
   "不來梅|德國": {
    "place_en": "不來梅, Germany",
-   "lat": 53.0667,
+   "lat": 53.06666667,
    "lon": 8.8,
    "tz": "Europe/Berlin"
   },
@@ -850,26 +850,26 @@
   },
   "漢諾威|德國": {
    "place_en": "漢諾威, Germany",
-   "lat": 52.3667,
-   "lon": 9.7333,
+   "lat": 52.36666667,
+   "lon": 9.73333333,
    "tz": "Europe/Berlin"
   },
   "紐倫堡|德國": {
    "place_en": "紐倫堡, Germany",
    "lat": 49.45,
-   "lon": 11.0667,
+   "lon": 11.06666667,
    "tz": "Europe/Berlin"
   },
   "杜伊斯堡|德國": {
    "place_en": "杜伊斯堡, Germany",
-   "lat": 51.4333,
+   "lat": 51.43333333,
    "lon": 6.75,
    "tz": "Europe/Berlin"
   },
   "Eisenach|德國": {
    "place_en": "Eisenach, Germany",
-   "lat": 50.9667,
-   "lon": 10.3167,
+   "lat": 50.96666667,
+   "lon": 10.31666667,
    "tz": "Europe/Berlin"
   },
   "巴黎|法國": {
@@ -880,104 +880,104 @@
   },
   "馬賽|法國": {
    "place_en": "Marseille, France",
-   "lat": 43.2833,
-   "lon": 5.3667,
+   "lat": 43.28333333,
+   "lon": 5.36666667,
    "tz": "Europe/Paris"
   },
   "里昂|法國": {
    "place_en": "Lyon, France",
    "lat": 45.75,
-   "lon": 4.8167,
+   "lon": 4.81666667,
    "tz": "Europe/Paris"
   },
   "圖盧茲|法國": {
    "place_en": "Toulouse, France",
    "lat": 43.6,
-   "lon": 1.4333,
+   "lon": 1.43333333,
    "tz": "Europe/Paris"
   },
   "尼斯|法國": {
    "place_en": "Nice, France",
    "lat": 43.7,
-   "lon": 7.2667,
+   "lon": 7.26666667,
    "tz": "Europe/Paris"
   },
   "南特|法國": {
    "place_en": "Nantes, France",
-   "lat": 47.2167,
+   "lat": 47.21666667,
    "lon": -1.55,
    "tz": "Europe/Paris"
   },
   "斯特拉斯堡|法國": {
    "place_en": "Strasbourg, France",
-   "lat": 48.5833,
+   "lat": 48.58333333,
    "lon": 7.75,
    "tz": "Europe/Paris"
   },
   "蒙彼利埃|法國": {
    "place_en": "Montpellier, France",
    "lat": 43.6,
-   "lon": 3.8667,
+   "lon": 3.86666667,
    "tz": "Europe/Paris"
   },
   "波爾多|法國": {
    "place_en": "波爾多, France",
-   "lat": 44.8333,
-   "lon": -0.5667,
+   "lat": 44.83333333,
+   "lon": -0.56666667,
    "tz": "Europe/Paris"
   },
   "里爾|法國": {
    "place_en": "里爾, France",
-   "lat": 50.6333,
+   "lat": 50.63333333,
    "lon": 3.05,
    "tz": "Europe/Paris"
   },
   "雷恩|法國": {
    "place_en": "雷恩, France",
    "lat": 48.1,
-   "lon": -1.6667,
+   "lon": -1.66666667,
    "tz": "Europe/Paris"
   },
   "勒阿弗爾|法國": {
    "place_en": "勒阿弗爾, France",
-   "lat": 49.4833,
+   "lat": 49.48333333,
    "lon": 0.1,
    "tz": "Europe/Paris"
   },
   "Saint-Étienne|法國": {
    "place_en": "Saint-Étienne, France",
-   "lat": 45.4333,
-   "lon": 4.3833,
+   "lat": 45.43333333,
+   "lon": 4.38333333,
    "tz": "Europe/Paris"
   },
   "土倫|法國": {
    "place_en": "土倫, France",
-   "lat": 43.1167,
-   "lon": 5.9167,
+   "lat": 43.11666667,
+   "lon": 5.91666667,
    "tz": "Europe/Paris"
   },
   "格勒諾布爾|法國": {
    "place_en": "格勒諾布爾, France",
-   "lat": 45.1833,
-   "lon": 5.7333,
+   "lat": 45.18333333,
+   "lon": 5.73333333,
    "tz": "Europe/Paris"
   },
   "倫敦|英國": {
    "place_en": "London, United Kingdom",
    "lat": 51.5,
-   "lon": -0.1167,
+   "lon": -0.11666667,
    "tz": "Europe/London"
   },
   "伯明翰|英國": {
    "place_en": "Birmingham, United Kingdom",
-   "lat": 52.4833,
+   "lat": 52.48333333,
    "lon": -1.85,
    "tz": "Europe/London"
   },
   "利茲|英國": {
    "place_en": "Leeds, United Kingdom",
-   "lat": 53.7833,
-   "lon": -1.5333,
+   "lat": 53.78333333,
+   "lon": -1.53333333,
    "tz": "Europe/London"
   },
   "格拉斯哥|英國": {
@@ -988,8 +988,8 @@
   },
   "謝菲爾德|英國": {
    "place_en": "謝菲爾德, United Kingdom",
-   "lat": 53.3667,
-   "lon": -1.4667,
+   "lat": 53.36666667,
+   "lon": -1.46666667,
    "tz": "Europe/London"
   },
   "布拉德福德|英國": {
@@ -1001,37 +1001,37 @@
   "愛丁堡|英國": {
    "place_en": "Edinburgh, United Kingdom",
    "lat": 55.95,
-   "lon": -3.1833,
+   "lon": -3.18333333,
    "tz": "Europe/London"
   },
   "利物浦|英國": {
    "place_en": "Liverpool, United Kingdom",
-   "lat": 53.3833,
+   "lat": 53.38333333,
    "lon": -2.9,
    "tz": "Europe/London"
   },
   "曼徹斯特|英國": {
    "place_en": "Manchester, United Kingdom",
-   "lat": 53.4333,
-   "lon": -2.2167,
+   "lat": 53.43333333,
+   "lon": -2.21666667,
    "tz": "Europe/London"
   },
   "布里斯托|英國": {
    "place_en": "布里斯托, United Kingdom",
    "lat": 51.45,
-   "lon": -2.5833,
+   "lon": -2.58333333,
    "tz": "Europe/London"
   },
   "韋克菲爾德|英國": {
    "place_en": "韋克菲爾德, United Kingdom",
    "lat": 53.65,
-   "lon": -1.4167,
+   "lon": -1.41666667,
    "tz": "Europe/London"
   },
   "卡迪夫|英國": {
    "place_en": "卡迪夫, United Kingdom",
-   "lat": 51.4667,
-   "lon": -3.1667,
+   "lat": 51.46666667,
+   "lon": -3.16666667,
    "tz": "Europe/London"
   },
   "考文垂|英國": {
@@ -1048,26 +1048,26 @@
   },
   "羅馬|義大利": {
    "place_en": "羅馬, Italy",
-   "lat": 41.8833,
-   "lon": 12.4667,
+   "lat": 41.88333333,
+   "lon": 12.46666667,
    "tz": "Europe/Rome"
   },
   "米蘭|義大利": {
    "place_en": "米蘭, Italy",
    "lat": 45.45,
-   "lon": 9.1833,
+   "lon": 9.18333333,
    "tz": "Europe/Rome"
   },
   "那不勒斯|義大利": {
    "place_en": "那不勒斯, Italy",
-   "lat": 40.8333,
-   "lon": 14.2333,
+   "lat": 40.83333333,
+   "lon": 14.23333333,
    "tz": "Europe/Rome"
   },
   "都靈|義大利": {
    "place_en": "都靈, Italy",
-   "lat": 45.0667,
-   "lon": 7.6667,
+   "lat": 45.06666667,
+   "lon": 7.66666667,
    "tz": "Europe/Rome"
   },
   "巴勒莫|義大利": {
@@ -1079,133 +1079,133 @@
   "熱那亞|義大利": {
    "place_en": "熱那亞, Italy",
    "lat": 44.4,
-   "lon": 8.9333,
+   "lon": 8.93333333,
    "tz": "Europe/Rome"
   },
   "博洛尼亞|義大利": {
    "place_en": "博洛尼亞, Italy",
-   "lat": 44.4833,
-   "lon": 11.3333,
+   "lat": 44.48333333,
+   "lon": 11.33333333,
    "tz": "Europe/Rome"
   },
   "佛羅倫斯|義大利": {
    "place_en": "Florence, Italy",
-   "lat": 43.7667,
+   "lat": 43.76666667,
    "lon": 11.25,
    "tz": "Europe/Rome"
   },
   "巴里|義大利": {
    "place_en": "巴里, Italy",
-   "lat": 41.1167,
+   "lat": 41.11666667,
    "lon": 16.85,
    "tz": "Europe/Rome"
   },
   "卡塔尼亞|義大利": {
    "place_en": "卡塔尼亞, Italy",
    "lat": 37.5,
-   "lon": 15.0833,
+   "lon": 15.08333333,
    "tz": "Europe/Rome"
   },
   "威尼斯|義大利": {
    "place_en": "威尼斯, Italy",
-   "lat": 45.4333,
-   "lon": 12.3333,
+   "lat": 45.43333333,
+   "lon": 12.33333333,
    "tz": "Europe/Rome"
   },
   "維羅納|義大利": {
    "place_en": "維羅納, Italy",
-   "lat": 45.4333,
-   "lon": 10.9833,
+   "lat": 45.43333333,
+   "lon": 10.98333333,
    "tz": "Europe/Rome"
   },
   "墨西拿|義大利": {
    "place_en": "墨西拿, Italy",
-   "lat": 38.1833,
+   "lat": 38.18333333,
    "lon": 15.55,
    "tz": "Europe/Rome"
   },
   "帕多瓦|義大利": {
    "place_en": "帕多瓦, Italy",
    "lat": 45.4,
-   "lon": 11.8667,
+   "lon": 11.86666667,
    "tz": "Europe/Rome"
   },
   "馬德里|西班牙": {
    "place_en": "馬德里, Spain",
-   "lat": 40.4167,
+   "lat": 40.41666667,
    "lon": -3.7,
    "tz": "Europe/Madrid"
   },
   "巴塞隆納|西班牙": {
    "place_en": "巴塞隆納, Spain",
-   "lat": 41.3667,
-   "lon": 2.1667,
+   "lat": 41.36666667,
+   "lon": 2.16666667,
    "tz": "Europe/Madrid"
   },
   "瓦倫西亞|西班牙": {
    "place_en": "瓦倫西亞, Spain",
-   "lat": 39.4667,
-   "lon": -0.3667,
+   "lat": 39.46666667,
+   "lon": -0.36666667,
    "tz": "Europe/Madrid"
   },
   "塞維亞|西班牙": {
    "place_en": "塞維亞, Spain",
-   "lat": 37.3833,
-   "lon": -5.9833,
+   "lat": 37.38333333,
+   "lon": -5.98333333,
    "tz": "Europe/Madrid"
   },
   "薩拉戈薩|西班牙": {
    "place_en": "薩拉戈薩, Spain",
-   "lat": 41.6833,
+   "lat": 41.68333333,
    "lon": -0.9,
    "tz": "Europe/Madrid"
   },
   "馬拉加|西班牙": {
    "place_en": "馬拉加, Spain",
-   "lat": 36.7167,
-   "lon": -4.4167,
+   "lat": 36.71666667,
+   "lon": -4.41666667,
    "tz": "Europe/Madrid"
   },
   "穆爾西亞|西班牙": {
    "place_en": "穆爾西亞, Spain",
-   "lat": 37.9333,
+   "lat": 37.93333333,
    "lon": -1.1,
    "tz": "Europe/Madrid"
   },
   "帕爾馬|西班牙": {
    "place_en": "帕爾馬, Spain",
-   "lat": 39.5667,
+   "lat": 39.56666667,
    "lon": 2.65,
    "tz": "Europe/Madrid"
   },
   "拉斯帕爾馬斯|西班牙": {
    "place_en": "拉斯帕爾馬斯, Spain",
-   "lat": 28.1167,
-   "lon": -15.4333,
+   "lat": 28.11666667,
+   "lon": -15.43333333,
    "tz": "Atlantic/Canary"
   },
   "畢爾巴鄂|西班牙": {
    "place_en": "畢爾巴鄂, Spain",
    "lat": 43.25,
-   "lon": -2.9333,
+   "lon": -2.93333333,
    "tz": "Europe/Madrid"
   },
   "阿利坎特|西班牙": {
    "place_en": "阿利坎特, Spain",
-   "lat": 38.3333,
-   "lon": -0.4833,
+   "lat": 38.33333333,
+   "lon": -0.48333333,
    "tz": "Europe/Madrid"
   },
   "科爾多瓦|西班牙": {
    "place_en": "科爾多瓦, Spain",
-   "lat": 37.8833,
-   "lon": -4.7667,
+   "lat": 37.88333333,
+   "lon": -4.76666667,
    "tz": "Europe/Madrid"
   },
   "瓦拉多利德|西班牙": {
    "place_en": "Valladolid, Spain",
-   "lat": 41.6167,
-   "lon": -4.7167,
+   "lat": 41.61666667,
+   "lon": -4.71666667,
    "tz": "Europe/Madrid"
   },
   "維哥|西班牙": {
@@ -1216,98 +1216,98 @@
   },
   "阿姆斯特丹|荷蘭": {
    "place_en": "阿姆斯特丹, Netherlands",
-   "lat": 52.3667,
-   "lon": 4.8833,
+   "lat": 52.36666667,
+   "lon": 4.88333333,
    "tz": "Europe/Amsterdam"
   },
   "鹿特丹|荷蘭": {
    "place_en": "鹿特丹, Netherlands",
-   "lat": 51.9167,
-   "lon": 4.4667,
+   "lat": 51.91666667,
+   "lon": 4.46666667,
    "tz": "Europe/Amsterdam"
   },
   "海牙|荷蘭": {
    "place_en": "海牙, Netherlands",
-   "lat": 52.0667,
+   "lat": 52.06666667,
    "lon": 4.3,
    "tz": "Europe/Amsterdam"
   },
   "烏特勒支|荷蘭": {
    "place_en": "烏特勒支, Netherlands",
-   "lat": 52.0833,
-   "lon": 5.1167,
+   "lat": 52.08333333,
+   "lon": 5.11666667,
    "tz": "Europe/Amsterdam"
   },
   "埃因霍芬|荷蘭": {
    "place_en": "埃因霍芬, Netherlands",
    "lat": 51.45,
-   "lon": 5.4333,
+   "lon": 5.43333333,
    "tz": "Europe/Amsterdam"
   },
   "蒂爾堡|荷蘭": {
    "place_en": "蒂爾堡, Netherlands",
    "lat": 51.55,
-   "lon": 5.0833,
+   "lon": 5.08333333,
    "tz": "Europe/Amsterdam"
   },
   "格羅寧根|荷蘭": {
    "place_en": "格羅寧根, Netherlands",
-   "lat": 53.2167,
-   "lon": 6.5667,
+   "lat": 53.21666667,
+   "lon": 6.56666667,
    "tz": "Europe/Amsterdam"
   },
   "阿爾梅勒|荷蘭": {
    "place_en": "Almere, Netherlands",
-   "lat": 52.3667,
-   "lon": 5.2167,
+   "lat": 52.36666667,
+   "lon": 5.21666667,
    "tz": "Europe/Amsterdam"
   },
   "布雷達|荷蘭": {
    "place_en": "布雷達, Netherlands",
-   "lat": 51.5833,
-   "lon": 4.7667,
+   "lat": 51.58333333,
+   "lon": 4.76666667,
    "tz": "Europe/Amsterdam"
   },
   "奈梅亨|荷蘭": {
    "place_en": "奈梅亨, Netherlands",
-   "lat": 51.8333,
+   "lat": 51.83333333,
    "lon": 5.85,
    "tz": "Europe/Amsterdam"
   },
   "蘇黎世|瑞士": {
    "place_en": "蘇黎世, Switzerland",
-   "lat": 47.3667,
-   "lon": 8.5333,
+   "lat": 47.36666667,
+   "lon": 8.53333333,
    "tz": "Europe/Zurich"
   },
   "日內瓦|瑞士": {
    "place_en": "日內瓦, Switzerland",
    "lat": 46.2,
-   "lon": 6.1333,
+   "lon": 6.13333333,
    "tz": "Europe/Zurich"
   },
   "巴塞爾|瑞士": {
    "place_en": "巴塞爾, Switzerland",
    "lat": 47.55,
-   "lon": 7.5833,
+   "lon": 7.58333333,
    "tz": "Europe/Zurich"
   },
   "洛桑|瑞士": {
    "place_en": "洛桑, Switzerland",
-   "lat": 46.5167,
-   "lon": 6.6167,
+   "lat": 46.51666667,
+   "lon": 6.61666667,
    "tz": "Europe/Zurich"
   },
   "伯恩|瑞士": {
    "place_en": "伯恩, Switzerland",
-   "lat": 46.9333,
+   "lat": 46.93333333,
    "lon": 7.45,
    "tz": "Europe/Zurich"
   },
   "溫特圖爾|瑞士": {
    "place_en": "溫特圖爾, Switzerland",
-   "lat": 47.4833,
-   "lon": 8.7167,
+   "lat": 47.48333333,
+   "lon": 8.71666667,
    "tz": "Europe/Zurich"
   },
   "盧塞恩|瑞士": {
@@ -1318,8 +1318,8 @@
   },
   "聖加侖|瑞士": {
    "place_en": "St. Gallen, Switzerland",
-   "lat": 47.4167,
-   "lon": 9.3667,
+   "lat": 47.41666667,
+   "lon": 9.36666667,
    "tz": "Europe/Zurich"
   },
   "盧加諾|瑞士": {
@@ -1337,36 +1337,36 @@
   "維也納|奧地利": {
    "place_en": "維也納, Austria",
    "lat": 48.2,
-   "lon": 16.3667,
+   "lon": 16.36666667,
    "tz": "Europe/Vienna"
   },
   "格拉茨|奧地利": {
    "place_en": "格拉茨, Austria",
-   "lat": 47.0667,
-   "lon": 15.4333,
+   "lat": 47.06666667,
+   "lon": 15.43333333,
    "tz": "Europe/Vienna"
   },
   "林茨|奧地利": {
    "place_en": "林茨, Austria",
    "lat": 48.3,
-   "lon": 14.2833,
+   "lon": 14.28333333,
    "tz": "Europe/Vienna"
   },
   "薩爾茨堡|奧地利": {
    "place_en": "薩爾茨堡, Austria",
-   "lat": 47.7833,
-   "lon": 13.0333,
+   "lat": 47.78333333,
+   "lon": 13.03333333,
    "tz": "Europe/Vienna"
   },
   "因斯布魯克|奧地利": {
    "place_en": "因斯布魯克, Austria",
    "lat": 47.25,
-   "lon": 11.3833,
+   "lon": 11.38333333,
    "tz": "Europe/Vienna"
   },
   "克拉根福|奧地利": {
    "place_en": "克拉根福, Austria",
-   "lat": 46.6167,
+   "lat": 46.61666667,
    "lon": 14.3,
    "tz": "Europe/Vienna"
   },
@@ -1379,13 +1379,13 @@
   "多恩比恩|奧地利": {
    "place_en": "多恩比恩, Austria",
    "lat": 47.4,
-   "lon": 9.7333,
+   "lon": 9.73333333,
    "tz": "Europe/Vienna"
   },
   "維納紐施塔特|奧地利": {
    "place_en": "Wiener Neustadt, Austria",
    "lat": 47.8,
-   "lon": 16.2333,
+   "lon": 16.23333333,
    "tz": "Europe/Vienna"
   },
   "斯泰爾|奧地利": {
@@ -1403,19 +1403,19 @@
   "洛杉磯|美國": {
    "place_en": "Los Angeles, United States",
    "lat": 34.05,
-   "lon": -118.2333,
+   "lon": -118.23333333,
    "tz": "America/Los_Angeles"
   },
   "芝加哥|美國": {
    "place_en": "Chicago, United States",
-   "lat": 41.8667,
-   "lon": -87.6167,
+   "lat": 41.86666667,
+   "lon": -87.61666667,
    "tz": "America/Chicago"
   },
   "休斯頓|美國": {
    "place_en": "Houston, United States",
    "lat": 29.75,
-   "lon": -95.3667,
+   "lon": -95.36666667,
    "tz": "America/Chicago"
   },
   "費城|美國": {
@@ -1426,14 +1426,14 @@
   },
   "鳳凰城|美國": {
    "place_en": "Phoenix, United States",
-   "lat": 33.4333,
-   "lon": -112.0667,
+   "lat": 33.43333333,
+   "lon": -112.06666667,
    "tz": "America/Phoenix"
   },
   "聖安東尼奧|美國": {
    "place_en": "聖安東尼奧, United States",
-   "lat": 29.4167,
-   "lon": -98.4833,
+   "lat": 29.41666667,
+   "lon": -98.48333333,
    "tz": "America/Chicago"
   },
   "聖地亞哥|美國": {
@@ -1444,37 +1444,37 @@
   },
   "達拉斯|美國": {
    "place_en": "Dallas, United States",
-   "lat": 32.7667,
-   "lon": -96.7833,
+   "lat": 32.76666667,
+   "lon": -96.78333333,
    "tz": "America/Chicago"
   },
   "聖荷西|美國": {
    "place_en": "聖荷西, United States",
-   "lat": 37.3333,
-   "lon": -121.8833,
+   "lat": 37.33333333,
+   "lon": -121.88333333,
    "tz": "America/Los_Angeles"
   },
   "奧斯汀|美國": {
    "place_en": "奧斯汀, United States",
-   "lat": 30.2667,
-   "lon": -97.7333,
+   "lat": 30.26666667,
+   "lon": -97.73333333,
    "tz": "America/Chicago"
   },
   "傑克遜維爾|美國": {
    "place_en": "傑克遜維爾, United States",
-   "lat": 30.3167,
+   "lat": 30.31666667,
    "lon": -81.65,
    "tz": "America/New_York"
   },
   "舊金山|美國": {
    "place_en": "San Francisco, United States",
-   "lat": 37.7833,
+   "lat": 37.78333333,
    "lon": -122.4,
    "tz": "America/Los_Angeles"
   },
   "印第安納波利斯|美國": {
    "place_en": "印第安納波利斯, United States",
-   "lat": 39.7667,
+   "lat": 39.76666667,
    "lon": -86.15,
    "tz": "America/Indiana/Indianapolis"
   },
@@ -1486,26 +1486,26 @@
   },
   "夏洛特|美國": {
    "place_en": "夏洛特, United States",
-   "lat": 35.2167,
-   "lon": -80.8333,
+   "lat": 35.21666667,
+   "lon": -80.83333333,
    "tz": "America/New_York"
   },
   "西雅圖|美國": {
    "place_en": "Seattle, United States",
    "lat": 47.6,
-   "lon": -122.3167,
+   "lon": -122.31666667,
    "tz": "America/Los_Angeles"
   },
   "丹佛|美國": {
    "place_en": "丹佛, United States",
-   "lat": 39.7333,
-   "lon": -104.9833,
+   "lat": 39.73333333,
+   "lon": -104.98333333,
    "tz": "America/Denver"
   },
   "華盛頓|美國": {
    "place_en": "Washington, United States",
-   "lat": 38.8833,
-   "lon": -77.0333,
+   "lat": 38.88333333,
+   "lon": -77.03333333,
    "tz": "America/New_York"
   },
   "波士頓|美國": {
@@ -1517,13 +1517,13 @@
   "多倫多|加拿大": {
    "place_en": "多倫多, Canada",
    "lat": 43.65,
-   "lon": -79.3833,
+   "lon": -79.38333333,
    "tz": "America/Toronto"
   },
   "蒙特婁|加拿大": {
    "place_en": "Montreal, Canada",
    "lat": 45.5,
-   "lon": -73.5667,
+   "lon": -73.56666667,
    "tz": "America/Toronto"
   },
   "溫哥華|加拿大": {
@@ -1534,20 +1534,20 @@
   },
   "卡爾加里|加拿大": {
    "place_en": "卡爾加里, Canada",
-   "lat": 51.0333,
+   "lat": 51.03333333,
    "lon": -114.05,
    "tz": "America/Edmonton"
   },
   "埃德蒙頓|加拿大": {
    "place_en": "埃德蒙頓, Canada",
-   "lat": 53.5333,
-   "lon": -113.4833,
+   "lat": 53.53333333,
+   "lon": -113.48333333,
    "tz": "America/Edmonton"
   },
   "渥太華|加拿大": {
    "place_en": "渥太華, Canada",
-   "lat": 45.4167,
-   "lon": -75.6833,
+   "lat": 45.41666667,
+   "lon": -75.68333333,
    "tz": "America/Toronto"
   },
   "溫尼伯|加拿大": {
@@ -1565,7 +1565,7 @@
   "哈密爾頓|加拿大": {
    "place_en": "哈密爾頓, Canada",
    "lat": 43.25,
-   "lon": -79.8667,
+   "lon": -79.86666667,
    "tz": "America/Toronto"
   },
   "基奇納|加拿大": {
@@ -1576,32 +1576,32 @@
   },
   "墨西哥城|墨西哥": {
    "place_en": "墨西哥城, Mexico",
-   "lat": 19.3167,
+   "lat": 19.31666667,
    "lon": -99.15,
    "tz": "America/Mexico_City"
   },
   "瓜達拉哈拉|墨西哥": {
    "place_en": "瓜達拉哈拉, Mexico",
-   "lat": 20.6667,
-   "lon": -103.3333,
+   "lat": 20.66666667,
+   "lon": -103.33333333,
    "tz": "America/Mexico_City"
   },
   "蒙特雷|墨西哥": {
    "place_en": "蒙特雷, Mexico",
-   "lat": 25.6667,
+   "lat": 25.66666667,
    "lon": -100.3,
    "tz": "America/Monterrey"
   },
   "普埃布拉|墨西哥": {
    "place_en": "普埃布拉, Mexico",
-   "lat": 19.0833,
-   "lon": -98.1667,
+   "lat": 19.08333333,
+   "lon": -98.16666667,
    "tz": "America/Mexico_City"
   },
   "蒂華納|墨西哥": {
    "place_en": "蒂華納, Mexico",
-   "lat": 32.5333,
-   "lon": -117.0333,
+   "lat": 32.53333333,
+   "lon": -117.03333333,
    "tz": "America/Tijuana"
   },
   "萊昂|墨西哥": {
@@ -1612,20 +1612,20 @@
   },
   "華雷斯城|墨西哥": {
    "place_en": "華雷斯城, Mexico",
-   "lat": 31.7333,
-   "lon": -106.4667,
+   "lat": 31.73333333,
+   "lon": -106.46666667,
    "tz": "America/Ciudad_Juarez"
   },
   "托雷翁|墨西哥": {
    "place_en": "Torreón, Mexico",
-   "lat": 25.5333,
+   "lat": 25.53333333,
    "lon": -103.4,
    "tz": "America/Monterrey"
   },
   "克雷塔羅|墨西哥": {
    "place_en": "克雷塔羅, Mexico",
-   "lat": 20.5667,
-   "lon": -100.3667,
+   "lat": 20.56666667,
+   "lon": -100.36666667,
    "tz": "America/Mexico_City"
   },
   "奇瓦瓦|墨西哥": {
@@ -1637,7 +1637,7 @@
   "聖保羅|巴西": {
    "place_en": "聖保羅, Brazil",
    "lat": -23.55,
-   "lon": -46.6333,
+   "lon": -46.63333333,
    "tz": "America/Sao_Paulo"
   },
   "里約熱內盧|巴西": {
@@ -1648,62 +1648,62 @@
   },
   "巴西利亞|巴西": {
    "place_en": "巴西利亞, Brazil",
-   "lat": -15.7833,
-   "lon": -47.8667,
+   "lat": -15.78333333,
+   "lon": -47.86666667,
    "tz": "America/Sao_Paulo"
   },
   "薩爾瓦多|巴西": {
    "place_en": "薩爾瓦多, Brazil",
-   "lat": -12.9667,
-   "lon": -38.4667,
+   "lat": -12.96666667,
+   "lon": -38.46666667,
    "tz": "America/Bahia"
   },
   "福塔雷薩|巴西": {
    "place_en": "Fortaleza, Brazil",
-   "lat": -3.7833,
-   "lon": -38.5167,
+   "lat": -3.78333333,
+   "lon": -38.51666667,
    "tz": "America/Fortaleza"
   },
   "貝洛奧里藏特|巴西": {
    "place_en": "貝洛奧里藏特, Brazil",
-   "lat": -19.9167,
-   "lon": -43.9333,
+   "lat": -19.91666667,
+   "lon": -43.93333333,
    "tz": "America/Sao_Paulo"
   },
   "馬瑙斯|巴西": {
    "place_en": "馬瑙斯, Brazil",
-   "lat": -3.1167,
-   "lon": -59.9667,
+   "lat": -3.11666667,
+   "lon": -59.96666667,
    "tz": "America/Manaus"
   },
   "庫里提巴|巴西": {
    "place_en": "Curitiba, Brazil",
-   "lat": -25.4167,
-   "lon": -49.2667,
+   "lat": -25.41666667,
+   "lon": -49.26666667,
    "tz": "America/Sao_Paulo"
   },
   "累西費|巴西": {
    "place_en": "累西費, Brazil",
    "lat": -8.05,
-   "lon": -34.8833,
+   "lon": -34.88333333,
    "tz": "America/Recife"
   },
   "戈亞尼亞|巴西": {
    "place_en": "戈亞尼亞, Brazil",
-   "lat": -16.6667,
+   "lat": -16.66666667,
    "lon": -49.25,
    "tz": "America/Sao_Paulo"
   },
   "布宜諾斯艾利斯|阿根廷": {
    "place_en": "布宜諾斯艾利斯, Argentina",
    "lat": -34.6,
-   "lon": -58.3833,
+   "lon": -58.38333333,
    "tz": "America/Argentina/Buenos_Aires"
   },
   "科爾多瓦|阿根廷": {
    "place_en": "科爾多瓦, Argentina",
-   "lat": -31.4167,
-   "lon": -64.1833,
+   "lat": -31.41666667,
+   "lon": -64.18333333,
    "tz": "America/Argentina/Cordoba"
   },
   "羅薩里奧|阿根廷": {
@@ -1714,8 +1714,8 @@
   },
   "門多薩|阿根廷": {
    "place_en": "門多薩, Argentina",
-   "lat": -32.8833,
-   "lon": -68.8333,
+   "lat": -32.88333333,
+   "lon": -68.83333333,
    "tz": "America/Argentina/Mendoza"
   },
   "圖庫曼|阿根廷": {
@@ -1732,43 +1732,43 @@
   },
   "馬德普拉塔|阿根廷": {
    "place_en": "馬德普拉塔, Argentina",
-   "lat": -37.9833,
-   "lon": -57.5333,
+   "lat": -37.98333333,
+   "lon": -57.53333333,
    "tz": "America/Argentina/Buenos_Aires"
   },
   "薩爾塔|阿根廷": {
    "place_en": "薩爾塔, Argentina",
-   "lat": -24.8333,
-   "lon": -65.4667,
+   "lat": -24.83333333,
+   "lon": -65.46666667,
    "tz": "America/Argentina/Salta"
   },
   "聖胡安|阿根廷": {
    "place_en": "聖胡安, Argentina",
-   "lat": -31.5333,
-   "lon": -68.5167,
+   "lat": -31.53333333,
+   "lon": -68.51666667,
    "tz": "America/Argentina/San_Juan"
   },
   "雷西斯滕西亞|阿根廷": {
    "place_en": "Resistencia, Argentina",
    "lat": -27.6,
-   "lon": -59.1833,
+   "lon": -59.18333333,
    "tz": "America/Argentina/Cordoba"
   },
   "聖地亞哥|智利": {
    "place_en": "聖地亞哥, Chile",
-   "lat": -33.4333,
+   "lat": -33.43333333,
    "lon": -70.65,
    "tz": "America/Santiago"
   },
   "瓦爾帕萊索|智利": {
    "place_en": "瓦爾帕萊索, Chile",
-   "lat": -32.5833,
+   "lat": -32.58333333,
    "lon": -70.85,
    "tz": "America/Santiago"
   },
   "康塞普西翁|智利": {
    "place_en": "康塞普西翁, Chile",
-   "lat": -36.8167,
+   "lat": -36.81666667,
    "lon": -73.05,
    "tz": "America/Santiago"
   },
@@ -1781,24 +1781,18 @@
   "安托法加斯塔|智利": {
    "place_en": "安托法加斯塔, Chile",
    "lat": -22.45,
-   "lon": -68.9167,
+   "lon": -68.91666667,
    "tz": "America/Santiago"
   },
   "特木科|智利": {
    "place_en": "Temuco, Chile",
-   "lat": -38.7333,
-   "lon": -72.5833,
-   "tz": "America/Santiago"
-  },
-  "拉金塔|智利": {
-   "place_en": "Rancagua, Chile",
-   "lat": -34.17,
-   "lon": -70.74,
+   "lat": -38.73333333,
+   "lon": -72.58333333,
    "tz": "America/Santiago"
   },
   "塔爾卡|智利": {
    "place_en": "塔爾卡, Chile",
-   "lat": -35.4167,
+   "lat": -35.41666667,
    "lon": -71.65,
    "tz": "America/Santiago"
   },
@@ -1817,66 +1811,66 @@
   "波哥大|哥倫比亞": {
    "place_en": "波哥大, Colombia",
    "lat": 4.65,
-   "lon": -74.0833,
+   "lon": -74.08333333,
    "tz": "America/Bogota"
   },
   "麥德林|哥倫比亞": {
    "place_en": "麥德林, Colombia",
-   "lat": 6.2333,
-   "lon": -75.5667,
+   "lat": 6.23333333,
+   "lon": -75.56666667,
    "tz": "America/Bogota"
   },
   "卡利|哥倫比亞": {
    "place_en": "卡利, Colombia",
    "lat": 3.4,
-   "lon": -76.5667,
+   "lon": -76.56666667,
    "tz": "America/Bogota"
   },
   "巴蘭基亞|哥倫比亞": {
    "place_en": "巴蘭基亞, Colombia",
-   "lat": 10.9833,
-   "lon": -74.7833,
+   "lat": 10.98333333,
+   "lon": -74.78333333,
    "tz": "America/Bogota"
   },
   "卡塔赫納|哥倫比亞": {
    "place_en": "卡塔赫納, Colombia",
-   "lat": 10.4167,
-   "lon": -75.5333,
+   "lat": 10.41666667,
+   "lon": -75.53333333,
    "tz": "America/Bogota"
   },
   "庫庫塔|哥倫比亞": {
    "place_en": "庫庫塔, Colombia",
-   "lat": 7.8833,
+   "lat": 7.88333333,
    "lon": -72.5,
    "tz": "America/Bogota"
   },
   "布卡拉曼加|哥倫比亞": {
    "place_en": "布卡拉曼加, Colombia",
-   "lat": 7.1167,
-   "lon": -73.1167,
+   "lat": 7.11666667,
+   "lon": -73.11666667,
    "tz": "America/Bogota"
   },
   "佩雷拉|哥倫比亞": {
    "place_en": "Pereira, Colombia",
-   "lat": 4.7833,
-   "lon": -75.7833,
+   "lat": 4.78333333,
+   "lon": -75.78333333,
    "tz": "America/Bogota"
   },
   "伊瓦格|哥倫比亞": {
    "place_en": "伊瓦格, Colombia",
-   "lat": 4.4333,
+   "lat": 4.43333333,
    "lon": -75.2,
    "tz": "America/Bogota"
   },
   "聖瑪爾塔|哥倫比亞": {
    "place_en": "聖瑪爾塔, Colombia",
-   "lat": 11.2167,
-   "lon": -74.1833,
+   "lat": 11.21666667,
+   "lon": -74.18333333,
    "tz": "America/Bogota"
   },
   "雪梨|澳大利亞": {
    "place_en": "雪梨, Australia",
-   "lat": -33.8667,
+   "lat": -33.86666667,
    "lon": 151.2,
    "tz": "Australia/Sydney"
   },
@@ -1888,8 +1882,8 @@
   },
   "布里斯班|澳大利亞": {
    "place_en": "布里斯班, Australia",
-   "lat": -27.4667,
-   "lon": 153.0167,
+   "lat": -27.46666667,
+   "lon": 153.01666667,
    "tz": "Australia/Brisbane"
   },
   "珀斯|澳大利亞": {
@@ -1900,8 +1894,8 @@
   },
   "阿德萊德|澳大利亞": {
    "place_en": "阿德萊德, Australia",
-   "lat": -34.9167,
-   "lon": 138.5833,
+   "lat": -34.91666667,
+   "lon": 138.58333333,
    "tz": "Australia/Adelaide"
   },
   "黃金海岸|澳大利亞": {
@@ -1912,25 +1906,25 @@
   },
   "紐卡索|澳大利亞": {
    "place_en": "Newcastle, Australia",
-   "lat": -32.9167,
-   "lon": 151.7667,
+   "lat": -32.91666667,
+   "lon": 151.76666667,
    "tz": "Australia/Sydney"
   },
   "坎培拉|澳大利亞": {
    "place_en": "坎培拉, Australia",
-   "lat": -35.2833,
+   "lat": -35.28333333,
    "lon": 149.1,
    "tz": "Australia/Sydney"
   },
   "沃隆貢|澳大利亞": {
    "place_en": "沃隆貢, Australia",
-   "lat": -34.3167,
-   "lon": 150.9167,
+   "lat": -34.31666667,
+   "lon": 150.91666667,
    "tz": "Australia/Sydney"
   },
   "吉朗|澳大利亞": {
    "place_en": "吉朗, Australia",
-   "lat": -38.1333,
+   "lat": -38.13333333,
    "lon": 144.35,
    "tz": "Australia/Melbourne"
   },
@@ -1942,31 +1936,31 @@
   },
   "威靈頓|紐西蘭": {
    "place_en": "威靈頓, New Zealand",
-   "lat": -41.2833,
-   "lon": 174.7667,
+   "lat": -41.28333333,
+   "lon": 174.76666667,
    "tz": "Pacific/Auckland"
   },
   "基督城|紐西蘭": {
    "place_en": "基督城, New Zealand",
-   "lat": -43.5167,
-   "lon": 172.6333,
+   "lat": -43.51666667,
+   "lon": 172.63333333,
    "tz": "Pacific/Auckland"
   },
   "哈密爾頓|紐西蘭": {
    "place_en": "哈密爾頓, New Zealand",
-   "lat": -37.7833,
-   "lon": 175.2667,
+   "lat": -37.78333333,
+   "lon": 175.26666667,
    "tz": "Pacific/Auckland"
   },
   "陶朗加|紐西蘭": {
    "place_en": "陶朗加, New Zealand",
-   "lat": -37.6833,
-   "lon": 176.1667,
+   "lat": -37.68333333,
+   "lon": 176.16666667,
    "tz": "Pacific/Auckland"
   },
   "但尼丁|紐西蘭": {
    "place_en": "Dunedin, New Zealand",
-   "lat": -45.8667,
+   "lat": -45.86666667,
    "lon": 170.5,
    "tz": "Pacific/Auckland"
   },
@@ -1978,32 +1972,32 @@
   },
   "羅托魯瓦|紐西蘭": {
    "place_en": "Rotorua, New Zealand",
-   "lat": -38.1333,
+   "lat": -38.13333333,
    "lon": 176.25,
    "tz": "Pacific/Auckland"
   },
   "納爾遜|紐西蘭": {
    "place_en": "Nelson, New Zealand",
-   "lat": -41.2667,
-   "lon": 173.2833,
+   "lat": -41.26666667,
+   "lon": 173.28333333,
    "tz": "Pacific/Auckland"
   },
   "新普利茅斯|紐西蘭": {
    "place_en": "新普利茅斯, New Zealand",
    "lat": -39.05,
-   "lon": 174.0667,
+   "lon": 174.06666667,
    "tz": "Pacific/Auckland"
   },
   "約翰尼斯堡|南非": {
    "place_en": "約翰尼斯堡, South Africa",
-   "lat": -26.1833,
-   "lon": 28.1167,
+   "lat": -26.18333333,
+   "lon": 28.11666667,
    "tz": "Africa/Johannesburg"
   },
   "開普敦|南非": {
    "place_en": "開普敦, South Africa",
-   "lat": -33.9167,
-   "lon": 18.4167,
+   "lat": -33.91666667,
+   "lon": 18.41666667,
    "tz": "Africa/Johannesburg"
   },
   "德班|南非": {
@@ -2014,14 +2008,14 @@
   },
   "比勒陀利亞|南非": {
    "place_en": "比勒陀利亞, South Africa",
-   "lat": -25.7333,
-   "lon": 28.1833,
+   "lat": -25.73333333,
+   "lon": 28.18333333,
    "tz": "Africa/Johannesburg"
   },
   "伊麗莎白港|南非": {
    "place_en": "Gqeberha, South Africa",
    "lat": -33.95,
-   "lon": 25.6167,
+   "lon": 25.61666667,
    "tz": "Africa/Johannesburg"
   },
   "布隆方丹|南非": {
@@ -2032,14 +2026,14 @@
   },
   "東倫敦|南非": {
    "place_en": "東倫敦, South Africa",
-   "lat": -33.0167,
-   "lon": 27.8833,
+   "lat": -33.01666667,
+   "lon": 27.88333333,
    "tz": "Africa/Johannesburg"
   },
   "內爾斯普雷特|南非": {
    "place_en": "Mbombela, South Africa",
-   "lat": -25.4667,
-   "lon": 30.9667,
+   "lat": -25.46666667,
+   "lon": 30.96666667,
    "tz": "Africa/Johannesburg"
   },
   "克萊蒙德|南非": {
@@ -2056,176 +2050,176 @@
   },
   "開羅|埃及": {
    "place_en": "開羅, Egypt",
-   "lat": 30.0333,
-   "lon": 31.2333,
+   "lat": 30.03333333,
+   "lon": 31.23333333,
    "tz": "Africa/Cairo"
   },
   "亞歷山大|埃及": {
    "place_en": "亞歷山大, Egypt",
-   "lat": 31.1833,
-   "lon": 29.8833,
+   "lat": 31.18333333,
+   "lon": 29.88333333,
    "tz": "Africa/Cairo"
   },
   "吉薩|埃及": {
    "place_en": "吉薩, Egypt",
-   "lat": 29.9833,
+   "lat": 29.98333333,
    "lon": 31.2,
    "tz": "Africa/Cairo"
   },
   "舒卜拉海邁|埃及": {
    "place_en": "Shubra El Kheima, Egypt",
-   "lat": 30.1167,
-   "lon": 31.2333,
+   "lat": 30.11666667,
+   "lon": 31.23333333,
    "tz": "Africa/Cairo"
   },
   "盧克索|埃及": {
    "place_en": "盧克索, Egypt",
-   "lat": 25.7167,
+   "lat": 25.71666667,
    "lon": 32.65,
    "tz": "Africa/Cairo"
   },
   "阿斯旺|埃及": {
    "place_en": "阿斯旺, Egypt",
-   "lat": 23.9667,
-   "lon": 32.8667,
+   "lat": 23.96666667,
+   "lon": 32.86666667,
    "tz": "Africa/Cairo"
   },
   "伊斯梅利亞|埃及": {
    "place_en": "伊斯梅利亞, Egypt",
-   "lat": 30.5833,
+   "lat": 30.58333333,
    "lon": 32.3,
    "tz": "Africa/Cairo"
   },
   "蘇伊士|埃及": {
    "place_en": "蘇伊士, Egypt",
-   "lat": 29.9667,
-   "lon": 32.5333,
+   "lat": 29.96666667,
+   "lon": 32.53333333,
    "tz": "Africa/Cairo"
   },
   "坦塔|埃及": {
    "place_en": "坦塔, Egypt",
-   "lat": 30.7833,
-   "lon": 30.9833,
+   "lat": 30.78333333,
+   "lon": 30.98333333,
    "tz": "Africa/Cairo"
   },
   "曼蘇拉|埃及": {
    "place_en": "Mansoura, Egypt",
-   "lat": 31.0333,
+   "lat": 31.03333333,
    "lon": 31.35,
    "tz": "Africa/Cairo"
   },
   "卡薩布蘭卡|摩洛哥": {
    "place_en": "卡薩布蘭卡, Morocco",
-   "lat": 33.5833,
-   "lon": -7.6167,
+   "lat": 33.58333333,
+   "lon": -7.61666667,
    "tz": "Africa/Casablanca"
   },
   "拉巴特|摩洛哥": {
    "place_en": "拉巴特, Morocco",
-   "lat": 34.0167,
-   "lon": -6.8333,
+   "lat": 34.01666667,
+   "lon": -6.83333333,
    "tz": "Africa/Casablanca"
   },
   "菲斯|摩洛哥": {
    "place_en": "菲斯, Morocco",
-   "lat": 34.0333,
+   "lat": 34.03333333,
    "lon": -5.0,
    "tz": "Africa/Casablanca"
   },
   "馬拉喀什|摩洛哥": {
    "place_en": "馬拉喀什, Morocco",
-   "lat": 31.6167,
-   "lon": -7.9833,
+   "lat": 31.61666667,
+   "lon": -7.98333333,
    "tz": "Africa/Casablanca"
   },
   "阿加迪爾|摩洛哥": {
    "place_en": "阿加迪爾, Morocco",
-   "lat": 30.4167,
-   "lon": -9.5833,
+   "lat": 30.41666667,
+   "lon": -9.58333333,
    "tz": "Africa/Casablanca"
   },
   "丹吉爾|摩洛哥": {
    "place_en": "丹吉爾, Morocco",
-   "lat": 35.7667,
+   "lat": 35.76666667,
    "lon": -5.8,
    "tz": "Africa/Casablanca"
   },
   "梅克內斯|摩洛哥": {
    "place_en": "梅克內斯, Morocco",
-   "lat": 33.8833,
-   "lon": -5.5167,
+   "lat": 33.88333333,
+   "lon": -5.51666667,
    "tz": "Africa/Casablanca"
   },
   "烏季達|摩洛哥": {
    "place_en": "烏季達, Morocco",
-   "lat": 34.6667,
+   "lat": 34.66666667,
    "lon": -1.9,
    "tz": "Africa/Casablanca"
   },
   "凱尼特拉|摩洛哥": {
    "place_en": "Kenitra, Morocco",
    "lat": 34.25,
-   "lon": -6.5667,
+   "lon": -6.56666667,
    "tz": "Africa/Casablanca"
   },
   "泰圖安|摩洛哥": {
    "place_en": "Tetouan, Morocco",
-   "lat": 35.5667,
-   "lon": -5.3667,
+   "lat": 35.56666667,
+   "lon": -5.36666667,
    "tz": "Africa/Casablanca"
   },
   "拉哥斯|奈及利亞": {
    "place_en": "拉哥斯, Nigeria",
    "lat": 6.45,
-   "lon": 3.3833,
+   "lon": 3.38333333,
    "tz": "Africa/Lagos"
   },
   "卡諾|奈及利亞": {
    "place_en": "卡諾, Nigeria",
-   "lat": 11.9833,
-   "lon": 8.5167,
+   "lat": 11.98333333,
+   "lon": 8.51666667,
    "tz": "Africa/Lagos"
   },
   "伊巴丹|奈及利亞": {
    "place_en": "伊巴丹, Nigeria",
-   "lat": 7.3667,
-   "lon": 3.8833,
+   "lat": 7.36666667,
+   "lon": 3.88333333,
    "tz": "Africa/Lagos"
   },
   "卡杜納|奈及利亞": {
    "place_en": "卡杜納, Nigeria",
-   "lat": 10.5167,
-   "lon": 7.4333,
+   "lat": 10.51666667,
+   "lon": 7.43333333,
    "tz": "Africa/Lagos"
   },
   "哈科特港|奈及利亞": {
    "place_en": "哈科特港, Nigeria",
-   "lat": 4.7667,
-   "lon": 7.0167,
+   "lat": 4.76666667,
+   "lon": 7.01666667,
    "tz": "Africa/Lagos"
   },
   "貝寧城|奈及利亞": {
    "place_en": "貝寧城, Nigeria",
-   "lat": 6.3167,
-   "lon": 5.6167,
+   "lat": 6.31666667,
+   "lon": 5.61666667,
    "tz": "Africa/Lagos"
   },
   "邁杜古里|奈及利亞": {
    "place_en": "邁杜古里, Nigeria",
-   "lat": 11.8333,
+   "lat": 11.83333333,
    "lon": 13.15,
    "tz": "Africa/Lagos"
   },
   "扎里亞|奈及利亞": {
    "place_en": "扎里亞, Nigeria",
-   "lat": 11.0167,
+   "lat": 11.01666667,
    "lon": 7.65,
    "tz": "Africa/Lagos"
   },
   "阿貝奧庫塔|奈及利亞": {
    "place_en": "阿貝奧庫塔, Nigeria",
    "lat": 7.15,
-   "lon": 3.3333,
+   "lon": 3.33333333,
    "tz": "Africa/Lagos"
   },
   "約斯|奈及利亞": {
@@ -2233,6 +2227,12 @@
    "lat": 9.9,
    "lon": 8.86,
    "tz": "Africa/Lagos"
+  },
+  "蘭卡瓜|智利": {
+   "place_en": "Rancagua, Chile",
+   "lat": -34.17,
+   "lon": -70.74,
+   "tz": "America/Santiago"
   }
  }
 }
