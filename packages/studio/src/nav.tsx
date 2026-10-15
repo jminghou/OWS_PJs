@@ -37,12 +37,12 @@ const tags: AdminNavItem = {
 };
 
 /**
- * labeled 外殼用：兩個群組（工作／資料庫）。
+ * labeled 外殼用：兩個群組（寫作管理／靈感管理），都可收合，預設展開。
  *   configureAdminApp({ shell: 'labeled', navGroups: [...studioNavGroups, { label: '平台後台', items: [...PLATFORM_NAV, ...] }] })
  */
 export const studioNavGroups: AdminNavGroup[] = [
-  { label: '工作', items: [today, projects, workspace, publishing] },
-  { label: '資料庫', items: [cards, inbox, tags] },
+  { label: '寫作管理', collapsible: true, items: [today, projects, workspace, publishing] },
+  { label: '靈感管理', collapsible: true, items: [cards, inbox, tags] },
 ];
 
 /** rail 外殼用：平鋪六項（第一項帶 divider 畫分隔線）。 */
