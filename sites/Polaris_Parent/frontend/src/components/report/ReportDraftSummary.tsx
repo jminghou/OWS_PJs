@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { READER_OPTIONS, RELATION_OPTIONS, REPORT_PRODUCT, variantInfo } from '@/lib/report/catalog';
+import { birthTimeNote } from '@/lib/report/birthTime';
 import { placeLabel, type ReportDraft } from '@/lib/report/draft';
 import { stepHref, type StepSlug } from '@/lib/report/steps';
 
@@ -36,6 +37,7 @@ export default function ReportDraftSummary({
   showVariant?: boolean;
 }) {
   const place = placeLabel(draft);
+  const timeNote = birthTimeNote(draft);
   const e = (slug: StepSlug) => (editable ? slug : undefined);
   return (
     <div className="space-y-5">
@@ -58,6 +60,7 @@ export default function ReportDraftSummary({
           <Row label="出生日期" edit={e('birth-date')}>{draft.birth.date}（國曆）</Row>
           <Row label="出生時間" edit={e('birth-time')}>
             {draft.birth.time}（{draft.birth.time_type === 'solar_time' ? '真太陽時' : '一般時間'}）
+            {timeNote && <span className="mt-1 block text-caption text-muted">{timeNote}</span>}
           </Row>
           {place && <Row label="出生地" edit={e('birth-place')}>{place}</Row>}
         </dl>

@@ -1,8 +1,8 @@
 /**
  * 離線地點表：geo/geo_manager.py（GeographicDataManager）的對應物。
  *
- * Python 版只有 14 城離線座標，其餘每次上 Nominatim 查；本引擎把 geo-options 階層裡的
- * 每一城都在建置期查好，固定進 data/geo_cities.json（scripts/gen_ziwei_geo.py），
+ * 每城座標與 IANA 時區來自後端 extensions/astrology/birthplace_cities.json（人工維護座標、
+ * 依座標算出時區並檢查屬於該國），由 scripts/gen_ziwei_geo.py 複製成 data/geo_cities.json，
  * 執行期零網路。座標字串格式與 Python convert_to_astro_format 相同（'25n02, 121e33'）。
  */
 import geoJson from "../data/geo_cities.json";
@@ -13,8 +13,8 @@ export interface GeoCity {
   place_en: string;
   /** '25n02, 121e33' */
   coordinates: string;
-  /** 'h8e' / 'h5w' */
-  timezone: string;
+  /** IANA 時區（'Asia/Taipei'）；出生當下的時差由 birth/resolveBirthTime 依日期求得 */
+  tz: string;
 }
 
 const DATA = geoJson as unknown as {
@@ -37,7 +37,7 @@ export function allCities(): GeoCity[] {
   return Object.values(DATA.cities);
 }
 
-/** geo_manager.calculate_timezone：經度 → 'h8e'（自訂座標時用） */
+/** geo_manager.calculate_timezone：經度 → 'h8e'。只是經度推算的近似值，不含夏令時；出生時間換算請用 birth/resolveBirthTime */
 export function calculateTimezone(lon: number): string {
   let off = Math.round(lon / 15);
   off = Math.max(-12, Math.min(14, off));

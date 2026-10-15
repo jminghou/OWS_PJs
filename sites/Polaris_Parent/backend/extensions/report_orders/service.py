@@ -62,16 +62,18 @@ def _product_and_price(variant):
 def _save_chart(clean, email, eng, save_chart):
     """換算排盤時間並請紫微存命盤；核對回傳的命盤確實是這份資料。回 (chart 回應, 排盤時間 dict)。"""
     from sites.Polaris_Parent.backend.extensions.astrology import resolve_birth_time
+    from sites.Polaris_Parent.backend.extensions.astrology.birthplace import BirthplaceError
 
     b, p = clean['birth'], clean['place']
     clock = (b['year'], b['month'], b['day'], b['hour'], b['minute'])
     try:
-        resolved, solar_str, birthplace = resolve_birth_time(eng, clock, b['time_type'], p['city'], p['country'])
-    except Exception as exc:  # noqa: BLE001
-        current_app.logger.error(f'report order: 真太陽時換算失敗 {p}：{exc}')
-        raise OrderError('無法依這個出生地換算真太陽時，請改選其他城市或使用一般時間。', 400, 'solar_time_failed')
+        birth = resolve_birth_time(eng, clock, b['time_type'], p['city'], p['country'])
+    except BirthplaceError as exc:
+        current_app.logger.error(f'report order: 出生時間換算失敗 {p}：{exc}')
+        raise OrderError(str(exc), 400, 'birth_time_failed')
 
-    # 紫微的 save-and-register 直接以傳入時間排盤，所以真太陽時要先在這裡換好（與 /calculate 預覽一致）
+    # 紫微的 save-and-register 直接以傳入時間排盤，所以真太陽時／夏令時要先在這裡換好（與 /calculate 預覽一致）
+    resolved, birthplace = birth.resolved, birth.birthplace
     y, mo, d, h, mi = resolved
     res, err = save_chart({
         'year': y, 'month': mo, 'day': d, 'hour': h, 'minute': mi,
@@ -94,9 +96,7 @@ def _save_chart(clean, email, eng, save_chart):
         current_app.logger.error(f"report order: 紫微回傳命盤不符 {res.get('chart_id')} {res} vs {resolved}")
         raise OrderError('命盤資料核對失敗，請聯絡客服', 502, 'chart_mismatch')
 
-    chart_time = {'time_type': b['time_type'], 'used': f'{y:04d}-{mo:02d}-{d:02d} {h:02d}:{mi:02d}',
-                  'solar_time': solar_str}
-    return res, chart_time
+    return res, birth.as_dict()
 
 
 def create_report_order(user, email, clean, submission_key, eng, save_chart, payment_mode='placeholder',

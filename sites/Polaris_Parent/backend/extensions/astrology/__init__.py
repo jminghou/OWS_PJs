@@ -177,21 +177,14 @@ def _as_int(data, key):
 
 
 def resolve_birth_time(eng, clock, time_type, city="", country=""):
-    """把輸入的出生時間換成排盤用的時間。
+    """把輸入的出生時間換成排盤用的時間，回傳 birthplace.BirthTime。
 
-    clock 為 (year, month, day, hour, minute)。time_type=solar_time 時依出生地換算真太陽時；
-    回傳 ((year, month, day, hour, minute), solar_time_str 或 None, birthplace)。
-    換算失敗拋例外，由呼叫端決定錯誤訊息。/calculate 與客製報告建單共用，確保存下的
-    命盤與畫面上預覽的一致。
+    clock 為 (year, month, day, hour, minute)。solar_time 依出生地當下的實際時差（含夏令時）換算
+    真太陽時；clock_time 有出生地時扣掉夏令時差。查不到出生地或換算失敗拋 BirthplaceError，
+    由呼叫端決定錯誤訊息。/calculate 與客製報告建單共用，確保存下的命盤與畫面上預覽的一致。
     """
-    if time_type != "solar_time":
-        return tuple(clock), None, ""
-    geo = eng.get_geo_info(city, country)
-    clock_str = eng.build_clock_time_str(*clock)
-    place_with_coords = f"{geo['place_en']}, {geo['coordinates']}"
-    solar_time_str = eng.compute_solar_time(clock_str, place_with_coords, geo["timezone"])
-    resolved = tuple(eng.parse_time_str(solar_time_str)) if solar_time_str else tuple(clock)
-    return resolved, solar_time_str, f"{city}, {country}"
+    from .birthplace import resolve
+    return resolve(eng, clock, time_type, city, country)
 
 
 def _limit(rule):
@@ -214,7 +207,7 @@ def calculate():
         gender                            (必填, 男/女 或 M/F)
         name                              (選填, str)
         time_type   "clock_time"|"solar_time"  (選填, 預設 clock_time)
-        place       {city, country}       (time_type=solar_time 時必填)
+        place       {city, country}       (solar_time 必填；clock_time 選填，有給就扣夏令時差)
         include_flow                      (選填, bool, 預設 False)
         render                            (選填, bool, 預設 True → 附 SVG)
         include_chart_json                (選填, bool, 預設 False → 附正規化命盤 JSON）
@@ -276,25 +269,22 @@ def calculate():
     include_readings = bool(data.get("include_readings", False))
     theme = data.get("theme", "default")
 
-    birthplace = ""
-    solar_time_str = None
-
-    # ── 真太陽時校正 ──
-    if time_type == "solar_time":
-        place = data.get("place") or {}
-        city = (place.get("city") or "").strip()
-        country = (place.get("country") or "").strip()
-        if not city or not country:
-            return jsonify({"success": False,
-                            "error": "time_type=solar_time 需提供 place.city 與 place.country"}), 400
-    else:
-        city = country = ""
+    # ── 出生時間換算（真太陽時／夏令時）──
+    # place 在 solar_time 必填；clock_time 選填，有給就依出生地扣夏令時差
+    place = data.get("place") or {}
+    city = (place.get("city") or "").strip()
+    country = (place.get("country") or "").strip()
+    if time_type == "solar_time" and (not city or not country):
+        return jsonify({"success": False,
+                        "error": "time_type=solar_time 需提供 place.city 與 place.country"}), 400
+    from .birthplace import BirthplaceError
     try:
-        (y, mo, d, h, minute), solar_time_str, birthplace = resolve_birth_time(
+        birth = resolve_birth_time(
             eng, (parts["year"], parts["month"], parts["day"], parts["hour"], minute),
             time_type, city, country)
-    except Exception as exc:  # noqa: BLE001
-        return jsonify({"success": False, "error": f"太陽時換算失敗：{exc}"}), 400
+    except BirthplaceError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    (y, mo, d, h, minute), solar_time_str, birthplace = birth.resolved, birth.solar_time, birth.birthplace
 
     # ── 計算命盤 ──
     try:
@@ -361,6 +351,7 @@ def calculate():
         "chart_id": chart_id,
         "time_type": time_type,
         "solar_time": solar_time_str,
+        "birth_time": birth.as_dict(),
         "data": chart,
         "svg": svg,
         "chart_json": chart_json,

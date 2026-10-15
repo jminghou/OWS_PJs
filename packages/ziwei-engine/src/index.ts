@@ -27,6 +27,7 @@ export * from "./flow/layers";
 export * from "./starfield";
 export * from "./solar";
 export * from "./geo";
+export * from "./birth";
 
 import { buildNatalChart, type NatalChart, type NatalInput } from "./natal/chart";
 import { ENCODING_VERSION, encodeNatalArray } from "./natal/encoder";
@@ -37,8 +38,7 @@ import {
   type AgeEncoding, type DecadeEncoding,
 } from "./flow/encoder";
 import { buildFlowLayers, type FlowLayers } from "./flow/layers";
-import { getGeoInfo } from "./geo";
-import { buildClockTimeStr, computeSolarTimeStr, parseTimeStr } from "./solar";
+import { resolveBirthTime, type BirthTime } from "./birth";
 
 /** Python chart["快速條件編碼"] 的對應物 */
 export interface FastEncoding {
@@ -65,6 +65,8 @@ export interface CalculateResult {
   /** 真太陽時字串（'17 November 1980 at 09:56'）；clock_time 路徑為 null */
   solar_time: string | null;
   time_type: "clock_time" | "solar_time";
+  /** 換算明細：實際排盤時間、時區、夏令時差（clock_time 已扣除） */
+  birth_time: BirthTime;
   flowRaw: FlowRaw | null;
   encoding: FastEncoding;
   /** @ows/ziwei-chart RawChartJson */
@@ -77,22 +79,17 @@ export interface CalculateResult {
 export function calculateChart(input: CalculateInput, opts: CalculateOptions = {}): CalculateResult {
   const includeFlow = opts.includeFlow ?? true;
   const timeType = input.timeType ?? "clock_time";
-  let natalInput: NatalInput = { ...input, timeType };
-  let solarTime: string | null = null;
-  if (timeType === "solar_time") {
-    const city = (input.place?.city ?? "").trim();
-    const country = (input.place?.country ?? "").trim();
-    if (!city || !country) throw new Error("time_type=solar_time 需提供 place.city 與 place.country");
-    const geo = getGeoInfo(city, country);
-    if (!geo) throw new Error(`太陽時換算失敗：離線地點表沒有 ${city}, ${country}`);
-    const clock = buildClockTimeStr(input.year, input.month, input.day, input.hour, input.minute ?? 0);
-    solarTime = computeSolarTimeStr(clock, `${geo.place_en}, ${geo.coordinates}`, geo.timezone);
-    if (solarTime) {
-      const t = parseTimeStr(solarTime);
-      natalInput = { ...natalInput, year: t.year, month: t.month, day: t.day, hour: t.hour, minute: t.minute };
-    }
-    natalInput.birthplace = `${city}, ${country}`;
-  }
+  // 真太陽時／夏令時換算（與後端 birthplace.resolve 同義）；查不到出生地或換算失敗直接拋錯
+  const birth = resolveBirthTime({
+    year: input.year, month: input.month, day: input.day, hour: input.hour, minute: input.minute ?? 0,
+    timeType, place: input.place,
+  });
+  const t = birth.resolved;
+  const natalInput: NatalInput = {
+    ...input, timeType, year: t.year, month: t.month, day: t.day, hour: t.hour, minute: t.minute,
+    ...(birth.birthplace ? { birthplace: birth.birthplace } : {}),
+  };
+  const solarTime = birth.solar_time;
   const chart = buildNatalChart(natalInput);
   const natalArray = encodeNatalArray(chart);
   const encoding: FastEncoding = {
@@ -112,7 +109,7 @@ export function calculateChart(input: CalculateInput, opts: CalculateOptions = {
     );
   }
   const chart_json = encodedArrayToChartJson(natalArray, chart.chart_id);
-  return { chart, solar_time: solarTime, time_type: timeType, flowRaw, encoding, chart_json, flow };
+  return { chart, solar_time: solarTime, time_type: timeType, birth_time: birth, flowRaw, encoding, chart_json, flow };
 }
 
 /** 只排本命（等於 calculateChart(input, {includeFlow:false})） */

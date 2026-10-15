@@ -56,7 +56,8 @@ export function emptyDraft(variant: ReportVariant = 'digital'): ReportDraft {
     subject_name: '',
     gender: '男',
     birth: { date: '', time: '', time_type: 'clock_time' },
-    place: { continent: '', country: '', city: '' },
+    // 預設台灣（多數客人），城市仍需自己選
+    place: { continent: '亞洲', country: '台灣', city: '' },
     relation_label: 'self',
     audience: { reader: '命主本人', call_name: '', dedication: '' },
     submission_key: newSubmissionKey(),
@@ -133,8 +134,9 @@ export function validateDraft(d: ReportDraft, today: Date = new Date()): DraftEr
 
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.birth.time)) errors.birth_time = '請填寫出生時間（時與分）';
 
-  if (d.birth.time_type === 'solar_time' && (!d.place.country || !d.place.city)) {
-    errors.place = '使用真太陽時需選擇出生的國家與城市';
+  // 兩種時間都要出生地：真太陽時要經度與時區，一般時間要判斷當天是否在夏令時
+  if (!d.place.country || !d.place.city) {
+    errors.place = '請選擇出生的國家與城市';
   }
 
   if (!RELATION_OPTIONS.some((o) => o.value === d.relation_label)) errors.relation_label = '請選擇關係';

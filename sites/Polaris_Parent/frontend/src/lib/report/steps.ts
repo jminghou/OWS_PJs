@@ -42,9 +42,8 @@ export const REPORT_STEPS: ReportStep[] = [
   {
     slug: 'birth-place',
     title: '主角在哪裡出生？',
-    hint: '真太陽時需要依出生地校正時間。',
+    hint: '用來判斷出生當天是否在夏令時，以及校正真太陽時。',
     fields: ['place'],
-    isVisible: (d) => d.birth.time_type === 'solar_time',
   },
   {
     slug: 'reader',

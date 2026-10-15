@@ -72,8 +72,9 @@ def validate_order(data: dict, today: date = None):
         errors['time_type'] = '時間類型不正確'
 
     city, country, continent = _text(place.get('city'), 100), _text(place.get('country'), 100), _text(place.get('continent'), 50)
-    if time_type == 'solar_time' and (not city or not country):
-        errors['place'] = '使用真太陽時需選擇出生的國家與城市'
+    # 兩種時間都要出生地：真太陽時要經度與時區，一般時間要判斷當天是否在夏令時
+    if not city or not country:
+        errors['place'] = '請選擇出生的國家與城市'
 
     relation = data.get('relation_label')
     if relation not in RELATIONS:
@@ -115,8 +116,7 @@ def validate_order(data: dict, today: date = None):
         'birth': {'date': birth_date, 'time': birth_time, 'time_type': time_type,
                   'year': parsed_date.year, 'month': parsed_date.month, 'day': parsed_date.day,
                   'hour': hour, 'minute': minute},
-        'place': {'continent': continent, 'country': country, 'city': city} if time_type == 'solar_time'
-                 else {'continent': '', 'country': '', 'city': ''},
+        'place': {'continent': continent, 'country': country, 'city': city},
         'relation_label': relation,
         'audience': {'reader': reader, 'call_name': call_name, 'dedication': dedication},
         'shipping': shipping,

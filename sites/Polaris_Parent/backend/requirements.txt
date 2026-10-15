@@ -11,3 +11,5 @@ python-dateutil>=2.8.2
 
 # 地理編碼 fallback（geo_manager 的 Nominatim 線上查詢；production 以離線座標表為主）
 requests>=2.31.0
+# zoneinfo 的時區資料（slim 映像與 Windows 都沒有系統 tzdata）；出生時間換算依賴它
+tzdata>=2024.1

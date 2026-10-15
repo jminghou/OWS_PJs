@@ -11,6 +11,7 @@ function valid(over: Partial<ReportDraft> = {}): ReportDraft {
     ...emptyDraft('digital'),
     subject_name: '王小明',
     birth: { date: '2020-05-01', time: '08:00', time_type: 'clock_time' },
+    place: { continent: '亞洲', country: '台灣', city: '台北' },
     audience: { reader: '父母', call_name: '小明', dedication: '' },
     ...over,
   };
@@ -21,9 +22,10 @@ describe('validateDraft', () => {
     expect(validateDraft(valid(), TODAY)).toEqual({});
   });
 
-  it('requires name, date, time and call name on an empty draft', () => {
+  it('requires name, date, time, birthplace and call name on an empty draft', () => {
     const e = validateDraft(emptyDraft(), TODAY);
-    expect(Object.keys(e).sort()).toEqual(['birth_date', 'birth_time', 'call_name', 'subject_name']);
+    expect(Object.keys(e).sort()).toEqual(['birth_date', 'birth_time', 'call_name', 'place', 'subject_name']);
+    expect(emptyDraft().place.country).toBe('台灣');
   });
 
   it('rejects impossible, future and pre-1900 dates', () => {
@@ -42,8 +44,10 @@ describe('validateDraft', () => {
     }
   });
 
-  it('requires a place only for true solar time', () => {
-    const solar = valid({ birth: { date: '2020-05-01', time: '08:00', time_type: 'solar_time' } });
+  it('requires a birthplace for both time types', () => {
+    const noCity = { continent: '亞洲', country: '台灣', city: '' };
+    expect(validateDraft(valid({ place: noCity }), TODAY).place).toBeTruthy();
+    const solar = valid({ birth: { date: '2020-05-01', time: '08:00', time_type: 'solar_time' }, place: noCity });
     expect(validateDraft(solar, TODAY).place).toBeTruthy();
     const withPlace = { ...solar, place: { continent: 'Asia', country: 'Taiwan', city: 'Taipei' } };
     expect(validateDraft(withPlace, TODAY)).toEqual({});

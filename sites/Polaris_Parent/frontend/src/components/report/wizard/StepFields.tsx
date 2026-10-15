@@ -142,7 +142,7 @@ export default function StepFields({ slug, draft, onChange, errors, timeUnknown,
               <div className="space-y-2">
                 {([
                   ['clock_time', '一般時間', '出生證明上的時間，大多數人選這個'],
-                  ['solar_time', '真太陽時', '依出生地經度校正，下一步會請你選出生地'],
+                  ['solar_time', '真太陽時', '依出生地經度校正時間'],
                 ] as const).map(([value, label, desc]) => (
                   <label key={value} className={`${choiceCls(draft.birth.time_type === value, true)} block text-left`}>
                     <input type="radio" name="time_type" checked={draft.birth.time_type === value}

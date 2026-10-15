@@ -11,13 +11,13 @@ function chartOf(draft: ReportDraft) {
   try {
     const [year, month, day] = draft.birth.date.split('-').map(Number);
     const [hour, minute] = draft.birth.time.split(':').map(Number);
-    const solar = draft.birth.time_type === 'solar_time';
+    // 兩種時間都帶出生地：真太陽時要校正，一般時間要扣夏令時差（與建單時後端算法同義）
     const res = calculateLocal({
       year, month, day, hour, minute,
       gender: draft.gender,
       name: draft.subject_name,
       time_type: draft.birth.time_type,
-      ...(solar ? { place: { country: draft.place.country, city: draft.place.city } } : {}),
+      place: { country: draft.place.country, city: draft.place.city },
       include_chart_json: true,
     });
     return res.chart_json;

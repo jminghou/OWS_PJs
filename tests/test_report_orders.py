@@ -68,7 +68,7 @@ def payload(**over):
         'subject_name': '王小明',
         'gender': '男',
         'birth': {'date': '2020-05-01', 'time': '08:00', 'time_type': 'clock_time'},
-        'place': {'continent': '', 'country': '', 'city': ''},
+        'place': {'continent': '亞洲', 'country': '台灣', 'city': '台北'},
         'relation_label': 'son',
         'audience': {'reader': '父母', 'call_name': '小明', 'dedication': '生日快樂'},
     }
@@ -209,7 +209,7 @@ class ReportOrderTests(_Base):
 
         self.assertEqual(self.ziwei_calls, [{
             'year': 2020, 'month': 5, 'day': 1, 'hour': 8, 'minute': 0, 'gender': '男', 'name': '王小明',
-            'place': '', 'email': 'buyer@example.com', 'relation': 'son'}])
+            'place': '台北, 台灣', 'email': 'buyer@example.com', 'relation': 'son'}])
 
         order = Order.query.one()
         self.assertEqual(order.checkout.submission_key, 'draft-key-0001')
@@ -260,11 +260,11 @@ class ReportOrderTests(_Base):
 
     def test_solar_time_is_converted_before_saving_chart(self):
         body = payload(birth={'date': '2020-05-01', 'time': '08:00', 'time_type': 'solar_time'},
-                       place={'continent': 'Asia', 'country': 'Taiwan', 'city': 'Taipei'})
+                       place={'continent': '亞洲', 'country': '台灣', 'city': '台北'})
         r = self.post(body)
         self.assertEqual(r.status_code, 201, r.get_json())
         self.assertEqual((self.ziwei_calls[0]['hour'], self.ziwei_calls[0]['minute']), (8, 9))
-        self.assertEqual(self.ziwei_calls[0]['place'], 'Taipei, Taiwan')
+        self.assertEqual(self.ziwei_calls[0]['place'], '台北, 台灣')
         c = OrderItem.query.one().customization
         self.assertEqual(c['birth']['time'], '08:00')            # 保留客人原始輸入
         self.assertEqual(c['chart_time']['used'], '2020-05-01 08:09')
