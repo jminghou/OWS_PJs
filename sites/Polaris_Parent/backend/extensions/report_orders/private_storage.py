@@ -27,9 +27,20 @@ def _bucket_name():
     return (current_app.config.get('PRIVATE_GCS_BUCKET_NAME') or os.environ.get('PRIVATE_GCS_BUCKET_NAME') or '').strip()
 
 
+def _explicit_local_dir():
+    return current_app.config.get('PRIVATE_UPLOAD_DIR') or os.environ.get('PRIVATE_UPLOAD_DIR')
+
+
+def _local_allowed():
+    """正式站的容器磁碟會隨重新部署清空，沒設 bucket 時只有本機、測試或明確指定目錄才准存本機。"""
+    cfg = current_app.config
+    return bool(cfg.get('IS_DEV_MODE') or cfg.get('TESTING') or _explicit_local_dir())
+
+
 def _local_root():
-    root = (current_app.config.get('PRIVATE_UPLOAD_DIR') or os.environ.get('PRIVATE_UPLOAD_DIR')
-            or os.path.join(current_app.instance_path, 'private_uploads'))
+    if not _local_allowed():
+        raise StorageError('私有檔案儲存尚未設定，暫時無法存取檔案')
+    root = _explicit_local_dir() or os.path.join(current_app.instance_path, 'private_uploads')
     os.makedirs(root, exist_ok=True)
     return root
 
@@ -50,8 +61,11 @@ def _gcs_bucket():
     if name not in _gcs_bucket_cache:
         from google.cloud import storage
 
+        from packages.media_lib.storage import MediaStorage
+
+        # Railway 的 GCS_CREDENTIALS_JSON 存的是 JSON 全文，沿用媒體庫的解析（JSON 全文／檔案路徑／預設憑證）
         creds = current_app.config.get('GCS_CREDENTIALS_JSON') or os.environ.get('GCS_CREDENTIALS_JSON')
-        client = storage.Client.from_service_account_json(creds) if creds and os.path.isfile(creds) else storage.Client()
+        client = MediaStorage._build_gcs_client(storage, creds)
         _gcs_bucket_cache[name] = client.bucket(name)
     return _gcs_bucket_cache[name]
 

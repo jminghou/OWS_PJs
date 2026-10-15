@@ -156,6 +156,8 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+    # 設了就改走 Resend HTTPS API（core/backend_engine/mailer.py）；Railway Hobby 方案封鎖對外 SMTP
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY') or None
 
     # -------------------------------------------------------------------------
     # File Uploads
@@ -223,6 +225,9 @@ class Config:
     # 確認信的連結以 FRONTEND_URL 為基底；信中的品牌名稱用 NEWSLETTER_BRAND_NAME。
     NEWSLETTER_ENABLED = _bool_env('NEWSLETTER_ENABLED', True)
     NEWSLETTER_BRAND_NAME = os.environ.get('NEWSLETTER_BRAND_NAME', '親紫之間')
+
+    # 通用訂單路由（packages/commerce 的 /orders、mock-payment）：本站建單只走 report_orders，關閉以免繞過契約建單。
+    COMMERCE_GENERIC_ORDERS_ENABLED = _bool_env('COMMERCE_GENERIC_ORDERS_ENABLED', False)
 
     # 客製報告的付款模式（會員 v2，docs/membership-v2-architecture.md §3）：
     # placeholder = 只建待付款訂單、不收款也不交接生產（目前唯一實作的模式）；

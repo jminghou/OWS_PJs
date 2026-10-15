@@ -154,6 +154,8 @@ class BaseSiteConfig:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+    # 設了就改走 Resend HTTPS API（core/backend_engine/mailer.py）；Railway Hobby 方案封鎖對外 SMTP
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY') or None
 
     # -------------------------------------------------------------------------
     # File Uploads

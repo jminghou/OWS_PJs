@@ -7,6 +7,8 @@ Provides endpoints for order management:
 - POST /webhooks/mock-payment - Mock payment webhook (dev mode)
 """
 
+from functools import wraps
+
 from flask import jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
@@ -22,9 +24,21 @@ order_schema = OrderSchema()
 orders_schema = OrderSchema(many=True)
 
 
+def generic_orders_enabled(fn):
+    """站台有自己的建單流程時（例如 Polaris 的 report_orders），設 COMMERCE_GENERIC_ORDERS_ENABLED=False
+    關掉這組通用訂單路由，避免繞過站台的驗證與契約直接在 orders 表建單。"""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not current_app.config.get('COMMERCE_GENERIC_ORDERS_ENABLED', True):
+            return jsonify({'message': 'Not found'}), 404
+        return fn(*args, **kwargs)
+    return wrapper
+
+
 # ==================== Orders ====================
 
 @bp.route('/orders', methods=['POST'])
+@generic_orders_enabled
 @jwt_required()
 def create_order():
     """Create order (with product validation + multi-currency support)"""
@@ -115,6 +129,7 @@ def create_order():
 
 
 @bp.route('/orders', methods=['GET'])
+@generic_orders_enabled
 @jwt_required()
 def list_orders():
     """List user's order history"""
@@ -138,6 +153,7 @@ def list_orders():
 
 
 @bp.route('/webhooks/mock-payment', methods=['POST'])
+@generic_orders_enabled
 def mock_payment_webhook():
     """Mock payment callback webhook (dev mode only)"""
     # 未驗證身分、未驗簽：只在開發模式開放，其他環境一律當作不存在，
