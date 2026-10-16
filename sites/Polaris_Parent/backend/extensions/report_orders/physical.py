@@ -575,10 +575,15 @@ def record_refund(job, admin_id, amount, note=None):
 
 # ── 專人解讀（後台） ─────────────────────────────────────────────────────────
 def _parse_dt(value):
+    """解析後台送來的時間，一律回傳 UTC。沒帶時區的視為台灣時間——不能依伺服器時區解讀（Railway 是 UTC）。"""
+    from datetime import timedelta, timezone
     try:
-        return datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        dt = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
     except ValueError:
         return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone(timedelta(hours=8)))
+    return dt.astimezone(timezone.utc)
 
 
 def schedule_consult(consult, admin_id, scheduled_at, note=None):

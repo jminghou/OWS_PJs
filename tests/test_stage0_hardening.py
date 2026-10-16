@@ -121,3 +121,22 @@ class GenericOrdersSwitchTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ConsultTimeZoneTests(unittest.TestCase):
+    """解讀時間的解析與信件顯示不能依伺服器時區（Railway 與 CI 是 UTC、本機是台灣）。"""
+
+    def test_parse_normalises_to_utc_and_naive_means_taiwan(self):
+        from datetime import datetime, timezone
+        from sites.Polaris_Parent.backend.extensions.report_orders.physical import _parse_dt
+        expected = datetime(2026, 10, 20, 6, 0, tzinfo=timezone.utc)
+        for value in ('2026-10-20T14:00:00+08:00', '2026-10-20T06:00:00Z', '2026-10-20T14:00'):
+            self.assertEqual(_parse_dt(value), expected, value)
+        self.assertIsNone(_parse_dt('not a date'))
+
+    def test_format_shows_taiwan_time_for_aware_and_naive_utc(self):
+        from datetime import datetime, timezone
+        from sites.Polaris_Parent.backend.extensions.report_orders.notify import _fmt_time
+        self.assertEqual(_fmt_time(datetime(2026, 10, 20, 6, 0, tzinfo=timezone.utc)), '2026-10-20 14:00')
+        self.assertEqual(_fmt_time(datetime(2026, 10, 20, 6, 0)), '2026-10-20 14:00')   # SQLite 讀回的無時區值
+        self.assertEqual(_fmt_time(None), '-')

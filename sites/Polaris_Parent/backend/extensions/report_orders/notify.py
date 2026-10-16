@@ -224,9 +224,14 @@ def send_design_confirmed(order, buyer_email):
 
 # ── 專人解讀 ─────────────────────────────────────────────────────────────────
 def _fmt_time(dt):
-    # 存的是含時區的時間；信件以台灣時間顯示
+    # 存的是 UTC（_parse_dt 已正規化）；信件以台灣時間顯示。
+    # 沒帶時區的值（SQLite 讀回時會丟掉時區）視為 UTC，不依伺服器時區解讀。
     from datetime import timedelta, timezone
-    return dt.astimezone(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M') if dt else '-'
+    if not dt:
+        return '-'
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M')
 
 
 def send_consult_preferences(order, consult, buyer_email):
