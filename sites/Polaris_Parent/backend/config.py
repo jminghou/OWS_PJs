@@ -244,6 +244,10 @@ class Config:
     # 通用訂單路由（packages/commerce 的 /orders、mock-payment）：本站建單只走 report_orders，關閉以免繞過契約建單。
     COMMERCE_GENERIC_ORDERS_ENABLED = _bool_env('COMMERCE_GENERIC_ORDERS_ENABLED', False)
 
+    # 紫微系統（PolarisUI）畫面網址：報告交付頁的「在紫微系統開啟」連到 {此網址}/progress?chart_id=…
+    # 正式站＝https://polaris-run.vercel.app；本機 PolarisUI 開在 3100
+    ZIWEI_WORKBENCH_URL = os.environ.get('ZIWEI_WORKBENCH_URL') or None
+
     # 客製報告的付款模式（會員 v2，docs/membership-v2-architecture.md §3）：
     # placeholder = 只建待付款訂單、不收款也不交接生產（目前唯一實作的模式）；
     # 之後會有 manual（人工收款）、ecpay_test、ecpay_live。後端以此判斷，不靠前端隱藏按鈕。
@@ -283,6 +287,7 @@ class DevelopmentConfig(Config):
 
     DEBUG = True
     IS_DEV_MODE = True
+    ZIWEI_WORKBENCH_URL = os.environ.get('ZIWEI_WORKBENCH_URL', 'http://localhost:3100')
 
     # Relax security for local development
     SESSION_COOKIE_SECURE = False

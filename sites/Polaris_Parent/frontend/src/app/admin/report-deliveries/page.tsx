@@ -8,8 +8,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
-import { FileText, Upload } from 'lucide-react';
-import { reportOrdersApi, type AdminDelivery } from '@/lib/api/reportOrders';
+import { ExternalLink, FileText, Upload } from 'lucide-react';
+import { reportOrdersApi, type AdminDelivery, type DeliveryChart } from '@/lib/api/reportOrders';
 
 type Filter = 'pending' | 'delivered' | 'all';
 const FILTERS: { value: Filter; label: string }[] = [
@@ -25,6 +25,31 @@ const btnGhost = `${btn} border border-border bg-card text-foreground hover:bg-m
 
 const formatDate = (v: string | null | undefined) =>
   v ? new Date(v.endsWith('Z') || v.includes('+') ? v : `${v}Z`).toLocaleString('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+
+/** 到紫微系統製作報告用的命盤資訊：命盤編號、客人原始填寫的出生資料、實際排盤時間 */
+function ChartInfo({ chart }: { chart: DeliveryChart }) {
+  if (!chart.chart_id) return <p className="text-muted-foreground">命盤編號：—（舊訂單沒有記錄）</p>;
+  const input = `${chart.birth_date ?? '—'} ${chart.birth_time ?? ''}`.trim();
+  const typeLabel = chart.time_type === 'solar_time' ? '真太陽時' : '一般時間';
+  const adjusted = chart.used_time && chart.used_time !== input;
+  return (
+    <div className="mt-2 space-y-0.5 rounded-md bg-muted/60 px-3 py-2 text-[13px]">
+      <p>
+        命盤編號 <span className="select-all font-mono">{chart.chart_id}</span>
+      </p>
+      <p className="text-muted-foreground">
+        客人填寫：{chart.gender ?? '—'}・{input}（{typeLabel}）{chart.place ? `・${chart.place}` : ''}
+      </p>
+      {adjusted && (
+        <p className="text-muted-foreground">
+          排盤時間：<span className="font-mono">{chart.used_time}</span>
+          {chart.dst_minutes ? `（已扣夏令時 ${chart.dst_minutes / 60} 小時）` : chart.time_type === 'solar_time' ? '（真太陽時換算後）' : ''}
+          ——紫微系統顯示的 Clock time 是這個
+        </p>
+      )}
+    </div>
+  );
+}
 
 function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => void; onError: (t: string) => void }) {
   const input = useRef<HTMLInputElement>(null);
@@ -74,6 +99,7 @@ function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => 
           </div>
           <p>{d.name}・主角 {d.subject_name}（{d.call_name}）</p>
           <p className="text-muted-foreground">購買者 {d.buyer_email ?? '—'}・付款 {formatDate(d.paid_at)}</p>
+          <ChartInfo chart={d.chart} />
           {d.document && (
             <p className="text-muted-foreground">
               <FileText className="mr-1 inline h-3.5 w-3.5" />
@@ -82,6 +108,11 @@ function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => 
           )}
         </div>
         <div className="flex w-full flex-col gap-2 md:w-60">
+          {d.chart.workbench_url && (
+            <a href={d.chart.workbench_url} target="_blank" rel="noopener noreferrer" className={`${btnGhost} w-full`}>
+              <ExternalLink className="h-4 w-4" /> 在紫微系統開啟
+            </a>
+          )}
           <input ref={input} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
           <button type="button" className={`${btnPrimary} w-full`} disabled={busy} onClick={() => input.current?.click()}>
             <Upload className="h-4 w-4" /> {busy ? '上傳中…' : d.document ? '上傳更正版' : '上傳報告 PDF'}

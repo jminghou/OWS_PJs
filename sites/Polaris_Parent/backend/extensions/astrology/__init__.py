@@ -32,7 +32,8 @@ except Exception:  # pragma: no cover - 限流器不可用時不擋功能
 bp = Blueprint('astrology', __name__)
 
 # 第三期：排盤一鍵建檔 — 呼叫紫微 public API（server-to-server，服務密鑰）
-_ZIWEI_API_URL = os.environ.get('ZIWEI_API_URL', 'http://127.0.0.1:8000').rstrip('/')
+# 本機 PolarisUI 後端固定開在 9000（見 PolarisUI/README.md）；正式站由 ZIWEI_API_URL 指定
+_ZIWEI_API_URL = os.environ.get('ZIWEI_API_URL', 'http://127.0.0.1:9000').rstrip('/')
 _PUBLIC_SERVICE_TOKEN = os.environ.get('PUBLIC_SERVICE_TOKEN', '')
 
 

@@ -42,7 +42,8 @@ except Exception:  # pragma: no cover
 
 bp = Blueprint('membership', __name__)
 
-_ZIWEI_API_URL = os.environ.get('ZIWEI_API_URL', 'http://127.0.0.1:8000').rstrip('/')
+# 本機 PolarisUI 後端固定開在 9000（見 PolarisUI/README.md）；正式站由 ZIWEI_API_URL 指定
+_ZIWEI_API_URL = os.environ.get('ZIWEI_API_URL', 'http://127.0.0.1:9000').rstrip('/')
 _PUBLIC_SERVICE_TOKEN = os.environ.get('PUBLIC_SERVICE_TOKEN', '')
 
 

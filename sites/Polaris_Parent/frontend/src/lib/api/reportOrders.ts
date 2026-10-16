@@ -244,6 +244,23 @@ export interface AdminDelivery {
   buyer_email: string | null;
   paid_at: string | null;
   document: ReportDocumentView | null;
+  chart: DeliveryChart;
+}
+
+/** 製作報告用的命盤資訊：到紫微系統（PolarisUI）找這張盤的依據 */
+export interface DeliveryChart {
+  chart_id: string | null;
+  gender: string | null;
+  /** 客人原始填寫 */
+  birth_date: string | null;
+  birth_time: string | null;
+  time_type: 'clock_time' | 'solar_time' | null;
+  place: string | null;
+  /** 實際排盤用的時間（換算真太陽時／扣夏令時之後）＝ PolarisUI 顯示的 Clock time */
+  used_time: string | null;
+  dst_minutes: number;
+  /** {ZIWEI_WORKBENCH_URL}/progress?chart_id=…；後端沒設網址時為 null */
+  workbench_url: string | null;
 }
 
 export interface AdminReportOrder extends ReportOrderSummary {

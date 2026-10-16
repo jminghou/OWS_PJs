@@ -42,7 +42,7 @@ from core.backend_engine.services.member_auth import normalise_email
 from core.backend_engine.services.rbac import RBACService, require_permission
 from core.backend_engine.services.rbac_seed import register_permissions
 from packages.commerce.models import Order, OrderItem
-from sites.Polaris_Parent.backend.models import ReportConsultation, ReportPrintJob, Shipment
+from sites.Polaris_Parent.backend.models import ReportConsultation, ReportFulfillment, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
 from . import delivery, design, notify, payment, physical, private_storage, service
@@ -921,6 +921,27 @@ def report_file(token):
     return resp
 
 
+def _delivery_chart_view(customization, fulfillment):
+    """報告交付頁的命盤資訊：客人原始填寫的出生資料、實際排盤時間、紫微命盤編號與工作台連結。
+
+    存進紫微的是換算後的時間（真太陽時／扣夏令時），PolarisUI 顯示的「Clock time」會是 used，
+    不是客人填的 birth.time，兩個都列出來才對得起來。
+    """
+    birth = customization.get('birth') or {}
+    place = customization.get('place') or {}
+    chart_time = customization.get('chart_time') or {}
+    chart_id = str(fulfillment.chart_id) if fulfillment and fulfillment.chart_id else None
+    base = (current_app.config.get('ZIWEI_WORKBENCH_URL') or '').rstrip('/')
+    return {
+        'chart_id': chart_id,
+        'gender': customization.get('gender'),
+        'birth_date': birth.get('date'), 'birth_time': birth.get('time'), 'time_type': birth.get('time_type'),
+        'place': ', '.join(x for x in (place.get('city'), place.get('country')) if x) or None,
+        'used_time': chart_time.get('used'), 'dst_minutes': chart_time.get('dst_minutes') or 0,
+        'workbench_url': f'{base}/progress?chart_id={quote(chart_id)}' if base and chart_id else None,
+    }
+
+
 @bp.route('/admin/report-deliveries', methods=['GET'])
 @jwt_required()
 @require_permission('report_orders.fulfill')
@@ -940,11 +961,14 @@ def admin_list_deliveries():
         if status != 'all' and status != key:
             continue
         c = item.customization or {}
+        fulfillment = ReportFulfillment.query.filter_by(order_item_id=item.id).first()
         rows.append({
             'order_no': o.order_no, 'item_no': item.item_no, 'name': item.name, 'variant': item.variant,
             'subject_name': c.get('subject_name'), 'call_name': (c.get('audience') or {}).get('call_name'),
             'buyer_email': _buyer_email(o), 'paid_at': o.paid_at.isoformat() if o.paid_at else None,
             'document': delivery.document_view(doc),
+            # 製作報告用：到紫微系統（PolarisUI）找這張盤的依據
+            'chart': _delivery_chart_view(c, fulfillment),
         })
     return jsonify({'success': True, 'deliveries': rows, 'counts': counts})
 

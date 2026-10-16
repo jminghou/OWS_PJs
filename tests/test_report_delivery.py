@@ -100,8 +100,16 @@ class DeliveryTests(_Base):
 
     def test_admin_delivery_list_and_physical_design_invite(self):
         o = self.paid_order(variant='physical', shipping=SHIPPING)
+        self.app.config['ZIWEI_WORKBENCH_URL'] = 'https://polaris-run.example/'
+        self.addCleanup(self.app.config.pop, 'ZIWEI_WORKBENCH_URL', None)
         listing = self.client.get('/api/v1/admin/report-deliveries', headers=self.headers(self.admin)).get_json()
         self.assertEqual(([d['order_no'] for d in listing['deliveries']], listing['counts']), ([o['order_no']], {'pending': 1, 'delivered': 0}))
+        chart = listing['deliveries'][0]['chart']
+        # 製作報告要對得到紫微那張盤：命盤編號、客人原始填寫、實際排盤時間、工作台連結
+        self.assertTrue(chart['chart_id'])
+        self.assertEqual((chart['birth_date'], chart['birth_time'], chart['place']), ('2020-05-01', '08:00', '台北, 台灣'))
+        self.assertEqual(chart['used_time'], '2020-05-01 08:00')
+        self.assertEqual(chart['workbench_url'], f"https://polaris-run.example/progress?chart_id={chart['chart_id']}")
         self.upload(o['order_no'])
         self.assertTrue(any('設計封面' in m.body for m in self.mails()))
         listing = self.client.get('/api/v1/admin/report-deliveries?status=delivered', headers=self.headers(self.admin)).get_json()
