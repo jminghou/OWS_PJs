@@ -1,0 +1,76 @@
+name: Polaris 測試
+
+# 親紫之間（Polaris_Parent）的行為測試。frozen-contract.yml 只管「Claire 不被改壞」與套件能否編譯，
+# 不跑任何測試；這裡補上：
+#   1. backend   後端 pytest（報告訂單、交易契約層、出生時間換算、安全基線…），Python 3.11 ＝ 正式站 Docker
+#   2. engine    @ows/ziwei-engine：312 張黃金命盤＋6,696 筆前後端出生時間比對
+#   3. frontend  Polaris 前端報告模組（草稿驗證、步驟）
+# 測試全用 in-memory SQLite 與假物件，不連任何資料庫、紫微服務、寄信或第三方 API。
+
+on:
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'packages/**'
+      - 'sites/Polaris_Parent/**'
+      - 'tests/**'
+      - 'scripts/gen_ziwei_geo.py'
+      - '.github/workflows/polaris-tests.yml'
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: polaris-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: 後端 pytest（Python 3.11）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            core/requirements.txt
+            sites/Polaris_Parent/backend/requirements.txt
+      # 與正式站 Dockerfile 相同的兩份 requirements
+      - name: 安裝依賴
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r core/requirements.txt -r sites/Polaris_Parent/backend/requirements.txt
+      - name: pytest
+        env:
+          FLASK_CONFIG: testing
+        run: python -m pytest tests sites/Polaris_Parent/backend/tests -q -p no:cacheprovider
+
+  engine:
+    name: 排盤引擎（黃金盤與出生時間）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: vitest
+        working-directory: packages/ziwei-engine
+        run: npx vitest run
+
+  frontend:
+    name: Polaris 前端報告模組
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: vitest
+        working-directory: sites/Polaris_Parent/frontend
+        run: npx vitest run src/lib/report
