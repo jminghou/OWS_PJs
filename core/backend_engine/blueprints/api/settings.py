@@ -9,6 +9,7 @@ Provides endpoints for system settings:
 - PUT /settings/homepage - Update homepage settings (editor)
 - GET /settings/column-profile - Get column page profile (public)
 - PUT /settings/column-profile - Update column page profile (editor)
+- GET /settings/request-origin - Request origin / client IP diagnostics (admin)
 """
 
 from flask import jsonify, request, current_app
@@ -503,3 +504,14 @@ def api_update_homepage_settings():
     # 通知前端立即清除首頁 ISR 快取（best-effort，失敗不影響儲存結果）
     trigger_frontend_revalidate()
     return jsonify({'message': 'Homepage settings updated'}), 200
+
+
+# ==================== Diagnostics ====================
+
+@bp.route('/settings/request-origin', methods=['GET'])
+@jwt_required()
+@require_permission('settings.update')
+def api_request_origin():
+    """後端實際看到的請求來源與判定出的使用者 IP（設定 CLIENT_IP_PROXY_HOPS／EDGE_PROXY_SECRET 時核對用）"""
+    from core.backend_engine.security import request_origin_info
+    return jsonify(request_origin_info()), 200

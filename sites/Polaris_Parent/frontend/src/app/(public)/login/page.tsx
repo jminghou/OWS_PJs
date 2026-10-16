@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
+import { useTurnstile } from '@ows/platform-api/turnstile';
 import { astrologyApi, memberAccountApi } from '@/lib/api';
 import {
   loadPendingChart,
@@ -48,6 +49,8 @@ function LoginContent() {
   const [busy, setBusy] = useState(false);
   const [localErr, setLocalErr] = useState('');
   const [notice, setNotice] = useState('');
+  // 寄驗證碼（註冊／忘記密碼）前的「我不是機器人」驗證；沒設站台金鑰時自動關閉
+  const turnstile = useTurnstile();
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
@@ -110,9 +113,15 @@ function LoginContent() {
       setLocalErr('請先填入 Email');
       return;
     }
+    if (!turnstile.ready) {
+      setLocalErr('請先完成下方的「我不是機器人」驗證');
+      return;
+    }
     setBusy(true);
     try {
-      const res = await memberAccountApi.sendEmailCode(mode === 'reset' ? 'reset' : 'register', normalisedEmail());
+      const res = await memberAccountApi.sendEmailCode(
+        mode === 'reset' ? 'reset' : 'register', normalisedEmail(), turnstile.token,
+      );
       setNotice(res.message || '驗證碼已寄出，請收信。');
       setStep('code');
       setCooldown(RESEND_SECONDS);
@@ -120,6 +129,7 @@ function LoginContent() {
       setLocalErr(err.message || '寄送失敗，請稍後再試');
     } finally {
       setBusy(false);
+      turnstile.reset(); // token 只能用一次；重寄時要重新驗證
     }
   };
 
@@ -287,6 +297,9 @@ function LoginContent() {
               )}
             </div>
           )}
+
+          {/* 一直掛在畫面上（登入模式隱藏），驗證框才能在載入時就初始化 */}
+          <div ref={turnstile.ref} className={mode === 'login' || !turnstile.enabled ? 'hidden' : 'flex justify-center'} />
 
           {notice && !localErr && <Alert tone="success">{notice}</Alert>}
           {(localErr || (mode === 'login' && error)) && <Alert tone="error">{localErr || error}</Alert>}

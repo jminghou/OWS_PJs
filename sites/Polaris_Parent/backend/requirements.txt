@@ -13,3 +13,5 @@ python-dateutil>=2.8.2
 requests>=2.31.0
 # zoneinfo 的時區資料（slim 映像與 Windows 都沒有系統 tzdata）；出生時間換算依賴它
 tzdata>=2024.1
+# 錯誤監控（設了 SENTRY_DSN 才啟用，見 core/backend_engine/factory.py _configure_error_monitoring）
+sentry-sdk[flask]>=2.0

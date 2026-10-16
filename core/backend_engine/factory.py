@@ -24,7 +24,7 @@ from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from flask_caching import Cache
 from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from core.backend_engine.security import client_ip
 
 # =============================================================================
 # Shared Extension Instances (Singleton Pattern)
@@ -36,7 +36,8 @@ login_manager = LoginManager()
 mail = OwsMail()
 jwt = JWTManager()
 cache = Cache()
-limiter = Limiter(key_func=get_remote_address)
+# key 用真實使用者 IP（core/backend_engine/security.py）；正式站有代理，remote_addr 是代理位址
+limiter = Limiter(key_func=client_ip)
 
 
 # =============================================================================
@@ -130,6 +131,8 @@ def create_app(
     # Load configuration
     app.config.from_object(config_class)
 
+    _configure_error_monitoring(app)
+
     # Run before-init hooks
     if before_init_hooks:
         for hook in before_init_hooks:
@@ -212,7 +215,7 @@ def _configure_cors(app: Flask) -> None:
         app,
         resources={r"/api/*": {"origins": cors_origins}},
         supports_credentials=True,
-        allow_headers=["Content-Type", "X-CSRF-TOKEN", "Authorization"],
+        allow_headers=["Content-Type", "X-CSRF-TOKEN", "Authorization", "X-Turnstile-Token"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     )
 
@@ -263,12 +266,41 @@ def _configure_cache(app: Flask) -> None:
             app.logger.info("Cache initialized with SimpleCache backend")
 
 
+def _configure_error_monitoring(app: Flask) -> None:
+    """設了 SENTRY_DSN 就把未處理的例外送到 Sentry（只送錯誤、不送個資）；套件沒裝就略過。"""
+    dsn = app.config.get('SENTRY_DSN')
+    if not dsn:
+        return
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+    except ImportError:
+        app.logger.warning('SENTRY_DSN is set but sentry-sdk is not installed; error monitoring disabled')
+        return
+    sentry_sdk.init(
+        dsn=dsn,
+        integrations=[FlaskIntegration()],
+        environment=app.config.get('SENTRY_ENVIRONMENT') or ('development' if app.config.get('IS_DEV_MODE') else 'production'),
+        send_default_pii=False,      # 不送 IP、cookie、使用者資料（出生資料、Email 都是個資）
+        traces_sample_rate=0.0,      # 只要錯誤，不做效能追蹤
+    )
+    app.logger.info('Error monitoring initialized (Sentry)')
+
+
 def _configure_rate_limiter(app: Flask) -> None:
-    """Configure rate limiter with Redis backend if reachable (else in-memory)."""
+    """Configure rate limiter with Redis backend if reachable (else in-memory).
+
+    storage 是在 init_app 當下依 RATELIMIT_STORAGE_URI 建立的，所以要在 init_app 之前設；
+    以前 init_app 之後才改 limiter._storage_uri，實際上一直是每個 worker 各自的記憶體計數。
+    """
     redis_url = app.config.get('REDIS_URL')
-    limiter.init_app(app)
     if redis_url and app.config.get('REDIS_AVAILABLE'):
-        limiter._storage_uri = redis_url
+        app.config.setdefault('RATELIMIT_STORAGE_URI', redis_url)
+        app.config.setdefault('RATELIMIT_KEY_PREFIX', 'ows_limit')
+        # Redis 執行中斷線時退回記憶體計數，不讓每個有限流的端點都變 500
+        app.config.setdefault('RATELIMIT_IN_MEMORY_FALLBACK_ENABLED', True)
+        app.config.setdefault('RATELIMIT_SWALLOW_ERRORS', True)
+    limiter.init_app(app)
 
 
 def _configure_login_manager(app: Flask) -> None:
@@ -330,6 +362,12 @@ def _register_core_blueprints(app: Flask, skip_blueprints: List[str]) -> None:
             app.logger.info(f"Registered core blueprint: {bp_config.module_path} at {bp_config.url_prefix or '/'}")
         except ImportError as e:
             app.logger.error(f"Failed to import blueprint {bp_config.module_path}: {e}")
+            _record_module_failure(app, bp_config.module_path, e)
+
+
+def _record_module_failure(app: Flask, module_path: str, error: Exception) -> None:
+    """記下載入失敗的模組：/health 依 HEALTH_FAIL_ON_MODULE_ERROR 回報降級，免得整組 API 靜默消失。"""
+    app.extensions.setdefault('ows_failed_modules', []).append(f'{module_path}: {error}')
 
 
 def _register_site_extensions(app: Flask, extensions: List[BlueprintConfig]) -> None:
@@ -349,6 +387,7 @@ def _register_site_extensions(app: Flask, extensions: List[BlueprintConfig]) -> 
             app.logger.info(f"Registered site extension: {ext_config.module_path} at {ext_config.url_prefix or '/'}")
         except ImportError as e:
             app.logger.error(f"Failed to import extension {ext_config.module_path}: {e}")
+            _record_module_failure(app, ext_config.module_path, e)
 
 
 # =============================================================================

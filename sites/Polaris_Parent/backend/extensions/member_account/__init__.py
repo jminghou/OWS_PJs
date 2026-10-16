@@ -89,6 +89,12 @@ def send_email_code():
     if purpose == 'verify':
         return _send_verify_code()
 
+    # register／reset 不需登入、會寄信到任意信箱 → 先過 Turnstile（沒設 TURNSTILE_SECRET_KEY 時略過）
+    from core.backend_engine.security import TURNSTILE_HEADER, verify_turnstile
+    ok, message = verify_turnstile(request.headers.get(TURNSTILE_HEADER) or data.get('turnstile_token') or '')
+    if not ok:
+        return _error(message, 400, code='turnstile_failed', errors={'turnstile': 'failed'})
+
     email = normalise_email(data.get('email'))
     if not is_valid_email(email):
         return _error('請提供有效的 Email')

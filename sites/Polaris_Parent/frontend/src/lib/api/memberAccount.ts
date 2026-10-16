@@ -12,6 +12,7 @@
  * useAuthStore().checkAuth() 同步登入狀態。
  */
 import { request } from '@ows/platform-api/client';
+import { turnstileHeaders } from '@ows/platform-api/turnstile';
 
 export type EmailCodePurpose = 'register' | 'reset' | 'verify';
 
@@ -31,9 +32,13 @@ const post = <T>(path: string, body: unknown) =>
   request<T>(`/member/${path}`, { method: 'POST', body: JSON.stringify(body) });
 
 export const memberAccountApi = {
-  /** 寄驗證碼；purpose=verify 需登入，email 由後端取自本人。 */
-  sendEmailCode: (purpose: EmailCodePurpose, email?: string) =>
-    post<MessageResponse>('email-code', { purpose, email }),
+  /** 寄驗證碼；purpose=verify 需登入，email 由後端取自本人。register／reset 要帶 Turnstile token。 */
+  sendEmailCode: (purpose: EmailCodePurpose, email?: string, turnstileToken = '') =>
+    request<MessageResponse>('/member/email-code', {
+      method: 'POST',
+      body: JSON.stringify({ purpose, email }),
+      headers: turnstileHeaders(turnstileToken),
+    }),
 
   register: (email: string, code: string, password: string) =>
     post<{ success: boolean }>('register', { email, code, password }),

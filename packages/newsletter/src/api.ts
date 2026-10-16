@@ -1,4 +1,5 @@
 import { API_URL, request } from '@ows/platform-api/client';
+import { turnstileHeaders } from '@ows/platform-api/turnstile';
 import type { Subscriber, SubscriberListResponse, SubscriberStatus } from './types';
 
 export interface SubscribeInput {
@@ -13,8 +14,11 @@ export interface SubscribeInput {
 const EXPORT_PATH = '/newsletter/admin/subscribers/export';
 
 export const newsletterApi = {
-  subscribe: (input: SubscribeInput) =>
-    request<{ message: string }>('/newsletter/subscribe', { method: 'POST', body: JSON.stringify(input) }),
+  /** turnstileToken：站台開了 Turnstile 時必帶（後端驗證，見 core/backend_engine/security.py） */
+  subscribe: (input: SubscribeInput, turnstileToken = '') =>
+    request<{ message: string }>('/newsletter/subscribe', {
+      method: 'POST', body: JSON.stringify(input), headers: turnstileHeaders(turnstileToken),
+    }),
 
   confirm: (token: string) =>
     request<{ message: string; status: SubscriberStatus }>('/newsletter/confirm', {

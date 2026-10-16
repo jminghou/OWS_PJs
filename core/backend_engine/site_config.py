@@ -158,6 +158,18 @@ class BaseSiteConfig:
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY') or None
 
     # -------------------------------------------------------------------------
+    # Security（core/backend_engine/security.py）
+    # -------------------------------------------------------------------------
+    # 真實使用者 IP：信任 X-Forwarded-For 最右邊幾段是自家代理加的（Railway 邊緣＝1）；0＝用 remote_addr
+    CLIENT_IP_PROXY_HOPS = int(os.environ.get('CLIENT_IP_PROXY_HOPS') or 0)
+    # 前端代理（Vercel middleware）帶 X-OWS-Edge-Secret 證明請求經過它，才多信任一段取使用者 IP
+    EDGE_PROXY_SECRET = os.environ.get('EDGE_PROXY_SECRET') or None
+    # Cloudflare Turnstile：設了才驗證取驗證碼／訂閱電子報等會寄信的公開端點
+    TURNSTILE_SECRET_KEY = os.environ.get('TURNSTILE_SECRET_KEY') or None
+    # Sentry 錯誤監控：設了才啟用（只送錯誤，不送個資）
+    SENTRY_DSN = os.environ.get('SENTRY_DSN') or None
+
+    # -------------------------------------------------------------------------
     # File Uploads
     # -------------------------------------------------------------------------
     # 相對路徑解析成站台目錄下的絕對路徑 —— 否則上傳位置會隨行程的工作目錄漂移

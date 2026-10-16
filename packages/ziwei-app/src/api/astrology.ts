@@ -364,9 +364,12 @@ export const astrologyApi = {
     return local;
   },
 
-  /** 一鍵建檔 + 註冊：存命盤、建免密碼會員、寄設定密碼信。 */
+  /** 登入後把剛排的命盤存進自己的帳號（需登入；email 必須是登入者本人，後端會核對）。 */
   saveAndRegister: (req: SaveAndRegisterRequest) =>
-    postJson<SaveAndRegisterResponse>('/astrology/save-and-register', req),
+    request<SaveAndRegisterResponse>('/astrology/save-and-register', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
 
   /** 以設定密碼信的 token 設定會員密碼。 */
   setPassword: (token: string, password: string) =>

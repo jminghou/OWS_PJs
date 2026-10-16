@@ -160,6 +160,18 @@ class Config:
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY') or None
 
     # -------------------------------------------------------------------------
+    # Security（core/backend_engine/security.py）
+    # -------------------------------------------------------------------------
+    # 真實使用者 IP：信任 X-Forwarded-For 最右邊幾段是自家代理加的（Railway 邊緣＝1）；0＝用 remote_addr
+    CLIENT_IP_PROXY_HOPS = int(os.environ.get('CLIENT_IP_PROXY_HOPS') or 0)
+    # 前端代理（Vercel middleware）帶 X-OWS-Edge-Secret 證明請求經過它，才多信任一段取使用者 IP
+    EDGE_PROXY_SECRET = os.environ.get('EDGE_PROXY_SECRET') or None
+    # Cloudflare Turnstile：設了才驗證取驗證碼／訂閱電子報等會寄信的公開端點
+    TURNSTILE_SECRET_KEY = os.environ.get('TURNSTILE_SECRET_KEY') or None
+    # Sentry 錯誤監控：設了才啟用（只送錯誤，不送個資）
+    SENTRY_DSN = os.environ.get('SENTRY_DSN') or None
+
+    # -------------------------------------------------------------------------
     # File Uploads
     # -------------------------------------------------------------------------
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
@@ -225,6 +237,9 @@ class Config:
     # 確認信的連結以 FRONTEND_URL 為基底；信中的品牌名稱用 NEWSLETTER_BRAND_NAME。
     NEWSLETTER_ENABLED = _bool_env('NEWSLETTER_ENABLED', True)
     NEWSLETTER_BRAND_NAME = os.environ.get('NEWSLETTER_BRAND_NAME', '親紫之間')
+
+    # 有 core 藍圖或站台擴充載入失敗時 /health 回 503：搭配 Railway 健康檢查，缺了整組 API 的版本不會上線
+    HEALTH_FAIL_ON_MODULE_ERROR = _bool_env('HEALTH_FAIL_ON_MODULE_ERROR', True)
 
     # 通用訂單路由（packages/commerce 的 /orders、mock-payment）：本站建單只走 report_orders，關閉以免繞過契約建單。
     COMMERCE_GENERIC_ORDERS_ENABLED = _bool_env('COMMERCE_GENERIC_ORDERS_ENABLED', False)

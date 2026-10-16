@@ -13,6 +13,7 @@ from flask import jsonify, request
 from sqlalchemy.exc import IntegrityError
 
 from core.backend_engine.factory import db
+from core.backend_engine.security import require_turnstile
 from core.backend_engine.services.member_auth import normalise_email
 from packages.newsletter.blueprint import newsletter_bp
 from packages.newsletter.emails import send_confirmation
@@ -55,6 +56,7 @@ def _record_consent(subscriber, data, now) -> None:
 
 @newsletter_bp.route('/subscribe', methods=['POST'])
 @_limit('5 per minute;30 per hour')
+@require_turnstile  # 會寄確認信到任意信箱；沒設 TURNSTILE_SECRET_KEY 時略過
 def subscribe():
     data = request.get_json(silent=True) or {}
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
+import { useTurnstile } from '@ows/platform-api/turnstile';
 import { newsletterApi } from '../api';
 
 export interface SubscribeFormLabels {
@@ -13,6 +14,8 @@ export interface SubscribeFormLabels {
   success: string;
   invalid: string;
   error: string;
+  /** 「我不是機器人」驗證還沒完成或沒通過時的提示；省略就用 error */
+  verify?: string;
 }
 
 interface SubscribeFormProps {
@@ -42,6 +45,8 @@ export default function SubscribeForm({
   const [website, setWebsite] = useState('');
   const [state, setState] = useState<'idle' | 'submitting' | 'done'>('idle');
   const [error, setError] = useState('');
+  // 站台設了 NEXT_PUBLIC_TURNSTILE_SITE_KEY 才會出現驗證框（Managed 模式多半自動通過）
+  const turnstile = useTurnstile();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -50,14 +55,21 @@ export default function SubscribeForm({
       setError(labels.invalid);
       return;
     }
+    if (!turnstile.ready) {
+      setError(labels.verify ?? labels.error);
+      return;
+    }
     setError('');
     setState('submitting');
     try {
-      await newsletterApi.subscribe({ email: value, locale, source, website });
+      await newsletterApi.subscribe({ email: value, locale, source, website }, turnstile.token);
       setState('done');
     } catch (err) {
       setState('idle');
-      setError((err as { status?: number }).status === 400 ? labels.invalid : labels.error);
+      const e = err as { status?: number; errors?: Record<string, unknown> };
+      if (e.errors?.turnstile) setError(labels.verify ?? labels.error);
+      else setError(e.status === 400 ? labels.invalid : labels.error);
+      turnstile.reset(); // token 只能用一次
     }
   };
 
@@ -98,6 +110,7 @@ export default function SubscribeForm({
           {state === 'submitting' ? labels.submitting : labels.button}
         </button>
       </div>
+      <div ref={turnstile.ref} className={turnstile.enabled ? 'mt-3' : 'hidden'} />
       {error && (
         <p id={`${inputId}-error`} role="alert" className="mt-2 text-sm text-red-600">{error}</p>
       )}

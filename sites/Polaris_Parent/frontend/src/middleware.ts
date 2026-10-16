@@ -40,8 +40,21 @@ async function getEnabledLanguages(request: NextRequest): Promise<string[]> {
   return languages;
 }
 
+// /api/v1/* 由 next.config 的 rewrite 轉給後端。後端看到的連線來源是 Vercel 的出口 IP（所有訪客共用），
+// 帶上與後端相同的 EDGE_PROXY_SECRET，後端才會改信 Vercel 填的使用者 IP（core/backend_engine/security.py）。
+// 一律覆寫，訪客自己送來的同名 header 不會傳到後端。
+function forwardApiRequest(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  headers.delete('x-ows-edge-secret');
+  const secret = process.env.EDGE_PROXY_SECRET;
+  if (secret) headers.set('x-ows-edge-secret', secret);
+  return NextResponse.next({ request: { headers } });
+}
+
 export default async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  if (pathname.startsWith('/api/v1/')) return forwardApiRequest(request);
 
   // 排除不需要處理的路徑
   if (
@@ -86,5 +99,7 @@ export const config = {
   matcher: [
     // 匹配所有路徑，排除靜態資源
     '/((?!api|_next|_vercel|.*\\..*).*)',
+    // 轉給後端的 API：只為了帶上代理密鑰
+    '/api/v1/:path*',
   ],
 };

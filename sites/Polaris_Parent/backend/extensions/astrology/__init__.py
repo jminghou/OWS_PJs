@@ -377,12 +377,27 @@ def geo_options():
 #     core.backend_engine.blueprints.api.member_auth —— 那是平台能力，不是排盤領域。
 #     這裡只留「需要呼叫紫微服務」的部分。
 @bp.route('/save-and-register', methods=['POST'])
+@jwt_required()
 @_limit("5 per minute")
 def save_and_register():
-    """排盤一鍵建檔 + 註冊：紫微存命盤 + 建免密碼會員 + 歸戶；本站補 member_profiles(email) + 寄設定密碼信。"""
+    """登入後把剛排的命盤存進自己的帳號：紫微存命盤 + 歸戶；本站補 member_profiles(email)。
+
+    必須登入，而且只能存到登入者自己的 Email。以前不需登入、email 由 body 指定，
+    任何人都能替別人的信箱建帳號並觸發寄信；前端唯一的呼叫點（登入頁 attachPendingChart）
+    本來就在登入之後。
+    """
     if not _PUBLIC_SERVICE_TOKEN:
         return jsonify({"success": False, "error": "服務未設定（PUBLIC_SERVICE_TOKEN 缺）"}), 503
+    from core.backend_engine.factory import db
+    from core.backend_engine.models import User
+    user = db.session.get(User, int(get_jwt_identity()))
+    if user is None or not user.is_active:
+        return jsonify({"success": False, "error": "請先登入"}), 401
     data = request.get_json(silent=True) or {}
+    login_email = (user.email or user.username or "").strip().lower()
+    if (data.get("email") or login_email).strip().lower() != login_email:
+        return jsonify({"success": False, "error": "只能把命盤存到自己的帳號"}), 403
+    data["email"] = login_email
 
     parts = {}
     for key in ("year", "month", "day", "hour"):
@@ -419,7 +434,6 @@ def save_and_register():
     is_new = bool(zres.get("is_new_member"))
 
     # 2. 本站補 member_profiles(email)（blog 擁有）
-    from core.backend_engine.factory import db
     from sqlalchemy import text
     try:
         db.session.execute(text(
