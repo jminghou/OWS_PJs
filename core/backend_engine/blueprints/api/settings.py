@@ -512,6 +512,6 @@ def api_update_homepage_settings():
 @jwt_required()
 @require_permission('settings.update')
 def api_request_origin():
-    """後端實際看到的請求來源與判定出的使用者 IP（設定 CLIENT_IP_PROXY_HOPS／EDGE_PROXY_SECRET 時核對用）"""
+    """後端實際看到的請求來源與判定出的使用者 IP（設定 CLIENT_IP_HEADER／EDGE_PROXY_SECRET 時核對用）"""
     from core.backend_engine.security import request_origin_info
     return jsonify(request_origin_info()), 200

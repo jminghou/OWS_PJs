@@ -162,9 +162,9 @@ class Config:
     # -------------------------------------------------------------------------
     # Security（core/backend_engine/security.py）
     # -------------------------------------------------------------------------
-    # 真實使用者 IP：信任 X-Forwarded-For 最右邊幾段是自家代理加的（Railway 邊緣＝1）；0＝用 remote_addr
-    CLIENT_IP_PROXY_HOPS = int(os.environ.get('CLIENT_IP_PROXY_HOPS') or 0)
-    # 前端代理（Vercel middleware）帶 X-OWS-Edge-Secret 證明請求經過它，才多信任一段取使用者 IP
+    # 真實使用者 IP：信任自家邊緣設定的哪個 header（Railway＝X-Real-IP）；沒設＝用 remote_addr
+    CLIENT_IP_HEADER = os.environ.get('CLIENT_IP_HEADER') or None
+    # 前端代理（Vercel middleware）帶 X-OWS-Edge-Secret 證明請求經過它，才採信它轉來的 X-OWS-Client-IP
     EDGE_PROXY_SECRET = os.environ.get('EDGE_PROXY_SECRET') or None
     # Cloudflare Turnstile：設了才驗證取驗證碼／訂閱電子報等會寄信的公開端點
     TURNSTILE_SECRET_KEY = os.environ.get('TURNSTILE_SECRET_KEY') or None

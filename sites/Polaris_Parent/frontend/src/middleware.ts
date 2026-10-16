@@ -40,14 +40,22 @@ async function getEnabledLanguages(request: NextRequest): Promise<string[]> {
   return languages;
 }
 
-// /api/v1/* 由 next.config 的 rewrite 轉給後端。後端看到的連線來源是 Vercel 的出口 IP（所有訪客共用），
-// 帶上與後端相同的 EDGE_PROXY_SECRET，後端才會改信 Vercel 填的使用者 IP（core/backend_engine/security.py）。
-// 一律覆寫，訪客自己送來的同名 header 不會傳到後端。
+// /api/v1/* 由 next.config 的 rewrite 轉給後端，途中經過 Cloudflare 與 Railway，使用者 IP 在這一層之後就丟了
+// （後端只看得到 Vercel 的出口 IP，所有訪客同一個）。這裡把 Vercel 收到的使用者 IP 放進 x-ows-client-ip，
+// 連同與後端相同的 EDGE_PROXY_SECRET 一起送；後端密鑰比對正確才採信（core/backend_engine/security.py）。
+// 兩個 header 一律由這裡覆寫，訪客自己送來的同名 header 不會傳到後端。
 function forwardApiRequest(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.delete('x-ows-edge-secret');
+  headers.delete('x-ows-client-ip');
   const secret = process.env.EDGE_PROXY_SECRET;
-  if (secret) headers.set('x-ows-edge-secret', secret);
+  // Vercel 會以實際連線來源覆寫 x-real-ip／x-forwarded-for，訪客無法偽造
+  const visitorIp = (request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || '')
+    .split(',')[0].trim();
+  if (secret) {
+    headers.set('x-ows-edge-secret', secret);
+    if (visitorIp) headers.set('x-ows-client-ip', visitorIp);
+  }
   return NextResponse.next({ request: { headers } });
 }
 

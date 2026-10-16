@@ -21,23 +21,28 @@ class ClientIpTests(unittest.TestCase):
         with app.test_request_context('/', headers=headers or {}, environ_base=environ or {'REMOTE_ADDR': '100.64.0.5'}):
             return security.client_ip()
 
+    # 2026-10-16 正式站實測的 header 形狀（直連 api 與經 Vercel 兩條路徑）
+    DIRECT = {'X-Forwarded-For': '172.69.221.84, 79.127.228.17', 'X-Real-IP': '119.14.20.203',
+              'CF-Connecting-IP': '119.14.20.203'}
+    VIA_VERCEL = {'X-Forwarded-For': '172.68.211.170, 79.127.228.18', 'X-Real-IP': '95.40.5.13',
+                  'CF-Connecting-IP': '95.40.5.13'}
+
     def test_default_uses_remote_addr(self):
-        self.assertEqual(self.ip({'X-Forwarded-For': '1.1.1.1'}), '100.64.0.5')
+        self.assertEqual(self.ip(self.DIRECT), '100.64.0.5')
 
-    def test_one_hop_takes_rightmost_entry_added_by_edge(self):
-        # 偽造的左段不會被採用
-        self.assertEqual(self.ip({'X-Forwarded-For': '6.6.6.6, 203.0.113.7'}, CLIENT_IP_PROXY_HOPS=1), '203.0.113.7')
+    def test_direct_request_uses_edge_set_header(self):
+        self.assertEqual(self.ip(self.DIRECT, CLIENT_IP_HEADER='X-Real-IP'), '119.14.20.203')
 
-    def test_edge_secret_trusts_one_more_hop(self):
-        h = {'X-Forwarded-For': '198.51.100.9, 76.76.21.21', 'X-OWS-Edge-Secret': 's3cret'}
-        self.assertEqual(self.ip(h, CLIENT_IP_PROXY_HOPS=1, EDGE_PROXY_SECRET='s3cret'), '198.51.100.9')
+    def test_via_vercel_with_valid_secret_uses_forwarded_visitor_ip(self):
+        h = {**self.VIA_VERCEL, 'X-OWS-Edge-Secret': 's3cret', 'X-OWS-Client-IP': '119.14.20.203'}
+        self.assertEqual(self.ip(h, CLIENT_IP_HEADER='X-Real-IP', EDGE_PROXY_SECRET='s3cret'), '119.14.20.203')
 
-    def test_wrong_edge_secret_is_ignored(self):
-        h = {'X-Forwarded-For': '198.51.100.9, 76.76.21.21', 'X-OWS-Edge-Secret': 'guess'}
-        self.assertEqual(self.ip(h, CLIENT_IP_PROXY_HOPS=1, EDGE_PROXY_SECRET='s3cret'), '76.76.21.21')
+    def test_forged_client_ip_without_secret_is_ignored(self):
+        h = {**self.DIRECT, 'X-OWS-Edge-Secret': 'guess', 'X-OWS-Client-IP': '6.6.6.6'}
+        self.assertEqual(self.ip(h, CLIENT_IP_HEADER='X-Real-IP', EDGE_PROXY_SECRET='s3cret'), '119.14.20.203')
 
     def test_missing_header_falls_back(self):
-        self.assertEqual(self.ip({}, CLIENT_IP_PROXY_HOPS=1), '100.64.0.5')
+        self.assertEqual(self.ip({}, CLIENT_IP_HEADER='X-Real-IP'), '100.64.0.5')
 
 
 class _Resp:

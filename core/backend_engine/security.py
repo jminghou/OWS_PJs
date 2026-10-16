@@ -3,12 +3,15 @@
 
 真實 IP（client_ip）——限流的 key：
   正式站前面有代理，request.remote_addr 是代理的位址（Railway 內網 100.64.x），所有人共用一個限流桶。
-  CLIENT_IP_PROXY_HOPS＝N：信任 X-Forwarded-For 最右邊 N 段是我們自己的代理加的，取倒數第 N 段。
-    Railway 的邊緣代理會把連線來源附加在最右邊，所以直連後端時設 1 就是使用者 IP。
-  官網的 /api/v1/* 先經 Vercel rewrite 才到後端，最右邊會是 Vercel 的出口 IP（所有訪客同一個）。
-    Vercel 的 middleware 帶上 X-OWS-Edge-Secret（與 EDGE_PROXY_SECRET 相同）時，多信任一段，
-    取 Vercel 填的使用者 IP；沒帶或不符就不多信任，偽造 X-Forwarded-For 無效。
-  預設 0＝沿用 remote_addr（本機、測試、其他站台行為不變）。
+  2026-10-16 實測正式站的路徑與 header（/api/v1/settings/request-origin）：
+    直連 api.polaris-parent.com：瀏覽器 → Cloudflare → Railway。X-Forwarded-For 被改寫成
+      「Cloudflare IP, Railway 邊緣 IP」，看不到使用者；Railway 設的 X-Real-IP 才是使用者 IP，
+      而且帶偽造的 X-Real-IP／CF-Connecting-IP 進來會被 Cloudflare 擋（403）或被 Railway 覆寫。
+    官網 www 的 /api/v1/*：瀏覽器 → Vercel rewrite → Cloudflare → Railway。使用者 IP 在 Vercel 那層就
+      丟了，X-Real-IP 變成 Vercel 的出口 IP（所有訪客同一個）。所以 Vercel middleware 把它收到的使用者 IP
+      放進 X-OWS-Client-IP，連同 X-OWS-Edge-Secret（＝EDGE_PROXY_SECRET）一起送；密鑰正確才採信。
+  CLIENT_IP_HEADER：信任哪個由自家邊緣設定的 header（Railway＝X-Real-IP）；沒設＝沿用 remote_addr
+  （本機、測試、其他站台行為不變）。
 
 Turnstile（require_turnstile）：
   會寄信給任意 Email 的公開端點（取驗證碼、訂閱電子報）要先通過 Cloudflare Turnstile。
@@ -30,8 +33,7 @@ EDGE_SECRET_HEADER = 'X-OWS-Edge-Secret'
 TURNSTILE_HEADER = 'X-Turnstile-Token'
 
 
-def _forwarded_chain():
-    return [p.strip() for p in request.headers.get('X-Forwarded-For', '').split(',') if p.strip()]
+CLIENT_IP_FORWARD_HEADER = 'X-OWS-Client-IP'
 
 
 def edge_secret_valid() -> bool:
@@ -42,28 +44,29 @@ def edge_secret_valid() -> bool:
 
 def client_ip() -> str:
     """限流與記錄用的使用者 IP；判斷規則見模組說明。"""
-    hops = int(current_app.config.get('CLIENT_IP_PROXY_HOPS') or 0)
-    remote = request.remote_addr or '127.0.0.1'
-    if hops <= 0:
-        return remote
     if edge_secret_valid():
-        hops += 1
-    chain = _forwarded_chain()
-    if len(chain) >= hops:
-        return chain[-hops]
-    return chain[0] if chain else remote
+        forwarded = request.headers.get(CLIENT_IP_FORWARD_HEADER, '').strip()
+        if forwarded:
+            return forwarded
+    header = current_app.config.get('CLIENT_IP_HEADER')
+    if header:
+        value = request.headers.get(header, '').split(',')[0].strip()
+        if value:
+            return value
+    return request.remote_addr or '127.0.0.1'
 
 
 def request_origin_info() -> dict:
-    """診斷用：後端實際收到的來源資訊（管理員端點 /api/v1/admin/request-origin 回傳）。"""
+    """診斷用：後端實際收到的來源資訊（管理員端點 /api/v1/settings/request-origin 回傳）。"""
     return {
         'client_ip': client_ip(),
         'remote_addr': request.remote_addr,
         'x_forwarded_for': request.headers.get('X-Forwarded-For'),
         'x_real_ip': request.headers.get('X-Real-IP'),
         'cf_connecting_ip': request.headers.get('CF-Connecting-IP'),
+        'x_ows_client_ip': request.headers.get(CLIENT_IP_FORWARD_HEADER),
         'edge_secret_valid': edge_secret_valid(),
-        'proxy_hops': int(current_app.config.get('CLIENT_IP_PROXY_HOPS') or 0),
+        'client_ip_header': current_app.config.get('CLIENT_IP_HEADER'),
     }
 
 
