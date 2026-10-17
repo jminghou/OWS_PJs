@@ -26,6 +26,9 @@
  *   GET  /api/v1/report-files/:token                                 （私有檔案：報告 PDF／照片，短效憑證）
  *   GET  /api/v1/admin/report-consultations                          （report_orders.fulfill）
  *   POST /api/v1/admin/report-consultations/:id/:action              （report_orders.fulfill）
+ *   GET  /api/v1/admin/report-notifications                          （report_orders.read，寄信紀錄＋排程狀態）
+ *   GET  /api/v1/admin/report-notifications/:id                      （report_orders.read，含內文）
+ *   POST /api/v1/admin/report-notifications/:id/resend               （report_orders.fulfill，手動重寄）
  */
 import { getBaseUrl, request } from '@ows/platform-api/client';
 import type { ReportDraft } from '@/lib/report/draft';
@@ -355,6 +358,44 @@ export interface AdminConsultation extends ConsultView {
 
 export type ConsultAction = 'schedule' | 'complete' | 'cancel' | 'refund';
 
+export type NotificationStatus = 'pending' | 'sent' | 'failed';
+
+export interface AdminNotification {
+  id: number;
+  order_no: string | null;
+  event: string;
+  event_label: string;
+  recipient: string;
+  status: NotificationStatus;
+  attempts: number;
+  max_attempts: number;
+  error: string | null;
+  created_at: string | null;
+  sent_at: string | null;
+  subject: string | null;
+  next_attempt_at: string | null;
+  last_attempt_at: string | null;
+  can_resend: boolean;
+  body?: string | null;
+}
+
+export interface JobRunStatus {
+  job: string;
+  label: string;
+  every_seconds: number;
+  last_started_at: string | null;
+  last_finished_at: string | null;
+  last_status: 'ok' | 'error' | null;
+  last_result: Record<string, unknown> | null;
+  last_error: string | null;
+}
+
+export interface JobsStatus {
+  enabled: boolean;
+  interval_seconds: number;
+  jobs: JobRunStatus[];
+}
+
 export interface TransferReportRequest {
   last5: string;
   transferred_on: string;
@@ -560,4 +601,15 @@ export const reportOrdersApi = {
 
   adminConsultationAction: (id: number, action: ConsultAction, body: Record<string, unknown> = {}) =>
     post<{ success: boolean; consultation: AdminConsultation }>(`/admin/report-consultations/${id}/${action}`, body),
+
+  adminNotifications: (status: NotificationStatus | 'all' = 'failed', q = '') =>
+    request<{ success: boolean; notifications: AdminNotification[]; counts: Partial<Record<NotificationStatus, number>>; jobs: JobsStatus }>(
+      '/admin/report-notifications', { params: q ? { status, q } : { status } }
+    ),
+
+  adminNotification: (id: number) =>
+    request<{ success: boolean; notification: AdminNotification }>(`/admin/report-notifications/${id}`),
+
+  adminResendNotification: (id: number) =>
+    post<{ success: boolean; notification: AdminNotification }>(`/admin/report-notifications/${id}/resend`, {}),
 };

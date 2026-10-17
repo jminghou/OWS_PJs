@@ -274,6 +274,11 @@ class Config:
     # 會員回報轉帳時通知的管理者信箱（留空則不寄）
     REPORT_ADMIN_NOTIFY_EMAIL = os.environ.get('REPORT_ADMIN_NOTIFY_EMAIL', '')
 
+    # 背景排程（extensions/report_orders/jobs.py）：逾期取消、匯款提醒、寄信重試、清理。
+    # 正式環境預設開；本機預設關（需要時設 true，或手動執行 flask report_orders run-jobs）
+    REPORT_JOBS_ENABLED = _bool_env('REPORT_JOBS_ENABLED', False)
+    REPORT_JOBS_INTERVAL_SECONDS = int(os.environ.get('REPORT_JOBS_INTERVAL_SECONDS', '300'))
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 
@@ -318,6 +323,7 @@ class ProductionConfig(Config):
 
     DEBUG = False
     IS_DEV_MODE = False
+    REPORT_JOBS_ENABLED = _bool_env('REPORT_JOBS_ENABLED', True)
 
     SQLALCHEMY_DATABASE_URI = _get_database_url('DATABASE_URL')
 

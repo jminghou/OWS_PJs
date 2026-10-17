@@ -11,6 +11,8 @@ Polaris Parent — 站專屬模型（統一資料庫架構 §11，Option B）
 故 Alembic autogenerate 已於 migrations/env.py 的 include_object 排除，不會重複建立。
 """
 
+from datetime import datetime
+
 from sqlalchemy.dialects.postgresql import JSONB
 
 from core.backend_engine.factory import db
@@ -510,3 +512,47 @@ class ReportDesignAsset(db.Model):
 
     def __repr__(self):
         return f'<ReportDesignAsset {self.id} design={self.design_id}>'
+
+
+class ReportMailOutbox(db.Model):
+    """shop.report_mail_outbox — 訂單通知信的內容，讓寄失敗的信可以重試（階段 1 ①，2026-10-17）。
+
+    與 shop.order_notifications 一對一：那張表仍是「寄過沒有／寄幾次／錯誤」的帳本（dedupe_key 防重寄），
+    這張只存重寄需要的標題、內文與下次重試時間。放在站台鏈而不是 commerce 鏈：
+    order_notifications 屬共用套件，改它會連帶要求 Claire 的正式庫升級。
+    next_attempt_at：NULL＝不再自動重試（已寄出或已用完次數）；寄出 30 天後內文會被清除（只留帳本）。
+    """
+    __tablename__ = 'report_mail_outbox'
+    __table_args__ = (db.UniqueConstraint('notification_id', name='uq_report_mail_outbox_notification'),
+                      {'schema': 'shop'})
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    notification_id = db.Column(db.Integer, db.ForeignKey(_q('order_notifications.id', _SHOP_SCHEMA), ondelete='CASCADE'),
+                                nullable=False)
+    subject = db.Column(db.Text, nullable=False)
+    body = db.Column(db.Text, nullable=True)
+    next_attempt_at = db.Column(db.DateTime, nullable=True, index=True)  # UTC（與 order_notifications 一致，不帶時區）
+    last_attempt_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<ReportMailOutbox notification={self.notification_id}>'
+
+
+class ReportJobRun(db.Model):
+    """shop.report_job_runs — 背景排程每個工作最後一次執行的結果（extensions/report_orders/jobs.py）。
+
+    用途：決定工作是否到期（例：清理每天一次），以及讓後台看得出排程是不是還活著。
+    """
+    __tablename__ = 'report_job_runs'
+    __table_args__ = {'schema': 'shop'}
+
+    job = db.Column(db.String(50), primary_key=True)
+    last_started_at = db.Column(db.DateTime, nullable=True)   # UTC
+    last_finished_at = db.Column(db.DateTime, nullable=True)
+    last_status = db.Column(db.String(20), nullable=True)     # ok / error
+    last_result = db.Column(db.Text, nullable=True)
+    last_error = db.Column(db.Text, nullable=True)
+
+    def __repr__(self):
+        return f'<ReportJobRun {self.job} {self.last_status}>'

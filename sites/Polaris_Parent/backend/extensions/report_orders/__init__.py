@@ -45,7 +45,7 @@ from packages.commerce.models import Order, OrderItem
 from sites.Polaris_Parent.backend.models import ReportConsultation, ReportFulfillment, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import delivery, design, notify, payment, physical, private_storage, service
+from . import delivery, design, jobs, notify, payment, physical, private_storage, service
 from .validation import validate_order, validate_shipping
 
 try:
@@ -54,6 +54,12 @@ except Exception:  # pragma: no cover
     limiter = None
 
 bp = Blueprint('report_orders', __name__)
+
+
+@bp.before_app_request
+def _start_background_jobs():
+    # 背景排程由第一個請求啟動（CLI 不會收到請求，所以 flask db upgrade 等指令不會啟動排程）
+    jobs.start_background(current_app._get_current_object())
 
 SUPPORTED_PAYMENT_MODES = ('placeholder', 'manual')
 ORDER_LIST_PAYMENT_MODES = (*SUPPORTED_PAYMENT_MODES, 'external_verified')
@@ -384,6 +390,66 @@ def _admin_row(order):
     row = service.order_summary(order)
     row['buyer_email'] = _buyer_email(order)
     return row
+
+
+@bp.route('/admin/report-notifications', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.read')
+def admin_list_notifications():
+    """寄信紀錄：status＝failed（含重試中）／pending／sent／all；q＝訂單編號或收件者。"""
+    from packages.commerce.models import OrderNotification
+    from sites.Polaris_Parent.backend.models import ReportMailOutbox
+
+    status = request.args.get('status', 'failed')
+    q = (db.session.query(OrderNotification, ReportMailOutbox, Order.order_no)
+         .outerjoin(ReportMailOutbox, ReportMailOutbox.notification_id == OrderNotification.id)
+         .join(Order, Order.id == OrderNotification.order_id))
+    if status in ('failed', 'pending', 'sent'):
+        q = q.filter(OrderNotification.status == status)
+    keyword = (request.args.get('q') or '').strip()
+    if keyword:
+        like = f'%{keyword}%'
+        q = q.filter(db.or_(Order.order_no.ilike(like), OrderNotification.recipient.ilike(like)))
+    rows = q.order_by(OrderNotification.id.desc()).limit(200).all()
+    counts = dict(db.session.query(OrderNotification.status, db.func.count(OrderNotification.id))
+                  .group_by(OrderNotification.status).all())
+    return jsonify({'success': True, 'counts': counts, 'jobs': jobs.status(),
+                    'notifications': [notify.notification_view(n, box, order_no) for n, box, order_no in rows]})
+
+
+@bp.route('/admin/report-notifications/<int:note_id>', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.read')
+def admin_get_notification(note_id):
+    from packages.commerce.models import OrderNotification
+
+    note = db.session.get(OrderNotification, note_id)
+    if note is None:
+        return _error('找不到這封信', 404)
+    order = db.session.get(Order, note.order_id)
+    return jsonify({'success': True, 'notification': notify.notification_view(
+        note, order_no=order.order_no if order else None, with_body=True)})
+
+
+@bp.route('/admin/report-notifications/<int:note_id>/resend', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_resend_notification(note_id):
+    from packages.commerce.models import OrderNotification
+
+    try:
+        sent = notify.resend(note_id)
+    except LookupError as exc:
+        return _error(str(exc), 404)
+    except ValueError as exc:
+        return _error(str(exc), 409, code='not_resendable')
+    note = db.session.get(OrderNotification, note_id)
+    order = db.session.get(Order, note.order_id)
+    view = notify.notification_view(note, order_no=order.order_no if order else None)
+    if not sent:
+        return _error(f'重寄失敗：{note.error or "未知錯誤"}', 502, code='send_failed', notification=view)
+    return jsonify({'success': True, 'notification': view})
 
 
 @bp.route('/admin/report-orders', methods=['GET'])
@@ -1235,6 +1301,19 @@ def cleanup_designs_command():
 def expire_overdue_command():
     """取消逾期未回報轉帳的人工收款訂單（建議每小時排程一次）。"""
     click.echo(f'cancelled {_expire_overdue()} overdue order(s)')
+
+
+@bp.cli.command('run-jobs')
+@click.option('--force', is_flag=True, help='忽略週期，全部立刻執行一次。')
+@click.option('--job', 'only', multiple=True, help='只執行指定工作（可重複）。')
+def run_jobs_command(force, only):
+    """執行到期的背景工作（逾期取消、匯款提醒、寄信重試、清理）。可給 Railway Cron 或手動使用。"""
+    import json
+    results = jobs.run_locked(force=force, only=set(only) or None)
+    if results is None:
+        click.echo('另一個程序正在執行排程，這次略過')
+        return
+    click.echo(json.dumps(results, ensure_ascii=False))
 
 
 @bp.cli.command('commerce-preview')
