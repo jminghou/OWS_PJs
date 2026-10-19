@@ -42,6 +42,7 @@ def payload(f, item, order):
     return {
         'request_no': f.request_no,
         'env': f.environment if f.environment in ('test', 'live') else 'live',
+        'language': getattr(order, 'language', None) or 'zh-TW',  # 紫微端依語系分工接單
         'member_id': f.member_id,
         'chart_id': f.chart_id,
         'order_no': order.order_no,

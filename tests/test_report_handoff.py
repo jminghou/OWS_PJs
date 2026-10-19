@@ -50,8 +50,8 @@ class HandoffTests(_JobsBase):
         f = self.fulfillment()
         self.assertEqual((body['request_no'], body['member_id'], body['chart_id'], body['env']),
                          (f.request_no, self.user.id, 202005011000000001, 'live'))
-        self.assertEqual((body['order_no'], body['product_code'], body['variant']),
-                         (order.order_no, 'natal-report-digital', 'digital'))
+        self.assertEqual((body['order_no'], body['product_code'], body['variant'], body['language']),
+                         (order.order_no, 'natal-report-digital', 'digital', 'zh-TW'))
         self.assertEqual(body['audience']['dedication'], '生日快樂')
         self.assertEqual(body['subject']['birth']['date'], '2020-05-01')
         self.assertTrue(body['paid_at'].endswith('+00:00'))
