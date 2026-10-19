@@ -210,7 +210,7 @@ export default function ReportNotificationsPage() {
           </div>
           <form className="flex gap-2 md:w-80" onSubmit={(e) => { e.preventDefault(); setQuery(keyword.trim()); }}>
             <input className={inputCls} value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="訂單編號或收件者 Email" />
-            <button type="submit" className={btnGhost}>搜尋</button>
+            <button type="submit" className={`${btnGhost} shrink-0 whitespace-nowrap`}>搜尋</button>
           </form>
         </div>
 
