@@ -39,8 +39,9 @@ export default function AdminShell({
     if (!isAuthenticated) {
       if (pathname !== '/admin/login') router.push('/admin/login');
     } else if (!isStaff) {
-      // 已登入但非後台人員 → 導回會員中心
-      router.push('/account');
+      // 已登入但非後台人員 → 導回會員中心。登入頁例外：會員要能在這裡改用管理員帳號登入，
+      // 否則同一個瀏覽器只要登入過會員，就永遠打不開後台登入頁。
+      if (pathname !== '/admin/login') router.push('/account');
     } else if (pathname === '/admin/login') {
       router.push(getHomePath());
     } else if (isPathDisabled(pathname)) {

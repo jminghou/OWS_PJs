@@ -1,6 +1,6 @@
 'use client';
 
-import { getHomePath } from '../config';
+import { getAdminConfig, getHomePath } from '../config';
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -14,15 +14,18 @@ import { Card, CardHeader, CardTitle, CardContent } from '@ows/ui/ui/Card';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, error, isLoading, clearError, isAuthenticated } = useAuthStore();
+  const { login, logout, error, isLoading, clearError, isAuthenticated, user } = useAuthStore();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const isStaff = (u: typeof user) => !!u && (u.role === 'admin' || u.role === 'editor');
+  // 已用一般會員帳號登入：留在這頁，提示改用管理員帳號登入（登入成功會換掉目前的身分）
+  const signedInAsMember = isAuthenticated && !!user && !isStaff(user);
 
-  // 如果已經登入，直接導向後台
+  // 已經是後台人員，直接導向後台
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isStaff(user)) {
       router.replace(getHomePath());
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
   
   const {
     register,
@@ -35,6 +38,11 @@ export default function LoginPage() {
       clearError();
       setSubmitError(null);
       await login(data);
+      // 帳密正確但沒有後台權限：明確告知並登出，不要讓人以為登入成功卻被彈到會員中心
+      if (!isStaff(useAuthStore.getState().user)) {
+        await logout();
+        setSubmitError('這個帳號沒有後台權限，請改用管理員帳號登入');
+      }
     } catch (err: any) {
       setSubmitError(err.message || '登入失敗，請檢查您的帳號密碼');
     }
@@ -47,7 +55,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="text-3xl font-bold text-gray-900 hover:text-gray-700">
-            Orion Blog
+            {getAdminConfig().siteName}
           </Link>
           <h2 className="mt-6 text-2xl font-semibold text-gray-900">
             管理員登入
@@ -63,6 +71,13 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+              {signedInAsMember && !displayError && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+                  <p className="text-sm text-amber-800">
+                    你目前以會員帳號（{user?.username}）登入，這個帳號沒有後台權限。請在下方改用管理員帳號登入。
+                  </p>
+                </div>
+              )}
               {displayError && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-4">
                   <p className="text-sm text-red-600">{displayError}</p>
