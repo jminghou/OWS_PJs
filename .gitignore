@@ -221,3 +221,6 @@ Duc/Demo/
 *_vercel.env
 *.env.bak
 .env.*.bak
+
+# Flask instance 資料夾：本機私有儲存（會員打樣、照片、報告 PDF）預設放在 instance/private_uploads，不可進版控
+instance/
