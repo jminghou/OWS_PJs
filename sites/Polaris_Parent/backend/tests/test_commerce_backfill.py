@@ -85,6 +85,8 @@ class BackfillTests(foundation.FoundationTests):
             delivery.upload_report_pdf(item, self.admin.id, 'r.pdf', b'%PDF-test')
         book = design.design_for_job(self.user, order)
         job = design.confirm(book)
+        job.status = 'approved'  # 打樣確認流程另有測試（tests/test_report_proofs.py）
+        db.session.commit()
         physical.mark_printing(job, self.admin.id)
         physical.mark_shipped(job, self.admin.id, 'test', 'test')
         physical.mark_delivered(job, self.admin.id)

@@ -13,7 +13,7 @@ import { BookOpen, MessageCircle, Plus } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
 import BrandButton, { brandButton } from '@/components/ui/BrandButton';
 import { reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
-import { CONSULT_PERIOD_LABELS, type ConsultPeriod } from '@/lib/api/reportOrders';
+import { CONSULT_PERIOD_LABELS, type ConsultPeriod, type ProofVersion } from '@/lib/api/reportOrders';
 
 const cardCls = 'rounded-card bg-white p-6 md:p-8';
 const cardTitleCls = 'font-heading text-[18px] font-normal text-ink md:text-h4';
@@ -115,6 +115,8 @@ export function PhysicalStatus({ order, onUpdated }: { order: ReportOrderSummary
         )
       )}
 
+      <ProofSection order={order} onUpdated={onUpdated} />
+
       {error && <Alert tone="error" className="mt-4">{error}</Alert>}
       {canCancel && (
         <div className="mt-5 border-t border-line pt-4">
@@ -137,6 +139,123 @@ export function PhysicalStatus({ order, onUpdated }: { order: ReportOrderSummary
         </div>
       )}
     </section>
+  );
+}
+
+/** 打樣：看 PDF、確認送印或提出修改、歷次版本。規則：免費修改次數有限，期限內沒回應會自動確認送印。 */
+function ProofSection({ order, onUpdated }: { order: ReportOrderSummary; onUpdated: (o: ReportOrderSummary) => void }) {
+  const p = order.physical!;
+  const pr = p.proofs;
+  const [mode, setMode] = useState<'idle' | 'approve' | 'changes'>('idle');
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  if (!pr) return null;
+  const pending = pr.pending;
+  const history = pr.versions.filter((v) => v.id !== pending?.id);
+
+  const open = async (v: ProofVersion) => {
+    const win = window.open('', '_blank');
+    try {
+      const { url } = await reportOrdersApi.proofLink(order.order_no, v.id);
+      if (win) win.location.href = url;
+    } catch (e: any) {
+      win?.close();
+      setError(e.message || '無法開啟打樣');
+    }
+  };
+
+  const decide = async (decision: 'approve' | 'changes') => {
+    if (!pending) return;
+    setBusy(true);
+    setError('');
+    try {
+      const res = await reportOrdersApi.proofDecision(order.order_no, { proof_id: pending.id, decision, comment });
+      onUpdated(res.order);
+      setMode('idle');
+      setComment('');
+    } catch (e: any) {
+      setError(e.message || '送出失敗，請稍後再試');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-3">
+      {p.status === 'awaiting_proof' && <p className="text-sm text-text">我們正在製作打樣，完成後會寄信請你確認。</p>}
+      {p.status === 'changes_requested' && <p className="text-sm text-text">已收到你的修改意見，正在製作下一版打樣，完成後會再寄信通知你。</p>}
+
+      {pending && (
+        <div className="rounded-inner bg-blue-50 p-4">
+          <p className="text-sm font-medium text-blue-900">第 {pending.version} 版打樣完成了，請檢查後確認送印或提出修改。</p>
+          {pending.admin_note && <p className="mt-1 whitespace-pre-line text-sm text-blue-800">這一版的說明：{pending.admin_note}</p>}
+          <p className="mt-2 text-caption text-blue-800">
+            請在 {fmtDateTime(pending.due_at)} 前回覆；期限內沒有回覆，系統會自動確認送印。
+            {pr.revisions_left > 0 ? `你還有 ${pr.revisions_left} 次免費修改。` : '免費修改次數已用完，這一版請確認送印；若仍需修改請直接回信與我們聯絡。'}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <BrandButton variant="soft" size="S" onClick={() => open(pending)}>開啟打樣 PDF</BrandButton>
+            {mode === 'idle' && (
+              <>
+                <BrandButton variant="primary" size="S" onClick={() => setMode('approve')}>確認送印</BrandButton>
+                {pr.revisions_left > 0 && <BrandButton variant="soft" size="S" onClick={() => setMode('changes')}>我要修改</BrandButton>}
+              </>
+            )}
+          </div>
+          {mode === 'approve' && (
+            <div className="mt-3 space-y-2 rounded-inner bg-white p-3">
+              <p className="text-sm text-text">確認送印後就會開始印製，<strong>不能再修改或取消</strong>。確定這一版沒問題嗎？</p>
+              <div className="flex flex-wrap gap-2">
+                <BrandButton variant="soft" size="S" onClick={() => setMode('idle')}>再看一下</BrandButton>
+                <BrandButton variant="primary" size="S" onClick={() => decide('approve')} disabled={busy}>{busy ? '送出中…' : '確定送印'}</BrandButton>
+              </div>
+            </div>
+          )}
+          {mode === 'changes' && (
+            <div className="mt-3 space-y-2 rounded-inner bg-white p-3">
+              <label htmlFor="proof-comment" className="block text-sm text-text">
+                請寫下要修改的地方（例如頁碼與內容）。這會用掉 1 次免費修改。
+              </label>
+              <textarea id="proof-comment" className={clsx(INPUT_CLS, 'min-h-[120px]')} maxLength={2000}
+                value={comment} onChange={(e) => setComment(e.target.value)} />
+              <div className="flex flex-wrap gap-2">
+                <BrandButton variant="soft" size="S" onClick={() => setMode('idle')}>返回</BrandButton>
+                <BrandButton variant="primary" size="S" onClick={() => decide('changes')} disabled={busy || !comment.trim()}>
+                  {busy ? '送出中…' : '送出修改意見'}
+                </BrandButton>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && <Alert tone="error">{error}</Alert>}
+
+      {history.length > 0 && (
+        <div>
+          <button type="button" className="min-h-[44px] text-sm text-blue-600 hover:underline" onClick={() => setShowHistory((v) => !v)}>
+            {showHistory ? '收合打樣紀錄' : `打樣紀錄（${history.length} 版）`}
+          </button>
+          {showHistory && (
+            <ul className="mt-1 space-y-2 text-sm">
+              {history.map((v) => (
+                <li key={v.id} className="rounded-inner bg-tint px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-ink">第 {v.version} 版</span>
+                    <span className="text-caption text-muted">{fmtDateTime(v.created_at)}</span>
+                    {v.decision_label && <span className="text-caption text-muted">・{v.decision_label}</span>}
+                    <button type="button" className="ml-auto text-caption text-blue-600 hover:underline" onClick={() => open(v)}>開啟</button>
+                  </div>
+                  {v.comment && v.decision === 'changes_requested' && <p className="mt-1 whitespace-pre-line text-caption text-text">你的修改意見：{v.comment}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

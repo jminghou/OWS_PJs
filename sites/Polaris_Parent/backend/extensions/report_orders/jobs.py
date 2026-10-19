@@ -1,7 +1,8 @@
 """
 客製報告的背景排程（階段 1 ①，2026-10-17）。
 
-工作清單見 JOBS：逾期取消、匯款期限提醒、寄信重試、報告交接紫微、清除放棄的設計草稿、清除舊信件內文。
+工作清單見 JOBS：逾期取消、匯款期限提醒、寄信重試、報告交接紫微、打樣到期提醒與自動確認、
+清除放棄的設計草稿、清除舊信件內文。
 每個工作有自己的週期；是否到期看 shop.report_job_runs 的上次開始時間，所以多跑幾次也不會多做。
 
 執行方式（兩種擇一或並用，結果相同）：
@@ -70,6 +71,26 @@ def _handoff_reports(now):
     return {'sent': sent, 'failed': failed}
 
 
+def _proof_deadlines(now):
+    """打樣：期限前 2 天寄提醒；期限到還沒回應就自動確認送印並通知會員與管理者。"""
+    from . import _buyer_email, notify, proofs
+    from packages.commerce.models import OrderItem
+    reminded = approved = 0
+    for job, proof in proofs.reminders_due(now):
+        item = db.session.get(OrderItem, job.order_item_id)
+        email = _buyer_email(item.order)
+        if email and notify.send_proof_reminder(item.order, job, proof, email):
+            reminded += 1
+    for job, proof in proofs.auto_approve_due(now):
+        approved += 1
+        item = db.session.get(OrderItem, job.order_item_id)
+        email = _buyer_email(item.order)
+        if email:
+            notify.send_proof_auto_approved(item.order, job, proof, email)
+        notify.send_proof_approved_admin(item.order, job, proof, email or '-')
+    return {'reminded': reminded, 'auto_approved': approved}
+
+
 def _cleanup_designs(now):
     from . import design
     return {'removed': design.cleanup(now)}
@@ -86,6 +107,7 @@ JOBS = [
     ('payment_reminders', timedelta(minutes=30), '匯款期限前 24 小時提醒', _payment_reminders),
     ('retry_mail', timedelta(0), '重寄寄失敗的通知信', _retry_mail),
     ('handoff_reports', timedelta(0), '已付款的報告送到紫微建立工作單', _handoff_reports),
+    ('proof_deadlines', timedelta(minutes=30), '打樣到期提醒與自動確認送印', _proof_deadlines),
     ('cleanup_designs', timedelta(days=1), '刪除放棄超過 30 天的設計草稿與照片', _cleanup_designs),
     ('purge_mail_bodies', timedelta(days=1), '清除 30 天前通知信的內文', _purge_mail_bodies),
 ]

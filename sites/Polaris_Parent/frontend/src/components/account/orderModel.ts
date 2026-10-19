@@ -81,7 +81,12 @@ export function buildTodos(orders: ReportOrderSummary[], now = Date.now()): Todo
       });
     }
     if (p?.status === 'proof_ready') {
-      todos.push({ key: `${o.order_no}:proof`, tone: 'action', label: '確認打樣', title, detail: '打樣好了，請確認後我們才會送印。', href: orderHref(o), cta: '確認打樣' });
+      const due = p.proofs?.pending?.due_at;
+      todos.push({
+        key: `${o.order_no}:proof`, tone: 'action', label: '確認打樣', title,
+        detail: due ? `打樣好了，請在 ${fmtDateTime(due)} 前確認或提出修改；期限到會自動確認送印。` : '打樣好了，請確認後我們才會送印。',
+        href: orderHref(o), cta: '確認打樣',
+      });
     }
     if (p?.status === 'shipped') {
       todos.push({ key: `${o.order_no}:ship`, tone: 'info', label: '實體書已出貨', title, detail: '物流資訊在訂單頁。', href: orderHref(o), cta: '查看物流' });

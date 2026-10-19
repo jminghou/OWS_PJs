@@ -21,7 +21,7 @@ from sites.Polaris_Parent.backend.extensions.member_account import service as ac
 from sites.Polaris_Parent.backend.extensions.report_orders import service
 from sites.Polaris_Parent.backend.models import (MemberEmailVerification, ReportBookDesign, ReportConsultation,
                                                  ReportDesignAsset, ReportDocument, ReportFulfillment, ReportJobRun,
-                                                 ReportMailOutbox, ReportPrintJob, Shipment)
+                                                 ReportMailOutbox, ReportPrintJob, ReportPrintProof, Shipment)
 
 
 @compiles(JSONB, 'sqlite')
@@ -113,7 +113,7 @@ class _Base(unittest.TestCase):
                        OrderCheckout.__table__, OrderItem.__table__, OrderInvoice.__table__,
                        OrderNotification.__table__, ReportMailOutbox.__table__, ReportJobRun.__table__,
                        PaymentAttempt.__table__, ReportFulfillment.__table__,
-                       Shipment.__table__, ReportPrintJob.__table__, ReportConsultation.__table__, ReportDocument.__table__,
+                       Shipment.__table__, ReportPrintJob.__table__, ReportPrintProof.__table__, ReportConsultation.__table__, ReportDocument.__table__,
                        ReportBookDesign.__table__, ReportDesignAsset.__table__,
                        MemberEmailVerification.__table__]
         self.app.config['REPORT_PAYMENT_MODE'] = self.MODE

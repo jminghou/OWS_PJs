@@ -166,6 +166,8 @@ class FoundationTests(_Base):
         db.session.commit()
         self.assertEqual(design.purchased(book), {'custom': [], 'spreads': 0})
         design.confirm(book)
+        job.status = 'approved'  # 打樣確認流程另有測試（tests/test_report_proofs.py）
+        db.session.commit()
         physical.mark_printing(job, self.admin.id)
         physical.mark_shipped(job, self.admin.id, 'test-carrier', 'test-tracking')
         physical.mark_delivered(job, self.admin.id)

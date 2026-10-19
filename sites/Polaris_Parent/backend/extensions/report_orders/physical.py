@@ -47,7 +47,8 @@ DEFAULT_SPREADS = {'label': '加入自己的指定頁面', 'price': 300, 'max': 
 DEFAULT_CONSULT = {'label': '專人解讀', 'minutes': 30, 'price': 1500, 'max_sessions': 4}
 
 # 打樣確認上線後改為 True：只有會員確認送印（approved）的實體書才能標記送印
-PROOF_APPROVAL_REQUIRED = False
+# 打樣上線（階段 1 ②，2026-10-19）：會員確認打樣（或自動／代為確認）後才能送印
+PROOF_APPROVAL_REQUIRED = True
 _PRE_PRINT = ('awaiting_customization', 'awaiting_proof', 'proof_ready', 'changes_requested', 'approved')
 
 
@@ -749,7 +750,13 @@ def job_view(job, item):
         'refund_due': job.refund_due,
         'refund_amount': job.refund_amount,
         'refunded_at': job.refunded_at.isoformat() if job.refunded_at else None,
+        'proofs': _proofs_view(job),
     }
+
+
+def _proofs_view(job):
+    from . import proofs
+    return proofs.job_proofs_view(job)
 
 
 def consult_view(consult, item):

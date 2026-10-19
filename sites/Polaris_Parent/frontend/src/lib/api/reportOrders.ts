@@ -19,6 +19,10 @@
  *   POST /api/v1/admin/report-orders/:orderNo/report-pdf             （report_orders.fulfill，上傳報告 PDF）
  *   POST /api/v1/admin/report-orders/:orderNo/report-pdf/link        （report_orders.fulfill）
  *   POST /api/v1/admin/report-orders/:orderNo/handoff                （report_orders.fulfill，立即送到紫微建工作單）
+ *   POST /api/v1/report-orders/:orderNo/proofs/:proofId/link         （會員，打樣 PDF 短效網址）
+ *   POST /api/v1/report-orders/:orderNo/proof-decision               （會員，確認送印／提出修改）
+ *   POST /api/v1/admin/report-print-jobs/:id/proofs                  （report_orders.fulfill，上傳打樣）
+ *   POST /api/v1/admin/report-print-jobs/:id/proofs/:proofId/link    （report_orders.fulfill）
  *   POST /api/v1/report-orders/:orderNo/design-draft                 （會員，付款前的設計草稿）
  *   GET  /api/v1/report-orders/:orderNo/design                       （會員，付款後那本實體書的設計）
  *   GET|PUT /api/v1/report-designs/:id                               （會員，讀取／儲存設計）
@@ -120,8 +124,37 @@ export type PrintJobStatus =
 
 export type ConsultStatus = 'awaiting_payment' | 'to_schedule' | 'scheduled' | 'completed' | 'cancelled';
 
+export type ProofDecision = 'approved' | 'changes_requested' | 'auto_approved' | 'admin_approved' | 'superseded';
+
+export interface ProofVersion {
+  id: number;
+  version: number;
+  filename: string;
+  bytes: number;
+  /** 管理者給會員看的這版說明 */
+  admin_note: string | null;
+  created_at: string | null;
+  /** 會員回覆期限；過了沒回應就自動確認送印 */
+  due_at: string | null;
+  decision: ProofDecision | null;
+  decision_label: string | null;
+  comment: string | null;
+  decided_at: string | null;
+}
+
+export interface ProofsView {
+  versions: ProofVersion[];
+  /** 等待會員確認的那一版；沒有則為 null */
+  pending: ProofVersion | null;
+  revisions_left: number;
+  free_revisions: number;
+  response_days: number;
+}
+
 export interface PhysicalView {
   id: number;
+  /** 打樣：歷次版本、等待確認的版本、剩餘免費修改次數 */
+  proofs: ProofsView;
   /** 報告 PDF 已上傳（可以開始設計） */
   report_ready: boolean;
   /** 設計狀態；還沒開始設計為 null */
@@ -355,7 +388,7 @@ export interface AdminPrintJob extends PhysicalView {
   } | null;
 }
 
-export type PrintJobAction = 'printing' | 'shipped' | 'delivered' | 'cancel' | 'refund';
+export type PrintJobAction = 'printing' | 'shipped' | 'delivered' | 'cancel' | 'refund' | 'grant_revision' | 'approve_proof';
 
 export interface AdminConsultation extends ConsultView {
   order_no: string;
@@ -565,6 +598,12 @@ export const reportOrdersApi = {
 
   confirmDesign: (id: number) => post<{ success: boolean; design: DesignView }>(`/report-designs/${id}/confirm`, {}),
 
+  proofLink: (orderNo: string, proofId: number) =>
+    post<{ success: boolean; url: string }>(`/report-orders/${encodeURIComponent(orderNo)}/proofs/${proofId}/link`, {}),
+
+  proofDecision: (orderNo: string, body: { proof_id: number; decision: 'approve' | 'changes'; comment?: string }) =>
+    post<{ success: boolean; order: ReportOrderSummary }>(`/report-orders/${encodeURIComponent(orderNo)}/proof-decision`, body),
+
   cancelPhysical: (orderNo: string, reason?: string) =>
     post<{ success: boolean; order: ReportOrderSummary }>(
       `/report-orders/${encodeURIComponent(orderNo)}/physical-cancel`, { reason }
@@ -601,6 +640,16 @@ export const reportOrdersApi = {
 
   adminSendHandoff: (orderNo: string) =>
     post<{ success: boolean; handoff: HandoffView }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/handoff`, {}),
+
+  adminUploadProof: (jobId: number, file: File, note: string) => {
+    const body = new FormData();
+    body.append('file', file);
+    body.append('note', note);
+    return request<{ success: boolean; job: AdminPrintJob }>(`/admin/report-print-jobs/${jobId}/proofs`, { method: 'POST', body });
+  },
+
+  adminProofLink: (jobId: number, proofId: number) =>
+    post<{ success: boolean; url: string }>(`/admin/report-print-jobs/${jobId}/proofs/${proofId}/link`, {}),
 
   adminUploadReportPdf: (orderNo: string, file: File) => {
     const body = new FormData();

@@ -2,10 +2,11 @@
 
 /**
  * 實體書出貨管理：下單選實體書版與事後加購的實體書都在這裡，依狀態分頁。
- * 送印 → 登錄物流（寄出貨通知）→ 送達；送印前可取消，已付款的取消後在這裡登錄退款。
+ * 上傳打樣 → 會員確認（或期限到自動確認、代為確認）→ 送印 → 登錄物流（寄出貨通知）→ 送達；
+ * 確認送印前可取消，已付款的取消後在這裡登錄退款。
  * 後端：/api/v1/admin/report-print-jobs（report_orders.fulfill）。
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { Copy, Truck } from 'lucide-react';
@@ -28,8 +29,6 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'awaiting_payment', label: '待付款' },
   { value: 'all', label: '全部' },
 ];
-
-const PRE_PRINT = ['awaiting_customization', 'awaiting_proof', 'proof_ready', 'changes_requested', 'approved'];
 
 const btn =
   'inline-flex min-h-[40px] md:min-h-0 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50';
@@ -123,6 +122,113 @@ function DesignPanel({ design }: { design: DesignView }) {
   );
 }
 
+const PROOF_STAGES = ['awaiting_proof', 'proof_ready', 'changes_requested'];
+
+/** 打樣：上傳新版、歷次版本與會員意見、加給修改次數、代為確認送印 */
+function ProofPanel({ job, onDone, onError }: { job: AdminPrintJob; onDone: (t: string) => void; onError: (t: string) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [approveNote, setApproveNote] = useState('');
+  const pr = job.proofs;
+  if (!pr || (!PROOF_STAGES.includes(job.status) && pr.versions.length === 0)) return null;
+  const canUpload = PROOF_STAGES.includes(job.status);
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.pdf')) return onError('請選擇 PDF 檔');
+    setBusy(true);
+    try {
+      await reportOrdersApi.adminUploadProof(job.id, file, note);
+      setNote('');
+      onDone(`${job.order_no} 已上傳打樣並通知會員確認`);
+    } catch (e: any) {
+      onError(e.message || '上傳失敗');
+    } finally {
+      setBusy(false);
+      if (input.current) input.current.value = '';
+    }
+  };
+  const open = async (proofId: number) => {
+    const win = window.open('', '_blank');
+    try {
+      const { url } = await reportOrdersApi.adminProofLink(job.id, proofId);
+      if (win) win.location.href = url;
+    } catch (e: any) {
+      win?.close();
+      onError(e.message || '無法開啟打樣');
+    }
+  };
+  const act = async (action: PrintJobAction, body: Record<string, unknown>, done: string) => {
+    setBusy(true);
+    try {
+      await reportOrdersApi.adminPrintJobAction(job.id, action, body);
+      onDone(done);
+    } catch (e: any) {
+      onError(e.message || '操作失敗');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 space-y-2 rounded-md border border-border px-3 py-2 text-[13px]">
+      <p className="font-medium">
+        打樣
+        <span className="ml-2 font-normal text-muted-foreground">
+          免費修改 {pr.free_revisions} 次・剩 {pr.revisions_left} 次・會員 {pr.response_days} 天內沒回應自動確認送印
+        </span>
+      </p>
+      {pr.versions.length > 0 && (
+        <ul className="space-y-1">
+          {pr.versions.map((v) => (
+            <li key={v.id} className="rounded bg-muted/60 px-2 py-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span>第 {v.version} 版</span>
+                <span className="text-muted-foreground">{formatDate(v.created_at)}</span>
+                <span className={v.decision ? 'text-muted-foreground' : 'text-amber-700 dark:text-amber-300'}>
+                  {v.decision_label ?? `等待會員確認（期限 ${formatDate(v.due_at)}）`}
+                </span>
+                <button type="button" className="ml-auto text-admin-accent-600 hover:underline dark:text-admin-accent-200" onClick={() => open(v.id)}>開啟</button>
+              </div>
+              {v.admin_note && <p className="text-muted-foreground">說明：{v.admin_note}</p>}
+              {v.comment && <p className="whitespace-pre-line">{v.decision === 'changes_requested' ? '會員修改意見' : '備註'}：{v.comment}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {canUpload && (
+        <div className="space-y-1.5">
+          <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000}
+            placeholder="給會員看的這版說明（選填，例如：已修正封面名字）" />
+          <input ref={input} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
+          <button type="button" className={`${btnPrimary} w-full`} disabled={busy} onClick={() => input.current?.click()}>
+            {busy ? '處理中…' : pr.versions.length ? `上傳第 ${pr.versions.length + 1} 版打樣並通知會員` : '上傳打樣並通知會員'}
+          </button>
+        </div>
+      )}
+      {job.status === 'proof_ready' && (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={btnGhost} disabled={busy}
+            onClick={() => window.confirm('多給會員一次免費修改？（會員來信要求、你同意時使用）') && act('grant_revision', {}, '已多給一次修改')}>
+            多給一次修改
+          </button>
+          <button type="button" className={btnGhost} disabled={busy} onClick={() => setApproving((v) => !v)}>代為確認送印</button>
+        </div>
+      )}
+      {approving && job.status === 'proof_ready' && (
+        <div className="flex gap-2">
+          <input className={inputCls} value={approveNote} onChange={(e) => setApproveNote(e.target.value)}
+            placeholder="說明，例如：會員 10/20 來電確認" maxLength={1000} />
+          <button type="button" className={btnPrimary} disabled={busy || !approveNote.trim()}
+            onClick={() => act('approve_proof', { note: approveNote }, '已代為確認送印')}>確認</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Actions({ job, onDone, onError }: {
   job: AdminPrintJob;
   onDone: (text: string) => void;
@@ -153,7 +259,7 @@ function Actions({ job, onDone, onError }: {
 
   return (
     <div className="space-y-3">
-      {PRE_PRINT.includes(job.status) && (
+      {job.status === 'approved' && (
         <button type="button" className={`${btnPrimary} w-full`} disabled={busy}
           onClick={() => window.confirm(`確定已把 ${job.order_no} 送印？`) && run('printing', {}, `${job.order_no} 已標記送印`)}>
           標記送印
@@ -305,6 +411,8 @@ export default function ReportShipmentsPage() {
                       </div>
                     )}
                     {j.design && <DesignPanel design={j.design} />}
+                    <ProofPanel job={j} onDone={(text) => { setMessage({ type: 'success', text }); load(); }}
+                      onError={(text) => setMessage({ type: 'error', text })} />
                     {j.status === 'cancelled' && (
                       <p className="text-xs text-muted-foreground">
                         {j.cancelled_by === 'member' ? '會員取消' : j.cancelled_by === 'admin' ? '管理者取消' : '系統取消'}

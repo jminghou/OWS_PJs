@@ -235,9 +235,15 @@ class PhysicalTests(_Base):
         r = self.client.post(f'/api/v1/report-orders/{o["order_no"]}/physical-cancel', json={}, headers=self.headers())
         self.assertEqual(r.get_json()['code'], 'not_paid')
 
+    def approve_for_print(self, job):
+        """打樣確認流程另有測試（tests/test_report_proofs.py）；這裡直接當作會員已確認打樣。"""
+        job.status = 'approved'
+        db.session.commit()
+
     def test_cannot_cancel_after_printing(self):
         o = self.paid_order(variant='physical', shipping=SHIPPING)
         job = ReportPrintJob.query.one()
+        self.approve_for_print(job)
         self.assertEqual(self.admin_post(f'report-print-jobs/{job.id}/printing').status_code, 200)
         r = self.client.post(f'/api/v1/report-orders/{o["order_no"]}/physical-cancel', json={}, headers=self.headers())
         self.assertEqual(r.get_json()['code'], 'not_cancellable')
@@ -250,6 +256,9 @@ class PhysicalTests(_Base):
         self.assertEqual(self.admin_post(f'report-print-jobs/{job.id}/printing').get_json()['code'], 'invalid_status')
         self.confirm(a['order_no'], a['amount'])
         self.assertEqual(self.admin_post(f'report-print-jobs/{job.id}/printing', user=self.user).status_code, 403)
+        r = self.admin_post(f'report-print-jobs/{job.id}/printing')  # 會員還沒確認打樣，不能送印
+        self.assertEqual((r.status_code, r.get_json()['code']), (409, 'invalid_status'))
+        self.approve_for_print(job)
         self.assertEqual(self.admin_post(f'report-print-jobs/{job.id}/printing').status_code, 200)
         self.assertEqual(self.admin_post(f'report-print-jobs/{job.id}/shipped', {'carrier': '黑貓'}).status_code, 400)
         r = self.admin_post(f'report-print-jobs/{job.id}/shipped', {'carrier': '黑貓', 'tracking_no': '9001'})

@@ -373,6 +373,7 @@ class ReportPrintJob(db.Model):
     customized_at = db.Column(db.DateTime(timezone=True))
     approved_at = db.Column(db.DateTime(timezone=True))
     approved_proof_id = db.Column(db.BigInteger)                   # 確認送印的那一版打樣
+    extra_revisions = db.Column(db.Integer, nullable=False, server_default='0')  # 管理者額外給的打樣修改次數
     cancelled_at = db.Column(db.DateTime(timezone=True))
     cancelled_by = db.Column(db.String(10))                        # member / admin / system
     cancel_reason = db.Column(db.Text)
@@ -387,6 +388,47 @@ class ReportPrintJob(db.Model):
 
     def __repr__(self):
         return f'<ReportPrintJob item={self.order_item_id} {self.status}>'
+
+
+PROOF_DECISIONS = ('approved', 'changes_requested', 'auto_approved', 'admin_approved', 'superseded')
+
+
+class ReportPrintProof(db.Model):
+    """shop.report_print_proofs — 實體書打樣，每一版一筆（階段 1 ②，2026-10-19）。
+
+    管理者上傳打樣 PDF（私有儲存）→ 會員在 due_at 前確認送印或提出修改。
+    decision：approved（會員確認）／changes_requested（會員要求修改）／auto_approved（期限到未回應，系統確認）／
+    admin_approved（管理者代為確認）／superseded（會員決定前就被新版取代）；NULL＝等待會員決定。
+    免費修改次數＝設定值＋ReportPrintJob.extra_revisions，已用次數＝changes_requested 的版數。
+    """
+    __tablename__ = 'report_print_proofs'
+    __table_args__ = (
+        db.UniqueConstraint('print_job_id', 'version', name='uq_report_print_proofs_version'),
+        db.CheckConstraint(
+            "decision IS NULL OR decision IN ('approved','changes_requested','auto_approved','admin_approved','superseded')",
+            name='ck_report_print_proofs_decision'),
+        {'schema': 'shop'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    print_job_id = db.Column(db.BigInteger, db.ForeignKey('shop.report_print_jobs.id', ondelete='CASCADE'),
+                             nullable=False, index=True)
+    version = db.Column(db.Integer, nullable=False)
+    file_key = db.Column(db.Text, nullable=False)
+    filename = db.Column(db.Text, nullable=False)
+    bytes = db.Column(db.BigInteger, nullable=False)
+    sha256 = db.Column(db.String(64), nullable=False)
+    admin_note = db.Column(db.Text)                     # 給會員看的說明（這版改了什麼）
+    uploaded_by = db.Column(db.BigInteger, db.ForeignKey('account.app_users.id', ondelete='SET NULL'))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    due_at = db.Column(db.DateTime(timezone=True))       # 會員回覆期限；過了沒回應就自動確認送印
+    decision = db.Column(db.String(20))
+    comment = db.Column(db.Text)                        # 會員的修改意見，或管理者代為確認的說明
+    decided_at = db.Column(db.DateTime(timezone=True))
+    decided_by = db.Column(db.BigInteger)               # 會員或管理者的 app_users.id；系統自動確認為 NULL
+
+    def __repr__(self):
+        return f'<ReportPrintProof job={self.print_job_id} v{self.version} {self.decision}>'
 
 
 CONSULTATION_STATUSES = ('awaiting_payment', 'to_schedule', 'scheduled', 'completed', 'cancelled')

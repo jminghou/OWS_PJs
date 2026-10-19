@@ -45,7 +45,7 @@ from packages.commerce.models import Order, OrderItem
 from sites.Polaris_Parent.backend.models import ReportConsultation, ReportFulfillment, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import delivery, design, handoff, jobs, notify, payment, physical, private_storage, service
+from . import delivery, design, handoff, jobs, notify, payment, physical, private_storage, proofs, service
 from .validation import validate_order, validate_shipping
 
 try:
@@ -811,6 +811,11 @@ def admin_print_job_action(job_id, action):
             physical.record_refund(job, admin_id, data.get('amount'), data.get('note'))
             if email:
                 notify.send_refund_recorded(order, job, email)
+        elif action == 'grant_revision':
+            proofs.grant_revision(job, admin_id)
+        elif action == 'approve_proof':
+            proof = proofs.admin_approve(job, admin_id, data.get('note'))
+            notify.send_proof_approved_admin(order, job, proof, email or '-')
         else:
             return _error('不支援的操作', 404)
     except service.OrderError as exc:
@@ -818,6 +823,97 @@ def admin_print_job_action(job_id, action):
         return _error(exc.message, exc.status, code=exc.code)
     current_app.logger.info(f'print job {job.id} {action} by admin {admin_id}')
     return jsonify({'success': True, 'job': _print_job_row(job)})
+
+
+@bp.route('/admin/report-print-jobs/<int:job_id>/proofs', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_upload_proof(job_id):
+    """上傳打樣 PDF（multipart：file、note＝給會員看的這版說明）。寄「打樣請確認」給會員。"""
+    job = db.session.get(ReportPrintJob, job_id)
+    if job is None:
+        return _error('找不到這本實體書', 404)
+    upload = request.files.get('file')
+    if upload is None:
+        return _error('請選擇打樣 PDF', 400)
+    admin_id = int(get_jwt_identity())
+    try:
+        proof = proofs.upload(job, admin_id, upload.filename, upload.read(), request.form.get('note'))
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    except private_storage.StorageError as exc:
+        db.session.rollback()
+        current_app.logger.error(f'proof upload failed for job {job_id}: {exc}')
+        return _error('檔案儲存失敗，請稍後再試', 503)
+    item = db.session.get(OrderItem, job.order_item_id)
+    email = _buyer_email(item.order)
+    if email:
+        notify.send_proof_ready(item.order, job, proof, email, proofs.revisions_left(job))
+    return jsonify({'success': True, 'job': _print_job_row(job)})
+
+
+@bp.route('/admin/report-print-jobs/<int:job_id>/proofs/<int:proof_id>/link', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_proof_link(job_id, proof_id):
+    from sites.Polaris_Parent.backend.models import ReportPrintProof
+    proof = db.session.get(ReportPrintProof, proof_id)
+    if proof is None or proof.print_job_id != job_id:
+        return _error('找不到這份打樣', 404)
+    token = private_storage.issue_file_token('proof', proof.id, int(get_jwt_identity()))
+    return jsonify({'success': True, 'url': url_for('report_orders.report_file', token=token, _external=True)})
+
+
+# ── 打樣（會員） ─────────────────────────────────────────────────────────────
+def _member_print_job(order_no, user):
+    order = Order.query.filter_by(order_no=order_no, user_id=user.id).first()
+    item = physical.physical_item(order) if order is not None else None
+    job = physical.print_job_for(item) if item is not None else None
+    return order, job
+
+
+@bp.route('/report-orders/<order_no>/proofs/<int:proof_id>/link', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+def member_proof_link(order_no, proof_id):
+    """會員取得打樣 PDF 的短效網址。"""
+    from sites.Polaris_Parent.backend.models import ReportPrintProof
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    order, job = _member_print_job(order_no, user)
+    proof = db.session.get(ReportPrintProof, proof_id)
+    if job is None or proof is None or proof.print_job_id != job.id:
+        return _error('找不到這份打樣', 404)
+    token = private_storage.issue_file_token('proof', proof.id, user.id)
+    return jsonify({'success': True, 'url': url_for('report_orders.report_file', token=token, _external=True)})
+
+
+@bp.route('/report-orders/<order_no>/proof-decision', methods=['POST'])
+@_limit('20 per minute')
+@jwt_required()
+def member_proof_decision(order_no):
+    """會員確認送印（decision=approve）或提出修改（decision=changes，comment 必填）。"""
+    user = _current_user()
+    if user is None:
+        return _error('會員不存在或已停用', 401)
+    order, job = _member_print_job(order_no, user)
+    if job is None:
+        return _error('這筆訂單沒有實體書', 404)
+    data = request.get_json(silent=True) or {}
+    try:
+        proof = proofs.member_decide(job, user.id, data.get('proof_id'), data.get('decision'), data.get('comment'))
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    email = normalise_email(user.email or user.username)
+    if proof.decision == 'changes_requested':
+        notify.send_proof_changes_admin(order, job, proof, email)
+    else:
+        notify.send_proof_approved_admin(order, job, proof, email)
+    return jsonify({'success': True, 'order': service.order_summary(order)})
 
 
 # ── 專人解讀（後台；取消規則不對外公開，由管理者代為取消） ───────────────────
@@ -958,7 +1054,7 @@ def report_pdf_link(order_no):
 @bp.route('/report-files/<token>', methods=['GET'])
 @_limit('60 per minute')
 def report_file(token):
-    """以短效憑證串流私有檔案：報告 PDF（doc）或會員上傳的照片（asset）。
+    """以短效憑證串流私有檔案：報告 PDF（doc）、會員上傳的照片（asset）或實體書打樣（proof）。
     不必帶登入標頭，<a>、<img> 與 pdf.js 都能直接用。?download=1 下載，否則在瀏覽器開啟。"""
     parsed = private_storage.read_file_token(token, max_age=7200)
     if parsed is None:
@@ -972,6 +1068,9 @@ def report_file(token):
         elif kind == 'asset':
             row, data = design.asset_for_download(file_id, user_id, is_admin)
             mimetype = row.content_type
+        elif kind == 'proof':
+            row, data = proofs.proof_for_download(file_id, user_id, is_admin)
+            mimetype = 'application/pdf'
         else:
             return _error('連結不正確', 404)
     except service.OrderError as exc:

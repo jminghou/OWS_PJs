@@ -35,6 +35,8 @@ EVENT_LABELS = {
     'consult_preferences': '解讀時段（後台）', 'consult_scheduled': '解讀時間確認',
     'consult_cancelled': '解讀取消', 'consult_refunded': '解讀退款', 'mail_failed_admin': '寄信失敗警示（後台）',
     'handoff_failed_admin': '報告交接失敗（後台）',
+    'proof_ready': '打樣待確認', 'proof_reminder': '打樣確認提醒', 'proof_auto_approved': '打樣自動確認送印',
+    'proof_changes_admin': '會員要求修改打樣（後台）', 'proof_approved_admin': '打樣已確認送印（後台）',
 }
 
 POLICY_NOTE = '本報告依你提供的出生資料個別製作，屬客製化商品，不適用七日解除權；付款後不受理取消或退款。'
@@ -352,6 +354,67 @@ def send_refund_recorded(order, job, recipient):
     ])
     return _deliver(order, 'refund_recorded', recipient, f'【親紫之間】退款完成 {order.order_no}', body,
                     key=f'refund_recorded:{job.id}')
+
+
+# ── 打樣 ─────────────────────────────────────────────────────────────────────
+def send_proof_ready(order, job, proof, recipient, revisions_left):
+    lines = ['你的實體書打樣完成了，請到訂單頁打開打樣 PDF 檢查內容。', '',
+             f'訂單編號：{order.order_no}', _item_line(order), f'打樣版本：第 {proof.version} 版', '']
+    if proof.admin_note:
+        lines += [f'這一版的說明：{proof.admin_note}', '']
+    lines += [f'請在 {_fmt_time(proof.due_at)}（台灣時間）前確認送印，或提出修改。',
+              '期限內沒有回覆，系統會自動確認送印。',
+              (f'你還有 {revisions_left} 次免費修改。' if revisions_left else '免費修改次數已用完，這一版請確認送印；若仍需修改請直接回信與我們聯絡。'),
+              '', f'查看打樣：{_order_link(order)}']
+    return _deliver(order, 'proof_ready', recipient, f'【親紫之間】實體書打樣請確認 {order.order_no}',
+                    '\n'.join(lines), key=f'proof_ready:{proof.id}')
+
+
+def send_proof_reminder(order, job, proof, recipient):
+    body = '\n'.join([
+        '提醒你：實體書打樣還沒有確認。', '',
+        f'訂單編號：{order.order_no}', f'打樣版本：第 {proof.version} 版', '',
+        f'請在 {_fmt_time(proof.due_at)}（台灣時間）前確認送印或提出修改，期限到了系統會自動確認送印。',
+        '', f'查看打樣：{_order_link(order)}',
+    ])
+    return _deliver(order, 'proof_reminder', recipient, f'【親紫之間】打樣確認提醒 {order.order_no}', body,
+                    key=f'proof_reminder:{proof.id}')
+
+
+def send_proof_auto_approved(order, job, proof, recipient):
+    body = '\n'.join([
+        '你的實體書打樣已超過確認期限，系統已依約自動確認送印，接下來會進入印製。', '',
+        f'訂單編號：{order.order_no}', f'確認的打樣：第 {proof.version} 版', '',
+        '若有任何問題，請盡快直接回信與我們聯絡。', f'訂單詳情：{_order_link(order)}',
+    ])
+    return _deliver(order, 'proof_auto_approved', recipient, f'【親紫之間】實體書打樣已確認送印 {order.order_no}', body,
+                    key=f'proof_auto_approved:{proof.id}')
+
+
+def send_proof_changes_admin(order, job, proof, buyer_email):
+    """通知管理者：會員要求修改打樣。未設定 REPORT_ADMIN_NOTIFY_EMAIL 時不寄。"""
+    to = _admin_to()
+    if not to:
+        return False
+    body = '\n'.join([f'會員要求修改第 {proof.version} 版打樣：', '', proof.comment or '-', '',
+                      f'訂單編號：{order.order_no}', f'購買者：{buyer_email}', '',
+                      f'後台：{_frontend_url()}/admin/report-shipments'])
+    return _deliver(order, 'proof_changes_admin', to, f'【親紫之間後台】打樣要修改 {order.order_no}', body,
+                    key=f'proof_changes:{proof.id}')
+
+
+def send_proof_approved_admin(order, job, proof, buyer_email):
+    """通知管理者：打樣已確認送印（會員確認、自動確認或代為確認）。未設定 REPORT_ADMIN_NOTIFY_EMAIL 時不寄。"""
+    to = _admin_to()
+    if not to:
+        return False
+    how = {'approved': '會員確認', 'auto_approved': '超過期限自動確認', 'admin_approved': '管理者代為確認'}
+    body = '\n'.join([f'第 {proof.version} 版打樣已確認送印（{how.get(proof.decision, proof.decision)}），可以送印了。', '',
+                      f'訂單編號：{order.order_no}', f'購買者：{buyer_email}',
+                      *([f'說明：{proof.comment}'] if proof.comment else []), '',
+                      f'後台：{_frontend_url()}/admin/report-shipments'])
+    return _deliver(order, 'proof_approved_admin', to, f'【親紫之間後台】打樣已確認送印 {order.order_no}', body,
+                    key=f'proof_approved:{proof.id}')
 
 
 # ── 報告完成 ─────────────────────────────────────────────────────────────────

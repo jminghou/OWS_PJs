@@ -279,6 +279,11 @@ class Config:
     REPORT_JOBS_ENABLED = _bool_env('REPORT_JOBS_ENABLED', False)
     REPORT_JOBS_INTERVAL_SECONDS = int(os.environ.get('REPORT_JOBS_INTERVAL_SECONDS', '300'))
 
+    # 實體書打樣（extensions/report_orders/proofs.py；使用者 2026-10-19 決定）：
+    # 免費修改次數；會員回覆期限（天），到期沒回應自動確認送印
+    REPORT_PROOF_FREE_REVISIONS = int(os.environ.get('REPORT_PROOF_FREE_REVISIONS', '1'))
+    REPORT_PROOF_RESPONSE_DAYS = int(os.environ.get('REPORT_PROOF_RESPONSE_DAYS', '7'))
+
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)
 
