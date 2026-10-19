@@ -52,8 +52,14 @@ const marketingNav = [
   },
 ];
 
-// 訂單相關：收款、交付、出貨、解讀、審核；獨立成一組，不和網站管理混在一起
+// 訂單相關：總覽（全貌與時間軸）＋各階段工作清單（收款、交付、出貨、解讀、審核）
 const orderNav = [
+  {
+    href: '/admin/report-orders',
+    label: '訂單總覽',
+    permission: 'report_orders.read',
+    icon: icon('M4 6h16M4 10h16M4 14h16M4 18h16'),
+  },
   {
     href: '/admin/commerce-intake',
     label: '外部訂單查證',

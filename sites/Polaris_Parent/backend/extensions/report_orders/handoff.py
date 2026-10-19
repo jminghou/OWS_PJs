@@ -66,7 +66,7 @@ def next_attempt_at(f):
     return last + wait
 
 
-def send(f, now=None):
+def send(f, now=None, actor=None):
     """送一次（呼叫前需已上鎖或確定沒有別人在處理）。回傳是否成功；結果一律 commit。"""
     now = now or datetime.utcnow()
     item = db.session.get(OrderItem, f.order_item_id)
@@ -82,10 +82,15 @@ def send(f, now=None):
         f.handoff_status, f.last_error = 'sent', None
         f.sent_at = f.synced_at = now.replace(tzinfo=timezone.utc)
         f.ziwei_status = data['request'].get('status')
+        from . import audit
+        audit.log(order, 'handoff_sent', actor, ref=f.id, attempt=f.handoff_attempts)
         db.session.commit()
         return True
     f.handoff_status, f.last_error = 'failed', (err or '紫微回應格式不正確')[:1000]
     exhausted = f.handoff_attempts == notify.MAX_ATTEMPTS
+    from . import audit
+    audit.log(order, 'handoff_failed', actor, ref=f'{f.id}:{f.handoff_attempts}', attempt=f.handoff_attempts,
+              error=f.last_error[:300])
     db.session.commit()
     if exhausted:
         current_app.logger.error(f'報告交接失敗 {f.handoff_attempts} 次，之後每 12 小時重試 {f.request_no}：{f.last_error}')
@@ -133,7 +138,7 @@ def send_due(now=None, limit=20):
     return ok, failed
 
 
-def send_now(order):
+def send_now(order, actor=None):
     """後台「立即送出」：不看重試間隔。回傳 [(request_no, 是否成功, 錯誤)]；沒有可送的單回空串列。"""
     results = []
     for item in order.order_items:
@@ -141,7 +146,7 @@ def send_now(order):
         if f is None or f.handoff_status not in ('pending', 'failed'):
             db.session.commit()
             continue
-        ok = send(f)
+        ok = send(f, actor=actor)
         results.append((f.request_no, ok, f.last_error))
     return results
 

@@ -41,6 +41,8 @@ class FoundationTests(_Base):
         self.app.config['COMMERCE_FOUNDATION_ENABLED'] = True
         self.configure()
         for model in (CommerceSource, CommerceLine, CommerceEntitlement, CommerceTask, CommerceEvent):
+            if model.__table__ in self.tables:  # 基底已建（例：稽核用的 commerce_events）
+                continue
             model.__table__.create(db.engine)
             self.tables.append(model.__table__)
 

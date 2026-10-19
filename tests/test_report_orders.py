@@ -19,6 +19,7 @@ from packages.commerce.models import (
 from sites.Polaris_Parent.backend.extensions import report_orders
 from sites.Polaris_Parent.backend.extensions.member_account import service as account_service
 from sites.Polaris_Parent.backend.extensions.report_orders import service
+from sites.Polaris_Parent.backend.commerce_models import CommerceEvent
 from sites.Polaris_Parent.backend.models import (MemberEmailVerification, ReportBookDesign, ReportConsultation,
                                                  ReportDesignAsset, ReportDocument, ReportFulfillment, ReportJobRun,
                                                  ReportMailOutbox, ReportPrintJob, ReportPrintProof, Shipment)
@@ -115,7 +116,7 @@ class _Base(unittest.TestCase):
                        PaymentAttempt.__table__, ReportFulfillment.__table__,
                        Shipment.__table__, ReportPrintJob.__table__, ReportPrintProof.__table__, ReportConsultation.__table__, ReportDocument.__table__,
                        ReportBookDesign.__table__, ReportDesignAsset.__table__,
-                       MemberEmailVerification.__table__]
+                       MemberEmailVerification.__table__, CommerceEvent.__table__]
         self.app.config['REPORT_PAYMENT_MODE'] = self.MODE
         for t in self.tables:
             t.create(db.engine)

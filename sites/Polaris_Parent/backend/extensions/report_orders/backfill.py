@@ -204,7 +204,9 @@ def preview(order):
         _check(db.session.get(CommerceSource, order.id) is None and
                CommerceLine.query.filter(CommerceLine.order_item_id.in_(ids)).first() is None and
                CommerceEntitlement.query.filter(CommerceEntitlement.order_item_id.in_(ids)).first() is None and
-               CommerceEvent.query.filter_by(order_id=order.id).first() is None,
+               # 稽核事件（audit.log，event_key 以 audit: 開頭）是營運紀錄，不是交易骨架，不算部分契約
+               CommerceEvent.query.filter(CommerceEvent.order_id == order.id,
+                                          ~CommerceEvent.event_key.like('audit:%')).first() is None,
                'partial_contract', '已有部分交易骨架紀錄，請先釐清，不能疊加回填')
         lines = [_line(i, order.user_id, evidence) for i in items]
         _check(sum(l['line_total'] for l in lines) == order.amount, 'amount_mismatch', '品項總額與訂單總額不一致')

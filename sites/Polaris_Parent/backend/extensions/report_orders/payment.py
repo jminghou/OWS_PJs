@@ -131,6 +131,10 @@ def report_transfer(order, data, today=None):
     attempt.transferred_on = transferred_on
     attempt.payer_note = member_note or None
     attempt.review_note = None
+    db.session.flush()
+    from . import audit
+    audit.log(order, 'transfer_reported', order.user_id, ref=f'{attempt.id}:{last5}:{transferred_on}:{amount}',
+              amount=amount, transferred_on=transferred_on.isoformat())
     db.session.commit()
     return attempt
 
@@ -210,6 +214,8 @@ def reject_transfer(order, admin_id, reason):
     attempt.status = 'failed'
     attempt.confirmed_by = admin_id
     attempt.review_note = reason[:_NOTE_MAX]
+    from . import audit
+    audit.log(order, 'transfer_rejected', admin_id, ref=attempt.id, reason=reason[:500])
     db.session.commit()
     return attempt
 
@@ -236,6 +242,8 @@ def expire_overdue(now=None):
                 f.handoff_status = 'cancelled'
         from . import physical
         physical.on_order_cancelled(order, by='system', reason='逾期未付款')
+        from . import audit
+        audit.log(order, 'order_expired', None, ref='expired')
         expired.append(order)
     if expired:
         db.session.commit()

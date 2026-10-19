@@ -19,6 +19,8 @@ class IntakeTests(_Base):
     def setUp(self):
         super().setUp()
         for model in (CommerceChannel, CommerceExternalReceipt, CommerceIntakeEvent, CommerceProductMapping, CommerceReceiptBinding):
+            if model.__table__ in self.tables:  # 基底已建（例：稽核用的 commerce_events）
+                continue
             model.__table__.create(db.engine)
             self.tables.append(model.__table__)
         self.app.config['COMMERCE_INTAKE_ENABLED'] = True

@@ -55,6 +55,10 @@ def upload_report_pdf(report_item, admin_id, filename, data: bytes):
         f.deliverable_ready_at = datetime.utcnow()
     if f is not None:
         commerce.complete(report_item, 'report', 'report_fulfillment', f.id, admin_id)
+    db.session.flush()
+    from . import audit
+    audit.log(report_item.order, 'report_uploaded', admin_id, ref=doc.id, filename=doc.filename,
+              correction=previous is not None)
     db.session.commit()
     return doc, previous is None
 

@@ -101,6 +101,9 @@ def upload(job, admin_id, filename, data: bytes, note=None):
                              created_at=now, due_at=now + timedelta(days=response_days()))
     db.session.add(proof)
     job.status = 'proof_ready'
+    db.session.flush()
+    from . import audit
+    audit.log(item.order, 'proof_uploaded', admin_id, ref=proof.id, version=version)
     db.session.commit()
     return proof
 
@@ -112,6 +115,8 @@ def grant_revision(job, admin_id):
         db.session.rollback()
         raise OrderError('只有打樣階段可以增加修改次數', 409, 'invalid_status')
     job.extra_revisions = (job.extra_revisions or 0) + 1
+    from . import audit
+    audit.log(db.session.get(OrderItem, job.order_item_id).order, 'proof_revision_granted', admin_id)
     db.session.commit()
     current_app.logger.info(f'print job {job.id} extra revision granted by admin {admin_id}')
     return job
@@ -156,6 +161,9 @@ def _decide(job, proof_id, decision, comment, actor_id):
         job.status = 'changes_requested'
     else:
         job.status, job.approved_at, job.approved_proof_id = 'approved', now, proof.id
+    from . import audit
+    audit.log(db.session.get(OrderItem, job.order_item_id).order, f'proof_{decision}', actor_id, ref=proof.id,
+              version=proof.version, comment=(comment or '')[:500] or None)
     db.session.commit()
     return proof
 

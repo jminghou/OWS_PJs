@@ -302,6 +302,8 @@ def confirm(design):
     job.customized_at = now
     job.status = 'awaiting_proof'
     commerce.start(item, 'book', 'print_job', job.id, design.user_id)
+    from . import audit
+    audit.log(item.order, 'design_confirmed', design.user_id, ref=job.id)
     db.session.commit()
     return job
 

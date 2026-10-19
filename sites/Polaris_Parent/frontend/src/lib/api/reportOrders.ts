@@ -20,6 +20,9 @@
  *   POST /api/v1/admin/report-orders/:orderNo/report-pdf/link        （report_orders.fulfill）
  *   POST /api/v1/admin/report-orders/:orderNo/handoff                （report_orders.fulfill，立即送到紫微建工作單）
  *   POST /api/v1/report-orders/:orderNo/proofs/:proofId/link         （會員，打樣 PDF 短效網址）
+ *   GET  /api/v1/admin/report-orders/overview                        （report_orders.read，訂單總覽）
+ *   GET  /api/v1/admin/report-orders/:orderNo/detail                 （report_orders.read，訂單詳細＋時間軸）
+ *   POST /api/v1/admin/report-orders/:orderNo/notes                  （report_orders.read，內部備註）
  *   POST /api/v1/report-orders/:orderNo/proof-decision               （會員，確認送印／提出修改）
  *   POST /api/v1/admin/report-print-jobs/:id/proofs                  （report_orders.fulfill，上傳打樣）
  *   POST /api/v1/admin/report-print-jobs/:id/proofs/:proofId/link    （report_orders.fulfill）
@@ -123,6 +126,59 @@ export type PrintJobStatus =
   | 'approved' | 'printing' | 'shipped' | 'delivered' | 'cancelled';
 
 export type ConsultStatus = 'awaiting_payment' | 'to_schedule' | 'scheduled' | 'completed' | 'cancelled';
+
+export interface OrderTodo {
+  key: string;
+  label: string;
+  /** admin＝要你處理；member＝等會員 */
+  waiting_on: 'admin' | 'member';
+  /** 處理這件事的後台頁面 */
+  href: string | null;
+}
+
+export interface AdminOrderRow {
+  order_no: string;
+  status: 'pending' | 'paid' | 'cancelled' | 'refunded';
+  status_label: string;
+  amount: number;
+  created_at: string | null;
+  paid_at: string | null;
+  buyer_email: string | null;
+  kind: 'purchase' | 'addon' | 'service' | null;
+  subject_name: string | null;
+  call_name: string | null;
+  parent_order_no: string | null;
+  lines: string[];
+  physical_status: string | null;
+  consult_status: string | null;
+  report_ready: boolean;
+  todos: OrderTodo[];
+}
+
+export interface TimelineEntry {
+  at: string | null;
+  kind: 'event' | 'mail';
+  type: string;
+  text: string;
+  /** member／admin／system */
+  actor: 'member' | 'admin' | 'system';
+  actor_name: string | null;
+  recipient?: string;
+  status?: 'pending' | 'sent' | 'failed';
+}
+
+export interface AdminOrderDetail extends AdminOrderRow {
+  summary: ReportOrderSummary;
+  handoff: HandoffView | null;
+  documents: { filename: string; bytes: number; is_current: boolean; uploaded_at: string | null }[];
+  payments: {
+    attempt_no: string; provider: string; status: string; amount: number | null; manual_reference: string | null;
+    transferred_on: string | null; paid_at: string | null; review_note: string | null;
+  }[];
+  print_job_id: number | null;
+  related: { relation: string; order_no: string; status_label: string }[];
+  timeline: TimelineEntry[];
+}
 
 export type ProofDecision = 'approved' | 'changes_requested' | 'auto_approved' | 'admin_approved' | 'superseded';
 
@@ -640,6 +696,17 @@ export const reportOrdersApi = {
 
   adminSendHandoff: (orderNo: string) =>
     post<{ success: boolean; handoff: HandoffView }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/handoff`, {}),
+
+  adminOrdersOverview: (params: { q?: string; status?: string; needs?: 'all' | 'admin' | 'member' }) =>
+    request<{ success: boolean; orders: AdminOrderRow[]; counts: { admin: number; member: number } }>(
+      '/admin/report-orders/overview', { params: Object.fromEntries(Object.entries(params).filter(([, v]) => v)) as Record<string, string> }
+    ),
+
+  adminOrderDetail: (orderNo: string) =>
+    request<{ success: boolean; order: AdminOrderDetail }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/detail`),
+
+  adminOrderNote: (orderNo: string, note: string) =>
+    post<{ success: boolean; timeline: TimelineEntry[] }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/notes`, { note }),
 
   adminUploadProof: (jobId: number, file: File, note: string) => {
     const body = new FormData();

@@ -457,7 +457,7 @@ def _active_items_left(order):
     return n
 
 
-def cancel_physical(order, by, reason=None):
+def cancel_physical(order, by, reason=None, actor_id=None):
     """送印前取消實體書。
 
     - 未付款的加購訂單：整張取消（含同一張的專人解讀）。
@@ -480,9 +480,11 @@ def cancel_physical(order, by, reason=None):
         raise OrderError('尚未付款的訂單不需要取消，超過匯款期限會自動取消', 409, 'not_paid')
 
     reason = (reason or '').strip()[:500] or None
+    from . import audit
     if order.status != 'paid':
         on_order_cancelled(order, by, reason)
         order.status = 'cancelled'
+        audit.log(order, 'physical_cancelled', actor_id, ref=job.id, by=by, reason=reason)
         db.session.commit()
         return job
 
@@ -495,6 +497,7 @@ def cancel_physical(order, by, reason=None):
         s.status = 'cancelled'
     if item.kind == 'addon' and _active_items_left(order) == 0:
         order.status = 'cancelled'
+    audit.log(order, 'physical_cancelled', actor_id, ref=job.id, by=by, reason=reason, refund_due=job.refund_due)
     db.session.commit()
     return job
 
@@ -513,6 +516,8 @@ def mark_printing(job, admin_id):
     s = Shipment.query.filter_by(order_item_id=job.order_item_id).first()
     if s is not None:
         s.status, s.print_sent_at, s.updated_by = 'printing', datetime.utcnow(), admin_id
+    from . import audit
+    audit.log(item.order, 'print_started', admin_id, ref=job.id)
     db.session.commit()
 
 
@@ -533,6 +538,8 @@ def mark_shipped(job, admin_id, carrier, tracking_no, note=None):
         s.carrier, s.tracking_no = carrier[:100], tracking_no[:100]
         if note:
             s.note = note.strip()[:500]
+    from . import audit
+    audit.log(item.order, 'print_shipped', admin_id, ref=job.id, carrier=carrier[:100], tracking_no=tracking_no[:100])
     db.session.commit()
 
 
@@ -548,6 +555,8 @@ def mark_delivered(job, admin_id):
     s = Shipment.query.filter_by(order_item_id=job.order_item_id).first()
     if s is not None:
         s.status, s.delivered_at, s.updated_by = 'delivered', datetime.utcnow(), admin_id
+    from . import audit
+    audit.log(item.order, 'print_delivered', admin_id, ref=job.id)
     db.session.commit()
 
 
@@ -571,6 +580,9 @@ def _record_refund(row, amount, note):
 def record_refund(job, admin_id, amount, note=None):
     _record_refund(job, amount, note)
     job.refunded_by = admin_id
+    from . import audit
+    audit.log(db.session.get(OrderItem, job.order_item_id).order, 'refund_recorded', admin_id, ref=f'book:{job.id}',
+              amount=amount, note=job.refund_note, item='book')
     db.session.commit()
 
 
@@ -601,6 +613,9 @@ def schedule_consult(consult, admin_id, scheduled_at, note=None):
     commerce.start(item, 'consult', 'consultation', consult.id)
     if note is not None:
         consult.admin_note = note.strip()[:1000] or None
+    from . import audit
+    from .notify import _fmt_time
+    audit.log(item.order, 'consult_scheduled', admin_id, scheduled_at=f'{_fmt_time(when)}（台灣時間）')
     db.session.commit()
 
 
@@ -639,6 +654,8 @@ def set_consult_preferences(consult, raw, today=None):
         raise OrderError(f'請至少選一個時段（明天起 {CONSULT_PREF_DAYS} 天內）', 400, 'invalid')
     consult.preferences = {'slots': slots[:CONSULT_MAX_SLOTS], 'note': str(raw.get('note') or '').strip()[:500]}
     consult.preferences_at = datetime.utcnow()
+    from . import audit
+    audit.log(item.order, 'consult_preferences', item.order.user_id)
     db.session.commit()
 
 
@@ -651,6 +668,8 @@ def complete_consult(consult, admin_id):
         raise OrderError('安排時間後才能標記完成', 409, 'invalid_status')
     consult.status, consult.completed_at, consult.updated_by = 'completed', datetime.utcnow(), admin_id
     commerce.complete(item, 'consult', 'consultation', consult.id, admin_id)
+    from . import audit
+    audit.log(item.order, 'consult_completed', admin_id, ref=consult.id)
     db.session.commit()
 
 
@@ -678,12 +697,17 @@ def cancel_consult(consult, admin_id, reason):
         order.status = 'cancelled'
     elif item.kind == 'service' and report_item(order) is None and _active_items_left(order) == 0:
         order.status = 'cancelled'
+    from . import audit
+    audit.log(order, 'consult_cancelled', admin_id, ref=consult.id, reason=reason[:500])
     db.session.commit()
 
 
 def record_consult_refund(consult, admin_id, amount, note=None):
     _record_refund(consult, amount, note)
     consult.updated_by = admin_id
+    from . import audit
+    audit.log(db.session.get(OrderItem, consult.order_item_id).order, 'refund_recorded', admin_id,
+              ref=f'consult:{consult.id}', amount=amount, note=consult.refund_note, item='consult')
     db.session.commit()
 
 

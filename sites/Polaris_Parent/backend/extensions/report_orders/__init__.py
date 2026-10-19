@@ -45,7 +45,7 @@ from packages.commerce.models import Order, OrderItem
 from sites.Polaris_Parent.backend.models import ReportConsultation, ReportFulfillment, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import delivery, design, handoff, jobs, notify, payment, physical, private_storage, proofs, service
+from . import audit, delivery, design, handoff, jobs, notify, overview, payment, physical, private_storage, proofs, service
 from .validation import validate_order, validate_shipping
 
 try:
@@ -452,6 +452,46 @@ def admin_resend_notification(note_id):
     return jsonify({'success': True, 'notification': view})
 
 
+@bp.route('/admin/report-orders/overview', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.read')
+def admin_orders_overview():
+    """訂單總覽：q＝訂單編號／項目編號／會員 Email／主角姓名；status＝all／pending／paid／cancelled；
+    needs＝all／admin（要你處理）／member（等會員）。"""
+    _expire_overdue()
+    rows, counts = overview.search(request.args.get('q'), request.args.get('status', 'all'),
+                                   request.args.get('needs', 'all'))
+    return jsonify({'success': True, 'orders': rows, 'counts': counts})
+
+
+@bp.route('/admin/report-orders/<order_no>/detail', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.read')
+def admin_order_detail(order_no):
+    """一張訂單的全貌：付款紀錄、報告檔、實體書、專人解讀、紫微交接、相關訂單、時間軸。"""
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    return jsonify({'success': True, 'order': overview.detail(order)})
+
+
+@bp.route('/admin/report-orders/<order_no>/notes', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.read')
+def admin_order_note(order_no):
+    """在訂單時間軸加內部備註（會員看不到）。"""
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    try:
+        audit.add_note(order, int(get_jwt_identity()), (request.get_json(silent=True) or {}).get('note'))
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    return jsonify({'success': True, 'timeline': audit.timeline(order)})
+
+
 @bp.route('/admin/report-orders', methods=['GET'])
 @jwt_required()
 @require_permission('report_orders.read')
@@ -681,7 +721,8 @@ def cancel_physical(order_no):
     if order is None or not order.order_items:
         return _error('找不到這筆訂單', 404)
     try:
-        job = physical.cancel_physical(order, 'member', (request.get_json(silent=True) or {}).get('reason'))
+        job = physical.cancel_physical(order, 'member', (request.get_json(silent=True) or {}).get('reason'),
+                                       actor_id=user.id)
     except service.OrderError as exc:
         db.session.rollback()
         return _error(exc.message, exc.status, code=exc.code)
@@ -804,7 +845,7 @@ def admin_print_job_action(job_id, action):
             reason = (data.get('reason') or '').strip()
             if not reason:
                 return _error('請填寫取消原因（會寄給會員）')
-            physical.cancel_physical(order, 'admin', reason)
+            physical.cancel_physical(order, 'admin', reason, actor_id=admin_id)
             if email:
                 notify.send_physical_cancelled(order, job, email, by_member=False)
         elif action == 'refund':
@@ -1148,7 +1189,7 @@ def admin_send_handoff(order_no):
     order = _admin_order(order_no)
     if order is None:
         return _error('找不到這筆報告訂單', 404)
-    results = handoff.send_now(order)
+    results = handoff.send_now(order, actor=int(get_jwt_identity()))
     if not results:
         return _error('這筆訂單沒有待送出的工作單（已送出或尚未付款）', 409, code='nothing_to_send')
     item = _report_item_of(order)
