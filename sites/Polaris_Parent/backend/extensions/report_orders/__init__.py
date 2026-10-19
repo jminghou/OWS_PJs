@@ -45,7 +45,7 @@ from packages.commerce.models import Order, OrderItem
 from sites.Polaris_Parent.backend.models import ReportConsultation, ReportFulfillment, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import delivery, design, jobs, notify, payment, physical, private_storage, service
+from . import delivery, design, handoff, jobs, notify, payment, physical, private_storage, service
 from .validation import validate_order, validate_shipping
 
 try:
@@ -1035,8 +1035,29 @@ def admin_list_deliveries():
             'document': delivery.document_view(doc),
             # 製作報告用：到紫微系統（PolarisUI）找這張盤的依據
             'chart': _delivery_chart_view(c, fulfillment),
+            'handoff': handoff.view(fulfillment),
         })
     return jsonify({'success': True, 'deliveries': rows, 'counts': counts})
+
+
+@bp.route('/admin/report-orders/<order_no>/handoff', methods=['POST'])
+@_limit('20 per minute')
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_send_handoff(order_no):
+    """立即把這筆訂單的報告送到紫微建立工作單（不等排程、不看重試間隔）。"""
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到這筆報告訂單', 404)
+    results = handoff.send_now(order)
+    if not results:
+        return _error('這筆訂單沒有待送出的工作單（已送出或尚未付款）', 409, code='nothing_to_send')
+    item = _report_item_of(order)
+    f = ReportFulfillment.query.filter_by(order_item_id=item.id).first() if item is not None else None
+    failed = [err for _no, ok, err in results if not ok]
+    if failed:
+        return _error(f'送出失敗：{failed[0] or "未知錯誤"}', 502, code='handoff_failed', handoff=handoff.view(f))
+    return jsonify({'success': True, 'handoff': handoff.view(f)})
 
 
 @bp.route('/admin/report-orders/<order_no>/report-pdf', methods=['POST'])

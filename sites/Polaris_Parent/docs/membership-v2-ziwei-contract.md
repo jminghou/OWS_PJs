@@ -77,6 +77,13 @@
 
 ### 4.1 新表 account.report_requests（製作工作單）
 
+> **2026-10-19 實作狀態（階段 1 ③，範圍縮小版）**：已做「付款後自動建工作單」——紫微 migration `0026_report_requests`、
+> `PolarisUI/backend/routes/report_requests.py`（`POST/GET /public/report-requests`、編輯用 `/report-requests`）、
+> PolarisUI「訂單工作單」頁（`/orders`）；OWS 由背景排程 `handoff_reports`（`report_orders/handoff.py`）送出並重試。
+> 與下表的差異：`chart_id` 不設外鍵、改存 `subject` 快照（會員可刪自己的命盤，工作單要留作訂單紀錄）；
+> `plan_name`／`edition` 改為 `product_code`＋`variant`；`pdf_artifact_id`／`print_artifact_id` 與 §4.2、§4.3 的
+> download-url／cancel、§5 第 5–6 步的狀態同步與 PDF 回傳都**還沒做**——編輯審稿與排版仍是人工，PDF 回傳官網是下一階段。
+
 | 欄位 | 說明 |
 | --- | --- |
 | `id` | PK |

@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { ExternalLink, FileText, Upload } from 'lucide-react';
-import { reportOrdersApi, type AdminDelivery, type DeliveryChart } from '@/lib/api/reportOrders';
+import { reportOrdersApi, type AdminDelivery, type DeliveryChart, type HandoffView } from '@/lib/api/reportOrders';
 
 type Filter = 'pending' | 'delivered' | 'all';
 const FILTERS: { value: Filter; label: string }[] = [
@@ -51,6 +51,30 @@ function ChartInfo({ chart }: { chart: DeliveryChart }) {
   );
 }
 
+const HANDOFF_CLS: Record<string, string> = {
+  sent: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
+  pending: 'bg-muted text-muted-foreground',
+  failed: 'bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-200',
+};
+
+/** 紫微工作單：付款後由背景排程自動建立；失敗會自動重試，也可以按「立即送出」 */
+function HandoffInfo({ h }: { h: HandoffView | null }) {
+  if (!h || h.status === 'not_ready' || h.status === 'cancelled') return null;
+  return (
+    <p className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+      <span>紫微工作單</span>
+      <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${HANDOFF_CLS[h.status] ?? 'bg-muted'}`}>{h.status_label}</span>
+      {h.status === 'sent' && <span>{formatDate(h.sent_at)} 建立</span>}
+      {h.status === 'pending' && <span>幾分鐘內會自動送出</span>}
+      {h.status === 'failed' && (
+        <span className="text-destructive">
+          已試 {h.attempts} 次：{h.error ?? '未知錯誤'}{h.next_attempt_at ? `・下次自動重試 ${formatDate(h.next_attempt_at)}` : ''}
+        </span>
+      )}
+    </p>
+  );
+}
+
 function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => void; onError: (t: string) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -70,6 +94,18 @@ function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => 
     } finally {
       setBusy(false);
       if (input.current) input.current.value = '';
+    }
+  };
+
+  const sendHandoff = async () => {
+    setBusy(true);
+    try {
+      await reportOrdersApi.adminSendHandoff(d.order_no);
+      onDone(`${d.order_no} 已在紫微系統建立工作單`);
+    } catch (e: any) {
+      onError(e.message || '送出失敗');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -100,6 +136,7 @@ function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => 
           <p>{d.name}・主角 {d.subject_name}（{d.call_name}）</p>
           <p className="text-muted-foreground">購買者 {d.buyer_email ?? '—'}・付款 {formatDate(d.paid_at)}</p>
           <ChartInfo chart={d.chart} />
+          <HandoffInfo h={d.handoff} />
           {d.document && (
             <p className="text-muted-foreground">
               <FileText className="mr-1 inline h-3.5 w-3.5" />
@@ -112,6 +149,11 @@ function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => 
             <a href={d.chart.workbench_url} target="_blank" rel="noopener noreferrer" className={`${btnGhost} w-full`}>
               <ExternalLink className="h-4 w-4" /> 在紫微系統開啟
             </a>
+          )}
+          {(d.handoff?.status === 'pending' || d.handoff?.status === 'failed') && (
+            <button type="button" className={`${btnGhost} w-full`} disabled={busy} onClick={sendHandoff}>
+              立即送到紫微
+            </button>
           )}
           <input ref={input} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
           <button type="button" className={`${btnPrimary} w-full`} disabled={busy} onClick={() => input.current?.click()}>

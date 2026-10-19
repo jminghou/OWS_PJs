@@ -18,6 +18,7 @@
  *   GET  /api/v1/admin/report-deliveries                             （report_orders.fulfill）
  *   POST /api/v1/admin/report-orders/:orderNo/report-pdf             （report_orders.fulfill，上傳報告 PDF）
  *   POST /api/v1/admin/report-orders/:orderNo/report-pdf/link        （report_orders.fulfill）
+ *   POST /api/v1/admin/report-orders/:orderNo/handoff                （report_orders.fulfill，立即送到紫微建工作單）
  *   POST /api/v1/report-orders/:orderNo/design-draft                 （會員，付款前的設計草稿）
  *   GET  /api/v1/report-orders/:orderNo/design                       （會員，付款後那本實體書的設計）
  *   GET|PUT /api/v1/report-designs/:id                               （會員，讀取／儲存設計）
@@ -248,6 +249,21 @@ export interface AdminDelivery {
   paid_at: string | null;
   document: ReportDocumentView | null;
   chart: DeliveryChart;
+  /** 交給紫微建立工作單的狀態（付款後由背景排程送出） */
+  handoff: HandoffView | null;
+}
+
+export type HandoffStatus = 'not_ready' | 'pending' | 'sent' | 'failed' | 'cancelled';
+
+export interface HandoffView {
+  status: HandoffStatus;
+  status_label: string;
+  attempts: number;
+  error: string | null;
+  sent_at: string | null;
+  /** 紫微工作單狀態（queued／in_progress／needs_info／completed…），送出當下的快照 */
+  ziwei_status: string | null;
+  next_attempt_at: string | null;
 }
 
 /** 製作報告用的命盤資訊：到紫微系統（PolarisUI）找這張盤的依據 */
@@ -582,6 +598,9 @@ export const reportOrdersApi = {
     request<{ success: boolean; deliveries: AdminDelivery[]; counts: Record<string, number> }>(
       '/admin/report-deliveries', { params: { status } }
     ),
+
+  adminSendHandoff: (orderNo: string) =>
+    post<{ success: boolean; handoff: HandoffView }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/handoff`, {}),
 
   adminUploadReportPdf: (orderNo: string, file: File) => {
     const body = new FormData();

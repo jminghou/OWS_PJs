@@ -34,6 +34,7 @@ EVENT_LABELS = {
     'physical_shipped': '實體書出貨', 'refund_recorded': '退款完成',
     'consult_preferences': '解讀時段（後台）', 'consult_scheduled': '解讀時間確認',
     'consult_cancelled': '解讀取消', 'consult_refunded': '解讀退款', 'mail_failed_admin': '寄信失敗警示（後台）',
+    'handoff_failed_admin': '報告交接失敗（後台）',
 }
 
 POLICY_NOTE = '本報告依你提供的出生資料個別製作，屬客製化商品，不適用七日解除權；付款後不受理取消或退款。'

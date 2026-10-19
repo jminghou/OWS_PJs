@@ -1,7 +1,7 @@
 """
 客製報告的背景排程（階段 1 ①，2026-10-17）。
 
-工作清單見 JOBS：逾期取消、匯款期限提醒、寄信重試、清除放棄的設計草稿、清除舊信件內文。
+工作清單見 JOBS：逾期取消、匯款期限提醒、寄信重試、報告交接紫微、清除放棄的設計草稿、清除舊信件內文。
 每個工作有自己的週期；是否到期看 shop.report_job_runs 的上次開始時間，所以多跑幾次也不會多做。
 
 執行方式（兩種擇一或並用，結果相同）：
@@ -64,6 +64,12 @@ def _retry_mail(now):
     return {'sent': sent, 'failed': failed}
 
 
+def _handoff_reports(now):
+    from . import handoff
+    sent, failed = handoff.send_due(now)
+    return {'sent': sent, 'failed': failed}
+
+
 def _cleanup_designs(now):
     from . import design
     return {'removed': design.cleanup(now)}
@@ -79,6 +85,7 @@ JOBS = [
     ('expire_overdue', timedelta(minutes=10), '取消逾期未回報轉帳的訂單', _expire_overdue),
     ('payment_reminders', timedelta(minutes=30), '匯款期限前 24 小時提醒', _payment_reminders),
     ('retry_mail', timedelta(0), '重寄寄失敗的通知信', _retry_mail),
+    ('handoff_reports', timedelta(0), '已付款的報告送到紫微建立工作單', _handoff_reports),
     ('cleanup_designs', timedelta(days=1), '刪除放棄超過 30 天的設計草稿與照片', _cleanup_designs),
     ('purge_mail_bodies', timedelta(days=1), '清除 30 天前通知信的內文', _purge_mail_bodies),
 ]

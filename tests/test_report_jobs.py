@@ -19,7 +19,7 @@ class _JobsBase(_Base):
         self._saved_cfg = {k: self.app.config.get(k) for k in BANK}
         self.app.config.update(BANK)
         self.admin = self.make_user('admin@example.test', verified=True)
-        perms = {'report_orders.read', 'report_orders.fulfill'}
+        perms = {'report_orders.read', 'report_orders.fulfill', 'report_orders.confirm_payment'}
         p = patch.object(RBACService, 'get_user_permissions',
                          side_effect=lambda uid: perms if int(uid) == self.admin.id else set())
         p.start()
@@ -172,10 +172,12 @@ class JobRunnerTests(_JobsBase):
         now = datetime.utcnow()
         first = jobs.run_due(now)
         self.assertEqual(set(first), {name for name, *_ in jobs.JOBS})
+        every_tick = {name for name, every, *_ in jobs.JOBS if every == timedelta(0)}
+        self.assertEqual(every_tick, {'retry_mail', 'handoff_reports'})
         again = jobs.run_due(now + timedelta(minutes=1))
-        self.assertEqual(set(again), {'retry_mail'})  # 週期 0：每輪都跑
+        self.assertEqual(set(again), every_tick)  # 週期 0：每輪都跑
         later = jobs.run_due(now + timedelta(minutes=11))
-        self.assertEqual(set(later), {'retry_mail', 'expire_overdue'})
+        self.assertEqual(set(later), every_tick | {'expire_overdue'})
         self.assertEqual(set(jobs.run_due(now + timedelta(minutes=12), force=True)), set(first))
         run = db.session.get(ReportJobRun, 'cleanup_designs')
         self.assertEqual((run.last_status, run.last_result), ('ok', '{"removed": 0}'))
