@@ -21,6 +21,7 @@ from core.backend_engine.factory import db
 from packages.commerce.models import Order, OrderCheckout, PaymentAttempt
 from sites.Polaris_Parent.backend.models import ReportFulfillment
 
+from . import money
 from .service import OrderError
 
 _LAST5_RE = re.compile(r'^\d{5}$')
@@ -180,7 +181,7 @@ def confirm_manual_payment(order, admin_id, received_amount, last5=None, note=No
     commerce.lock_order(order)
     _ensure_open_manual_order(order)
     if type(received_amount) is not int or received_amount != order.amount:
-        raise OrderError(f'實收金額必須等於訂單金額 NT${order.amount:,}；金額不符請先與會員聯絡', 400,
+        raise OrderError(f'實收金額必須等於訂單金額 {money.fmt(order.amount, order.currency)}；金額不符請先與會員聯絡', 400,
                          'amount_mismatch')
     last5 = (str(last5).strip() if last5 else '') or None
     if last5 and not _LAST5_RE.match(last5):

@@ -113,9 +113,12 @@ def import_receipt(data, actor):
     user = db.session.get(User, member)
     if user is None or not user.is_active:
         fail('會員不存在或已停用')
+    # 金額為該幣別的最小單位整數（台幣＝元、美金＝分；見 money.py）
     amount = integer(data, 'amount')
-    if data.get('currency') != 'TWD':
-        fail('目前僅支援 TWD 整數金額', 'currency_unsupported')
+    currency = data.get('currency')
+    from . import money
+    if not money.supported(currency):
+        fail('不支援的幣別', 'currency_unsupported')
     lines = data.get('lines')
     if not isinstance(lines, list) or not 1 <= len(lines) <= 100:
         fail('必須提供 1 至 100 個成交品項')
@@ -130,7 +133,7 @@ def import_receipt(data, actor):
     # Sort for stable retry identity; external SKUs deliberately do not map to internal rights yet.
     clean.sort(key=lambda item: (item['external_sku'], item['quantity'], item['unit_amount']))
     snapshot = dict(channel_id=channel.id, external_order_id=external_id, member_id=member,
-                    amount=amount, currency='TWD', lines=clean)
+                    amount=amount, currency=currency, lines=clean)
     digest = hashlib.sha256(json.dumps(snapshot, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     existing = CommerceExternalReceipt.query.filter_by(channel_id=channel.id, external_order_id=external_id).first()
     if existing:

@@ -138,6 +138,7 @@ export interface OrderTodo {
 
 export interface AdminOrderRow {
   order_no: string;
+  currency: string;
   status: 'pending' | 'paid' | 'cancelled' | 'refunded';
   status_label: string;
   amount: number;
@@ -418,6 +419,7 @@ export interface CommerceSummary {
 }
 
 export interface AdminPrintJob extends PhysicalView {
+  currency: string;
   order_no: string;
   order_status: string;
   amount: number;
@@ -447,6 +449,7 @@ export interface AdminPrintJob extends PhysicalView {
 export type PrintJobAction = 'printing' | 'shipped' | 'delivered' | 'cancel' | 'refund' | 'grant_revision' | 'approve_proof';
 
 export interface AdminConsultation extends ConsultView {
+  currency: string;
   order_no: string;
   order_status: string;
   paid_at: string | null;

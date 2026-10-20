@@ -45,7 +45,7 @@ from packages.commerce.models import Order, OrderItem
 from sites.Polaris_Parent.backend.models import ReportConsultation, ReportFulfillment, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import audit, delivery, design, handoff, jobs, notify, overview, payment, physical, private_storage, proofs, service
+from . import audit, delivery, design, handoff, jobs, money, notify, overview, payment, physical, private_storage, proofs, service
 from .validation import validate_order, validate_shipping
 
 try:
@@ -764,6 +764,7 @@ def _print_job_row(job):
         'order_no': order.order_no,
         'order_status': order.status,
         'amount': order.amount,
+        'currency': order.currency,
         'paid_at': order.paid_at.isoformat() if order.paid_at else None,
         'created_at': order.created_at.isoformat() if order.created_at else None,
         'buyer_email': _buyer_email(order),
@@ -967,6 +968,7 @@ def _consult_row(consult):
     row.update({
         'order_no': order.order_no,
         'order_status': order.status,
+        'currency': order.currency,
         'paid_at': order.paid_at.isoformat() if order.paid_at else None,
         'created_at': order.created_at.isoformat() if order.created_at else None,
         'buyer_email': _buyer_email(order),
@@ -1061,7 +1063,7 @@ def dev_mark_paid_command(order_no):
     db.session.add(attempt)
     payment.mark_paid(order, attempt)
     db.session.commit()
-    click.echo(f'{order_no} 已標成已付款（NT${order.amount:,}）')
+    click.echo(f'{order_no} 已標成已付款（{money.fmt(order.amount, order.currency)}）')
 
 
 # ── 報告交付：上傳報告 PDF、會員下載 ─────────────────────────────────────────
@@ -1447,7 +1449,7 @@ def dev_seed_demo_command():
     front = os.environ.get('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
     click.echo('')
     click.echo(f'測試會員：{DEMO_EMAIL}　密碼：{DEMO_PASSWORD}')
-    click.echo(f'已付款的數位版訂單：{order.order_no}（NT${price:,}）')
+    click.echo(f'已付款的數位版訂單：{order.order_no}（{money.fmt(price, order.currency)}）')
     click.echo(f'會員訂單頁：{front}/report/orders/{order.order_no}')
     click.echo(f'會員中心：{front}/account?tab=reports')
 

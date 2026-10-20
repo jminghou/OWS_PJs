@@ -3,8 +3,9 @@
  * 只用 /report-orders 清單已有的欄位，不另外打 API。
  */
 import type { ReportOrderSummary } from '@/lib/api';
+import { formatMoney } from '@/lib/money';
 
-export const nt = (n: number) => `NT$${n.toLocaleString('zh-TW')}`;
+export const nt = (n: number, currency?: string) => formatMoney(n, currency);
 
 const toDate = (iso: string) => new Date(iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`);
 export const fmtDate = (iso: string | null) => (iso ? toDate(iso).toLocaleDateString('zh-TW') : '');
@@ -66,7 +67,7 @@ export function buildTodos(orders: ReportOrderSummary[], now = Date.now()): Todo
         ? { key: `${o.order_no}:pay`, tone: 'info', label: '匯款確認中', title, detail: '已收到你的匯款回報，確認後會寄信通知你。', href: orderHref(o), cta: '查看訂單' }
         : {
           key: `${o.order_no}:pay`, tone: 'action', label: '待付款', title,
-          detail: `${nt(o.amount)}${o.payment.deadline ? `・請於 ${fmtDate(o.payment.deadline)} 前完成` : ''}`,
+          detail: `${nt(o.amount, o.currency)}${o.payment.deadline ? `・請於 ${fmtDate(o.payment.deadline)} 前完成` : ''}`,
           href: orderHref(o), cta: '前往付款',
         });
       continue;

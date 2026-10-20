@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { Copy, Truck } from 'lucide-react';
+import { formatMoney } from '@/lib/money';
 import { privateFileUrl, reportOrdersApi, type AdminPrintJob, type DesignView, type PrintJobAction } from '@/lib/api/reportOrders';
 
 type Filter = 'all' | 'awaiting_payment' | 'awaiting_customization' | 'awaiting_proof' | 'proof_ready' | 'changes_requested'
@@ -38,7 +39,7 @@ const btnDanger = `${btn} text-destructive hover:bg-destructive/10`;
 const inputCls =
   'w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500';
 
-const nt = (n: number | null | undefined) => (n == null ? '—' : `NT$${n.toLocaleString('zh-TW')}`);
+const nt = (n: number | null | undefined, currency?: string) => formatMoney(n, currency);
 const formatDate = (v: string | null | undefined) =>
   v ? new Date(`${v.replace(/Z$|\+00:00$/, '')}Z`).toLocaleString('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 
@@ -286,7 +287,7 @@ function Actions({ job, onDone, onError }: {
 
       {refundPending && (
         <div className="space-y-2 rounded-md bg-amber-50 p-3 text-sm dark:bg-amber-900/30">
-          <p className="font-medium text-amber-900 dark:text-amber-100">待退款 {nt(job.refund_due)}</p>
+          <p className="font-medium text-amber-900 dark:text-amber-100">待退款 {nt(job.refund_due, job.currency)}</p>
           <input className={inputCls} inputMode="numeric" value={refund} onChange={(e) => setRefund(e.target.value.replace(/\D/g, ''))} placeholder="實際退款金額" />
           <input className={inputCls} value={refundNote} onChange={(e) => setRefundNote(e.target.value)} placeholder="備註（例如：退至會員帳戶末五碼）" maxLength={500} />
           <button type="button" className={`${btnPrimary} w-full`} disabled={busy || !refund}
@@ -401,7 +402,7 @@ export default function ReportShipmentsPage() {
                       </span>
                     </div>
                     <p>主角 {j.subject_name}（{j.call_name}）・{j.spec_label || '未分規格'}・{j.quantity} 本{j.custom_labels.length ? `・${j.custom_labels.join('、')}` : ''}</p>
-                    <p className="text-muted-foreground">購買者 {j.buyer_email ?? '—'}・訂單金額 {nt(j.amount)}・付款 {formatDate(j.paid_at)}</p>
+                    <p className="text-muted-foreground">購買者 {j.buyer_email ?? '—'}・訂單金額 {nt(j.amount, j.currency)}・付款 {formatDate(j.paid_at)}</p>
                     {j.dedication && <p className="whitespace-pre-line text-muted-foreground">扉頁贈言：{j.dedication}</p>}
                     {j.shipping && (
                       <div className="mt-2 rounded-md bg-muted px-3 py-2 text-xs leading-5">
@@ -417,7 +418,7 @@ export default function ReportShipmentsPage() {
                       <p className="text-xs text-muted-foreground">
                         {j.cancelled_by === 'member' ? '會員取消' : j.cancelled_by === 'admin' ? '管理者取消' : '系統取消'}
                         {j.cancel_reason ? `：${j.cancel_reason}` : ''}
-                        {j.refunded_at ? `・已退款 ${nt(j.refund_amount)}（${formatDate(j.refunded_at)}）${j.refund_note ? `・${j.refund_note}` : ''}` : ''}
+                        {j.refunded_at ? `・已退款 ${nt(j.refund_amount, j.currency)}（${formatDate(j.refunded_at)}）${j.refund_note ? `・${j.refund_note}` : ''}` : ''}
                       </p>
                     )}
                     <button type="button" onClick={() => copy(j)}

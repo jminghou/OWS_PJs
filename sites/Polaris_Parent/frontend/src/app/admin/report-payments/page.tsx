@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { formatMoney } from '@/lib/money';
 import { AdminLayout } from '@ows/admin-app';
 import { useAuthStore } from '@ows/platform-api';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
@@ -60,10 +61,10 @@ function ConfirmForm({ order, onDone, onError }: {
   const confirm = async () => {
     const received = Number(amount);
     if (received !== order.amount) {
-      onError(`實收金額 NT$${received.toLocaleString('zh-TW')} 與訂單金額 NT$${order.amount.toLocaleString('zh-TW')} 不符，請先與會員聯絡。`);
+      onError(`實收金額 ${formatMoney(received, order.currency)} 與訂單金額 ${formatMoney(order.amount, order.currency)} 不符，請先與會員聯絡。`);
       return;
     }
-    if (!window.confirm(`確認已收到 ${order.order_no} 的款項 NT$${order.amount.toLocaleString('zh-TW')}？確認後會通知會員並排入報告製作，無法在此撤回。`)) return;
+    if (!window.confirm(`確認已收到 ${order.order_no} 的款項 ${formatMoney(order.amount, order.currency)}？確認後會通知會員並排入報告製作，無法在此撤回。`)) return;
     setBusy(true);
     try {
       const res = await reportOrdersApi.adminConfirmPayment(order.order_no, {
@@ -266,7 +267,7 @@ export default function ReportPaymentsPage() {
                       {canBackfill && o.commerce?.version === 0 && <CommerceBackfillReview orderNo={o.order_no}
                         onApplied={() => { setMessage({ type: 'success', text: `已完成歷史交易回填：${o.order_no}` }); load(); }} />}
                       <p className="text-muted-foreground">購買者 {o.buyer_email ?? '—'}・成立 {formatDate(o.created_at)}</p>
-                      <p>訂單金額 <strong>NT${o.amount.toLocaleString('zh-TW')}</strong>
+                      <p>訂單金額 <strong>{formatMoney(o.amount, o.currency)}</strong>
                         {o.payment.deadline && o.status === 'pending' && (
                           <span className="text-muted-foreground">・匯款期限 {formatDate(o.payment.deadline)}</span>
                         )}
@@ -275,7 +276,7 @@ export default function ReportPaymentsPage() {
                         <div className="mt-2 rounded-md bg-muted px-3 py-2 text-xs leading-5">
                           <p className="font-medium">{TRANSFER_STATUS[t.status] ?? t.status}</p>
                           <p>末五碼 <span className="font-mono">{t.last5 ?? '—'}</span>・轉帳日期 {t.transferred_on ?? '—'}・
-                            回報金額 NT${(t.reported_amount ?? 0).toLocaleString('zh-TW')}
+                            回報金額 {formatMoney(t.reported_amount ?? 0, o.currency)}
                             {t.reported_amount !== null && t.reported_amount !== o.amount && (
                               <span className="ml-1 font-medium text-red-600 dark:text-red-300">（與訂單金額不符）</span>
                             )}

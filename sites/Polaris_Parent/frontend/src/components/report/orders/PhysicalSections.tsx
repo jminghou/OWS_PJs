@@ -14,10 +14,11 @@ import Alert from '@/components/ui/Alert';
 import BrandButton, { brandButton } from '@/components/ui/BrandButton';
 import { reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
 import { CONSULT_PERIOD_LABELS, type ConsultPeriod, type ProofVersion } from '@/lib/api/reportOrders';
+import { formatMoney } from '@/lib/money';
 
 const cardCls = 'rounded-card bg-white p-6 md:p-8';
 const cardTitleCls = 'font-heading text-[18px] font-normal text-ink md:text-h4';
-const nt = (n: number) => `NT$${n.toLocaleString('zh-TW')}`;
+const nt = (n: number | null | undefined, currency?: string) => formatMoney(n, currency);
 const fmtDateTime = (iso: string | null) =>
   iso ? new Date(iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`).toLocaleString('zh-TW', { hour12: false, dateStyle: 'medium', timeStyle: 'short' }) : '';
 
@@ -91,7 +92,7 @@ export function PhysicalStatus({ order, onUpdated }: { order: ReportOrderSummary
       ) : (
         <Alert tone="info" className="mt-4">
           實體書已取消。
-          {p.refund_due ? (p.refunded_at ? ` 已退款 ${nt(p.refund_amount ?? p.refund_due)}。` : ` 應退金額 ${nt(p.refund_due)}，我們會以轉帳退款，完成後寄信通知你。`) : ''}
+          {p.refund_due ? (p.refunded_at ? ` 已退款 ${nt(p.refund_amount ?? p.refund_due, order.currency)}。` : ` 應退金額 ${nt(p.refund_due, order.currency)}，我們會以轉帳退款，完成後寄信通知你。`) : ''}
           {!isAddon && ' 數位版報告不受影響。'}
         </Alert>
       )}
@@ -375,7 +376,7 @@ export function ConsultStatus({ order, onUpdated }: { order: ReportOrderSummary;
       {c.status === 'scheduled' && <p className="mt-4 text-sm text-text">需要更改時間，請直接回覆確認信。</p>}
       {c.status === 'cancelled' && (
         <Alert tone="info" className="mt-4">
-          專人解讀已取消。{c.refund_due ? (c.refunded_at ? '已完成退款。' : `應退金額 ${nt(c.refund_due)}，我們會以轉帳退款。`) : ''}
+          專人解讀已取消。{c.refund_due ? (c.refunded_at ? '已完成退款。' : `應退金額 ${nt(c.refund_due, order.currency)}，我們會以轉帳退款。`) : ''}
         </Alert>
       )}
     </section>
@@ -401,7 +402,7 @@ export function AddonSection({ order }: { order: ReportOrderSummary }) {
                 </Link>
                 <span className="text-text">
                   {[a.physical && `實體書 ${a.physical.quantity} 本`, a.consult && `專人解讀 ${a.consult.sessions} 次`].filter(Boolean).join('＋')}
-                  ・{nt(a.amount)}
+                  ・{nt(a.amount, order.currency)}
                 </span>
                 <span className="ml-auto rounded-full bg-tint px-3 py-1 text-[13px] text-text">
                   {a.order_status === 'pending' ? '待付款' : a.order_status === 'cancelled' ? '已取消'

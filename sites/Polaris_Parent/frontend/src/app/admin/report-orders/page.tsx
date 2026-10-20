@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { ClipboardList, Search } from 'lucide-react';
+import { formatMoney } from '@/lib/money';
 import { reportOrdersApi, type AdminOrderRow } from '@/lib/api/reportOrders';
 
 type Needs = 'all' | 'admin' | 'member';
@@ -28,7 +29,7 @@ const STATUSES = [
 
 const inputCls =
   'w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500';
-const nt = (n: number | null | undefined) => (n == null ? '—' : `NT$${n.toLocaleString('zh-TW')}`);
+const nt = (n: number | null | undefined, currency?: string) => formatMoney(n, currency);
 const formatDate = (v: string | null | undefined) =>
   v ? new Date(v.endsWith('Z') || v.includes('+') ? v : `${v}Z`).toLocaleString('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 
@@ -123,7 +124,7 @@ export default function ReportOrdersOverviewPage() {
                     </div>
                     <p>{r.subject_name ?? '—'}{r.call_name ? `（${r.call_name}）` : ''}・{r.lines.join('、')}</p>
                     <p className="text-muted-foreground">
-                      {r.buyer_email ?? '—'}・{nt(r.amount)}・建立 {formatDate(r.created_at)}
+                      {r.buyer_email ?? '—'}・{nt(r.amount, r.currency)}・建立 {formatDate(r.created_at)}
                       {r.physical_status ? `・實體書 ${r.physical_status}` : ''}{r.consult_status ? `・解讀 ${r.consult_status}` : ''}
                     </p>
                   </div>

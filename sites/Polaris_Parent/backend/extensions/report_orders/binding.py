@@ -42,7 +42,9 @@ def profile(item):
     check(commerce.tracked(item.order) and term is not None, '必須先建立官網成交契約')
     check(item.product_code == 'natal-report-digital' and item.variant == 'digital' and item.kind == 'purchase'
           and item.parent_item_id is None and item.quantity == 1, '本批只支援單份數位報告', 'unsupported_contract')
-    check(term.currency == item.currency == 'TWD' and term.currency_exponent == 0 and term.quantity == 1
+    from . import money
+    check(term.currency == item.currency and money.supported(term.currency)
+          and term.currency_exponent == money.exponent(term.currency) and term.quantity == 1
           and term.unit_amount == term.line_total == item.unit_price and item.unit_price > 0 and term.print_copies == 0,
           '成交金額或份數不一致')
     check(term.rights == [{'kind': 'report', 'units': 1, 'permissions': {'digital_delivery': True}}],
@@ -121,7 +123,7 @@ def _plan(channel, receipt, order):
     check(len(items) == 1 and len(receipt.lines) == 1, '本批只支援單品項、單份數位報告', 'unsupported_contract')
     item = items[0]
     terms = profile(item)
-    check(order.amount == receipt.amount == terms['unit_amount'] and order.currency == receipt.currency == 'TWD',
+    check(order.amount == receipt.amount == terms['unit_amount'] and order.currency == receipt.currency == terms['currency'],
           '外部成交與官網契約金額不一致', 'amount_mismatch')
     external_line = receipt.lines[0]
     check(external_line['quantity'] == 1 and external_line['unit_amount'] == order.amount, '外部品項金額或份數不一致')

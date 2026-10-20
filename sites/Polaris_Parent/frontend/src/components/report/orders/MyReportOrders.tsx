@@ -2,6 +2,7 @@
 
 /** 會員中心「訂單紀錄」：所有訂單（報告、實體書、專人解讀）照時間排，看金額與付款狀態，點進去是訂單頁。 */
 import Link from 'next/link';
+import { formatMoney } from '@/lib/money';
 import { useEffect, useState } from 'react';
 import { ChevronRight, FileText } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
@@ -59,7 +60,7 @@ export default function MyReportOrders({ orders: given }: { orders?: ReportOrder
                 </p>
                 <p className="mt-1 text-caption text-muted">
                   <span className="font-latin">{o.order_no}</span>・{fmtDate(o.created_at)}・{parent && <>加購自 <span className="font-latin">{parent}</span>・</>}
-                  <span className="font-latin">NT${o.amount.toLocaleString('zh-TW')}</span>
+                  <span className="font-latin">{formatMoney(o.amount, o.currency)}</span>
                 </p>
                 <p className="mt-2 flex flex-wrap gap-2 text-[13px]">
                   <span className="rounded-full bg-tint px-2.5 py-1 text-text">{transferPending ? '匯款確認中' : STATUS[o.status] ?? o.status}</span>

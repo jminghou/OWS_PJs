@@ -17,6 +17,8 @@ from core.backend_engine.factory import db
 from packages.commerce.models import Order, OrderNotification
 from sites.Polaris_Parent.backend.models import ReportMailOutbox
 
+from . import money
+
 # 第 n 次寄失敗後，隔多久再試；用完（共 MAX_ATTEMPTS 次）就停，並通知管理者
 RETRY_BACKOFF = (timedelta(minutes=5), timedelta(minutes=15), timedelta(hours=1), timedelta(hours=4),
                  timedelta(hours=12))
@@ -223,7 +225,7 @@ def _bank_lines(bank, order):
         f'銀行：{bank["bank_name"]}（代碼 {bank["bank_code"]}）',
         f'帳號：{bank["account_no"]}',
         f'戶名：{bank["account_name"]}',
-        f'金額：NT${order.amount:,}',
+        f'金額：{money.fmt(order.amount, order.currency)}',
     ]
     if deadline:
         lines.append(f'匯款期限：{_fmt_time(deadline)}（台灣時間）前，逾期未回報訂單將自動取消')
@@ -232,7 +234,7 @@ def _bank_lines(bank, order):
 
 def send_order_created(order, recipient, payment_mode, bank=None):
     lines = ['感謝你在親紫之間訂購客製命理報告，訂單已成立。', '',
-             f'訂單編號：{order.order_no}', _item_line(order), f'金額：NT${order.amount:,}', '']
+             f'訂單編號：{order.order_no}', _item_line(order), f'金額：{money.fmt(order.amount, order.currency)}', '']
     if payment_mode == 'manual' and bank:
         lines += _bank_lines(bank, order) + ['']
     elif payment_mode == 'placeholder':
@@ -257,8 +259,8 @@ def send_transfer_reported(order, attempt, buyer_email):
         return False
     body = '\n'.join([
         '有會員回報了轉帳，請對帳後到後台「人工收款」確認。', '',
-        f'訂單編號：{order.order_no}', f'購買者：{buyer_email}', f'訂單金額：NT${order.amount:,}',
-        f'回報金額：NT${attempt.amount:,}', f'末五碼：{attempt.manual_reference}',
+        f'訂單編號：{order.order_no}', f'購買者：{buyer_email}', f'訂單金額：{money.fmt(order.amount, order.currency)}',
+        f'回報金額：{money.fmt(attempt.amount, order.currency)}', f'末五碼：{attempt.manual_reference}',
         f'轉帳日期：{attempt.transferred_on.isoformat() if attempt.transferred_on else "-"}', '',
         f'後台：{_frontend_url()}/admin/report-payments',
     ])
@@ -279,7 +281,7 @@ def send_payment_confirmed(order, recipient):
         intro, after = '我們已確認收到你的款項，報告將開始製作。', '製作完成後會再寄信通知你到會員中心下載。'
     body = '\n'.join([
         intro, '',
-        f'訂單編號：{order.order_no}', _item_line(order), f'金額：NT${order.amount:,}', '',
+        f'訂單編號：{order.order_no}', _item_line(order), f'金額：{money.fmt(order.amount, order.currency)}', '',
         after,
         f'訂單詳情：{_order_link(order)}',
     ])
@@ -316,7 +318,7 @@ def send_physical_cancelled(order, job, recipient, by_member):
     lines = [('你已取消' if by_member else '我們已為你取消') + '這筆訂單的實體書。', '',
              f'訂單編號：{order.order_no}', _item_line(order), '']
     if refund:
-        lines += [f'應退金額：NT${refund:,}。我們會以轉帳退款，完成後再寄信通知你。', '']
+        lines += [f'應退金額：{money.fmt(refund, order.currency)}。我們會以轉帳退款，完成後再寄信通知你。', '']
     if order.order_items[0].kind != 'addon':
         lines += ['你的數位版報告不受影響，會照常製作與交付。', '']
     if job.cancel_reason and not by_member:
@@ -327,7 +329,7 @@ def send_physical_cancelled(order, job, recipient, by_member):
     to = _admin_to()
     if to and by_member:
         body = '\n'.join(['會員取消了實體書，請確認是否需要退款。', '', f'訂單編號：{order.order_no}',
-                          f'購買者：{recipient}', f'應退金額：NT${refund:,}' if refund else '應退金額：無（尚未付款）', '',
+                          f'購買者：{recipient}', f'應退金額：{money.fmt(refund, order.currency)}' if refund else '應退金額：無（尚未付款）', '',
                           f'後台：{_frontend_url()}/admin/report-shipments'])
         _deliver(order, 'physical_cancelled_admin', to, f'【親紫之間後台】實體書取消 {order.order_no}', body,
                  key=f'physical_cancelled_admin:{job.id}')
@@ -348,7 +350,7 @@ def send_physical_shipped(order, shipment, recipient):
 def send_refund_recorded(order, job, recipient):
     body = '\n'.join([
         '我們已完成退款。', '',
-        f'訂單編號：{order.order_no}', f'退款金額：NT${job.refund_amount:,}',
+        f'訂單編號：{order.order_no}', f'退款金額：{money.fmt(job.refund_amount, order.currency)}',
         *( [f'說明：{job.refund_note}'] if job.refund_note else [] ), '',
         '若一週內沒有收到款項，請直接回信與我們聯絡。',
     ])
@@ -482,7 +484,7 @@ def send_consult_scheduled(order, consult, recipient):
 def send_consult_cancelled(order, consult, recipient):
     lines = ['你的專人解讀已取消。', '', f'訂單編號：{order.order_no}']
     if consult.refund_due:
-        lines += [f'應退金額：NT${consult.refund_due:,}。我們會以轉帳退款，完成後再寄信通知你。']
+        lines += [f'應退金額：{money.fmt(consult.refund_due, order.currency)}。我們會以轉帳退款，完成後再寄信通知你。']
     return _deliver(order, 'consult_cancelled', recipient, f'【親紫之間】專人解讀已取消 {order.order_no}',
                     '\n'.join(lines), key=f'consult_cancelled:{consult.id}')
 
@@ -490,7 +492,7 @@ def send_consult_cancelled(order, consult, recipient):
 def send_consult_refunded(order, consult, recipient):
     body = '\n'.join([
         '我們已完成退款。', '',
-        f'訂單編號：{order.order_no}', f'退款金額：NT${consult.refund_amount:,}',
+        f'訂單編號：{order.order_no}', f'退款金額：{money.fmt(consult.refund_amount, order.currency)}',
         *([f'說明：{consult.refund_note}'] if consult.refund_note else []), '',
         '若一週內沒有收到款項，請直接回信與我們聯絡。',
     ])

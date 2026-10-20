@@ -134,12 +134,22 @@ class IntakeTests(_Base):
         channel = self.channel()
         data = self.receipt_data(channel)
         self.assertEqual(self.post('commerce-receipts', data, self.user).status_code, 403)
-        for over in ({'amount': 201}, {'amount': True}, {'currency': 'USD'}, {'lines': []}, {'member_id': 999}):
+        for over in ({'amount': 201}, {'amount': True}, {'currency': 'XYZ'}, {'currency': None}, {'lines': []},
+                     {'member_id': 999}):
             self.assertEqual(self.post('commerce-receipts', data | over).status_code, 400)
         self.assertEqual(self.post('commerce-receipts', []).status_code, 400)
         self.app.config['COMMERCE_INTAKE_ENABLED'] = False
         self.assertEqual(self.post('commerce-receipts', data).status_code, 409)
         self.assertEqual(CommerceExternalReceipt.query.count(), 0)
+
+    def test_foreign_currency_receipt_in_minor_units(self):
+        # 多幣別（2026-10-20）：Etsy 美金訂單以「分」記錄
+        data = self.receipt_data(self.channel()) | {'currency': 'USD', 'external_order_id': 'ETSY-1', 'amount': 4999}
+        data['lines'] = [dict(data['lines'][0], quantity=1, unit_amount=4999)]
+        r = self.post('commerce-receipts', data)
+        self.assertEqual((r.status_code, r.get_json()['created']), (200, True), r.get_json())
+        row = CommerceExternalReceipt.query.one()
+        self.assertEqual((row.currency, row.amount), ('USD', 4999))
 
     def test_transaction_rollback_retains_no_partial_receipt(self):
         data = self.receipt_data(self.channel())

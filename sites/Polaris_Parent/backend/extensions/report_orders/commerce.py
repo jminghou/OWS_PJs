@@ -49,8 +49,9 @@ def finalize_order(order):
     from .physical import print_job_for, consultation_for
 
     db.session.flush()
-    if order.currency != 'TWD':
-        raise OrderError('目前交易契約只開放台幣，其他幣別需先完成定價設定', 409, 'currency_unavailable')
+    from . import money
+    if not money.supported(order.currency):
+        raise OrderError(f'不支援的幣別：{order.currency}', 409, 'currency_unavailable')
     terms = []
     for item in order.order_items:
         total = legacy_line_total(item)
@@ -87,7 +88,7 @@ def finalize_order(order):
         if any(type(c.get('amount')) is not int or c['amount'] < 0 for c in components) or sum(c['amount'] for c in components) != total:
             raise OrderError('成交明細無法還原訂單金額', 409, 'invalid_sale_terms')
         terms.append(CommerceLine(order_item_id=item.id, unit_amount=item.unit_price, quantity=item.quantity,
-                                  line_total=total, currency=item.currency, currency_exponent=0,
+                                  line_total=total, currency=item.currency, currency_exponent=money.exponent(item.currency),
                                   print_copies=copies, components=components, rights=rights))
     if not terms or sum(t.line_total for t in terms) != order.amount:
         raise OrderError('訂單總額與明細不一致', 409, 'invalid_sale_terms')

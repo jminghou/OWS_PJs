@@ -13,7 +13,7 @@ from core.backend_engine.models import User
 from packages.commerce.models import Order, OrderItem, PaymentAttempt
 from sites.Polaris_Parent.backend.models import ReportDocument, ReportFulfillment
 
-from . import audit, handoff, physical, service
+from . import audit, handoff, money, physical, service
 
 ORDER_STATUS_LABELS = {'pending': '待付款', 'paid': '已付款', 'cancelled': '已取消', 'refunded': '已退款'}
 
@@ -43,7 +43,7 @@ def todos(order, summary):
     if order.status != 'paid':
         p = summary.get('physical') or {}
         if p.get('status') == 'cancelled' and p.get('refund_due') and not p.get('refunded_at'):
-            out.append(_todo('refund', f'實體書待退款 NT${p["refund_due"]:,}'))
+            out.append(_todo('refund', f'實體書待退款 {money.fmt(p["refund_due"], order.currency)}'))
         return out
     item = summary.get('item') or {}
     if item.get('kind') == 'purchase':
@@ -65,12 +65,12 @@ def todos(order, summary):
     elif st == 'printing':
         out.append(_todo('ship', '印製中，待登錄出貨'))
     elif st == 'cancelled' and p.get('refund_due') and not p.get('refunded_at'):
-        out.append(_todo('refund', f'實體書待退款 NT${p["refund_due"]:,}'))
+        out.append(_todo('refund', f'實體書待退款 {money.fmt(p["refund_due"], order.currency)}'))
     c = summary.get('consult') or {}
     if c.get('status') == 'to_schedule':
         out.append(_todo('consult', '待安排專人解讀時間'))
     elif c.get('status') == 'cancelled' and c.get('refund_due') and not c.get('refunded_at'):
-        out.append(_todo('consult_refund', f'專人解讀待退款 NT${c["refund_due"]:,}'))
+        out.append(_todo('consult_refund', f'專人解讀待退款 {money.fmt(c["refund_due"], order.currency)}'))
     return out
 
 
@@ -85,7 +85,7 @@ def row(order):
     return {
         'order_no': order.order_no, 'status': order.status,
         'status_label': ORDER_STATUS_LABELS.get(order.status, order.status),
-        'amount': order.amount, 'created_at': s.get('created_at'), 'paid_at': s.get('paid_at'),
+        'amount': order.amount, 'currency': order.currency, 'created_at': s.get('created_at'), 'paid_at': s.get('paid_at'),
         'buyer_email': _buyer_email(order), 'kind': item.get('kind'),
         'subject_name': item.get('subject_name'), 'call_name': item.get('call_name'),
         'parent_order_no': item.get('parent_order_no'),

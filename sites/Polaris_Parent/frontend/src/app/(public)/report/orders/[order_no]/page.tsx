@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { formatMoney } from '@/lib/money';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
@@ -83,7 +84,7 @@ function ManualPayment({ order, onUpdated }: { order: ReportOrderSummary; onUpda
             <Row label="帳號"><span className="font-latin text-base font-semibold tracking-wide">{bank.account_no}</span></Row>
             <Row label="戶名">{bank.account_name}</Row>
             <Row label="金額">
-              <span className="font-latin text-lg font-extrabold">NT${order.amount.toLocaleString('zh-TW')}</span>
+              <span className="font-latin text-lg font-extrabold">{formatMoney(order.amount, order.currency)}</span>
             </Row>
             {order.payment.deadline && (
               <Row label="匯款期限"><span className="font-latin">{fmtDateTime(order.payment.deadline)}</span> 前</Row>
@@ -105,7 +106,7 @@ function ManualPayment({ order, onUpdated }: { order: ReportOrderSummary; onUpda
               <p className="mt-1">
                 末五碼 <span className="font-latin">{transfer.last5}</span>・轉帳日期{' '}
                 <span className="font-latin">{transfer.transferred_on}</span>・金額{' '}
-                <span className="font-latin">NT${(transfer.reported_amount ?? 0).toLocaleString('zh-TW')}</span>
+                <span className="font-latin">{formatMoney(transfer.reported_amount ?? 0, order.currency)}</span>
               </p>
               <BrandButton variant="link" onClick={() => setEditing(true)} className="mt-3 text-sm hover:underline">
                 回報內容有誤，重新填寫
@@ -232,7 +233,7 @@ export default function ReportOrderPage() {
             </Row>
           )}
           <Row label="金額">
-            <span className="font-latin text-base font-extrabold">NT${order.amount.toLocaleString('zh-TW')}</span>
+            <span className="font-latin text-base font-extrabold">{formatMoney(order.amount, order.currency)}</span>
           </Row>
           <Row label="狀態">
             <span className={clsx(

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminLoadingSkeleton } from '@ows/ui/admin';
 import { ArrowLeft, Bot, Mail, ShieldCheck, User } from 'lucide-react';
+import { formatMoney } from '@/lib/money';
 import { reportOrdersApi, type AdminOrderDetail, type TimelineEntry } from '@/lib/api/reportOrders';
 
 const btnPrimary =
@@ -19,7 +20,7 @@ const btnPrimary =
 const inputCls =
   'w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500';
 const cardCls = 'rounded-xl border border-border bg-card p-4 text-card-foreground';
-const nt = (n: number | null | undefined) => (n == null ? '—' : `NT$${n.toLocaleString('zh-TW')}`);
+const nt = (n: number | null | undefined, currency?: string) => formatMoney(n, currency);
 const formatDate = (v: string | null | undefined) =>
   v ? new Date(v.endsWith('Z') || v.includes('+') ? v : `${v}Z`).toLocaleString('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 
@@ -124,7 +125,7 @@ export default function ReportOrderDetailPage() {
                 <span className="rounded bg-muted px-2 py-0.5 text-xs">{order.status_label}</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {order.buyer_email}・{nt(order.amount)}・建立 {formatDate(order.created_at)}{order.paid_at ? `・付款 ${formatDate(order.paid_at)}` : ''}
+                {order.buyer_email}・{nt(order.amount, order.currency)}・建立 {formatDate(order.created_at)}{order.paid_at ? `・付款 ${formatDate(order.paid_at)}` : ''}
               </p>
             </div>
 
@@ -143,7 +144,7 @@ export default function ReportOrderDetailPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <Section title="品項">
                 <p>主角 {s.item?.subject_name ?? '—'}{s.item?.call_name ? `（${s.item.call_name}）` : ''}</p>
-                {s.lines.map((l, i) => <p key={i} className="text-muted-foreground">{l.name}・{nt(l.amount)}</p>)}
+                {s.lines.map((l, i) => <p key={i} className="text-muted-foreground">{l.name}・{nt(l.amount, order.currency)}</p>)}
                 {order.related.map((r) => (
                   <p key={r.order_no}>
                     {r.relation} <Link className="font-mono text-admin-accent-600 hover:underline dark:text-admin-accent-200"
@@ -155,7 +156,7 @@ export default function ReportOrderDetailPage() {
               <Section title="付款">
                 {order.payments.length === 0 ? <p className="text-muted-foreground">還沒有付款紀錄</p> : order.payments.map((a) => (
                   <div key={a.attempt_no}>
-                    <p>{PAYMENT_STATUS[a.status] ?? a.status}・{nt(a.amount)}{a.manual_reference ? `・末五碼 ${a.manual_reference}` : ''}</p>
+                    <p>{PAYMENT_STATUS[a.status] ?? a.status}・{nt(a.amount, order.currency)}{a.manual_reference ? `・末五碼 ${a.manual_reference}` : ''}</p>
                     <p className="text-xs text-muted-foreground">
                       {a.transferred_on ? `轉帳日 ${a.transferred_on}・` : ''}{a.paid_at ? `確認 ${formatDate(a.paid_at)}` : ''}{a.review_note ? `・${a.review_note}` : ''}
                     </p>
@@ -185,7 +186,7 @@ export default function ReportOrderDetailPage() {
                     </p>
                   )}
                   {s.shipment?.tracking_no && <p className="text-muted-foreground">物流 {s.shipment.carrier}・{s.shipment.tracking_no}</p>}
-                  {p.refund_due ? <p className="text-muted-foreground">應退 {nt(p.refund_due)}{p.refunded_at ? `・已退 ${nt(p.refund_amount)}` : '・尚未退款'}</p> : null}
+                  {p.refund_due ? <p className="text-muted-foreground">應退 {nt(p.refund_due, order.currency)}{p.refunded_at ? `・已退 ${nt(p.refund_amount, order.currency)}` : '・尚未退款'}</p> : null}
                   <Link href="/admin/report-shipments" className="text-xs text-admin-accent-600 hover:underline dark:text-admin-accent-200">到實體書出貨 →</Link>
                 </Section>
               )}

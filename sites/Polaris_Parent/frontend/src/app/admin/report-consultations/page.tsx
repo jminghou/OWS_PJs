@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { MessageCircle } from 'lucide-react';
+import { formatMoney } from '@/lib/money';
 import { CONSULT_PERIOD_LABELS, reportOrdersApi, type AdminConsultation, type ConsultAction } from '@/lib/api/reportOrders';
 
 type Filter = 'to_schedule' | 'scheduled' | 'completed' | 'refund_pending' | 'cancelled' | 'awaiting_payment' | 'all';
@@ -31,7 +32,7 @@ const btnDanger = `${btn} text-destructive hover:bg-destructive/10`;
 const inputCls =
   'w-full rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-admin-accent-500';
 
-const nt = (n: number | null | undefined) => (n == null ? '—' : `NT$${n.toLocaleString('zh-TW')}`);
+const nt = (n: number | null | undefined, currency?: string) => formatMoney(n, currency);
 const formatDate = (v: string | null | undefined) =>
   v ? new Date(v.endsWith('Z') || v.includes('+') ? v : `${v}Z`).toLocaleString('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 /** datetime-local（瀏覽器當地時間）→ 含時區的 ISO 字串 */
@@ -88,7 +89,7 @@ function Actions({ c, onDone, onError }: { c: AdminConsultation; onDone: (t: str
       )}
       {refundPending && (
         <div className="space-y-2 rounded-md bg-amber-50 p-3 text-sm dark:bg-amber-900/30">
-          <p className="font-medium text-amber-900 dark:text-amber-100">待退款 {nt(c.refund_due)}</p>
+          <p className="font-medium text-amber-900 dark:text-amber-100">待退款 {nt(c.refund_due, c.currency)}</p>
           <input className={inputCls} inputMode="numeric" value={refund} onChange={(e) => setRefund(e.target.value.replace(/\D/g, ''))} placeholder="實際退款金額" />
           <input className={inputCls} value={refundNote} onChange={(e) => setRefundNote(e.target.value)} placeholder="備註" maxLength={500} />
           <button type="button" className={`${btnPrimary} w-full`} disabled={busy || !refund}
@@ -190,7 +191,7 @@ export default function ReportConsultationsPage() {
                         <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">原報告 {c.report_order_no}</span>
                       )}
                     </div>
-                    <p>主角 {c.subject_name}（{c.call_name}）・{c.sessions} 次 × {c.minutes} 分鐘・{nt(c.amount)}</p>
+                    <p>主角 {c.subject_name}（{c.call_name}）・{c.sessions} 次 × {c.minutes} 分鐘・{nt(c.amount, c.currency)}</p>
                     <p className="text-muted-foreground">購買者 {c.buyer_email ?? '—'}・付款 {formatDate(c.paid_at)}</p>
                     {c.preferences && c.status === 'to_schedule' && (
                       <div className="rounded-md bg-muted px-3 py-2 text-xs leading-5">
@@ -202,7 +203,7 @@ export default function ReportConsultationsPage() {
                     {c.status === 'cancelled' && (
                       <p className="text-xs text-muted-foreground">
                         已取消{c.cancel_reason ? `：${c.cancel_reason}` : ''}
-                        {c.refunded_at ? `・已退款 ${nt(c.refund_amount)}（${formatDate(c.refunded_at)}）${c.refund_note ? `・${c.refund_note}` : ''}` : ''}
+                        {c.refunded_at ? `・已退款 ${nt(c.refund_amount, c.currency)}（${formatDate(c.refunded_at)}）${c.refund_note ? `・${c.refund_note}` : ''}` : ''}
                       </p>
                     )}
                   </div>

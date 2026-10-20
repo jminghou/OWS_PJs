@@ -26,8 +26,9 @@ def log(order, event_type, actor=None, ref=None, **detail):
     commerce.event(order, key[:160], event_type[:40], actor, None, **detail)
 
 
-def _nt(v):
-    return f'NT${v:,}' if isinstance(v, int) else '-'
+def _nt(v, d=None):
+    from . import money
+    return money.fmt(v, (d or {}).get('_currency') or 'TWD') if isinstance(v, int) else '-'
 
 
 # 事件類型 → 顯示文字（d＝detail）
@@ -47,7 +48,7 @@ LABELS = {
     'external_contract_bound': lambda d: '綁定外部成交',
     'external_evidence_voided': lambda d: '作廢外部成交證據',
     # 營運動作（本模組）
-    'transfer_reported': lambda d: f'會員回報轉帳 {_nt(d.get("amount"))}（轉帳日 {d.get("transferred_on") or "-"}）',
+    'transfer_reported': lambda d: f'會員回報轉帳 {_nt(d.get("amount"), d)}（轉帳日 {d.get("transferred_on") or "-"}）',
     'transfer_rejected': lambda d: f'退回轉帳回報：{d.get("reason") or "-"}',
     'order_expired': lambda d: '逾期未付款，自動取消',
     'handoff_sent': lambda d: f'已在紫微系統建立工作單（第 {d.get("attempt")} 次送出）',
@@ -65,8 +66,8 @@ LABELS = {
     'print_delivered': lambda d: '標記送達',
     'physical_cancelled': lambda d: (f'{"會員" if d.get("by") == "member" else "管理者"}取消實體書'
                                      + (f'：{d["reason"]}' if d.get('reason') else '')
-                                     + (f'（應退 {_nt(d.get("refund_due"))}）' if d.get('refund_due') else '')),
-    'refund_recorded': lambda d: f'登錄退款 {_nt(d.get("amount"))}' + (f'：{d["note"]}' if d.get('note') else ''),
+                                     + (f'（應退 {_nt(d.get("refund_due"), d)}）' if d.get('refund_due') else '')),
+    'refund_recorded': lambda d: f'登錄退款 {_nt(d.get("amount"), d)}' + (f'：{d["note"]}' if d.get('note') else ''),
     'consult_preferences': lambda d: '會員填寫專人解讀方便的時段',
     'consult_scheduled': lambda d: f'安排專人解讀時間 {d.get("scheduled_at") or "-"}',
     'consult_completed': lambda d: '專人解讀完成',
@@ -106,7 +107,7 @@ def timeline(order):
         else:
             kind = 'admin'
         rows.append({'at': _utc(e.created_at), 'kind': 'event', 'type': e.event_type,
-                     'text': label(e.event_type, e.detail), 'actor': kind,
+                     'text': label(e.event_type, {**(e.detail or {}), '_currency': order.currency}), 'actor': kind,
                      'actor_name': names.get(e.actor_id) if e.actor_id else None, 'id': e.id})
     for n in mails:
         rows.append({'at': _utc(n.sent_at or n.created_at), 'kind': 'mail', 'type': n.event,
