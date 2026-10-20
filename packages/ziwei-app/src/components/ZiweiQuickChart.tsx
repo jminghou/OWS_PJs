@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import Popover from '@ows/ui/ui/Popover';
 import { astrologyApi, type ZiweiCalcResponse } from '../api/astrology';
-import BirthPlaceFields, { EMPTY_BIRTH_PLACE, type BirthPlace } from './BirthPlaceFields';
+import BirthPlaceFields, { EMPTY_BIRTH_PLACE, toZiweiPlace, type BirthPlace } from './BirthPlaceFields';
 import WheelColumn, { type WheelOption } from './WheelColumn';
 import ZiweiChartResult, { type ZiweiChartPayload } from './ZiweiChartResult';
 
@@ -118,7 +118,7 @@ export default function ZiweiQuickChart() {
         year: payload.year, month: payload.month, day: payload.day, hour: payload.hour, minute: 0,
         gender,
         time_type: useSolarTime ? 'solar_time' : 'clock_time',
-        place: useSolarTime ? { city: place.city, country: place.country } : undefined,
+        place: useSolarTime ? toZiweiPlace(place) : undefined,
         // 與完整表單一致：公開頁只要本命層的互動命盤，靜態 SVG 作渲染失敗時的備援
         // 排盤在瀏覽器算（@ows/ziwei-engine）；靜態 SVG 由後端出，只在會員頁下載時才取
         render: false,

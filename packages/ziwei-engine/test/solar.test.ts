@@ -6,12 +6,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { calculateChart } from "../src";
-import { BirthplaceError, offsetToken, resolveBirthTime, wallOffsetSeconds } from "../src/birth";
+import { astroCoordinates, BirthplaceError, offsetToken, resolveBirthTime, wallOffsetSeconds } from "../src/birth";
 import { allCities, calculateTimezone, geographicHierarchy, getGeoInfo, toAstroFormat } from "../src/geo";
 import { GOLDEN_DIR } from "./golden";
 
 const p = join(GOLDEN_DIR, "solar.json");
 const golden = existsSync(p) ? JSON.parse(readFileSync(p, "utf-8")) : null;
+// 全球城市（GeoNames，scripts/gen_world_places.py 產生）：前端帶 lat／lon／tz 換算，與後端 place={geonameid} 逐筆比對
+const pw = join(GOLDEN_DIR, "world_solar.json");
+const worldGolden = existsSync(pw) ? JSON.parse(readFileSync(pw, "utf-8")) : null;
 
 describe("離線地點表", () => {
   it("階層與城市數一致，每城都有 IANA 時區", () => {
@@ -107,5 +110,41 @@ describe.skipIf(!golden)("出生時間換算 vs Python 快照", () => {
     expect(r.chart.基本資料.出生地).toBe("台北, 台灣");
     // 太陽時與鐘錶時都記太陽時（API 路徑亦然）
     expect(r.chart.曆法數據.太陽時間).toBe(r.chart.曆法數據.鐘錶時間);
+  });
+});
+
+describe("全球城市（帶座標與時區）", () => {
+  it("座標格式與後端 Birthplace.coordinates 相同（含 1e-6 分容差）", () => {
+    expect(astroCoordinates(69.6489, 18.95508)).toBe("69n38, 18e57");
+    expect(astroCoordinates(25 + 17 / 60, 121 + 33 / 60)).toBe("25n17, 121e33");
+    expect(astroCoordinates(-33.86785, 151.20732)).toBe("33s52, 151e12");
+  });
+  it("座標優先於城市名：內建表沒有的城市也能換算", () => {
+    const b = resolveBirthTime({ year: 2010, month: 7, day: 15, hour: 12, minute: 0, timeType: "clock_time",
+                                 place: { city: "Tromsø", country: "挪威", lat: 69.6489, lon: 18.95508, tz: "Europe/Oslo" } });
+    expect(b.tz).toBe("Europe/Oslo");
+    expect(b.dst_minutes).toBe(60);
+    expect(b.resolved.hour).toBe(11);
+    expect(b.birthplace).toBe("Tromsø, 挪威");
+  });
+});
+
+describe.skipIf(!worldGolden)("全球城市 vs Python 快照", () => {
+  it(`${worldGolden?.samples?.length ?? 0} 筆（${worldGolden?.cities ?? 0} 個時區代表城市 × 時刻 × 時間類型）全等`, () => {
+    const diffs: string[] = [];
+    for (const s of worldGolden.samples as any[]) {
+      if (s.tz === "America/Tijuana" && s.clock[0] === 1975) continue;  // 同 KNOWN_TZDATA_DIFFS（蒂華納 1975）
+      const [year, month, day, hour, minute] = s.clock;
+      const b = resolveBirthTime({ year, month, day, hour, minute, timeType: s.time_type,
+                                   place: { city: s.city, country: s.country, lat: s.lat, lon: s.lon, tz: s.tz,
+                                            place_en: s.place_en } });
+      const got = [b.resolved.year, b.resolved.month, b.resolved.day, b.resolved.hour, b.resolved.minute];
+      if (got.join() !== s.resolved.join() || b.solar_time !== s.solar_str || b.birthplace !== s.birthplace
+          || b.utc_offset_minutes !== s.utc_offset_minutes || b.dst_minutes !== s.dst_minutes) {
+        diffs.push(`${s.city}|${s.tz} ${s.clock} ${s.time_type}: got ${got} ${b.solar_time} off=${b.utc_offset_minutes} `
+                   + `dst=${b.dst_minutes}; expected ${s.resolved} ${s.solar_str} off=${s.utc_offset_minutes} dst=${s.dst_minutes}`);
+      }
+    }
+    expect(diffs, `${diffs.length} 筆不同：\n` + diffs.slice(0, 30).join("\n")).toEqual([]);
   });
 });

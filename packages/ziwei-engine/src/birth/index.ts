@@ -15,9 +15,33 @@ import { buildClockTimeStr, computeSolarTimeStr, parseTimeStr, type ClockTime } 
 
 export type TimeType = "clock_time" | "solar_time";
 
+/**
+ * 出生地。常用城市只給 city＋country（查內建表）；全球城市（GeoNames 搜尋）或手動輸入另外帶 lat／lon／tz，
+ * 直接用這組座標與時區換算（與後端 birthplace.place_from 同義）。
+ */
+export interface BirthPlaceInput {
+  city: string;
+  country: string;
+  lat?: number;
+  lon?: number;
+  tz?: string;
+  /** 真太陽時字串用的英文地名；沒給用 city */
+  place_en?: string;
+}
+
 export interface BirthTimeInput extends ClockTime {
   timeType?: TimeType;
-  place?: { city: string; country: string };
+  place?: BirthPlaceInput;
+}
+
+/** 後端 Birthplace.coordinates：度＋分截尾（加 1e-6 分容差，避免 16.99999… 截成 16） */
+export function astroCoordinates(lat: number, lon: number): string {
+  const part = (value: number, pos: string, neg: string) => {
+    const v = Math.abs(value);
+    const deg = Math.trunc(v);
+    return `${deg}${value >= 0 ? pos : neg}${String(Math.trunc((v - deg) * 60 + 1e-6)).padStart(2, "0")}`;
+  };
+  return `${part(lat, "n", "s")}, ${part(lon, "e", "w")}`;
 }
 
 export interface BirthTime {
@@ -96,16 +120,20 @@ export function resolveBirthTime(input: BirthTimeInput): BirthTime {
   const clock: ClockTime = { year: input.year, month: input.month, day: input.day,
                              hour: input.hour, minute: input.minute ?? 0 };
   const timeType: TimeType = input.timeType ?? "clock_time";
-  const city = (input.place?.city ?? "").trim();
-  const country = (input.place?.country ?? "").trim();
-  const hasPlace = Boolean(city && country);
+  const p = input.place;
+  const city = (p?.city ?? "").trim();
+  const country = (p?.country ?? "").trim();
+  const hasCoords = typeof p?.lat === "number" && typeof p?.lon === "number" && Boolean(p?.tz);
+  const hasPlace = hasCoords || Boolean(city && country);
 
   if (timeType === "solar_time" && !hasPlace) throw new BirthplaceError("使用真太陽時需選擇出生的國家與城市");
   if (!hasPlace) {
     return { clock, resolved: clock, time_type: timeType, solar_time: null, birthplace: "",
              tz: null, utc_offset_minutes: null, dst_minutes: 0 };
   }
-  const geo = getGeoInfo(city, country);
+  const geo = hasCoords
+    ? { tz: p!.tz as string, place_en: p!.place_en || city, coordinates: astroCoordinates(p!.lat as number, p!.lon as number) }
+    : getGeoInfo(city, country);
   if (!geo?.tz) throw new BirthplaceError(`找不到出生地「${city}, ${country}」，請從選單重新選擇`);
   const offset = wallOffsetSeconds(geo.tz, clock);
   const base = { clock, time_type: timeType, birthplace: `${city}, ${country}`, tz: geo.tz,

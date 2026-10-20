@@ -67,7 +67,8 @@ def _save_chart(clean, email, eng, save_chart):
     b, p = clean['birth'], clean['place']
     clock = (b['year'], b['month'], b['day'], b['hour'], b['minute'])
     try:
-        birth = resolve_birth_time(eng, clock, b['time_type'], p['city'], p['country'])
+        birth = resolve_birth_time(eng, clock, b['time_type'], p['city'], p['country'], place=p,
+                                   allow_manual=p.get('manual') is True)  # 手動只會出現在後台代客建單（驗證已把關）
     except BirthplaceError as exc:
         current_app.logger.error(f'report order: 出生時間換算失敗 {p}：{exc}')
         raise OrderError(str(exc), 400, 'birth_time_failed')

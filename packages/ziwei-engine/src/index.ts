@@ -38,7 +38,7 @@ import {
   type AgeEncoding, type DecadeEncoding,
 } from "./flow/encoder";
 import { buildFlowLayers, type FlowLayers } from "./flow/layers";
-import { resolveBirthTime, type BirthTime } from "./birth";
+import { resolveBirthTime, type BirthPlaceInput, type BirthTime } from "./birth";
 
 /** Python chart["快速條件編碼"] 的對應物 */
 export interface FastEncoding {
@@ -57,7 +57,8 @@ export interface CalculateOptions {
 
 /** API /calculate 的輸入形狀：timeType=solar_time 時需 place，先換算真太陽時再排盤 */
 export interface CalculateInput extends NatalInput {
-  place?: { city: string; country: string };
+  /** 出生地：常用城市給 city＋country；全球城市或手動輸入另帶 lat／lon／tz（見 birth/BirthPlaceInput） */
+  place?: BirthPlaceInput;
 }
 
 export interface CalculateResult {

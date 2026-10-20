@@ -12,6 +12,30 @@ export type TimeType = 'clock_time' | 'solar_time';
 export interface ZiweiPlace {
   city: string;
   country: string;
+  /** 全球城市（GeoNames 搜尋）：後端以 geonameid 查座標，前端預覽用 lat／lon／tz */
+  geonameid?: number;
+  lat?: number;
+  lon?: number;
+  tz?: string;
+  place_en?: string;
+}
+
+/** /astrology/places 搜尋結果（全球城市，資料來源 GeoNames，CC BY 4.0） */
+export interface WorldPlace {
+  geonameid: number;
+  name: string;
+  name_zh: string | null;
+  admin1: string;
+  country_code: string;
+  country: string;
+  lat: number;
+  lon: number;
+  tz: string;
+  population: number;
+  /** '奧斯陸, 挪威'；沒有中文名的城市用原名 */
+  label: string;
+  /** 補充說明：原名、州／郡 */
+  detail: string;
 }
 
 export interface ZiweiCalcRequest {
@@ -441,6 +465,14 @@ export const astrologyApi = {
     }),
 
   /** 取得地點級聯選項（真太陽時用）。本地引擎內建同一份表；api 模式才打後端。 */
+  /** 全球城市搜尋（中文、英文或當地語言名稱皆可） */
+  searchPlaces: async (q: string, limit = 10): Promise<{ places: WorldPlace[]; source: string }> => {
+    const res = await fetch(`${API_URL}/astrology/places?${new URLSearchParams({ q, limit: String(limit) })}`);
+    const json: any = await res.json().catch(() => ({}));
+    if (!res.ok || json?.success === false) throw new Error(json?.error || '搜尋城市失敗');
+    return { places: json.places as WorldPlace[], source: json.source as string };
+  },
+
   geoOptions: async (): Promise<GeoHierarchy> => {
     if (engineMode() !== 'api') return geoOptionsLocal();
     const res = await fetch(`${API_URL}/astrology/geo-options`);

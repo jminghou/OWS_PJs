@@ -5,6 +5,7 @@ Astrology Extension for Polaris Parent Site
 Endpoints:
     POST /api/v1/astrology/calculate    - 排盤（回 命盤 JSON + 十二宮方圖 SVG）
     GET  /api/v1/astrology/geo-options   - 洲/國/城市 級聯選項（真太陽時用）
+    GET  /api/v1/astrology/places?q=     - 全球城市搜尋（GeoNames，出生地選單找不到時用）
     GET  /api/v1/astrology/health        - 健康檢查
 
 排盤核心 vendored 於 ./engine（同步用 scripts/publish_ziwei_engine.ps1）。
@@ -177,7 +178,7 @@ def _as_int(data, key):
         return None, f"欄位 {key} 必須為整數"
 
 
-def resolve_birth_time(eng, clock, time_type, city="", country=""):
+def resolve_birth_time(eng, clock, time_type, city="", country="", place=None, allow_manual=False):
     """把輸入的出生時間換成排盤用的時間，回傳 birthplace.BirthTime。
 
     clock 為 (year, month, day, hour, minute)。solar_time 依出生地當下的實際時差（含夏令時）換算
@@ -185,7 +186,7 @@ def resolve_birth_time(eng, clock, time_type, city="", country=""):
     由呼叫端決定錯誤訊息。/calculate 與客製報告建單共用，確保存下的命盤與畫面上預覽的一致。
     """
     from .birthplace import resolve
-    return resolve(eng, clock, time_type, city, country)
+    return resolve(eng, clock, time_type, city, country, place=place, allow_manual=allow_manual)
 
 
 def _limit(rule):
@@ -273,16 +274,19 @@ def calculate():
     # ── 出生時間換算（真太陽時／夏令時）──
     # place 在 solar_time 必填；clock_time 選填，有給就依出生地扣夏令時差
     place = data.get("place") or {}
+    if not isinstance(place, dict):
+        place = {}
     city = (place.get("city") or "").strip()
     country = (place.get("country") or "").strip()
-    if time_type == "solar_time" and (not city or not country):
+    has_place = bool(city and country) or place.get("geonameid") not in (None, "")
+    if time_type == "solar_time" and not has_place:
         return jsonify({"success": False,
-                        "error": "time_type=solar_time 需提供 place.city 與 place.country"}), 400
+                        "error": "time_type=solar_time 需提供出生地（place.city＋place.country 或 place.geonameid）"}), 400
     from .birthplace import BirthplaceError
     try:
         birth = resolve_birth_time(
             eng, (parts["year"], parts["month"], parts["day"], parts["hour"], minute),
-            time_type, city, country)
+            time_type, city, country, place={k: v for k, v in place.items() if k != "manual"})
     except BirthplaceError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400
     (y, mo, d, h, minute), solar_time_str, birthplace = birth.resolved, birth.solar_time, birth.birthplace
@@ -363,6 +367,19 @@ def calculate():
 
 
 # ── 地理選項（級聯下拉）──────────────────────────────────────
+@bp.route('/places', methods=['GET'])
+@_limit("60 per minute")
+def search_places():
+    """全球城市搜尋（出生地）：q＝中文、英文或當地語言名稱。資料來源 GeoNames（CC BY 4.0）。"""
+    from .birthplace import WORLD_SOURCE, search
+    q = (request.args.get("q") or "").strip()[:60]
+    try:
+        limit = int(request.args.get("limit", 10))
+    except ValueError:
+        limit = 10
+    return jsonify({"success": True, "places": search(q, limit) if q else [], "source": WORLD_SOURCE})
+
+
 @bp.route('/geo-options', methods=['GET'])
 @_limit("60 per minute")
 def geo_options():

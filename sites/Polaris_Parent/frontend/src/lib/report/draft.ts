@@ -20,7 +20,9 @@ export interface ReportDraft {
     time_type: TimeType;
   };
   /** 真太陽時必填（洲／國家／城市）；鐘錶時間可留空 */
-  place: { continent: string; country: string; city: string };
+  /** 常用城市：洲／國家／城市；全球城市（搜尋）另帶 geonameid 與座標、時區（後端以 geonameid 為準） */
+  place: { continent: string; country: string; city: string; geonameid?: number; lat?: number; lon?: number;
+           tz?: string; place_en?: string };
   relation_label: string;
   audience: {
     reader: string;

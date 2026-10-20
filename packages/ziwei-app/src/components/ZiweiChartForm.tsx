@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Button from '@ows/ui/ui/Button';
 import ZiweiChartResult, { type ZiweiChartPayload } from './ZiweiChartResult';
 import { astrologyApi, type TimeType, type ZiweiCalcResponse } from '../api/astrology';
-import BirthPlaceFields from './BirthPlaceFields';
+import BirthPlaceFields, { EMPTY_BIRTH_PLACE, toZiweiPlace, type BirthPlace } from './BirthPlaceFields';
 
 /**
  * 紫微斗數排盤「區塊模板」：出生時辰表單 + 命盤結果。
@@ -22,9 +22,7 @@ export default function ZiweiChartForm() {
     date: '',
     time: '',
     timeType: 'clock_time' as TimeType,
-    continent: '',
-    country: '',
-    city: '',
+    place: EMPTY_BIRTH_PLACE as BirthPlace,
   });
 
   const [loading, setLoading] = useState(false);
@@ -56,7 +54,7 @@ export default function ZiweiChartForm() {
     const [year, month, day] = form.date.split('-').map(Number);
     const [hour, minute] = form.time.split(':').map(Number);
 
-    if (form.timeType === 'solar_time' && (!form.city || !form.country)) {
+    if (form.timeType === 'solar_time' && (!form.place.city || !form.place.country)) {
       setError('真太陽時需選擇出生地點（國家與城市）');
       return;
     }
@@ -74,7 +72,7 @@ export default function ZiweiChartForm() {
         time_type: form.timeType,
         place:
           form.timeType === 'solar_time'
-            ? { city: form.city, country: form.country }
+            ? toZiweiPlace(form.place)
             : undefined,
         // 公開頁直接呈現互動命盤（本命層）；靜態 SVG 僅作渲染失敗時的備援。
         // 流盤（大限／流年）屬會員專區進階功能，公開頁不請求。
@@ -105,7 +103,7 @@ export default function ZiweiChartForm() {
       gender: form.gender,
       name: form.name,
       place:
-        form.timeType === 'solar_time' ? `${form.city}, ${form.country}` : '',
+        form.timeType === 'solar_time' ? `${form.place.city}, ${form.place.country}` : '',
       relation: 'self',
     };
   };
@@ -204,8 +202,8 @@ export default function ZiweiChartForm() {
         {/* 出生地點（真太陽時才需要；地點清單在掛載時才載入）*/}
         {form.timeType === 'solar_time' && (
           <BirthPlaceFields
-            value={{ continent: form.continent, country: form.country, city: form.city }}
-            onChange={(place) => set(place)}
+            value={form.place}
+            onChange={(place) => set({ place })}
           />
         )}
 

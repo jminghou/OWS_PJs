@@ -14,20 +14,31 @@
 
 前端 @ows/ziwei-engine 的 resolveBirthTime 與這裡逐條同義，黃金檔 test/golden/solar.json 互相比對。
 
-真源在 OWS（sites/Polaris_Parent/backend/extensions/astrology/）。scripts/gen_ziwei_geo.py 會把本檔與
-birthplace_cities.json 原樣複製到 P_Union/p01_count/02_scraper_updated/ 給 PolarisUI 建盤用；
+出生地的三種來源（place_from）：
+  * 常用城市（洲／國家／城市下拉）：birthplace_cities.json，以「城市|國家」中文名查。
+  * 全球城市（搜尋）：world_places.json.gz（GeoNames 約 3.4 萬城，CC BY 4.0；scripts/gen_world_places.py 產生），
+    以 geonameid 查。
+  * 手動（只限後台代客建單）：直接給經緯度與 IANA 時區，給清單找不到的小鎮用。
+三種最後都變成同一個 Birthplace，換算邏輯完全相同。
+
+真源在 OWS（sites/Polaris_Parent/backend/extensions/astrology/）。scripts/gen_ziwei_geo.py 與 gen_world_places.py
+會把本檔與資料檔原樣複製到 P_Union/p01_count/02_scraper_updated/ 給 PolarisUI 建盤用；
 那邊的副本勿手改。本檔只依賴標準函式庫（＋tzdata），兩邊都能直接載入。
 """
 
+import gzip
 import json
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Tuple
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, available_timezones
 
 DATA_FILE = Path(__file__).resolve().parent / 'birthplace_cities.json'
+WORLD_FILE = Path(__file__).resolve().parent / 'world_places.json.gz'
+WORLD_SOURCE = 'GeoNames（geonames.org，CC BY 4.0）'
 
 Clock = Tuple[int, int, int, int, int]
 
@@ -44,6 +55,7 @@ class Birthplace:
     lat: float
     lon: float
     tz: str
+    geonameid: Optional[int] = None
 
     @property
     def coordinates(self) -> str:
@@ -91,6 +103,93 @@ def lookup(city: str, country: str) -> Birthplace:
     return Birthplace(city, country, row['place_en'], row['lat'], row['lon'], row['tz'])
 
 
+# ── 全球城市（GeoNames）──────────────────────────────────────────────────────
+def _fold(text: str) -> str:
+    """搜尋用：小寫、去掉重音（Tromsø → tromso、Zürich → zurich）。"""
+    text = unicodedata.normalize('NFKD', text or '').replace('\u00f8', 'o').replace('\u00d8', 'o')
+    return ''.join(ch for ch in text if not unicodedata.combining(ch)).lower().strip()
+
+
+@lru_cache(maxsize=1)
+def _world():
+    data = json.loads(gzip.decompress(WORLD_FILE.read_bytes()))
+    by_id = {r[0]: r for r in data['places']}
+    # 每城的搜尋詞：原名、ASCII 名、所有中文別名（含簡體）
+    index = [(r, [_fold(t) for t in [r[1], r[2], *r[10].split('|')] if t]) for r in data['places']]
+    return data['countries'], by_id, index
+
+
+def _world_birthplace(row) -> Birthplace:
+    countries = _world()[0]
+    return Birthplace(row[9] or row[1], countries.get(row[3], row[3]), row[1], row[5], row[6], row[7], row[0])
+
+
+def world_place(geonameid) -> Birthplace:
+    try:
+        row = _world()[1].get(int(geonameid))
+    except (TypeError, ValueError):
+        row = None
+    if row is None:
+        raise BirthplaceError('找不到這個出生地，請重新搜尋城市')
+    return _world_birthplace(row)
+
+
+def place_view(row) -> dict:
+    countries = _world()[0]
+    country = countries.get(row[3], row[3])
+    city = row[9] or row[1]
+    return {'geonameid': row[0], 'name': row[1], 'name_zh': row[9] or None, 'admin1': row[4],
+            'country_code': row[3], 'country': country, 'lat': row[5], 'lon': row[6], 'tz': row[7],
+            'population': row[8], 'label': f'{city}, {country}',
+            'detail': ', '.join(x for x in ((row[1] if row[9] else ''), row[4]) if x)}
+
+
+def search(query: str, limit: int = 10) -> list:
+    """全球城市搜尋：完全相同 > 開頭相同 > 包含，同級依人口排序。"""
+    q = _fold(query)
+    if not q:
+        return []
+    hits = []
+    for row, terms in _world()[2]:
+        rank = min((0 if t == q else 1 if t.startswith(q) else 2 if q in t else 9) for t in terms)
+        if rank < 9:
+            hits.append((rank, -row[8], row))
+    hits.sort(key=lambda h: (h[0], h[1]))
+    return [place_view(row) for _, _, row in hits[:max(1, min(int(limit), 30))]]
+
+
+def manual_place(lat, lon, tz, label='', country='') -> Birthplace:
+    """手動輸入的出生地（後台代客建單用）：經緯度與 IANA 時區都要合理。"""
+    try:
+        lat, lon = float(lat), float(lon)
+    except (TypeError, ValueError):
+        raise BirthplaceError('請填寫正確的經緯度')
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise BirthplaceError('經緯度超出範圍')
+    if tz not in available_timezones():
+        raise BirthplaceError(f'時區「{tz}」不是有效的 IANA 時區（例：Europe/Oslo）')
+    label, country = (label or '').strip()[:100], (country or '').strip()[:100]
+    if not label:
+        raise BirthplaceError('請填寫出生地名稱')
+    return Birthplace(label, country, label, round(lat, 5), round(lon, 5), tz)
+
+
+def place_from(place: Optional[dict], allow_manual: bool = False) -> Optional[Birthplace]:
+    """依 place 內容挑來源；沒有任何出生地資訊回 None。"""
+    place = place or {}
+    if place.get('geonameid') not in (None, ''):
+        return world_place(place['geonameid'])
+    if place.get('manual'):
+        if not allow_manual:
+            raise BirthplaceError('請從選單選擇或搜尋出生地')
+        return manual_place(place.get('lat'), place.get('lon'), place.get('tz'),
+                            place.get('city') or place.get('label'), place.get('country'))
+    city, country = (place.get('city') or '').strip(), (place.get('country') or '').strip()
+    if city and country:
+        return lookup(city, country)
+    return None
+
+
 def utc_offset_seconds(tz: str, wall: datetime) -> int:
     """當地牆上時間的 UTC 時差（秒）。fold=0：重疊時段取較早那次、跳過的時段取跳轉前的時差。"""
     return int(ZoneInfo(tz).utcoffset(wall.replace(fold=0)).total_seconds())
@@ -116,14 +215,17 @@ def timezone_label(tz: str, clock: Clock) -> str:
     return f'{offset_token(utc_offset_seconds(tz, datetime(*clock)))} ({note})'
 
 
-def resolve(eng, clock: Clock, time_type: str, city: str = '', country: str = '') -> BirthTime:
+def resolve(eng, clock: Clock, time_type: str, city: str = '', country: str = '',
+            place: Optional[dict] = None, allow_manual: bool = False) -> BirthTime:
+    """place（dict）優先：geonameid（全球城市）／manual（手動經緯度）／city＋country（常用城市）；
+    沒給 place 時沿用舊的 city、country 參數。"""
     clock = tuple(int(x) for x in clock)
-    has_place = bool((city or '').strip() and (country or '').strip())
+    bp = place_from(place if place is not None else {'city': city, 'country': country}, allow_manual)
 
     if time_type == 'solar_time':
-        if not has_place:
+        if bp is None:
             raise BirthplaceError('使用真太陽時需選擇出生的國家與城市')
-        place = lookup(city, country)
+        place = bp
         offset = utc_offset_seconds(place.tz, datetime(*clock))
         solar = eng.compute_solar_time(eng.build_clock_time_str(*clock),
                                        f'{place.place_en}, {place.coordinates}', offset_token(offset))
@@ -132,9 +234,9 @@ def resolve(eng, clock: Clock, time_type: str, city: str = '', country: str = ''
         return BirthTime(clock, tuple(eng.parse_time_str(solar)), time_type, solar, place.label, place.tz,
                          offset // 60, dst_minutes(place.tz, clock))
 
-    if not has_place:
+    if bp is None:
         return BirthTime(clock, clock, time_type)
-    place = lookup(city, country)
+    place = bp
     dst = dst_minutes(place.tz, clock)
     resolved = clock
     if dst:

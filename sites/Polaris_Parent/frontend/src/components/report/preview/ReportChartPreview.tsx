@@ -6,6 +6,7 @@ import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
 // 不走 astrologyApi.calculate，因為它在本地算失敗時會退回後端。
 import { calculateLocal } from '@ows/ziwei-app/api/localEngine';
 import type { ReportDraft } from '@/lib/report/draft';
+import { toZiweiPlace } from '@ows/ziwei-app/components/BirthPlaceFields';
 
 function chartOf(draft: ReportDraft) {
   try {
@@ -17,7 +18,7 @@ function chartOf(draft: ReportDraft) {
       gender: draft.gender,
       name: draft.subject_name,
       time_type: draft.birth.time_type,
-      place: { country: draft.place.country, city: draft.place.city },
+      place: toZiweiPlace(draft.place),
       include_chart_json: true,
     });
     return res.chart_json;

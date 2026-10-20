@@ -13,7 +13,10 @@ export function birthTimeNote(d: ReportDraft): string | null {
   if (!year || Number.isNaN(hour) || !d.place.city || !d.place.country) return null;
   try {
     const b = resolveBirthTime({ year, month, day, hour, minute, timeType: d.birth.time_type,
-                                 place: { city: d.place.city, country: d.place.country } });
+                                 place: d.place.geonameid
+                                   ? { city: d.place.city, country: d.place.country, lat: d.place.lat, lon: d.place.lon,
+                                       tz: d.place.tz, place_en: d.place.place_en }
+                                   : { city: d.place.city, country: d.place.country } });
     const r = b.resolved;
     const dateChanged = r.year !== year || r.month !== month || r.day !== day;
     const at = `${dateChanged ? `${r.year}-${pad(r.month)}-${pad(r.day)} ` : ''}${pad(r.hour)}:${pad(r.minute)}`;
