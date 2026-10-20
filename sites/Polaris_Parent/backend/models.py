@@ -308,8 +308,9 @@ class Shipment(db.Model):
         db.Integer, db.ForeignKey(_ORDER_ITEMS_FK), nullable=False, unique=True)
     recipient_name = db.Column(db.Text, nullable=False)  # 收件資料為下單時快照
     recipient_phone = db.Column(db.Text, nullable=False)
-    postal_code = db.Column(db.String(10))
+    postal_code = db.Column(db.String(12))
     address = db.Column(db.Text, nullable=False)
+    country = db.Column(db.String(2))  # ISO 3166 國碼；NULL＝台灣（2026-10-20 前的資料都是國內）
     status = db.Column(db.String(20), nullable=False, server_default='pending', index=True)
     printer = db.Column(db.Text)
     carrier = db.Column(db.Text)
@@ -598,3 +599,63 @@ class ReportJobRun(db.Model):
 
     def __repr__(self):
         return f'<ReportJobRun {self.job} {self.last_status}>'
+
+
+
+class ExternalCustomer(db.Model):
+    """shop.external_customers — 外部平台客人檔案（代客建單，2026-10-20；docs/external-proxy-orders-plan.md）。
+
+    底層是一個不能登入的會員帳號（信箱為 *@customers.polaris-parent.invalid，寄信一律略過），
+    讓訂單與命盤依客人歸檔；之後客人可用認領碼把檔案轉到自己的正式帳號（第五項）。
+    """
+    __tablename__ = 'external_customers'
+    __table_args__ = {'schema': 'shop'}
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    app_user_id = db.Column(db.BigInteger, db.ForeignKey('account.app_users.id'), nullable=False, unique=True)
+    channel_id = db.Column(db.BigInteger, db.ForeignKey('shop.commerce_channels.id'))  # 第一次認識的平台
+    display_name = db.Column(db.Text, nullable=False)       # 平台上的名稱（給管理者辨識）
+    platform_handle = db.Column(db.Text)                    # 平台帳號／ID
+    contact_note = db.Column(db.Text)                       # 聯絡備註（只在後台）
+    claim_code_digest = db.Column(db.String(64))            # 認領碼雜湊（第五項）
+    claimed_by = db.Column(db.BigInteger, db.ForeignKey('account.app_users.id'))
+    claimed_at = db.Column(db.DateTime(timezone=True))
+    created_by = db.Column(db.BigInteger, db.ForeignKey('account.app_users.id'))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f'<ExternalCustomer {self.id} {self.display_name}>'
+
+
+SOURCE_KINDS = ('conversation', 'link', 'screenshot', 'note')
+
+
+class OrderSourceRecord(db.Model):
+    """shop.order_source_records — 訂單資料的來源：哪個平台、哪天、哪段對話給的（代客建單）。
+
+    文字摘錄／連結直接存；截圖存私有儲存（file_key），以短效憑證開啟。只有後台看得到。
+    """
+    __tablename__ = 'order_source_records'
+    __table_args__ = (
+        db.CheckConstraint("kind IN ('conversation','link','screenshot','note')", name='ck_order_source_records_kind'),
+        {'schema': 'shop'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey(_q('orders.id', _SHOP_SCHEMA), ondelete='CASCADE'),
+                         nullable=False, index=True)
+    kind = db.Column(db.String(20), nullable=False)
+    channel_id = db.Column(db.BigInteger, db.ForeignKey('shop.commerce_channels.id'))
+    occurred_on = db.Column(db.Date)                         # 對話日期
+    summary = db.Column(db.Text)                             # 對話摘錄或說明
+    url = db.Column(db.Text)
+    file_key = db.Column(db.Text)
+    filename = db.Column(db.Text)
+    content_type = db.Column(db.String(50))
+    bytes = db.Column(db.BigInteger)
+    created_by = db.Column(db.BigInteger, db.ForeignKey('account.app_users.id'))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+    def __repr__(self):
+        return f'<OrderSourceRecord order={self.order_id} {self.kind}>'

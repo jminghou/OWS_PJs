@@ -22,13 +22,15 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'failed', label: '寄送失敗' },
   { value: 'pending', label: '寄送中' },
   { value: 'sent', label: '已寄出' },
+  { value: 'skipped', label: '不寄送' },
   { value: 'all', label: '全部' },
 ];
 
-const STATUS_LABEL: Record<NotificationStatus, string> = { pending: '寄送中', sent: '已寄出', failed: '寄送失敗' };
+const STATUS_LABEL: Record<NotificationStatus, string> = { pending: '寄送中', sent: '已寄出', failed: '寄送失敗', skipped: '不寄送' };
 const STATUS_CLS: Record<NotificationStatus, string> = {
   sent: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
   pending: 'bg-muted text-muted-foreground',
+  skipped: 'bg-muted text-muted-foreground',
   failed: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
 };
 
@@ -129,12 +131,13 @@ function Row({ n, onDone, onError }: { n: AdminNotification; onDone: (t: string)
             {n.sent_at ? `・寄出 ${formatDate(n.sent_at)}` : ''}
             ・已嘗試 {n.attempts}／{n.max_attempts} 次
           </p>
-          {n.status !== 'sent' && (
+          {n.status !== 'sent' && n.status !== 'skipped' && (
             <p className="text-muted-foreground">
               {n.next_attempt_at ? `下次自動重試 ${formatDate(n.next_attempt_at)}` : '已停止自動重試'}
             </p>
           )}
-          {n.error && n.status !== 'sent' && <p className="break-all text-xs text-destructive">錯誤：{n.error}</p>}
+          {n.error && n.status === 'skipped' && <p className="break-all text-xs text-muted-foreground">{n.error}</p>}
+          {n.error && n.status !== 'sent' && n.status !== 'skipped' && <p className="break-all text-xs text-destructive">錯誤：{n.error}</p>}
           {body !== undefined && (
             <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-muted px-3 py-2 text-xs leading-5">
               {n.subject ? `${n.subject}\n\n` : ''}{body ?? '（內文已超過保留期限而清除）'}

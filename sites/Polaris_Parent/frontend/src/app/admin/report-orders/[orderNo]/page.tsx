@@ -4,16 +4,18 @@
  * 訂單詳細：一張訂單的全貌與時間軸。
  * 上半部：待辦（連到處理的工作頁）、品項、付款紀錄、報告與紫微交接、實體書、專人解讀、相關訂單；
  * 下半部：時間軸（會員／管理者／系統的每個動作與寄出的信），可加內部備註（會員看不到）。
- * 後端：/api/v1/admin/report-orders/:orderNo/detail、/notes（report_orders.read）。
+ * 外部平台訂單另有「平台與資料來源」：平台訂單號、客人檔案、對話摘錄／連結／截圖；數位版代客建單在這裡按「已透過平台交付」。
+ * 後端：/api/v1/admin/report-orders/:orderNo/detail、/notes（report_orders.read）；/sources、/delivered-via-platform（代客建單）。
  */
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminLoadingSkeleton } from '@ows/ui/admin';
-import { ArrowLeft, Bot, Mail, ShieldCheck, User } from 'lucide-react';
+import { ArrowLeft, Bot, ExternalLink, Mail, Paperclip, ShieldCheck, User } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
-import { reportOrdersApi, type AdminOrderDetail, type TimelineEntry } from '@/lib/api/reportOrders';
+import { channelLabel, languageLabel } from '@/lib/report/proxy';
+import { reportOrdersApi, type AdminOrderDetail, type OrderSource, type TimelineEntry } from '@/lib/api/reportOrders';
 
 const btnPrimary =
   'inline-flex min-h-[40px] md:min-h-0 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-admin-accent-600 text-white hover:bg-admin-accent-700';
@@ -61,7 +63,7 @@ function Timeline({ entries }: { entries: TimelineEntry[] }) {
                 {e.text}
                 {e.kind === 'mail' && (
                   <span className={`ml-2 text-xs ${e.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    → {e.recipient}{e.status === 'failed' ? '（寄送失敗）' : e.status === 'pending' ? '（寄送中）' : ''}
+                    → {e.recipient}{e.status === 'failed' ? '（寄送失敗）' : e.status === 'pending' ? '（寄送中）' : e.status === 'skipped' ? '（外部客人，不寄送）' : ''}
                   </span>
                 )}
               </p>
@@ -70,6 +72,132 @@ function Timeline({ entries }: { entries: TimelineEntry[] }) {
         );
       })}
     </ol>
+  );
+}
+
+const btnGhost =
+  'inline-flex min-h-[40px] md:min-h-0 items-center justify-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-muted disabled:opacity-50';
+
+/** 外部平台訂單：平台資訊、客人、資料來源（對話紀錄），數位版代客建單的「已透過平台交付」 */
+function ExternalPanel({ order, onChange, onError }: {
+  order: AdminOrderDetail;
+  onChange: (next: AdminOrderDetail) => void;
+  onError: (message: string) => void;
+}) {
+  const ext = order.external_detail!;
+  const [summary, setSummary] = useState('');
+  const [url, setUrl] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const canDeliver = order.todos.some((t) => t.key === 'deliver_platform');
+
+  const run = async (fn: () => Promise<OrderSource[] | void>) => {
+    setBusy(true);
+    onError('');
+    try {
+      const sources = await fn();
+      if (sources) onChange({ ...order, external_detail: { ...ext, sources } });
+    } catch (e: any) {
+      onError(e.message || '操作失敗');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addText = () => run(async () => {
+    const r = await reportOrdersApi.addOrderSource(order.order_no, {
+      kind: url.trim() ? 'link' : 'conversation', summary: summary.trim() || undefined, url: url.trim() || undefined,
+    });
+    setSummary('');
+    setUrl('');
+    return r.sources;
+  });
+  const upload = () => run(async () => {
+    if (!file) return;
+    const r = await reportOrdersApi.uploadOrderSource(order.order_no, file, summary.trim(), '');
+    setFile(null);
+    setSummary('');
+    return r.sources;
+  });
+  const open = (id: number) => run(async () => {
+    const r = await reportOrdersApi.orderSourceLink(order.order_no, id);
+    window.open(r.url, '_blank', 'noopener');
+  });
+  const deliver = () => run(async () => {
+    if (!window.confirm('確認已經透過平台把報告 PDF 交給客人？')) return;
+    onChange((await reportOrdersApi.deliveredViaPlatform(order.order_no)).order);
+  });
+
+  return (
+    <section className={cardCls}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold">平台與資料來源</h2>
+        {canDeliver && <button type="button" className={btnPrimary} disabled={busy} onClick={deliver}>已透過平台交付</button>}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-1 text-sm">
+          <p>
+            {channelLabel(ext.channel)}・訂單 <span className="font-mono">{ext.external_order_id ?? '—'}</span>
+            {ext.proxy ? '（代客建單）' : ''}
+          </p>
+          <p className="text-muted-foreground">
+            平台成交 {nt(ext.amount, ext.currency ?? order.currency)}・成品語系 {languageLabel(order.language)}
+          </p>
+          {ext.customer ? (
+            <p>
+              客人{' '}
+              <Link className="text-admin-accent-600 hover:underline dark:text-admin-accent-200" href={`/admin/external-customers/${ext.customer.id}`}>
+                {ext.customer.display_name}
+              </Link>
+              {ext.customer.platform_handle ? `（${ext.customer.platform_handle}）` : ''}
+            </p>
+          ) : <p className="text-muted-foreground">官網會員訂單</p>}
+          {ext.delivered_via_platform && <p className="text-muted-foreground">已透過平台交付報告</p>}
+        </div>
+        <div className="space-y-2 text-sm">
+          {ext.sources.length === 0 ? <p className="text-muted-foreground">沒有資料來源紀錄</p> : (
+            <ul className="space-y-2">
+              {ext.sources.map((src) => (
+                <li key={src.id} className="rounded-md bg-muted/50 px-3 py-2">
+                  <p className="text-xs text-muted-foreground">{src.kind_label}{src.occurred_on ? `・${src.occurred_on}` : ''}</p>
+                  {src.summary && <p className="whitespace-pre-line break-words">{src.summary}</p>}
+                  {src.url && (
+                    <a href={src.url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 break-all text-admin-accent-600 hover:underline dark:text-admin-accent-200">
+                      {src.url}<ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                  {src.has_file && (
+                    <button type="button" disabled={busy} onClick={() => open(src.id)}
+                      className="inline-flex items-center gap-1 text-admin-accent-600 hover:underline dark:text-admin-accent-200">
+                      <Paperclip className="h-3 w-3" />{src.filename}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {ext.proxy && (
+            <div className="space-y-2 border-t border-border pt-2">
+              <textarea className={inputCls} rows={2} value={summary} maxLength={4000} onChange={(e) => setSummary(e.target.value)}
+                placeholder="追加對話摘錄（或截圖說明）" />
+              <input className={inputCls} value={url} maxLength={1000} onChange={(e) => setUrl(e.target.value)} placeholder="對話連結（選填）" />
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" className={btnGhost} disabled={busy || (!summary.trim() && !url.trim()) || !!file} onClick={addText}>
+                  追加文字
+                </button>
+                <label className={`${btnGhost} cursor-pointer`}>
+                  <Paperclip className="h-4 w-4" />{file ? file.name : '選截圖'}
+                  <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" className="sr-only"
+                    onChange={(e) => { setFile(e.target.files?.[0] ?? null); e.target.value = ''; }} />
+                </label>
+                {file && <button type="button" className={btnPrimary} disabled={busy} onClick={upload}>上傳截圖</button>}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -89,6 +217,14 @@ export default function ReportOrderDetailPage() {
   }, [orderNo]);
 
   useEffect(() => { load(); }, [load]);
+
+  // 代客建單頁轉過來時帶的提示
+  const [notice, setNotice] = useState('');
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('upload_failed')) setNotice(`訂單已建立，但這些截圖上傳失敗，請在「平台與資料來源」補傳：${qs.get('upload_failed')}`);
+    else if (qs.get('existing')) setNotice('這個平台訂單編號已經建過單，這是原本的訂單。');
+  }, []);
 
   const addNote = async () => {
     if (!order || !note.trim()) return;
@@ -114,6 +250,7 @@ export default function ReportOrderDetailPage() {
         <Link href="/admin/report-orders" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> 訂單總覽
         </Link>
+        {notice && <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">{notice}</div>}
         {error && <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">{error}</div>}
         {!order || !s ? (
           !error && <AdminLoadingSkeleton variant="list" count={4} />
@@ -128,6 +265,8 @@ export default function ReportOrderDetailPage() {
                 {order.buyer_email}・{nt(order.amount, order.currency)}・建立 {formatDate(order.created_at)}{order.paid_at ? `・付款 ${formatDate(order.paid_at)}` : ''}
               </p>
             </div>
+
+            {order.external_detail && <ExternalPanel order={order} onChange={setOrder} onError={setError} />}
 
             {order.todos.length > 0 && (
               <div className="flex flex-wrap gap-2">

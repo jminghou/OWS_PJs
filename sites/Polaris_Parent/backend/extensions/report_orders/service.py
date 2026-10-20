@@ -101,8 +101,12 @@ def _save_chart(clean, email, eng, save_chart):
 
 
 def create_report_order(user, email, clean, submission_key, eng, save_chart, payment_mode='placeholder',
-                        expires_at=None):
-    """建立待付款訂單。回傳 (order, created)；同一 submission_key 重送回傳既有訂單、created=False。"""
+                        expires_at=None, terms=None):
+    """建立待付款訂單。回傳 (order, created)；同一 submission_key 重送回傳既有訂單、created=False。
+
+    terms（後台代客建單用，proxy.py）：{'amount', 'currency', 'language', 'policy_version'}——
+    以平台實際成交金額與幣別建單、不套官網價格；不接受專人解讀（外部平台的解讀另行處理）。
+    """
     existing = find_by_submission_key(submission_key)
     if existing is not None:
         if existing.user_id != user.id:
@@ -122,6 +126,8 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
         errors.update(e)
     consult, e = phys.price_consult(cfg, clean.get('consult_sessions'))
     errors.update(e)
+    if terms is not None and consult:
+        errors['consult_sessions'] = '代客建單目前不含專人解讀'
     if errors:
         err = OrderError('資料有誤，請檢查後再送出', 400, 'invalid')
         err.errors = errors
@@ -131,6 +137,10 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
         price = cfg['digital_price'] + selection['line_total']
     else:
         product, price = _product_and_price(clean['variant'])
+    currency, language, policy_version = CURRENCY, LANGUAGE, POLICY_VERSION
+    if terms is not None:
+        price, currency = terms['amount'], terms['currency']
+        language, policy_version = terms.get('language') or LANGUAGE, terms['policy_version']
     chart, chart_time = _save_chart(clean, email, eng, save_chart)
 
     variant = clean['variant']
@@ -147,14 +157,14 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
     }
 
     order = Order(order_no=_new_order_no(), user_id=user.id, amount=price + (consult['line_total'] if consult else 0),
-                  status='pending', items=[], language=LANGUAGE, currency=CURRENCY, payment_method=payment_mode)
+                  status='pending', items=[], language=language, currency=currency, payment_method=payment_mode)
     db.session.add(order)
     db.session.flush()
     now = datetime.utcnow()
     db.session.add(OrderCheckout(order_id=order.id, submission_key=submission_key,
-                                 policy_version=POLICY_VERSION, policy_consented_at=now, expires_at=expires_at))
+                                 policy_version=policy_version, policy_consented_at=now, expires_at=expires_at))
     item = OrderItem(order_id=order.id, item_no=item_no, product_id=product.id, product_code=product.product_id,
-                     name=name, variant=variant, kind='purchase', unit_price=price, currency=CURRENCY,
+                     name=name, variant=variant, kind='purchase', unit_price=price, currency=currency,
                      quantity=1, customization=customization)
     db.session.add(item)
     db.session.flush()
@@ -167,11 +177,15 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
         items.append(phys.create_consult_item(order, item, consult))
     order.items = [phys.item_snapshot(i) for i in items]
     if variant == 'physical':
-        phys.create_print_job(item, cfg, selection, clean['audience']['call_name'])
+        job = phys.create_print_job(item, cfg, selection, clean['audience']['call_name'])
+        if terms is not None:
+            # 價格以平台成交為準：計價快照只記平台金額，不留官網（台幣）的計價明細
+            job.pricing = {'quantity': selection['quantity'], 'line_total': price, 'currency': currency,
+                           'breakdown': [{'label': '平台成交金額', 'amount': price}], 'source': 'external'}
         s = clean['shipping']
         db.session.add(Shipment(order_item_id=item.id, recipient_name=s['recipient_name'],
                                 recipient_phone=s['recipient_phone'], postal_code=s['postal_code'] or None,
-                                address=s['address'], status='pending'))
+                                address=s['address'], country=s.get('country') or None, status='pending'))
     from . import commerce
     try:
         commerce.finalize_order(order)

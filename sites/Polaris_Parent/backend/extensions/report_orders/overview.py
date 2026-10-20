@@ -46,12 +46,17 @@ def todos(order, summary):
             out.append(_todo('refund', f'實體書待退款 {money.fmt(p["refund_due"], order.currency)}'))
         return out
     item = summary.get('item') or {}
+    from . import proxy
+    is_proxy = proxy.is_proxy_order(order)
     if item.get('kind') == 'purchase':
         prod = summary.get('production') or {}
         if prod.get('handoff_status') == 'failed':
             out.append(_todo('handoff', '送紫微建工作單失敗'))
-        if not summary.get('report'):
+        # 代客建單的實體書只在打樣階段給 PDF，不另外交付數位版：不出現「待上傳報告」
+        if not summary.get('report') and not (is_proxy and item.get('variant') == 'physical'):
             out.append(_todo('upload_report', '報告製作中，完成後上傳 PDF'))
+        if is_proxy and item.get('variant') == 'digital' and summary.get('report') and not proxy.delivered_via_platform(order):
+            out.append(_todo('deliver_platform', '報告完成，透過平台交給客人後按「已透過平台交付」'))
     p = summary.get('physical') or {}
     st = p.get('status')
     if st == 'awaiting_customization' and p.get('report_ready'):
@@ -85,7 +90,7 @@ def row(order):
     return {
         'order_no': order.order_no, 'status': order.status,
         'status_label': ORDER_STATUS_LABELS.get(order.status, order.status),
-        'amount': order.amount, 'currency': order.currency, 'created_at': s.get('created_at'), 'paid_at': s.get('paid_at'),
+        'amount': order.amount, 'currency': order.currency, 'language': order.language, 'created_at': s.get('created_at'), 'paid_at': s.get('paid_at'),
         'buyer_email': _buyer_email(order), 'kind': item.get('kind'),
         'subject_name': item.get('subject_name'), 'call_name': item.get('call_name'),
         'parent_order_no': item.get('parent_order_no'),
@@ -93,8 +98,18 @@ def row(order):
         'physical_status': (s.get('physical') or {}).get('status_label'),
         'consult_status': (s.get('consult') or {}).get('status_label'),
         'report_ready': bool(s.get('report')),
+        'external': _external_brief(order),
         'todos': todos(order, s),
     }
+
+
+def _external_brief(order):
+    from . import proxy
+    ext = proxy.external_view(order)
+    if ext is None:
+        return None
+    return {'channel': ext['channel'], 'external_order_id': ext['external_order_id'], 'proxy': ext['proxy'],
+            'customer_name': (ext.get('customer') or {}).get('display_name')}
 
 
 def search(q=None, status='all', needs='all', limit=100):
@@ -112,7 +127,16 @@ def search(q=None, status='all', needs='all', limit=100):
             OrderItem.item_no.ilike(like),
             OrderItem.customization['subject_name'].as_string().ilike(like),
             OrderItem.customization['audience']['call_name'].as_string().ilike(like)))
-        query = query.filter(or_(Order.order_no.ilike(like), Order.user_id.in_(users), Order.id.in_(items)))
+        # 代客建單：平台訂單編號、客人名稱／平台帳號
+        from sites.Polaris_Parent.backend.commerce_models import CommerceExternalReceipt, CommerceReceiptBinding
+        from sites.Polaris_Parent.backend.models import ExternalCustomer
+        receipts = (db.session.query(CommerceReceiptBinding.order_id)
+                    .join(CommerceExternalReceipt, CommerceExternalReceipt.id == CommerceReceiptBinding.receipt_id)
+                    .filter(CommerceExternalReceipt.external_order_id.ilike(like)))
+        customers = db.session.query(ExternalCustomer.app_user_id).filter(or_(
+            ExternalCustomer.display_name.ilike(like), ExternalCustomer.platform_handle.ilike(like)))
+        query = query.filter(or_(Order.order_no.ilike(like), Order.user_id.in_(users), Order.id.in_(items),
+                                 Order.id.in_(receipts), Order.user_id.in_(customers)))
     orders = [o for o in query.order_by(Order.id.desc()).limit(300).all() if o.order_items]
     rows = [row(o) for o in orders]
     if needs in ('admin', 'member'):
@@ -160,5 +184,15 @@ def detail(order):
                      for a in attempts],
         'print_job_id': job.id if job is not None else None,
         'related': _related(order, s),
+        'external_detail': _external_detail(order),
         'timeline': audit.timeline(order),
     }
+
+
+def _external_detail(order):
+    from . import proxy
+    ext = proxy.external_view(order)
+    if ext is None:
+        return None
+    return {**ext, 'sources': [proxy.source_view(r) for r in proxy.sources_of(order)],
+            'delivered_via_platform': proxy.delivered_via_platform(order)}

@@ -139,6 +139,8 @@ export interface OrderTodo {
 export interface AdminOrderRow {
   order_no: string;
   currency: string;
+  /** 成品語系（BCP 47；官網訂單為 zh-TW） */
+  language: string | null;
   status: 'pending' | 'paid' | 'cancelled' | 'refunded';
   status_label: string;
   amount: number;
@@ -153,6 +155,8 @@ export interface AdminOrderRow {
   physical_status: string | null;
   consult_status: string | null;
   report_ready: boolean;
+  /** 外部平台訂單（代客建單或外部訂單查證）；官網訂單為 null */
+  external: { channel: string | null; external_order_id: string | null; proxy: boolean; customer_name: string | null } | null;
   todos: OrderTodo[];
 }
 
@@ -165,7 +169,7 @@ export interface TimelineEntry {
   actor: 'member' | 'admin' | 'system';
   actor_name: string | null;
   recipient?: string;
-  status?: 'pending' | 'sent' | 'failed';
+  status?: 'pending' | 'sent' | 'failed' | 'skipped';
 }
 
 export interface AdminOrderDetail extends AdminOrderRow {
@@ -178,7 +182,103 @@ export interface AdminOrderDetail extends AdminOrderRow {
   }[];
   print_job_id: number | null;
   related: { relation: string; order_no: string; status_label: string }[];
+  external_detail: ExternalOrderDetail | null;
   timeline: TimelineEntry[];
+}
+
+// ── 外部平台代客建單（後端 report_orders/proxy.py） ─────────────────────────
+
+export interface ProxyChannel {
+  id: number;
+  channel: string;
+  store_key: string;
+  manual_import: boolean;
+  valid_until: string;
+  /** 已開放人工匯入且未過期：才能代客建單 */
+  effective: boolean;
+  policy_reference: string;
+}
+
+export interface CurrencyOption { code: string; label: string; exponent: number; symbol: string }
+
+export interface ExternalCustomer {
+  id: number;
+  display_name: string;
+  platform_handle: string | null;
+  contact_note: string | null;
+  channel_id: number | null;
+  app_user_id: number;
+  /** 客人已用認領碼綁定自己的帳號 */
+  claimed: boolean;
+  created_at: string | null;
+  orders?: AdminOrderRow[];
+}
+
+export type SourceKind = 'conversation' | 'link' | 'screenshot' | 'note';
+
+export interface OrderSource {
+  id: number;
+  kind: SourceKind;
+  kind_label: string;
+  occurred_on: string | null;
+  summary: string | null;
+  url: string | null;
+  filename: string | null;
+  content_type: string | null;
+  bytes: number | null;
+  has_file: boolean;
+  created_at: string | null;
+}
+
+export interface ExternalOrderDetail {
+  channel: string | null;
+  store_key: string | null;
+  external_order_id: string | null;
+  receipt_status: string | null;
+  amount: number | null;
+  currency: string | null;
+  proxy: boolean;
+  customer: ExternalCustomer | null;
+  sources: OrderSource[];
+  delivered_via_platform: boolean;
+}
+
+export interface ProxyConfig {
+  channels: ProxyChannel[];
+  currencies: CurrencyOption[];
+  specs: { key: string; label: string; price_delta: number }[];
+  default_spec_key: string | null;
+  cover_styles: { key: string; label: string; image?: string }[];
+}
+
+/** 出生地：常用城市／全球城市（geonameid）／手動經緯度（只限代客建單） */
+export type ProxyPlace =
+  | { continent: string; country: string; city: string; geonameid?: number }
+  | { manual: true; lat: number; lon: number; tz: string; city: string; country: string };
+
+export interface CreateProxyOrderRequest {
+  channel_id: number;
+  external_order_id: string;
+  external_sku?: string;
+  currency: string;
+  /** 主單位字串，例如 "899.00"；後端換成最小單位 */
+  amount: string;
+  language: string;
+  customer_id?: number;
+  customer?: { display_name: string; platform_handle?: string; contact_note?: string };
+  book?: { cover_name?: string; cover_style?: string; dedication?: string };
+  order: {
+    variant: 'digital' | 'physical';
+    subject_name: string;
+    gender: '男' | '女';
+    relation_label: string;
+    birth: { date: string; time: string; time_type: 'clock_time' | 'solar_time' };
+    place: ProxyPlace;
+    audience: { reader: string; call_name: string; dedication: string };
+    shipping?: ShippingInfo & { country?: string };
+    physical?: PhysicalSelection;
+  };
+  sources: { kind: Exclude<SourceKind, 'screenshot'>; occurred_on?: string; summary?: string; url?: string }[];
 }
 
 export type ProofDecision = 'approved' | 'changes_requested' | 'auto_approved' | 'admin_approved' | 'superseded';
@@ -466,7 +566,7 @@ export interface AdminConsultation extends ConsultView {
 
 export type ConsultAction = 'schedule' | 'complete' | 'cancel' | 'refund';
 
-export type NotificationStatus = 'pending' | 'sent' | 'failed';
+export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'skipped';
 
 export interface AdminNotification {
   id: number;
@@ -747,6 +847,45 @@ export const reportOrdersApi = {
 
   adminNotification: (id: number) =>
     request<{ success: boolean; notification: AdminNotification }>(`/admin/report-notifications/${id}`),
+
+  // ── 外部平台代客建單 ──
+  proxyConfig: () => request<{ success: boolean } & ProxyConfig>('/admin/proxy-orders/config'),
+
+  externalCustomers: (q = '') =>
+    request<{ success: boolean; customers: ExternalCustomer[] }>('/admin/external-customers', { params: q ? { q } : {} }),
+
+  externalCustomer: (id: number) =>
+    request<{ success: boolean; customer: ExternalCustomer }>(`/admin/external-customers/${id}`),
+
+  createExternalCustomer: (body: { display_name: string; platform_handle?: string; contact_note?: string }) =>
+    post<{ success: boolean; customer: ExternalCustomer }>('/admin/external-customers', body),
+
+  updateExternalCustomer: (id: number, body: { display_name: string; platform_handle?: string | null; contact_note?: string | null }) =>
+    request<{ success: boolean; customer: ExternalCustomer }>(`/admin/external-customers/${id}`, {
+      method: 'PUT', body: JSON.stringify(body),
+    }),
+
+  createProxyOrder: (body: CreateProxyOrderRequest) =>
+    post<{ success: boolean; created: boolean; order_no: string }>('/admin/proxy-orders', body),
+
+  addOrderSource: (orderNo: string, body: { kind: Exclude<SourceKind, 'screenshot'>; occurred_on?: string; summary?: string; url?: string }) =>
+    post<{ success: boolean; sources: OrderSource[] }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/sources`, body),
+
+  uploadOrderSource: (orderNo: string, file: File, summary: string, occurredOn: string) => {
+    const body = new FormData();
+    body.append('file', file);
+    body.append('summary', summary);
+    if (occurredOn) body.append('occurred_on', occurredOn);
+    return request<{ success: boolean; sources: OrderSource[] }>(
+      `/admin/report-orders/${encodeURIComponent(orderNo)}/sources/upload`, { method: 'POST', body });
+  },
+
+  orderSourceLink: (orderNo: string, id: number) =>
+    post<{ success: boolean; url: string }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/sources/${id}/link`, {}),
+
+  deliveredViaPlatform: (orderNo: string, note?: string) =>
+    post<{ success: boolean; order: AdminOrderDetail }>(
+      `/admin/report-orders/${encodeURIComponent(orderNo)}/delivered-via-platform`, { note }),
 
   adminResendNotification: (id: number) =>
     post<{ success: boolean; notification: AdminNotification }>(`/admin/report-notifications/${id}/resend`, {}),

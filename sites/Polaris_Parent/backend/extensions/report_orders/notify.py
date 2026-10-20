@@ -62,10 +62,20 @@ def _deliver(order, event, recipient, subject, body, key=None):
     except IntegrityError:
         db.session.rollback()
         return False  # 已寄過（或正在寄）
+    if _undeliverable(recipient):
+        # 代客建單的外部客人沒有信箱（保留網域 .invalid）：記一筆「已略過」就好，不重試、不發警示
+        note.status, note.error = 'skipped', '外部平台客人沒有信箱（代客建單），不寄送'
+        db.session.commit()
+        return False
     db.session.add(ReportMailOutbox(notification_id=note.id, subject=subject, body=body,
                                     next_attempt_at=datetime.utcnow() + INFLIGHT_GRACE))
     db.session.commit()
     return attempt(note)
+
+
+def _undeliverable(recipient):
+    """.invalid 是保留網域（RFC 2606），永遠收不到信；代客建單的客人帳號用它。"""
+    return str(recipient or '').strip().lower().endswith('.invalid')
 
 
 def outbox_of(note):

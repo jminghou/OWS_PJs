@@ -73,6 +73,10 @@ LABELS = {
     'consult_completed': lambda d: '專人解讀完成',
     'consult_cancelled': lambda d: f'取消專人解讀：{d.get("reason") or "-"}',
     'admin_note': lambda d: f'備註：{d.get("note") or ""}',
+    'proxy_order_created': lambda d: f'代客建單：{d.get("channel") or "-"} 訂單 {d.get("external_order_id") or "-"}（客人 {d.get("customer") or "-"}）',
+    'proxy_order_failed': lambda d: '代客建單失敗，已取消這張未完成的訂單',
+    'source_added': lambda d: f'追加資料來源（{ {"conversation": "對話摘錄", "link": "對話連結", "screenshot": "對話截圖", "note": "說明"}.get(d.get("kind"), d.get("kind")) }）',
+    'delivered_via_platform': lambda d: '已透過平台把報告交給客人' + (f'：{d["note"]}' if d.get('note') else ''),
 }
 
 

@@ -52,13 +52,25 @@ const marketingNav = [
   },
 ];
 
-// 訂單相關：總覽（全貌與時間軸）＋各階段工作清單（收款、交付、出貨、解讀、審核）
+// 訂單相關：總覽（全貌與時間軸）＋外部平台代客建單＋各階段工作清單（收款、交付、出貨、解讀、審核）
 const orderNav = [
   {
     href: '/admin/report-orders',
     label: '訂單總覽',
     permission: 'report_orders.read',
     icon: icon('M4 6h16M4 10h16M4 14h16M4 18h16'),
+  },
+  {
+    href: '/admin/proxy-orders/new',
+    label: '代客建單',
+    permission: 'report_orders.proxy',
+    icon: icon('M12 4v16m8-8H4'),
+  },
+  {
+    href: '/admin/external-customers',
+    label: '外部客人',
+    permission: 'report_orders.proxy',
+    icon: icon('M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'),
   },
   {
     href: '/admin/commerce-intake',

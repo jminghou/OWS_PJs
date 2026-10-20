@@ -9,8 +9,9 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
-import { ClipboardList, Search } from 'lucide-react';
+import { ClipboardList, Plus, Search } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
+import { channelLabel } from '@/lib/report/proxy';
 import { reportOrdersApi, type AdminOrderRow } from '@/lib/api/reportOrders';
 
 type Needs = 'all' | 'admin' | 'member';
@@ -69,11 +70,17 @@ export default function ReportOrdersOverviewPage() {
   return (
     <AdminLayout>
       <div className="mx-auto max-w-5xl p-4 md:p-8">
-        <div className="mb-6">
-          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">訂單總覽</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            所有報告訂單（含加購）都在這裡，每筆標出現在要做什麼。點進去看付款、交付、實體書與完整時間軸。
-          </p>
+        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">訂單總覽</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              所有報告訂單（含加購）都在這裡，每筆標出現在要做什麼。點進去看付款、交付、實體書與完整時間軸。
+            </p>
+          </div>
+          <Link href="/admin/proxy-orders/new"
+            className="inline-flex min-h-[40px] md:min-h-0 shrink-0 items-center justify-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-muted">
+            <Plus className="h-4 w-4" /> 代客建單
+          </Link>
         </div>
 
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -95,7 +102,7 @@ export default function ReportOrdersOverviewPage() {
               {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             <input className={inputCls} value={keyword} onChange={(e) => setKeyword(e.target.value)}
-              placeholder="訂單編號、Email、主角姓名" />
+              placeholder="訂單編號、Email、主角、平台訂單號、客人" />
             <button type="submit" aria-label="搜尋"
               className="inline-flex shrink-0 items-center rounded-md border border-border bg-card px-3 text-foreground hover:bg-muted">
               <Search className="h-4 w-4" />
@@ -121,6 +128,11 @@ export default function ReportOrdersOverviewPage() {
                       <span className="font-mono font-medium">{r.order_no}</span>
                       <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_CLS[r.status] ?? 'bg-muted'}`}>{r.status_label}</span>
                       {r.kind === 'addon' && <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">加購・原訂單 {r.parent_order_no}</span>}
+                      {r.external && (
+                        <span className="rounded bg-sky-50 px-2 py-0.5 text-[11px] text-sky-700 dark:bg-sky-900/40 dark:text-sky-200">
+                          {channelLabel(r.external.channel)} {r.external.external_order_id}{r.external.customer_name ? `・${r.external.customer_name}` : ''}
+                        </span>
+                      )}
                     </div>
                     <p>{r.subject_name ?? '—'}{r.call_name ? `（${r.call_name}）` : ''}・{r.lines.join('、')}</p>
                     <p className="text-muted-foreground">

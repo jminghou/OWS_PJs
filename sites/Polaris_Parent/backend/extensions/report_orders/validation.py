@@ -20,6 +20,9 @@ _DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 _TIME_RE = re.compile(r'^([01]\d|2[0-3]):[0-5]\d$')
 _PHONE_RE = re.compile(r'^\+?[0-9][0-9\- ]{6,18}[0-9]$')
 _POSTAL_RE = re.compile(r'^\d{3,6}$')
+# 海外郵遞區號（英國 SW1A 1AA、加拿大 K1A 0B1、荷蘭 1012 AB…）
+_INTL_POSTAL_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 \-]{1,10}[A-Za-z0-9]$')
+_COUNTRY_RE = re.compile(r'^[A-Z]{2}$')
 
 
 def _text(value, limit=None):
@@ -49,7 +52,8 @@ def _clean_place(place, allow_manual, errors):
     return None
 
 
-def validate_order(data: dict, today: date = None, allow_manual_place: bool = False):
+def validate_order(data: dict, today: date = None, allow_manual_place: bool = False,
+                   allow_international: bool = False):
     today = today or date.today()
     errors = {}
     birth = data.get('birth') or {}
@@ -120,7 +124,7 @@ def validate_order(data: dict, today: date = None, allow_manual_place: bool = Fa
 
     shipping = physical = None
     if variant == 'physical':
-        shipping, ship_errors = validate_shipping(data.get('shipping') or {})
+        shipping, ship_errors = validate_shipping(data.get('shipping') or {}, allow_international)
         errors.update(ship_errors)
         # 規格／數量／特殊客製的合法值依後台設定，在 physical.price_physical 檢查；這裡只取出原始值
         raw = data.get('physical') if isinstance(data.get('physical'), dict) else {}
@@ -150,20 +154,29 @@ def validate_order(data: dict, today: date = None, allow_manual_place: bool = Fa
     return clean, {}
 
 
-def validate_shipping(s: dict):
+def validate_shipping(s: dict, allow_international: bool = False):
+    """收件資料。allow_international（後台代客建單）：可填國家（ISO 國碼），國外地址放寬郵遞區號與長度。"""
     errors = {}
     name = _text(s.get('recipient_name'))
     phone = _text(s.get('recipient_phone'))
     postal = _text(s.get('postal_code'))
     address = _text(s.get('address'))
-    if not name or len(name) > 50:
-        errors['recipient_name'] = '請填寫收件人姓名（50 字以內）'
+    country = _text(s.get('country')).upper() if allow_international else ''
+    if country == 'TW':
+        country = ''
+    if country and not _COUNTRY_RE.match(country):
+        errors['country'] = '國家請用兩碼國碼（例：NO、US）'
+    if not name or len(name) > 100:
+        errors['recipient_name'] = '請填寫收件人姓名（100 字以內）'
     if not _PHONE_RE.match(phone):
         errors['recipient_phone'] = '請填寫可聯絡的電話'
-    if postal and not _POSTAL_RE.match(postal):
+    if postal and not (_INTL_POSTAL_RE if country else _POSTAL_RE).match(postal):
         errors['postal_code'] = '郵遞區號格式不正確'
-    if len(address) < 5 or len(address) > 200:
+    if len(address) < 5 or len(address) > (400 if country else 200):
         errors['address'] = '請填寫完整的收件地址'
     if errors:
         return None, errors
-    return {'recipient_name': name, 'recipient_phone': phone, 'postal_code': postal, 'address': address}, {}
+    out = {'recipient_name': name, 'recipient_phone': phone, 'postal_code': postal, 'address': address}
+    if country:
+        out['country'] = country
+    return out, {}

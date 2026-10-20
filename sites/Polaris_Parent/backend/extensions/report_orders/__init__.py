@@ -45,7 +45,8 @@ from packages.commerce.models import Order, OrderItem
 from sites.Polaris_Parent.backend.models import ReportConsultation, ReportFulfillment, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import audit, delivery, design, handoff, jobs, money, notify, overview, payment, physical, private_storage, proofs, service
+from . import (audit, delivery, design, handoff, jobs, money, notify, overview, payment, physical, private_storage,
+               proofs, proxy, service)
 from .validation import validate_order, validate_shipping
 
 try:
@@ -76,6 +77,7 @@ REPORT_ORDER_PERMISSIONS = [
      'Confirm Manual Payments'),
     ('report_orders.fulfill', 'report_orders', 'fulfill', '管理實體書出貨與退款',
      'Manage Physical Book Fulfilment'),
+    ('report_orders.proxy', 'report_orders', 'proxy', '外部平台代客建單與客人檔案', 'Create Proxy Orders'),
 ]
 register_permissions(REPORT_ORDER_PERMISSIONS)
 
@@ -396,7 +398,7 @@ def _admin_row(order):
 @jwt_required()
 @require_permission('report_orders.read')
 def admin_list_notifications():
-    """寄信紀錄：status＝failed（含重試中）／pending／sent／all；q＝訂單編號或收件者。"""
+    """寄信紀錄：status＝failed（含重試中）／pending／sent／skipped（外部客人不寄送）／all；q＝訂單編號或收件者。"""
     from packages.commerce.models import OrderNotification
     from sites.Polaris_Parent.backend.models import ReportMailOutbox
 
@@ -404,7 +406,7 @@ def admin_list_notifications():
     q = (db.session.query(OrderNotification, ReportMailOutbox, Order.order_no)
          .outerjoin(ReportMailOutbox, ReportMailOutbox.notification_id == OrderNotification.id)
          .join(Order, Order.id == OrderNotification.order_id))
-    if status in ('failed', 'pending', 'sent'):
+    if status in ('failed', 'pending', 'sent', 'skipped'):
         q = q.filter(OrderNotification.status == status)
     keyword = (request.args.get('q') or '').strip()
     if keyword:
@@ -958,6 +960,145 @@ def member_proof_decision(order_no):
     return jsonify({'success': True, 'order': service.order_summary(order)})
 
 
+# ── 外部平台代客建單（proxy.py） ─────────────────────────────────────────────
+def _proxy_error(exc):
+    db.session.rollback()
+    return _error(exc.message, exc.status, code=exc.code, errors=getattr(exc, 'errors', None))
+
+
+@bp.route('/admin/proxy-orders/config', methods=['GET'])
+@jwt_required()
+@require_permission('report_orders.proxy')
+def admin_proxy_config():
+    """代客建單頁要的選項：已開放人工匯入的平台、幣別、實體書規格與封面款式。"""
+    from sites.Polaris_Parent.backend.commerce_models import CommerceChannel
+    from . import intake
+    cfg = physical.load_config()
+    channels = [intake.channel_view(c) for c in CommerceChannel.query.order_by(CommerceChannel.id).all()]
+    return jsonify({'success': True, 'channels': channels, 'currencies': money.catalog(),
+                    'specs': cfg.get('specs') or [], 'default_spec_key': proxy._default_spec_key(cfg),
+                    'cover_styles': cfg.get('cover_styles') or []})
+
+
+@bp.route('/admin/external-customers', methods=['GET', 'POST'])
+@_limit('60 per minute')
+@jwt_required()
+@require_permission('report_orders.proxy')
+def admin_external_customers():
+    if request.method == 'POST':
+        try:
+            c = proxy.create_customer(request.get_json(silent=True) or {}, int(get_jwt_identity()))
+            db.session.commit()
+        except service.OrderError as exc:
+            return _proxy_error(exc)
+        return jsonify({'success': True, 'customer': proxy.customer_view(c)}), 201
+    rows = proxy.search_customers(request.args.get('q'))
+    return jsonify({'success': True, 'customers': [proxy.customer_view(c) for c in rows]})
+
+
+@bp.route('/admin/external-customers/<int:customer_id>', methods=['GET', 'PUT'])
+@jwt_required()
+@require_permission('report_orders.proxy')
+def admin_external_customer(customer_id):
+    from sites.Polaris_Parent.backend.models import ExternalCustomer
+    c = db.session.get(ExternalCustomer, customer_id)
+    if c is None:
+        return _error('找不到這位客人', 404)
+    if request.method == 'PUT':
+        try:
+            proxy.update_customer(c, request.get_json(silent=True) or {})
+        except service.OrderError as exc:
+            return _proxy_error(exc)
+    return jsonify({'success': True, 'customer': proxy.customer_view(c, with_orders=True)})
+
+
+@bp.route('/admin/proxy-orders', methods=['POST'])
+@_limit('20 per minute')
+@jwt_required()
+@require_permission('report_orders.proxy')
+def admin_create_proxy_order():
+    """代客建單：平台成交＋客人檔案＋客製資料＋資料來源，一次建好並認列為平台已成交。"""
+    eng = _engine()
+    if eng is None:
+        return _error('排盤引擎暫時無法使用，請稍後再試', 503)
+    try:
+        order, created = proxy.create_order(request.get_json(silent=True), int(get_jwt_identity()), eng, _save_chart)
+    except service.OrderError as exc:
+        return _proxy_error(exc)
+    return jsonify({'success': True, 'created': created, 'order_no': order.order_no}), 201 if created else 200
+
+
+@bp.route('/admin/report-orders/<order_no>/sources', methods=['GET', 'POST'])
+@_limit('60 per minute')
+@jwt_required()
+@require_permission('report_orders.read')
+def admin_order_sources(order_no):
+    """訂單資料來源（對話紀錄）：GET 列出；POST 追加文字或連結（需代客建單權限）。"""
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    if request.method == 'POST':
+        if 'report_orders.proxy' not in (RBACService.get_user_permissions(int(get_jwt_identity())) or set()):
+            return _error('需要代客建單權限', 403)
+        try:
+            proxy.add_source(order, int(get_jwt_identity()), request.get_json(silent=True) or {})
+        except service.OrderError as exc:
+            return _proxy_error(exc)
+    return jsonify({'success': True, 'sources': [proxy.source_view(r) for r in proxy.sources_of(order)]})
+
+
+@bp.route('/admin/report-orders/<order_no>/sources/upload', methods=['POST'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.proxy')
+def admin_upload_source(order_no):
+    """上傳對話截圖（multipart：file、summary、occurred_on）。存私有儲存。"""
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    upload = request.files.get('file')
+    if upload is None:
+        return _error('請選擇截圖檔案', 400)
+    try:
+        proxy.add_screenshot(order, int(get_jwt_identity()), upload.filename, upload.mimetype, upload.read(),
+                             request.form.get('summary'), request.form.get('occurred_on'))
+    except service.OrderError as exc:
+        return _proxy_error(exc)
+    except private_storage.StorageError as exc:
+        db.session.rollback()
+        current_app.logger.error(f'source upload failed for {order_no}: {exc}')
+        return _error('檔案儲存失敗，請稍後再試', 503)
+    return jsonify({'success': True, 'sources': [proxy.source_view(r) for r in proxy.sources_of(order)]})
+
+
+@bp.route('/admin/report-orders/<order_no>/sources/<int:record_id>/link', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.read')
+def admin_source_link(order_no, record_id):
+    from sites.Polaris_Parent.backend.models import OrderSourceRecord
+    order = _admin_order(order_no)
+    rec = db.session.get(OrderSourceRecord, record_id)
+    if order is None or rec is None or rec.order_id != order.id or not rec.file_key:
+        return _error('找不到這個檔案', 404)
+    token = private_storage.issue_file_token('source', rec.id, int(get_jwt_identity()))
+    return jsonify({'success': True, 'url': url_for('report_orders.report_file', token=token, _external=True)})
+
+
+@bp.route('/admin/report-orders/<order_no>/delivered-via-platform', methods=['POST'])
+@jwt_required()
+@require_permission('report_orders.proxy')
+def admin_delivered_via_platform(order_no):
+    """數位版代客建單：已透過平台把報告 PDF 交給客人（留下紀錄，訂單才算完成）。"""
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到這筆訂單', 404)
+    try:
+        proxy.mark_delivered_via_platform(order, int(get_jwt_identity()), (request.get_json(silent=True) or {}).get('note'))
+    except service.OrderError as exc:
+        return _proxy_error(exc)
+    return jsonify({'success': True, 'order': overview.detail(order)})
+
+
 # ── 專人解讀（後台；取消規則不對外公開，由管理者代為取消） ───────────────────
 def _consult_row(consult):
     item = db.session.get(OrderItem, consult.order_item_id)
@@ -1114,6 +1255,11 @@ def report_file(token):
         elif kind == 'proof':
             row, data = proofs.proof_for_download(file_id, user_id, is_admin)
             mimetype = 'application/pdf'
+        elif kind == 'source':
+            if not is_admin:  # 對話截圖只給後台
+                return _error('連結不正確', 404)
+            row, data = proxy.source_for_download(file_id)
+            mimetype = row.content_type
         else:
             return _error('連結不正確', 404)
     except service.OrderError as exc:
