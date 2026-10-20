@@ -110,6 +110,8 @@ export default function ZiweiQuickChart() {
     const payload: ZiweiChartPayload = {
       year: birth.year, month: birth.month, day, hour: birth.hour, minute: 0,
       gender, name: '', place: useSolarTime ? `${place.city}, ${place.country}` : '', relation: 'self',
+      time_type: useSolarTime ? 'solar_time' : 'clock_time',
+      birth_place: useSolarTime ? toZiweiPlace(place) : undefined,
     };
     setError('');
     setLoading(true);

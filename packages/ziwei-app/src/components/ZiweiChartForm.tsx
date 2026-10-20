@@ -105,6 +105,8 @@ export default function ZiweiChartForm() {
       place:
         form.timeType === 'solar_time' ? `${form.place.city}, ${form.place.country}` : '',
       relation: 'self',
+      time_type: form.timeType,
+      birth_place: form.timeType === 'solar_time' ? toZiweiPlace(form.place) : undefined,
     };
   };
 

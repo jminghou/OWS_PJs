@@ -189,6 +189,32 @@ def resolve_birth_time(eng, clock, time_type, city="", country="", place=None, a
     return resolve(eng, clock, time_type, city, country, place=place, allow_manual=allow_manual)
 
 
+def _birth_for_save(src, y, mo, d, h, mi):
+    """存盤用的出生時間（2026-10-21 修正）：與 /calculate 預覽、報告建單相同的換算。
+
+    以前三條存盤路徑（save-and-register、我的命盤、註冊附帶命盤）直接把輸入時間存進紫微，
+    選真太陽時或出生在夏令時期間時，存下的盤會和畫面上看到的不同。
+    前端帶 time_type 與 birth_place（出生地物件：常用城市、geonameid 或座標）時依出生地換算；
+    舊版頁面沒帶這兩個欄位就維持原樣（快取中的舊頁面不會因此失敗）。
+    回傳 ((y, mo, d, h, mi), 出生地字串, 錯誤訊息)。
+    """
+    time_type = src.get("time_type")
+    birth_place = src.get("birth_place")
+    if time_type not in ("clock_time", "solar_time") and not isinstance(birth_place, dict):
+        return (y, mo, d, h, mi), (src.get("place") or "").strip(), None
+    eng = _get_engine()
+    if eng is None:
+        return None, None, "排盤引擎暫時無法使用，請稍後再試"
+    from .birthplace import BirthplaceError
+    try:
+        birth = resolve_birth_time(
+            eng, (y, mo, d, h, mi), time_type or "clock_time",
+            place={k: v for k, v in (birth_place or {}).items() if k != "manual"})
+    except BirthplaceError as exc:
+        return None, None, str(exc)
+    return birth.resolved, birth.birthplace or (src.get("place") or "").strip(), None
+
+
 def _limit(rule):
     """有 limiter 才套用限流，否則 no-op（本機/測試不依賴 Redis）。"""
     def deco(fn):
@@ -437,11 +463,16 @@ def save_and_register():
         return jsonify({"success": False, "error": "請提供有效的 email"}), 400
 
     # 1. 呼叫紫微：存命盤 + 建免密碼會員 + 歸戶
+    resolved, place_label, perr = _birth_for_save(
+        data, parts["year"], parts["month"], parts["day"], parts["hour"], minute)
+    if perr:
+        return jsonify({"success": False, "error": perr}), 400
+    ry, rmo, rd, rh, rmi = resolved
     zres, zerr = _ziwei_save_and_register({
-        "year": parts["year"], "month": parts["month"], "day": parts["day"],
-        "hour": parts["hour"], "minute": minute,
+        "year": ry, "month": rmo, "day": rd,
+        "hour": rh, "minute": rmi,
         "gender": gender, "name": (data.get("name") or "").strip(),
-        "place": (data.get("place") or "").strip(), "email": email,
+        "place": place_label, "email": email,
         "relation": (data.get("relation") or "self"),
         "rating": (data.get("rating") or "").strip(),
     })
@@ -521,11 +552,16 @@ def save_my_chart():
     if "@" not in email:
         return jsonify({"success": False, "error": "會員帳號缺少 email，無法歸檔"}), 400
 
+    resolved, place_label, perr = _birth_for_save(
+        data, parts["year"], parts["month"], parts["day"], parts["hour"], minute)
+    if perr:
+        return jsonify({"success": False, "error": perr}), 400
+    ry, rmo, rd, rh, rmi = resolved
     zres, zerr = _ziwei_save_and_register({
-        "year": parts["year"], "month": parts["month"], "day": parts["day"],
-        "hour": parts["hour"], "minute": minute,
+        "year": ry, "month": rmo, "day": rd,
+        "hour": rh, "minute": rmi,
         "gender": gender, "name": (data.get("name") or "").strip(),
-        "place": (data.get("place") or "").strip(), "email": email,
+        "place": place_label, "email": email,
         "relation": (data.get("relation") or "self"),
         "rating": (data.get("rating") or "").strip(),
     })
@@ -695,11 +731,16 @@ def _attach_pending_chart(email, data):
     if gender not in ("男", "女"):
         return SignupHookResult(warning="命盤資料不完整（gender），命盤未儲存")
 
+    resolved, place_label, perr = _birth_for_save(
+        chart, parts["year"], parts["month"], parts["day"], parts["hour"], minute)
+    if perr:
+        return SignupHookResult(warning=f"註冊已完成，但命盤出生地換算失敗（{perr}），請登入後重新排盤儲存")
+    ry, rmo, rd, rh, rmi = resolved
     zres, zerr = _ziwei_save_and_register({
-        "year": parts["year"], "month": parts["month"], "day": parts["day"],
-        "hour": parts["hour"], "minute": minute,
+        "year": ry, "month": rmo, "day": rd,
+        "hour": rh, "minute": rmi,
         "gender": gender, "name": (chart.get("name") or "").strip(),
-        "place": (chart.get("place") or "").strip(), "email": email,
+        "place": place_label, "email": email,
         "relation": (chart.get("relation") or "self"),
         "rating": (chart.get("rating") or "").strip(),
     })

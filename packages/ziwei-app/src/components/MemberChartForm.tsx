@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import Button from '@ows/ui/ui/Button';
 import {
   astrologyApi,
-  type GeoHierarchy,
   type TimeType,
   type ZiweiCalcResponse,
   type SaveMyChartRequest,
 } from '../api/astrology';
+import BirthPlaceFields, { EMPTY_BIRTH_PLACE, toZiweiPlace, type BirthPlace } from './BirthPlaceFields';
 
 /**
  * 會員中心排盤表單：完整生辰欄位 + 「關係」「資料評級」。
@@ -53,36 +53,11 @@ export default function MemberChartForm({ onComputed }: Props) {
     date: '',
     time: '',
     timeType: 'clock_time' as TimeType,
-    continent: '',
-    country: '',
-    city: '',
+    place: EMPTY_BIRTH_PLACE as BirthPlace,
   });
 
-  const [geo, setGeo] = useState<GeoHierarchy | null>(null);
-  const [geoError, setGeoError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // 切到「真太陽時」時才載入地點選項
-  useEffect(() => {
-    if (form.timeType !== 'solar_time' || geo) return;
-    astrologyApi
-      .geoOptions()
-      .then(setGeo)
-      .catch((e) => setGeoError(e.message || '無法載入地點'));
-  }, [form.timeType, geo]);
-
-  const countries = useMemo(
-    () => (geo && form.continent ? Object.keys(geo[form.continent] || {}) : []),
-    [geo, form.continent]
-  );
-  const cities = useMemo(
-    () =>
-      geo && form.continent && form.country
-        ? geo[form.continent]?.[form.country] || []
-        : [],
-    [geo, form.continent, form.country]
-  );
 
   const set = (patch: Partial<typeof form>) =>
     setForm((prev) => ({ ...prev, ...patch }));
@@ -95,14 +70,14 @@ export default function MemberChartForm({ onComputed }: Props) {
       setError('請填寫出生日期與時間');
       return;
     }
-    if (form.timeType === 'solar_time' && (!form.city || !form.country)) {
+    if (form.timeType === 'solar_time' && (!form.place.city || !form.place.country)) {
       setError('真太陽時需選擇出生地點（國家與城市）');
       return;
     }
     const [year, month, day] = form.date.split('-').map(Number);
     const [hour, minute] = form.time.split(':').map(Number);
     const place =
-      form.timeType === 'solar_time' ? `${form.city}, ${form.country}` : '';
+      form.timeType === 'solar_time' ? `${form.place.city}, ${form.place.country}` : '';
 
     setLoading(true);
     try {
@@ -117,7 +92,7 @@ export default function MemberChartForm({ onComputed }: Props) {
         time_type: form.timeType,
         place:
           form.timeType === 'solar_time'
-            ? { city: form.city, country: form.country }
+            ? toZiweiPlace(form.place)
             : undefined,
         // 排盤在瀏覽器算（@ows/ziwei-engine）；靜態 SVG 由後端出，只在會員頁下載時才取
         render: false,
@@ -135,6 +110,8 @@ export default function MemberChartForm({ onComputed }: Props) {
         place,
         relation: form.relation,
         rating: form.rating,
+        time_type: form.timeType,
+        birth_place: form.timeType === 'solar_time' ? toZiweiPlace(form.place) : undefined,
       });
     } catch (err: any) {
       setError(err.message || '排盤失敗，請稍後再試');
@@ -267,64 +244,9 @@ export default function MemberChartForm({ onComputed }: Props) {
         </div>
       </div>
 
-      {/* 出生地點（真太陽時才需要）*/}
+      {/* 出生地點（真太陽時才需要）：與公開排盤同一個元件，含全球城市搜尋 */}
       {form.timeType === 'solar_time' && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-warm-50 rounded-banner">
-          {geoError && (
-            <p className="sm:col-span-3 text-sm text-red-600">{geoError}</p>
-          )}
-          <div>
-            <label className={labelCls}>洲 *</label>
-            <select
-              value={form.continent}
-              onChange={(e) =>
-                set({ continent: e.target.value, country: '', city: '' })
-              }
-              className={inputCls}
-              disabled={!geo}
-            >
-              <option value="">請選擇</option>
-              {geo &&
-                Object.keys(geo).map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>國家 *</label>
-            <select
-              value={form.country}
-              onChange={(e) => set({ country: e.target.value, city: '' })}
-              className={inputCls}
-              disabled={!form.continent}
-            >
-              <option value="">請選擇</option>
-              {countries.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>城市 *</label>
-            <select
-              value={form.city}
-              onChange={(e) => set({ city: e.target.value })}
-              className={inputCls}
-              disabled={!form.country}
-            >
-              <option value="">請選擇</option>
-              {cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <BirthPlaceFields value={form.place} onChange={(place) => set({ place })} />
       )}
 
       {error && (

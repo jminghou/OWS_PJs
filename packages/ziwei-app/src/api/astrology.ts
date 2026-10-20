@@ -275,6 +275,9 @@ export interface SaveMyChartRequest {
   place?: string;
   relation?: string; // self/father/mother/...（預設 self）
   rating?: string; // 資料評級（Rodden rating）
+  /** 存盤時依出生地換算（真太陽時／夏令時，與 /calculate 相同）；舊版頁面沒帶就照填寫的時間存 */
+  time_type?: TimeType;
+  birth_place?: ZiweiPlace;
 }
 
 export interface SaveAndRegisterResponse {
@@ -304,6 +307,9 @@ export interface RegisterChartPayload {
   name?: string;
   place?: string;
   relation?: string; // 預設 self
+  /** 存盤時依出生地換算（真太陽時／夏令時，與 /calculate 相同）；舊版頁面沒帶就照填寫的時間存 */
+  time_type?: TimeType;
+  birth_place?: ZiweiPlace;
 }
 
 export interface ChartBirth {

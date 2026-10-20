@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef, useState } from 'react';
+import type { TimeType, ZiweiPlace } from '../api/astrology';
 import { useRouter } from 'next/navigation';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
 import Button from '@ows/ui/ui/Button';
@@ -19,6 +20,9 @@ export interface ZiweiChartPayload {
   name: string;
   place: string;
   relation: string;
+  /** 存盤時依出生地換算用（見 SaveMyChartRequest） */
+  time_type?: TimeType;
+  birth_place?: ZiweiPlace;
 }
 
 interface ZiweiChartResultProps {
