@@ -134,6 +134,12 @@ class ProxyTests(_Base):
         self.assertEqual((r.status_code, r.get_json()['created'], r.get_json()['order_no']), (200, False, first.order_no))
         self.assertEqual(Order.query.count(), 1)
 
+    def test_works_without_commerce_foundation(self):
+        self.app.config['COMMERCE_FOUNDATION_ENABLED'] = False  # 正式環境預設關
+        order = self.created_order()
+        self.assertEqual((order.status, ReportPrintJob.query.one().status), ('paid', 'awaiting_proof'))
+        self.assertEqual([t['key'] for t in self.detail(order.order_no)['todos']], ['proof'])
+
     def test_overview_search_by_platform_order_and_customer(self):
         order = self.created_order()
         for q in ('ETSY-314', 'kari', 'Kari N'):
