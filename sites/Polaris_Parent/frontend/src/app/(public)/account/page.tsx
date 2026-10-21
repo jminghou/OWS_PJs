@@ -373,6 +373,10 @@ export default function AccountPage() {
       {/* 需要你處理 */}
       {ordersErr && <Alert tone="error" className="mb-6">{ordersErr}</Alert>}
       {reportOrders && <div className="mb-8"><AccountTodos todos={buildTodos(reportOrders)} /></div>}
+      <p className="-mt-4 mb-8 text-sm text-text">
+        在小紅書、Etsy、Pinkoi 向我們訂購過報告？
+        <Link href="/account/claim" className="ml-1 text-blue-700 underline-offset-2 hover:underline">用認領碼把訂單接到這個帳號</Link>
+      </p>
 
       <div className="-mx-4 mb-5 overflow-x-auto px-4">
         <div className="flex gap-2" role="tablist" aria-label="會員中心分頁">

@@ -1012,6 +1012,64 @@ def admin_external_customer(customer_id):
     return jsonify({'success': True, 'customer': proxy.customer_view(c, with_orders=True)})
 
 
+@bp.route('/admin/external-customers/<int:customer_id>/claim-code', methods=['POST', 'DELETE'])
+@_limit('30 per minute')
+@jwt_required()
+@require_permission('report_orders.proxy')
+def admin_claim_code(customer_id):
+    """發（POST，可帶 days）或作廢（DELETE）客人認領碼。明碼只在發碼回應裡出現這一次。"""
+    from sites.Polaris_Parent.backend.models import ExternalCustomer
+    from . import claims
+    c = db.session.query(ExternalCustomer).filter_by(id=customer_id).with_for_update().first()
+    if c is None:
+        return _error('找不到這位客人', 404)
+    code = None
+    try:
+        if request.method == 'POST':
+            days = (request.get_json(silent=True) or {}).get('days') or claims.DEFAULT_DAYS
+            code = claims.issue(c, int(get_jwt_identity()), int(days))
+        else:
+            claims.revoke(c, int(get_jwt_identity()))
+    except (TypeError, ValueError):
+        db.session.rollback()
+        return _error('期限請填天數', 400)
+    except service.OrderError as exc:
+        return _proxy_error(exc)
+    return jsonify({'success': True, 'code': code, 'customer': proxy.customer_view(c, with_orders=True)})
+
+
+@bp.route('/report-claims/preview', methods=['POST'])
+@_limit('20 per hour')
+@jwt_required()
+def member_claim_preview():
+    """會員輸入認領碼：先看這份客人檔案底下有哪些訂單，確認後再認領。"""
+    from . import claims
+    user = db.session.get(User, int(get_jwt_identity()))
+    if user is None or not is_email_verified(user.id, normalise_email(user.email or user.username)):
+        return _error('請先完成 Email 驗證', 403, code='email_unverified')
+    try:
+        return jsonify({'success': True, **claims.preview((request.get_json(silent=True) or {}).get('code'), user)})
+    except service.OrderError as exc:
+        return _proxy_error(exc)
+
+
+@bp.route('/report-claims', methods=['POST'])
+@_limit('10 per hour')
+@jwt_required()
+def member_claim():
+    """認領：這份客人檔案的訂單與命盤轉到目前登入的會員帳號。"""
+    from . import claims
+    user = db.session.get(User, int(get_jwt_identity()))
+    if user is None or not is_email_verified(user.id, normalise_email(user.email or user.username)):
+        return _error('請先完成 Email 驗證', 403, code='email_unverified')
+    try:
+        result = claims.claim((request.get_json(silent=True) or {}).get('code'), user)
+    except service.OrderError as exc:
+        return _proxy_error(exc)
+    current_app.logger.info(f'external customer claimed by member {user.id}: {result["orders"]} {result["moved"]}')
+    return jsonify({'success': True, 'customer_name': result['customer_name'], 'orders': result['orders']})
+
+
 @bp.route('/admin/proxy-orders', methods=['POST'])
 @_limit('20 per minute')
 @jwt_required()

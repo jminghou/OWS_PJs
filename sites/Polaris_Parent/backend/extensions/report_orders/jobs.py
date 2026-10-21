@@ -71,6 +71,12 @@ def _handoff_reports(now):
     return {'sent': sent, 'failed': failed}
 
 
+def _claim_sync(now):
+    from . import claims
+    ok, failed = claims.sync_due()
+    return {'synced': ok, 'failed': failed}
+
+
 def _proof_deadlines(now):
     """打樣：期限前 2 天寄提醒；期限到還沒回應就自動確認送印並通知會員與管理者。"""
     from . import _buyer_email, notify, proofs
@@ -107,6 +113,7 @@ JOBS = [
     ('payment_reminders', timedelta(minutes=30), '匯款期限前 24 小時提醒', _payment_reminders),
     ('retry_mail', timedelta(0), '重寄寄失敗的通知信', _retry_mail),
     ('handoff_reports', timedelta(0), '已付款的報告送到紫微建立工作單', _handoff_reports),
+    ('claim_sync', timedelta(0), '客人認領後把紫微的命盤歸屬與工作單轉給會員', _claim_sync),
     ('proof_deadlines', timedelta(minutes=30), '打樣到期提醒與自動確認送印', _proof_deadlines),
     ('cleanup_designs', timedelta(days=1), '刪除放棄超過 30 天的設計草稿與照片', _cleanup_designs),
     ('purge_mail_bodies', timedelta(days=1), '清除 30 天前通知信的內文', _purge_mail_bodies),

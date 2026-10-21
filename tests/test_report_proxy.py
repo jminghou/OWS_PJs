@@ -26,7 +26,8 @@ SHIP_NO = {'recipient_name': 'Ola Nordmann', 'recipient_phone': '+47 912 34 567'
            'address': 'Storgata 1, 9008 Tromsø', 'country': 'no'}
 
 
-class ProxyTests(_Base):
+class _ProxyBase(_Base):
+    """代客建單測試的共用設定（認領測試 tests/test_report_claims.py 也用）。"""
     MODE = 'manual'
 
     def setUp(self):
@@ -87,7 +88,8 @@ class ProxyTests(_Base):
         self.assertEqual(r.status_code, 200, r.get_json())
         return r.get_json()['order']
 
-    # ── tests ────────────────────────────────────────────────────────────
+
+class ProxyTests(_ProxyBase):
     def test_physical_proxy_order_goes_straight_to_proof(self):
         order = self.created_order()
         item = OrderItem.query.filter_by(order_id=order.id).one()

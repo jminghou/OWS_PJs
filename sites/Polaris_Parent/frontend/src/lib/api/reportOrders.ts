@@ -212,6 +212,27 @@ export interface ExternalCustomer {
   claimed: boolean;
   created_at: string | null;
   orders?: AdminOrderRow[];
+  /** 認領碼狀態（客人檔案頁才有） */
+  claim?: ClaimStatus;
+}
+
+export interface ClaimStatus {
+  /** 有一組有效（未過期、未使用）的認領碼 */
+  has_code: boolean;
+  issued_at: string | null;
+  expires_at: string | null;
+  expired: boolean;
+  claimed: boolean;
+  claimed_at: string | null;
+  claimed_by_email: string | null;
+  /** 紫微那邊（命盤歸屬、工作單）：null＝還沒認領；true＝已轉；false＝待重試 */
+  ziwei_synced: boolean | null;
+  ziwei_error: string | null;
+}
+
+export interface ClaimPreview {
+  customer_name: string;
+  orders: { order_no: string; subject_name: string | null; lines: string[]; status_label: string }[];
 }
 
 export type SourceKind = 'conversation' | 'link' | 'screenshot' | 'note';
@@ -864,6 +885,19 @@ export const reportOrdersApi = {
     request<{ success: boolean; customer: ExternalCustomer }>(`/admin/external-customers/${id}`, {
       method: 'PUT', body: JSON.stringify(body),
     }),
+
+  /** 發（或重發）認領碼；明碼只在這次回應出現 */
+  issueClaimCode: (customerId: number, days = 90) =>
+    post<{ success: boolean; code: string; customer: ExternalCustomer }>(`/admin/external-customers/${customerId}/claim-code`, { days }),
+
+  revokeClaimCode: (customerId: number) =>
+    request<{ success: boolean; customer: ExternalCustomer }>(`/admin/external-customers/${customerId}/claim-code`, { method: 'DELETE' }),
+
+  /** 會員：輸入認領碼先看有哪些訂單 */
+  previewClaim: (code: string) => post<{ success: boolean } & ClaimPreview>('/report-claims/preview', { code }),
+
+  /** 會員：認領——客人檔案的訂單與命盤轉到目前登入的帳號 */
+  claim: (code: string) => post<{ success: boolean; customer_name: string; orders: string[] }>('/report-claims', { code }),
 
   createProxyOrder: (body: CreateProxyOrderRequest) =>
     post<{ success: boolean; created: boolean; order_no: string }>('/admin/proxy-orders', body),

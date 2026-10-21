@@ -61,10 +61,19 @@ def customer_view(c, with_orders=False):
             'claimed': c.claimed_at is not None,
             'created_at': c.created_at.isoformat() if c.created_at else None}
     if with_orders:
+        from . import claims
         from .overview import row
-        orders = (Order.query.filter_by(user_id=c.app_user_id).order_by(Order.id.desc()).limit(100).all())
-        view['orders'] = [row(o) for o in orders if o.order_items]
+        view['orders'] = [row(o) for o in orders_of_customer(c) if o.order_items]
+        view['claim'] = claims.status_view(c)
     return view
+
+
+def orders_of_customer(c, limit=100):
+    """客人檔案的訂單：認領前＝掛在檔案帳號下的全部訂單；認領後訂單已轉到會員帳號，改依代客建單的綁定紀錄找。"""
+    if c.claimed_at is None:
+        return Order.query.filter_by(user_id=c.app_user_id).order_by(Order.id.desc()).limit(limit).all()
+    ids = [b.order_id for b in CommerceReceiptBinding.query.all() if (b.snapshot or {}).get('customer_id') == c.id]
+    return Order.query.filter(Order.id.in_(ids)).order_by(Order.id.desc()).limit(limit).all() if ids else []
 
 
 def search_customers(q=None, limit=50):
@@ -113,7 +122,11 @@ def update_customer(customer, data):
 
 
 def customer_of_order(order):
-    return ExternalCustomer.query.filter_by(app_user_id=order.user_id).first()
+    """代客建單的綁定紀錄記著客人檔案（認領後訂單換了會員也找得到）；沒有就看訂單會員是不是檔案帳號。"""
+    b = CommerceReceiptBinding.query.filter_by(order_id=order.id).first()
+    cid = (b.snapshot or {}).get('customer_id') if b else None
+    c = db.session.get(ExternalCustomer, cid) if cid else None
+    return c or ExternalCustomer.query.filter_by(app_user_id=order.user_id).first()
 
 
 # ── 資料來源 ─────────────────────────────────────────────────────────────────

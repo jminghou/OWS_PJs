@@ -173,7 +173,7 @@ class JobRunnerTests(_JobsBase):
         first = jobs.run_due(now)
         self.assertEqual(set(first), {name for name, *_ in jobs.JOBS})
         every_tick = {name for name, every, *_ in jobs.JOBS if every == timedelta(0)}
-        self.assertEqual(every_tick, {'retry_mail', 'handoff_reports'})
+        self.assertEqual(every_tick, {'retry_mail', 'handoff_reports', 'claim_sync'})
         again = jobs.run_due(now + timedelta(minutes=1))
         self.assertEqual(set(again), every_tick)  # 週期 0：每輪都跑
         later = jobs.run_due(now + timedelta(minutes=11))

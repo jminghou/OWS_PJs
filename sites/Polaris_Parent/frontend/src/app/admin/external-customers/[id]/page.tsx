@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 外部客人檔案：名稱、平台帳號、聯絡備註，以及這位客人的所有訂單。
+ * 外部客人檔案：名稱、平台帳號、聯絡備註、認領碼（客人接到自己的會員帳號），以及這位客人的所有訂單。
  * 後端：/api/v1/admin/external-customers/:id（report_orders.proxy）。
  */
 import Link from 'next/link';
@@ -13,6 +13,7 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
 import { channelLabel } from '@/lib/report/proxy';
 import { reportOrdersApi, type ExternalCustomer } from '@/lib/api/reportOrders';
+import ClaimSection from './ClaimSection';
 
 const btnPrimary =
   'inline-flex min-h-[40px] md:min-h-0 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-admin-accent-600 text-white hover:bg-admin-accent-700';
@@ -99,6 +100,8 @@ export default function ExternalCustomerPage() {
                 <button type="button" className={btnPrimary} disabled={saving || !form.display_name.trim()} onClick={save}>儲存</button>
               </div>
             </section>
+
+            <ClaimSection customer={customer} onChange={apply} onError={setError} />
 
             <section className={cardCls}>
               <h2 className="mb-3 text-sm font-semibold">訂單（{customer.orders?.length ?? 0}）</h2>

@@ -36,7 +36,7 @@ EVENT_LABELS = {
     'physical_shipped': '實體書出貨', 'refund_recorded': '退款完成',
     'consult_preferences': '解讀時段（後台）', 'consult_scheduled': '解讀時間確認',
     'consult_cancelled': '解讀取消', 'consult_refunded': '解讀退款', 'mail_failed_admin': '寄信失敗警示（後台）',
-    'handoff_failed_admin': '報告交接失敗（後台）',
+    'handoff_failed_admin': '報告交接失敗（後台）', 'claim_sync_failed_admin': '客人認領的紫微轉移失敗（後台）',
     'proof_ready': '打樣待確認', 'proof_reminder': '打樣確認提醒', 'proof_auto_approved': '打樣自動確認送印',
     'proof_changes_admin': '會員要求修改打樣（後台）', 'proof_approved_admin': '打樣已確認送印（後台）',
 }

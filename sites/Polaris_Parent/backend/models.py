@@ -617,7 +617,13 @@ class ExternalCustomer(db.Model):
     display_name = db.Column(db.Text, nullable=False)       # 平台上的名稱（給管理者辨識）
     platform_handle = db.Column(db.Text)                    # 平台帳號／ID
     contact_note = db.Column(db.Text)                       # 聯絡備註（只在後台）
-    claim_code_digest = db.Column(db.String(64))            # 認領碼雜湊（第五項）
+    claim_code_digest = db.Column(db.String(64), unique=True)  # 認領碼 HMAC 雜湊（第五項；claims.py）
+    claim_code_issued_at = db.Column(db.DateTime(timezone=True))
+    claim_code_expires_at = db.Column(db.DateTime(timezone=True))
+    # 認領後紫微那邊（命主歸屬、工作單）的轉移狀態：走 PolarisUI 服務 API，失敗由背景排程重試（claims.py）
+    ziwei_transferred_at = db.Column(db.DateTime(timezone=True))
+    ziwei_transfer_attempts = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    ziwei_transfer_error = db.Column(db.Text)
     claimed_by = db.Column(db.BigInteger, db.ForeignKey('account.app_users.id'))
     claimed_at = db.Column(db.DateTime(timezone=True))
     created_by = db.Column(db.BigInteger, db.ForeignKey('account.app_users.id'))
