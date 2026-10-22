@@ -47,6 +47,18 @@ def _require_env(key: str, fallback=None, strict: bool = False):
     return None
 
 
+def _resolve_credentials_path(value):
+    """
+    GCS_CREDENTIALS_JSON 可能是 JSON 全文（正式環境）或金鑰檔路徑（本機）。
+    相對路徑以本檔所在的 backend/ 為準：從 repo 根目錄 `npm run polaris` 啟動時，
+    工作目錄是根目錄，'polarisparent-xxx.json' 會找不到而讓上傳一律失敗。
+    """
+    if not value or value.strip().startswith('{') or os.path.isabs(value):
+        return value
+    candidate = os.path.join(os.path.dirname(os.path.abspath(__file__)), value)
+    return candidate if os.path.exists(candidate) else value
+
+
 def _bool_env(key: str, default: bool = False) -> bool:
     """Parse boolean environment variable."""
     value = os.environ.get(key, str(default)).lower()
@@ -182,7 +194,7 @@ class Config:
     # Storage (GCS)
     # -------------------------------------------------------------------------
     GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME')
-    GCS_CREDENTIALS_JSON = os.environ.get('GCS_CREDENTIALS_JSON')
+    GCS_CREDENTIALS_JSON = _resolve_credentials_path(os.environ.get('GCS_CREDENTIALS_JSON'))
     USE_GCS = GCS_BUCKET_NAME is not None
 
     # -------------------------------------------------------------------------
