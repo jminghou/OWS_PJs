@@ -970,11 +970,13 @@ def _proxy_error(exc):
 @jwt_required()
 @require_permission('report_orders.proxy')
 def admin_proxy_config():
-    """代客建單頁要的選項：已開放人工匯入的平台、幣別、實體書規格與封面款式。"""
+    """代客建單頁要的選項：已開放人工匯入的平台（不含內建的直接接單）、幣別、實體書規格與封面款式。"""
     from sites.Polaris_Parent.backend.commerce_models import CommerceChannel
     from . import intake
     cfg = physical.load_config()
-    channels = [intake.channel_view(c) for c in CommerceChannel.query.order_by(CommerceChannel.id).all()]
+    # 系統內建的「直接接單」渠道不列在平台選單裡（直接接單另有切換，不必選平台）
+    channels = [intake.channel_view(c) for c in CommerceChannel.query.order_by(CommerceChannel.id).all()
+                if not proxy.is_direct_channel(c)]
     return jsonify({'success': True, 'channels': channels, 'currencies': money.catalog(),
                     'specs': cfg.get('specs') or [], 'default_spec_key': proxy._default_spec_key(cfg),
                     'cover_styles': cfg.get('cover_styles') or []})

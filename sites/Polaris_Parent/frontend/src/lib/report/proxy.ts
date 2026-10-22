@@ -4,6 +4,7 @@
  */
 
 export const CHANNEL_LABELS: Record<string, string> = {
+  direct: '直接接單',
   etsy: 'Etsy',
   pinkoi: 'Pinkoi',
   xiaohongshu: '小紅書',

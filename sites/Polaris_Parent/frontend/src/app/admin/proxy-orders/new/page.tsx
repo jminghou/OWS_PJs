@@ -2,6 +2,8 @@
 
 /**
  * 代客建單：外部平台（小紅書、Etsy、Pinkoi…）成交的訂單，由管理者代客人把資料填進官網。
+ * 「直接接單（非平台）」：親友、線下或私訊直接委託——不選平台（掛在系統內建的 direct 渠道）、
+ * 內部編號自動產生、金額可為 0（贈送或內部製作）、資料來源選填。
  * 一次送出：平台成交（訂單編號、幣別、金額、成品語系）＋客人檔案（既有或新增）＋客製資料＋資料來源（對話紀錄）。
  * 建好就是「平台已成交」的已付款訂單，照常交給紫微建工作單；實體書預設精裝、直接待出打樣。
  * 對話截圖在建單成功後上傳到同一張訂單。
@@ -144,6 +146,7 @@ export default function NewProxyOrderPage() {
   const [loadError, setLoadError] = useState('');
 
   // 平台成交
+  const [mode, setMode] = useState<'platform' | 'direct'>('platform');
   const [channelId, setChannelId] = useState<number | ''>('');
   const [externalId, setExternalId] = useState('');
   const [currency, setCurrency] = useState('TWD');
@@ -185,6 +188,7 @@ export default function NewProxyOrderPage() {
         setConfig(c);
         const usable = c.channels.filter((ch) => ch.effective);
         if (usable.length === 1) setChannelId(usable[0].id);
+        if (usable.length === 0) switchMode('direct'); // 還沒建任何平台渠道：先用直接接單
         setSpecKey(c.default_spec_key ?? c.specs[0]?.key ?? '');
       })
       .catch((e) => setLoadError(e.message || '載入失敗'));
@@ -198,6 +202,21 @@ export default function NewProxyOrderPage() {
   const exponent = config?.currencies.find((c) => c.code === currency)?.exponent ?? 0;
   const customLanguage = !LANGUAGE_OPTIONS.some((l) => l.value === language);
 
+  const direct = mode === 'direct';
+  /** 直接接單的內部編號：切過去時先產生一組（可改）；同一組重送不會重複建單 */
+  function switchMode(next: 'platform' | 'direct') {
+    setMode(next);
+    setFieldErrors({});
+    if (next === 'direct') {
+      const d = new Date();
+      const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+      setExternalId((cur) => cur || `D-${ymd}-${Math.random().toString(16).slice(2, 8).toUpperCase()}`);
+      setCurrency('TWD');
+    } else {
+      setExternalId((cur) => (cur.startsWith('D-') ? '' : cur));
+    }
+  }
+
   const buildPlace = (): ProxyPlace =>
     placeMode === 'manual'
       ? { manual: true, lat: Number(manual.lat), lon: Number(manual.lon), tz: manual.tz.trim(), city: manual.city.trim(), country: manual.country.trim() }
@@ -206,13 +225,13 @@ export default function NewProxyOrderPage() {
   const submit = async () => {
     setError('');
     setFieldErrors({});
-    if (channelId === '') {
+    if (!direct && channelId === '') {
       setFieldErrors({ channel_id: '請選擇平台' });
       setError('資料有誤，請檢查後再送出');
       return;
     }
     const body: CreateProxyOrderRequest = {
-      channel_id: channelId,
+      ...(direct ? { source: 'direct' as const } : { channel_id: channelId as number }),
       external_order_id: externalId.trim(),
       currency,
       amount: amount.trim(),
@@ -270,7 +289,7 @@ export default function NewProxyOrderPage() {
         <div className="mb-6">
           <h1 className="text-xl md:text-2xl font-semibold tracking-tight">代客建單</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            外部平台成交的訂單，由你把客人的資料填進來。送出後就是已付款訂單，照常交給紫微建工作單；實體書直接進入待出打樣。
+            外部平台成交、或親友與線下直接委託的訂單，由你把客人的資料填進來。送出後就是已付款訂單，照常交給紫微建工作單；實體書直接進入待出打樣。
           </p>
         </div>
 
@@ -286,28 +305,37 @@ export default function NewProxyOrderPage() {
           </div>
         )}
 
-        {!config ? (!loadError && <AdminLoadingSkeleton variant="list" count={4} />) : channels.length === 0 ? (
-          <div className={cardCls}>
-            <p className="text-sm">還沒有可以代客建單的平台。</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              請先到「外部訂單查證」建立平台渠道（例如 etsy、pinkoi、xiaohongshu），勾選允許人工匯入並設定有效期限。
-              {inactive.length > 0 && `目前有 ${inactive.length} 個渠道未開放或已過期：${inactive.map((c) => channelLabel(c.channel)).join('、')}。`}
-            </p>
-            <Link href="/admin/commerce-intake" className="mt-2 inline-block text-sm text-admin-accent-600 hover:underline dark:text-admin-accent-200">到外部訂單查證 →</Link>
-          </div>
-        ) : (
+        {!config ? (!loadError && <AdminLoadingSkeleton variant="list" count={4} />) : (
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-            <Section title="平台成交" hint="金額填平台上實際成交的金額與幣別；同一個平台訂單編號重送不會重複建單。">
+            <div className="flex gap-1">
+              <button type="button" className={tabCls(!direct)} onClick={() => switchMode('platform')}>外部平台訂單</button>
+              <button type="button" className={tabCls(direct)} onClick={() => switchMode('direct')}>直接接單（非平台）</button>
+            </div>
+            <Section title={direct ? '直接接單' : '平台成交'}
+              hint={direct
+                ? '親友、線下或私訊直接委託，不經外部平台、不必建渠道。金額填實收金額，填 0＝贈送或內部製作；同一個內部編號重送不會重複建單。'
+                : '金額填平台上實際成交的金額與幣別；同一個平台訂單編號重送不會重複建單。'}>
+              {!direct && channels.length === 0 && (
+                <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                  還沒有可以代客建單的平台：請先到
+                  <Link href="/admin/commerce-intake" className="mx-1 text-admin-accent-600 hover:underline dark:text-admin-accent-200">外部訂單查證</Link>
+                  建立平台渠道（etsy、pinkoi、xiaohongshu），勾選允許人工匯入並設定有效期限。
+                  {inactive.length > 0 && `目前有 ${inactive.length} 個渠道未開放或已過期：${inactive.map((c) => channelLabel(c.channel)).join('、')}。`}
+                </p>
+              )}
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="平台 *">
-                  <select className={inputCls} value={channelId} onChange={(e) => setChannelId(e.target.value ? Number(e.target.value) : '')}>
-                    <option value="">請選擇</option>
-                    {channels.map((c) => <option key={c.id} value={c.id}>{channelLabel(c.channel)}（{c.store_key}）</option>)}
-                  </select>
-                  {err('channel_id')}
-                </Field>
-                <Field label="平台訂單編號 *">
-                  <input className={inputCls} value={externalId} onChange={(e) => setExternalId(e.target.value)} maxLength={200} placeholder="例：3141592653" />
+                {!direct && (
+                  <Field label="平台 *">
+                    <select className={inputCls} value={channelId} onChange={(e) => setChannelId(e.target.value ? Number(e.target.value) : '')}>
+                      <option value="">請選擇</option>
+                      {channels.map((c) => <option key={c.id} value={c.id}>{channelLabel(c.channel)}（{c.store_key}）</option>)}
+                    </select>
+                    {err('channel_id')}
+                  </Field>
+                )}
+                <Field label={direct ? '內部編號（已自動產生，可改成你自己的編號）' : '平台訂單編號 *'}>
+                  <input className={inputCls} value={externalId} onChange={(e) => setExternalId(e.target.value)} maxLength={200}
+                    placeholder={direct ? '留空會自動產生' : '例：3141592653'} />
                   {err('external_order_id')}
                 </Field>
                 <Field label="幣別 *">
@@ -316,7 +344,7 @@ export default function NewProxyOrderPage() {
                   </select>
                   {err('currency')}
                 </Field>
-                <Field label="成交金額 *">
+                <Field label={direct ? '實收金額 *（0＝贈送或內部製作）' : '成交金額 *'}>
                   <input className={inputCls} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal"
                     placeholder={exponent ? `例：899.${'0'.repeat(exponent)}` : '例：2980'} />
                   {err('amount')}
@@ -464,7 +492,10 @@ export default function NewProxyOrderPage() {
               </Section>
             )}
 
-            <Section title="資料來源 *" hint="記錄這份出生資料是從哪段對話來的（至少一筆摘錄或連結）。截圖會在建單後附到訂單上，只有後台看得到。">
+            <Section title={direct ? '資料來源（選填）' : '資料來源 *'}
+              hint={direct
+                ? '可以記下出生資料是從哪裡來的（例：LINE 對話、當面詢問）。截圖會在建單後附到訂單上，只有後台看得到。'
+                : '記錄這份出生資料是從哪段對話來的（至少一筆摘錄或連結）。截圖會在建單後附到訂單上，只有後台看得到。'}>
               {sources.map((s, i) => (
                 <div key={i} className="space-y-2 rounded-md border border-border p-3">
                   <div className="flex flex-wrap items-end gap-2">

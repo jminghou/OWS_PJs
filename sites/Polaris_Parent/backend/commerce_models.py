@@ -29,7 +29,7 @@ class CommerceExternalReceipt(db.Model):
     __table_args__ = (
         db.UniqueConstraint('channel_id', 'external_order_id', name='uq_commerce_external_receipt'),
         db.CheckConstraint("status IN ('pending','verified','rejected','voided')", name='ck_commerce_receipt_status'),
-        db.CheckConstraint('amount > 0', name='ck_commerce_receipt_amount'),
+        db.CheckConstraint('amount >= 0', name='ck_commerce_receipt_amount'),  # 0＝直接接單的贈送（0018）
         {'schema': 'shop'},
     )
     id = db.Column(db.BigInteger, primary_key=True)

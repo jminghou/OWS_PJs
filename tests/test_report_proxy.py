@@ -237,3 +237,59 @@ class ProxyTests(_ProxyBase):
         with patch.object(handoff, '_ziwei_call', side_effect=lambda m, p, b=None: (sent.append(b) or ({'request': {'status': 'queued'}}, None))):
             handoff.send_due()
         self.assertEqual((sent[0]['language'], sent[0]['variant']), ('nb', 'physical'))
+
+
+class DirectOrderTests(_ProxyBase):
+    """直接接單（非平台，2026-10-23）：不選平台、內部編號可留空、金額可為 0、資料來源選填。"""
+
+    def direct_body(self, **over):
+        b = self.body(**over)
+        b.pop('channel_id')
+        b.update({'source': 'direct', 'currency': 'TWD', 'amount': '3980', 'language': 'zh-TW', 'sources': []})
+        b['order']['shipping'] = {'recipient_name': '王小明', 'recipient_phone': '0912345678', 'postal_code': '106',
+                                  'address': '台北市大安區仁愛路四段 1 號'}
+        b.update(over)
+        return b
+
+    def test_direct_order_without_channel_or_sources(self):
+        r = self.create(self.direct_body(external_order_id=''))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        order = Order.query.filter_by(order_no=r.get_json()['order_no']).one()
+        self.assertEqual((order.status, order.payment_method, order.amount, order.currency), ('paid', 'external_verified', 3980, 'TWD'))
+        ch = CommerceChannel.query.filter_by(channel='direct').one()
+        receipt = CommerceExternalReceipt.query.one()
+        self.assertEqual(receipt.channel_id, ch.id)
+        self.assertRegex(receipt.external_order_id, r'^D-\d{8}-[0-9A-F]{6}$')  # 自動產生內部編號
+        binding.require_evidence(order)
+        self.assertEqual(ReportPrintJob.query.one().status, 'awaiting_proof')
+        d = self.detail(order.order_no)
+        self.assertEqual(d['external']['channel'], 'direct')
+        self.assertIn('直接接單', [e['text'] for e in d['timeline'] if e['type'] == 'proxy_order_created'][0])
+        # 內建渠道不出現在平台選單
+        cfg = self.client.get('/api/v1/admin/proxy-orders/config', headers=self.headers(self.admin)).get_json()
+        self.assertNotIn('direct', [c['channel'] for c in cfg['channels']])
+
+    def test_direct_gift_zero_amount(self):
+        r = self.create(self.direct_body(amount='0', external_order_id='D-GIFT-1'))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        order = Order.query.filter_by(order_no=r.get_json()['order_no']).one()
+        self.assertEqual((order.amount, order.status), (0, 'paid'))
+        binding.require_evidence(order)
+        text = [e['text'] for e in self.detail(order.order_no)['timeline'] if e['type'] == 'proxy_order_created'][0]
+        self.assertIn('贈送', text)
+
+    def test_direct_resubmit_same_id_is_idempotent(self):
+        first = self.create(self.direct_body(external_order_id='D-20261023-01'))
+        again = self.create(self.direct_body(external_order_id='D-20261023-01'))
+        self.assertEqual((again.status_code, again.get_json()['created'], again.get_json()['order_no']),
+                         (200, False, first.get_json()['order_no']))
+
+    def test_platform_orders_still_need_amount_and_sources(self):
+        for over, key in (({'amount': '0'}, 'amount'), ({'sources': []}, 'sources')):
+            r = self.create(self.body(external_order_id=f'ETSY-{key}', **over))
+            self.assertEqual(r.status_code, 400)
+            self.assertIn(key, r.get_json()['errors'])
+        self.create(self.direct_body())  # 建出內建渠道後，平台代客建單不能選它
+        ch = CommerceChannel.query.filter_by(channel='direct').one()
+        r = self.create(self.body(channel_id=ch.id, external_order_id='X-1'))
+        self.assertEqual(r.status_code, 400)

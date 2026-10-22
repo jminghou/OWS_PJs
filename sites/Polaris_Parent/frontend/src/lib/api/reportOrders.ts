@@ -278,7 +278,9 @@ export type ProxyPlace =
   | { manual: true; lat: number; lon: number; tz: string; city: string; country: string };
 
 export interface CreateProxyOrderRequest {
-  channel_id: number;
+  /** direct＝直接接單（非平台）：不帶 channel_id、內部編號可留空、金額可為 0、資料來源選填 */
+  source?: 'direct';
+  channel_id?: number;
   external_order_id: string;
   external_sku?: string;
   currency: string;

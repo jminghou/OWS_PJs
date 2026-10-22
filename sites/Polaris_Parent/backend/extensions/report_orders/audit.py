@@ -76,7 +76,10 @@ LABELS = {
     'claim_code_issued': lambda d: f'發出客人認領碼（{d.get("days") or "-"} 天內有效）',
     'claim_code_revoked': lambda d: '作廢客人認領碼',
     'claimed_by_member': lambda d: f'客人「{d.get("customer") or "-"}」以會員帳號 {d.get("member") or "-"} 認領，訂單與命盤已轉到該帳號',
-    'proxy_order_created': lambda d: f'代客建單：{d.get("channel") or "-"} 訂單 {d.get("external_order_id") or "-"}（客人 {d.get("customer") or "-"}）',
+    'proxy_order_created': lambda d: (f'直接接單：內部編號 {d.get("external_order_id") or "-"}（客人 {d.get("customer") or "-"}）'
+                                      + ('・贈送／內部製作（0 元）' if d.get('gift') else '')
+                                      if d.get('channel') == 'direct' else
+                                      f'代客建單：{d.get("channel") or "-"} 訂單 {d.get("external_order_id") or "-"}（客人 {d.get("customer") or "-"}）'),
     'proxy_order_failed': lambda d: '代客建單失敗，已取消這張未完成的訂單',
     'source_added': lambda d: f'追加資料來源（{ {"conversation": "對話摘錄", "link": "對話連結", "screenshot": "對話截圖", "note": "說明"}.get(d.get("kind"), d.get("kind")) }）',
     'delivered_via_platform': lambda d: '已透過平台把報告交給客人' + (f'：{d["note"]}' if d.get('note') else ''),

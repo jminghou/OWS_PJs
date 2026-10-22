@@ -33,6 +33,12 @@ from .service import OrderError
 
 CUSTOMER_DOMAIN = 'customers.polaris-parent.invalid'
 METHOD = 'external_verified'
+# 直接接單（非平台，2026-10-23）：親友、線下或私訊委託，不經外部平台、不必先建渠道。
+# 沿用代客建單的成交紀錄，掛在系統內建渠道 direct 底下（第一次用時自動建立；不受渠道審查期限影響）。
+# 金額可以是 0（贈送或內部製作；成交紀錄允許 0 元見 migration 0018），資料來源選填，內部編號可留空自動產生。
+DIRECT_CHANNEL = 'direct'
+DIRECT_STORE = 'polaris-direct'
+DIRECT_VALID_UNTIL = datetime(2099, 12, 31, tzinfo=timezone.utc)
 TEXT_SOURCE_KINDS = ('conversation', 'link', 'note')
 SOURCE_LABELS = {'conversation': '對話摘錄', 'link': '對話連結', 'screenshot': '對話截圖', 'note': '說明'}
 MAX_SCREENSHOT_BYTES = 15 * 1024 * 1024
@@ -257,18 +263,50 @@ def _receipt_digest(snapshot):
     return hashlib.sha256(json.dumps(snapshot, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
+def direct_channel(actor):
+    """系統內建的「直接接單」渠道（上鎖）；沒有就建一個。"""
+    row = CommerceChannel.query.filter_by(channel=DIRECT_CHANNEL, store_key=DIRECT_STORE).first()
+    if row is None:
+        row = CommerceChannel(channel=DIRECT_CHANNEL, store_key=DIRECT_STORE, revision=1, manual_import=True,
+                              policy_reference='官網自營直接接單（系統內建，非外部平台）',
+                              review_note='親友、線下或私訊直接委託；不經外部平台', reviewed_by=actor,
+                              valid_until=DIRECT_VALID_UNTIL)
+        db.session.add(row)
+        db.session.flush()
+    return intake.locked_channel(row.id, require_active=False)
+
+
+def is_direct_channel(channel):
+    return channel is not None and channel.channel == DIRECT_CHANNEL and channel.store_key == DIRECT_STORE
+
+
+def new_direct_id():
+    return f"D-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
+
+
 def create_order(data, actor, eng, save_chart):
-    """代客建單。回傳 (order, created)；同一平台訂單號重送回傳原訂單、created=False。"""
+    """代客建單。回傳 (order, created)；同一平台訂單號重送回傳原訂單、created=False。
+
+    data['source'] == 'direct'：直接接單（非平台）——不選平台、內部編號可留空、金額可為 0、資料來源選填。
+    """
     from . import service
     from .validation import validate_order
 
     if not isinstance(data, dict):
         _fail('請提供 JSON 物件')
-    try:
-        channel = intake.locked_channel(int(data.get('channel_id')))
-    except (TypeError, ValueError):
-        _fail('請選擇平台', errors={'channel_id': '請選擇平台'})
+    direct = data.get('source') == 'direct'
+    if direct:
+        channel = direct_channel(actor)
+    else:
+        try:
+            channel = intake.locked_channel(int(data.get('channel_id')))
+        except (TypeError, ValueError):
+            _fail('請選擇平台', errors={'channel_id': '請選擇平台'})
+        if is_direct_channel(channel):
+            _fail('直接接單請改用「直接接單（非平台）」', errors={'channel_id': '請選擇外部平台'})
     external_id = _text(data.get('external_order_id'), 200)
+    if not external_id and direct:
+        external_id = new_direct_id()
     if not external_id:
         _fail('請填寫平台訂單編號', errors={'external_order_id': '請填寫平台訂單編號'})
     existing = CommerceExternalReceipt.query.filter_by(channel_id=channel.id, external_order_id=external_id).first()
@@ -287,7 +325,7 @@ def create_order(data, actor, eng, save_chart):
     else:
         try:
             amount = money.to_minor(data.get('amount'), currency)
-            if amount <= 0:
+            if amount < 0 or (amount == 0 and not direct):
                 errors['amount'] = '請填寫平台成交金額'
         except ValueError as exc:
             errors['amount'] = str(exc)
@@ -310,7 +348,7 @@ def create_order(data, actor, eng, save_chart):
     clean, order_errors = validate_order(order_data, allow_manual_place=True, allow_international=True)
     errors.update(order_errors)
     sources = _clean_sources(data.get('sources'), errors)
-    if not sources and not any(k.startswith('sources') for k in errors):
+    if not sources and not direct and not any(k.startswith('sources') for k in errors):
         errors['sources'] = '請至少附上一筆對話摘錄或連結，記錄這份資料是哪裡來的'
 
     customer = None
@@ -388,7 +426,7 @@ def _settle(order, channel, external_id, customer, user, actor, data, sources):
     intake.audit(channel, actor, 'receipt_proxy_order', dict(order_no=order.order_no, order_id=order.id,
                  fingerprint=plan['fingerprint'], channel_revision=channel.revision), receipt)
     audit.log(order, 'proxy_order_created', actor, ref='created', channel=channel.channel,
-              external_order_id=external_id, customer=customer.display_name)
+              external_order_id=external_id, customer=customer.display_name, gift=order.amount == 0)
     db.session.commit()
 
 
