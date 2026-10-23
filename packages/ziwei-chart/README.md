@@ -28,11 +28,12 @@ import { ZiweiChart } from "@ows/ziwei-chart";
 | `theme` | 主題覆寫（深層合併進 `DEFAULT_THEME`） | — |
 | `onPalaceClick` | 點宮位回呼 `(code) => void` | — |
 | `showToolbar` | 顯示內建圖層開關列 | `true` |
+| `showLegend` | 命盤下方顯示圖例（主星／輔星／四化） | `true` |
 
 ### 互動（v1）
 
 - **點任一宮位 → 該宮變主軸**，三方四正參考線即時移動（CSS transition）。
-- **資訊圖層開關**：三方四正 / 四化 / 小星 / 亮度 / 英文宮名。
+- **資訊圖層開關**：三方四正 / 四化 / 小星（預設關）/ 流曜（有流盤資料才出現）。亮度、英文宮名仍可由 `layers` 開，但不在工具列。
 - **定盤對照**：`<DefineChart charts={[{label, chart}, ...]} />` 並排相鄰時辰命盤。
 
 ### 定盤對照
@@ -65,8 +66,16 @@ src/
   assets/    27+ 星曜 SVG（搬自 p_e_artist/assets/stars，由 @svgr 載入）
 ```
 
-幾何與分類規則移植自 `P_Union/p_e_artist`（`charts/natal/layout.py`、`writers/svg_writer.py`、`charts/natal/composer.py`、`theme.py`），力求與靜態 SVG 視覺對等。
+幾何與分類規則移植自 `P_Union/p_e_artist`（`charts/natal/layout.py`、`writers/svg_writer.py` 的 `_star_area`、`charts/natal/composer.py`、`theme.py`），**預設樣式＝書籍命盤（單盤 natal_default）**：宮位圖示、干支代號（`theme.layout.branchLabelStyle`：`code`＝A–J／01–12、`cn`＝中文）、四化紅色徽章貼星曜圖形下緣、副星 35px 補線寬、無小星文字、灰色三方四正虛線、中宮留白＋命盤 ID、下方圖例。
 
-## v2（未實作）
+換星曜圖示時，把 SVG 與 `_bounds.json`（P_Union `p_e_artist/assets/gen_bounds.py` 量測）一起放進 `src/assets/stars/`，再跑 `npm run gen:stars`。
 
-大限 / 流年 / 小限切換與流年四化：需後端把 flow 層也序列化成同一 schema 的疊加圖層（`engine/convert/` 擴充），前端 core 再加「作用層」狀態。
+## 疊盤（大限／小限／流年）
+
+傳入 `flow`（`/calculate` 帶流盤，或 `@ows/ziwei-engine` 的 `flow`）時，命盤上方出現疊盤切換：
+
+- **三層各自開關**（大限綠／小限深藍／流年淺藍），全關＝本命單盤；開任一層即出現流年時間軸（預設今年），開大限時另列 12 個大限可跳轉。
+- 版面＝書籍疊盤（PolarisUI `overlay_chart.py` → p_e_artist overlay）：本命星曜轉紅、表頭並排各層半寬宮位圖示、四化徽章依層序（本命→大限→小限→流年）貼星下、各層流曜以層色接在輔星網格，尺寸 60/34/16。
+- **巢狀大限**（`nestedSihua`，預設開）：大限層關、小限或流年開時，仍帶所在大限的四化與流曜，但不畫大限宮名。
+- 中宮顯示年份、虛歲、各層與配色說明（書籍的中宮內容卡原語）。
+- 選層規則在 `core/overlay.ts`（`resolveOverlay`），可脫離 React 單獨使用；初始狀態用 `defaultOverlay`。

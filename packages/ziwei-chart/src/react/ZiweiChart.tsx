@@ -1,27 +1,41 @@
 "use client";
 
 import { useMemo, type FC } from "react";
-import { GridLayout, computePalaceLayout } from "../core/layout";
+import { GridLayout, computePalaceLayout, type PalaceOverlayInput } from "../core/layout";
 import { computeSanfang } from "../core/sanfang";
-import { parseChart, type ChartData, type StarInfo } from "../core/model";
+import { parseChart, type ChartData } from "../core/model";
 import { parseFlow } from "../core/flow";
-import { resolveTheme } from "../core/theme";
-import { PALACE_CODES_12, isFlowStar } from "../core/constants";
-import { palaceSvg } from "./starSvgData";
+import {
+  OVERLAY_LABEL,
+  overlayYearRange,
+  resolveOverlay,
+  type OverlayLayer,
+  type OverlayResult,
+} from "../core/overlay";
+import { resolveTheme, type ZiweiTheme } from "../core/theme";
+import { PALACE_CODES_12 } from "../core/constants";
+import { PALACE_SVG_DATA } from "./starSvgData";
 import {
   palaceNameZh,
   palaceNameEn,
   branchNameZh,
   stemNameZh,
-  starNameZh,
+  palaceCodesByMingBranch,
   palaceNamesByMingBranch,
 } from "../core/registry";
 import { Palace } from "./Palace";
 import { SanfangLines } from "./SanfangLines";
 import { useChartState } from "./useChartState";
 import { Toolbar } from "./Toolbar";
-import { LayerSelector } from "./LayerSelector";
+import { OverlayControls, layerInk } from "./OverlayControls";
+import { ChartLegend } from "./ChartLegend";
 import type { ZiweiChartProps } from "./types";
+
+/** 天干兩位碼 01–10 → 書籍代號 A–J；不合法時回空字串（等同無宮干）。 */
+function stemLetter(code: string | null): string {
+  const i = Number(code);
+  return Number.isInteger(i) && i >= 1 && i <= 10 ? String.fromCharCode(64 + i) : "";
+}
 
 function isChartData(x: unknown): x is ChartData {
   return (
@@ -33,11 +47,26 @@ function isChartData(x: unknown): x is ChartData {
   );
 }
 
-/** 互動式紫微斗數命盤（本命盤）。 */
+function palaceViewBox(key: string): [number, number] | undefined {
+  const d = PALACE_SVG_DATA[key];
+  if (!d) return undefined;
+  const [, , w, h] = d.viewBox.split(/\s+/).map(Number);
+  return w && h ? [w, h] : undefined;
+}
+
+/** 一層的宮位環（地支 → 宮位碼／宮名首字），巢狀層不畫宮名。 */
+function layerRing(L: OverlayLayer) {
+  if (!L.mingBranch) return null;
+  return { codes: palaceCodesByMingBranch(L.mingBranch), names: palaceNamesByMingBranch(L.mingBranch) };
+}
+
+/** 互動式紫微斗數命盤：本命單盤，或本命底＋大限／小限／流年疊色層（書籍疊盤樣式）。 */
 export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
   const {
     chart,
     showToolbar = true,
+    showLegend = true,
+    nestedSihua = true,
     className,
     width = "100%",
   } = props;
@@ -50,124 +79,69 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
   const theme = useMemo(() => resolveTheme(props.theme), [props.theme]);
   const grid = useMemo(() => new GridLayout(theme), [theme]);
 
-  const { axisPalace, selectPalace, layers, toggleLayer, activeLayer, setActiveLayer } =
-    useChartState({
-      defaultAxisPalace: props.defaultAxisPalace,
-      axisPalace: props.axisPalace,
-      layers: props.layers,
-      onPalaceClick: props.onPalaceClick,
-    });
+  const { axisPalace, selectPalace, layers, toggleLayer, overlay, setOverlay } = useChartState({
+    defaultAxisPalace: props.defaultAxisPalace,
+    axisPalace: props.axisPalace,
+    layers: props.layers,
+    onPalaceClick: props.onPalaceClick,
+    defaultOverlay: props.defaultOverlay,
+  });
 
-  // 作用層：本命 / 大限 / 流年 / 小限。決定要畫哪份命盤、宮名規則與中宮資訊。
-  const activeEntry = useMemo(() => {
-    if (!flow) return null;
-    if (activeLayer.type === "decade") {
-      const d = flow.decades[activeLayer.index];
-      if (!d) return null;
-      return {
-        data: d.data,
-        mingBranch: d.mingBranch,
-        center: [
-          `大限　${d.name}`,
-          d.ageRange ? `歲限　${d.ageRange}` : "",
-          d.yearRange ? `西元　${d.yearRange}` : "",
-        ].filter(Boolean),
-      };
-    }
-    if (activeLayer.type === "year") {
-      const y = flow.years[activeLayer.index];
-      if (!y) return null;
-      return {
-        data: y.data,
-        mingBranch: y.mingBranch,
-        center: [
-          `流年　${y.name}`,
-          y.year != null ? `西元　${y.year}` : "",
-          y.age != null ? `虛歲　${y.age}` : "",
-        ].filter(Boolean),
-      };
-    }
-    if (activeLayer.type === "smallLimit") {
-      const s = flow.smallLimits[activeLayer.index];
-      if (!s) return null;
-      return {
-        data: s.data,
-        mingBranch: s.mingBranch,
-        center: [
-          `小限　${s.name}`,
-          s.year != null ? `西元　${s.year}` : "",
-          s.age != null ? `虛歲　${s.age}` : "",
-        ].filter(Boolean),
-      };
-    }
-    return null;
-  }, [flow, activeLayer]);
+  // 目標年：未指定＝今年，夾在此盤可選範圍內
+  const year = useMemo(() => {
+    const range = flow ? overlayYearRange(flow) : null;
+    const y = overlay.targetYear ?? new Date().getFullYear();
+    return range ? Math.min(range[1], Math.max(range[0], y)) : y;
+  }, [flow, overlay.targetYear]);
 
-  // 流盤宮名（依該層命宮位移）；疊加模式僅用來組宮位標記（大X/流X/小X）。
-  const flowNames = useMemo(
-    () => (activeEntry ? palaceNamesByMingBranch(activeEntry.mingBranch) : null),
-    [activeEntry],
+  const resolved: OverlayResult | null = useMemo(
+    () =>
+      flow
+        ? resolveOverlay(flow, {
+            decade: overlay.decade,
+            small: overlay.small,
+            year: overlay.year,
+            targetYear: year,
+            nested: nestedSihua,
+          })
+        : null,
+    [flow, overlay.decade, overlay.small, overlay.year, year, nestedSihua],
   );
-  const layerPrefix =
-    activeLayer.type === "decade"
-      ? "大"
-      : activeLayer.type === "year"
-        ? "流"
-        : activeLayer.type === "smallLimit"
-          ? "小"
-          : "";
+  const overlayLayers = resolved?.layers ?? [];
+  const isOverlay = overlayLayers.length > 0;
 
-  // 疊加模式：底層恆為本命盤（本命星曜＋本命四化），流盤層僅「疊加」：
-  //   ① 流曜（依地支併入）② 流盤四化（與本命四化雙標，存 flowSihua）。
-  const data: ChartData = useMemo(() => {
-    if (!activeEntry) return natalData;
-    const fd = activeEntry.data;
-    const flowSihuaByStar: Record<string, string> = {};
-    for (const e of fd.sihuaSummary) flowSihuaByStar[e.starCode] = e.sihuaCode;
-
-    const flowStarsByBranch: Record<string, StarInfo[]> = {};
-    for (const p of Object.values(fd.palaces)) {
-      for (const s of p.minors) {
-        if (isFlowStar(s.code)) (flowStarsByBranch[s.branch] ??= []).push(s);
-      }
+  // 每宮的疊層資料：表頭宮位、四化徽章（依層序）、流曜（依層序）
+  const overlayByBranch = useMemo(() => {
+    if (!isOverlay) return null;
+    const rings = overlayLayers.map(layerRing);
+    const out: Record<string, PalaceOverlayInput> = {};
+    for (const p of Object.values(natalData.palaces)) {
+      const input: PalaceOverlayInput = { headerLayers: [], badgesByStar: {}, flowItems: [] };
+      overlayLayers.forEach((L, i) => {
+        const ink = layerInk(theme, L.kind);
+        const ring = rings[i];
+        const code = ring?.codes[p.branch];
+        if (ring && code) {
+          // 縮寫名（大財／小兄／流父）只在沒有宮位圖示時當退路
+          const zh = ring.names[p.branch]?.zh ?? "";
+          input.headerLayers.push({ palaceCode: code, name: OVERLAY_LABEL[L.kind][0] + zh.slice(0, 1), ink });
+        }
+        for (const s of p.stars) {
+          const sh = L.sihua[s.code];
+          if (sh) (input.badgesByStar[s.code] ??= []).push({ sihua: sh, ink });
+        }
+        if (layers.flowStars) {
+          for (const icon of L.flowStars[p.branch] ?? []) input.flowItems.push({ code: icon, ink });
+        }
+      });
+      out[p.branch] = input;
     }
-
-    const palaces: ChartData["palaces"] = {};
-    for (const [code, p] of Object.entries(natalData.palaces)) {
-      const baseStars: StarInfo[] = p.stars.map((s) => ({
-        ...s,
-        flowSihua: flowSihuaByStar[s.code] ?? null,
-      }));
-      const extra = flowStarsByBranch[p.branch] ?? [];
-      const stars = extra.length ? [...baseStars, ...extra] : baseStars;
-      palaces[code] = {
-        ...p,
-        stars,
-        majors: stars.filter((s) => s.kind === "main"),
-        subs: stars.filter((s) => s.kind === "sub"),
-        minors: stars.filter((s) => s.kind === "minor"),
-      };
-    }
-    return { ...natalData, palaces };
-  }, [natalData, activeEntry]);
-
-  // 中宮資訊：本命顯示性別/命主/身主；流盤層改顯示該層名稱/年/歲。
-  const centerLines = useMemo(() => {
-    const genderZh =
-      natalData.genderCode === "GM" ? "男" : natalData.genderCode === "GF" ? "女" : "";
-    if (activeEntry) {
-      return [genderZh ? `性別　${genderZh}` : "", ...activeEntry.center].filter(Boolean);
-    }
-    return [
-      genderZh ? `性別　${genderZh}` : "",
-      natalData.lifeMaster ? `命主　${starNameZh(natalData.lifeMaster)}` : "",
-      natalData.bodyMaster ? `身主　${starNameZh(natalData.bodyMaster)}` : "",
-    ].filter(Boolean);
-  }, [natalData, activeEntry]);
+    return out;
+  }, [isOverlay, overlayLayers, natalData, theme, layers.flowStars]);
 
   const sanfang = useMemo(
-    () => computeSanfang(data, grid, axisPalace),
-    [data, grid, axisPalace],
+    () => computeSanfang(natalData, grid, axisPalace),
+    [natalData, grid, axisPalace],
   );
   const sanfangBranches = useMemo(
     () => new Set(sanfang?.highlightBranches ?? []),
@@ -176,33 +150,27 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
 
   const palaceLayouts = useMemo(() => {
     return PALACE_CODES_12.map((code) => {
-      const palace = data.palaces[code];
+      const palace = natalData.palaces[code];
       if (!palace) return null;
       const cell = grid.branchToCell(palace.branch);
-      // 宮名恆為本命（底層即本命盤）
       let cnName = palaceNameZh(code);
       if (code === natalData.bodyPalace) cnName += "(身)";
-      const enName = palaceNameEn(code);
-      // 宮位干支拆兩段：宮干走左下角、地支走右下角（與靜態圖一致）
-      const branchLabel = branchNameZh(palace.branch);
-      const stemLabel = stemNameZh(palace.stem);
-      // 流盤宮位標記：大X/流X/小X（X = 該層宮名首字）
-      const flowZh = flowNames ? flowNames[palace.branch]?.zh : undefined;
-      const flowTag = flowZh ? layerPrefix + flowZh[0] : undefined;
-      const isBody = code === natalData.bodyPalace;
-      const iconSvg = palaceSvg(code);
-      const [, , vbW, vbH] = (iconSvg?.viewBox ?? "0 0 260 80").split(/\s+/).map(Number);
+      // 宮位干支拆兩段：宮干走左下角、地支走右下角（與靜態圖一致）。
+      // code＝書籍代號（天干 01–10→A–J、地支兩位碼）；cn＝中文干支。
+      const codeStyle = theme.layout.branchLabelStyle === "code";
+      const branchLabel = codeStyle ? palace.branch : branchNameZh(palace.branch);
+      const stemLabel = codeStyle ? stemLetter(palace.stem) : stemNameZh(palace.stem);
       const layout = computePalaceLayout(palace, cell, theme, {
         cnName,
-        enName,
-        branchLabel,
-        flowTag,
-        isBody,
-        palaceIconAspect: vbW && vbH ? vbW / vbH : undefined,
+        enName: layers.palaceNameEn ? palaceNameEn(code) : "",
+        isBody: code === natalData.bodyPalace,
+        minorCount: layers.minorStars ? palace.minors.length : 0,
+        palaceViewBox,
+        overlay: overlayByBranch?.[palace.branch],
       });
-      return { palace, layout, cnName, enName, branchLabel, stemLabel, code, isBody };
+      return { palace, layout, branchLabel, stemLabel };
     }).filter((x): x is NonNullable<typeof x> => x !== null);
-  }, [data, grid, theme, flowNames, layerPrefix, natalData]);
+  }, [natalData, grid, theme, layers.palaceNameEn, layers.minorStars, overlayByBranch]);
 
   const cw = grid.cellW;
   const ch = grid.cellH;
@@ -215,15 +183,17 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
       style={{ width, maxWidth: W, margin: "0 auto" }}
     >
       {flow ? (
-        <LayerSelector
+        <OverlayControls
           flow={flow}
-          active={activeLayer}
-          onSelect={setActiveLayer}
+          state={overlay}
+          year={year}
+          resolved={resolved}
+          onChange={setOverlay}
           theme={theme}
         />
       ) : null}
       {showToolbar ? (
-        <Toolbar layers={layers} toggleLayer={toggleLayer} theme={theme} />
+        <Toolbar layers={layers} toggleLayer={toggleLayer} theme={theme} hasFlow={isOverlay} />
       ) : null}
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -269,19 +239,15 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
           return <line key={`v${c}`} x1={x} y1={0} x2={x} y2={H} stroke={theme.colors.gridStroke} strokeWidth={theme.layout.gridWidth} />;
         })}
 
-        {/* 三方四正連線（畫在宮位之下） */}
+        {/* 三方四正連線（畫在宮位與中宮卡之下） */}
         {layers.sanfang && sanfang ? <SanfangLines sanfang={sanfang} theme={theme} /> : null}
 
-        {/* 中央資訊 */}
-        <CenterInfo
-          lines={centerLines}
-          chartId={natalData.chartId}
-          theme={theme}
-          W={W}
-          H={H}
-          cw={cw}
-          ch={ch}
-        />
+        {/* 中宮：本命＝留白＋右下角命盤 ID；疊盤＝年份／虛歲／各層與配色說明 */}
+        {isOverlay && resolved ? (
+          <CenterCard resolved={resolved} theme={theme} cw={cw} ch={ch} />
+        ) : (
+          <ChartIdMark chartId={natalData.chartId} theme={theme} cw={cw} ch={ch} />
+        )}
 
         {/* 十二宮 */}
         {palaceLayouts.map((p) => (
@@ -291,11 +257,8 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
             layout={p.layout}
             theme={theme}
             layers={layers}
-            cnName={p.cnName}
-            enName={p.enName}
             branchLabel={p.branchLabel}
             stemLabel={p.stemLabel}
-            palaceCode={p.code}
             isAxis={p.palace.code === axisPalace}
             inSanfang={
               p.palace.code !== axisPalace && sanfangBranches.has(p.palace.branch)
@@ -304,50 +267,153 @@ export const ZiweiChart: FC<ZiweiChartProps> = (props) => {
           />
         ))}
       </svg>
+      {showLegend ? <ChartLegend data={natalData} theme={theme} /> : null}
     </div>
   );
 };
 
-const CenterInfo: FC<{
-  lines: string[];
-  chartId: string;
-  theme: ReturnType<typeof resolveTheme>;
-  W: number;
-  H: number;
-  cw: number;
-  ch: number;
-}> = ({ lines, chartId, theme, W, H, cw, ch }) => {
+/** 命盤 ID：中宮右下角（與書籍命盤一致；畫在全盤右下會壓到亥宮）。 */
+const ChartIdMark: FC<{ chartId: string; theme: ZiweiTheme; cw: number; ch: number }> = ({
+  chartId,
+  theme,
+  cw,
+  ch,
+}) => {
+  if (!chartId) return null;
   const inset = theme.layout.centerIdInset;
-  const cx = cw + (2 * cw) / 2;
   return (
-    <g style={{ pointerEvents: "none" }}>
-      {lines.map((ln, i) => (
-        <text
-          key={i}
-          x={cx}
-          y={ch + 34 + i * 22}
-          textAnchor="middle"
-          fontSize={13}
-          fill={theme.colors.palaceName}
-          fontFamily={theme.fontFamily}
-          letterSpacing="0.04em"
-        >
-          {ln}
-        </text>
-      ))}
-      {chartId ? (
-        <text
-          x={W - inset}
-          y={H - inset}
-          textAnchor="end"
-          fontSize={10}
-          fill={theme.colors.chartIdInk}
-          fontFamily="monospace"
-          letterSpacing="0.05em"
-        >
-          {chartId}
-        </text>
-      ) : null}
-    </g>
+    <text
+      x={3 * cw - inset}
+      y={3 * ch - inset}
+      textAnchor="end"
+      fontSize={theme.sizes.starMinor}
+      fill={theme.colors.chartIdInk}
+      fontFamily="monospace"
+      letterSpacing="0.05em"
+      style={{ pointerEvents: "none" }}
+    >
+      {chartId}
+    </text>
   );
+};
+
+type CardItem =
+  | { type: "title"; text: string }
+  | { type: "kv"; label: string; value: string; color?: string }
+  | { type: "divider" }
+  | { type: "colorKey"; items: Array<{ label: string; color: string }> };
+
+/** 中宮內容卡：對應 p_e_artist composer._compose_center_card 的呈現原語（垂直置中堆疊）。 */
+const CenterCard: FC<{ resolved: OverlayResult; theme: ZiweiTheme; cw: number; ch: number }> = ({
+  resolved,
+  theme,
+  cw,
+  ch,
+}) => {
+  const items: CardItem[] = [
+    { type: "title", text: `${resolved.year}　${resolved.ganzhi}年` },
+  ];
+  if (resolved.age != null) items.push({ type: "kv", label: "虛歲", value: `${resolved.age} 歲` });
+  items.push({ type: "divider" });
+  for (const L of resolved.layers) {
+    const color = layerInk(theme, L.kind);
+    if (L.kind === "decade" && resolved.decade) {
+      const d = resolved.decade;
+      items.push({
+        type: "kv",
+        label: L.nested ? "大限四化" : "大限",
+        value: `${d.name}　${d.ageRange} 歲`,
+        color,
+      });
+    } else if (L.kind === "small" && L.mingBranch) {
+      items.push({ type: "kv", label: "小限", value: `命宮在${branchNameZh(L.mingBranch)}`, color });
+    } else if (L.kind === "year" && L.mingBranch) {
+      items.push({ type: "kv", label: "流年", value: `命宮在${branchNameZh(L.mingBranch)}`, color });
+    }
+  }
+  items.push({ type: "divider" });
+  items.push({
+    type: "colorKey",
+    items: [
+      { label: "本命", color: theme.colors.layerNatal },
+      ...resolved.layers.map((L) => ({
+        label: L.nested ? "大限四化" : OVERLAY_LABEL[L.kind],
+        color: layerInk(theme, L.kind),
+      })),
+    ],
+  });
+
+  const fsTitle = 16;
+  const fsKv = 12;
+  const fsKvl = 10;
+  const fsKey = 10;
+  const hOf = (it: CardItem) =>
+    it.type === "title" ? fsTitle + 10 : it.type === "kv" ? fsKv + 7 : it.type === "divider" ? 13 : fsKey + 10;
+  const pad = 24;
+  const cx = 2 * cw;
+  const total = items.reduce((a, it) => a + hOf(it), 0);
+  let y = ch + Math.max(pad, (2 * ch - total) / 2);
+  const est = (s: string, fs: number) =>
+    [...s].reduce((a, c) => a + (c.codePointAt(0)! > 0x2e80 ? fs : fs * 0.55), 0);
+
+  const els = items.map((it, i) => {
+    const top = y;
+    y += hOf(it);
+    if (it.type === "title") {
+      return (
+        <text key={i} x={cx} y={top + fsTitle} textAnchor="middle" fontSize={fsTitle} fontWeight="bold"
+          fill={theme.colors.palaceName} fontFamily={theme.fontFamily} letterSpacing="0.06em">
+          {it.text}
+        </text>
+      );
+    }
+    if (it.type === "kv") {
+      const gap = 8;
+      const wl = est(it.label, fsKvl);
+      const x0 = cx - (wl + gap + est(it.value, fsKv)) / 2;
+      return (
+        <g key={i}>
+          <text x={x0} y={top + fsKv} fontSize={fsKvl} fill={it.color ?? "#888888"} fontWeight={it.color ? 600 : undefined}
+            fontFamily={theme.fontFamily}>
+            {it.label}
+          </text>
+          <text x={x0 + wl + gap} y={top + fsKv} fontSize={fsKv} fill="#333333" fontFamily={theme.fontFamily}>
+            {it.value}
+          </text>
+        </g>
+      );
+    }
+    if (it.type === "divider") {
+      const w = 2 * cw * 0.42;
+      return (
+        <line key={i} x1={cx - w / 2} y1={top + 6} x2={cx + w / 2} y2={top + 6}
+          stroke={theme.colors.gridStroke} strokeWidth={0.5} />
+      );
+    }
+    const segGap = 14;
+    const r = 4.5;
+    const dotGap = 5;
+    const widths = it.items.map((e) => 2 * r + dotGap + est(e.label, fsKey));
+    let x = cx - (widths.reduce((a, b) => a + b, 0) + segGap * Math.max(0, widths.length - 1)) / 2;
+    const cy = top + hOf(it) / 2 - 2;
+    return (
+      <g key={i}>
+        {it.items.map((e, j) => {
+          const x0 = x;
+          x += widths[j] + segGap;
+          return (
+            <g key={j}>
+              <circle cx={x0 + r} cy={cy} r={r} fill={e.color} />
+              <text x={x0 + 2 * r + dotGap} y={cy + fsKey * 0.35} fontSize={fsKey} fill="#333333"
+                fontFamily={theme.fontFamily}>
+                {e.label}
+              </text>
+            </g>
+          );
+        })}
+      </g>
+    );
+  });
+
+  return <g style={{ pointerEvents: "none" }}>{els}</g>;
 };

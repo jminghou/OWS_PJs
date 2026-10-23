@@ -57,6 +57,21 @@ export const SUB_STAR_CODES: ReadonlySet<string> = new Set(
   [...MAJOR_STAR_CODES].filter((c) => !FOURTEEN_MAIN_STAR_CODES.has(c)),
 );
 
+/**
+ * 副星顯示排序（與 p_e_artist charts/natal/config.py SUB_STAR_DISPLAY_ORDER 一致）：
+ * 空劫 → 四煞 → 六吉 → 祿馬 → 雜曜。未列出的碼排最後（保持出現序）。
+ */
+export const SUB_STAR_DISPLAY_ORDER = [
+  "EVO", "MAE",
+  "GLA", "STO", "FSP", "CHI",
+  "LHA", "RHA", "AAC", "AAR", "CPA", "CAI",
+  "DIV", "HHO",
+  "INT", "RPH", "HJO",
+] as const;
+export const SUB_STAR_SORT_RANK: Record<string, number> = Object.fromEntries(
+  SUB_STAR_DISPLAY_ORDER.map((c, i) => [c, i]),
+);
+
 /** 四化碼 → 徽章字母（與 p_e_artist svg_writer._SIHUA_LABEL 一致）。 */
 export const SIHUA_LABEL: Record<string, string> = {
   FO: "F", PW: "P", HO: "H", BI: "I",

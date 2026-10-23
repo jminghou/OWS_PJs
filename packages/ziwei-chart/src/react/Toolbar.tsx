@@ -6,19 +6,20 @@ interface ToolbarProps {
   layers: LayerFlags;
   toggleLayer: (key: keyof LayerFlags) => void;
   theme: ZiweiTheme;
+  /** 有流盤資料時才顯示「流曜」開關。 */
+  hasFlow?: boolean;
 }
 
-const ITEMS: Array<{ key: keyof LayerFlags; label: string }> = [
+// 亮度、英文宮名不在書籍命盤上，開關先收起（LayerFlags 仍保留，可由 props.layers 開）。
+const ITEMS: Array<{ key: keyof LayerFlags; label: string; flowOnly?: boolean }> = [
   { key: "sanfang", label: "三方四正" },
   { key: "sihua", label: "四化" },
   { key: "minorStars", label: "小星" },
-  { key: "flowStars", label: "流曜" },
-  { key: "brightness", label: "亮度" },
-  { key: "palaceNameEn", label: "英文宮名" },
+  { key: "flowStars", label: "流曜", flowOnly: true },
 ];
 
 /** 內建圖層開關工具列（純 inline 樣式，不依賴消費端 CSS 框架）。 */
-export const Toolbar: FC<ToolbarProps> = ({ layers, toggleLayer, theme }) => {
+export const Toolbar: FC<ToolbarProps> = ({ layers, toggleLayer, theme, hasFlow = false }) => {
   return (
     <div
       role="group"
@@ -31,7 +32,7 @@ export const Toolbar: FC<ToolbarProps> = ({ layers, toggleLayer, theme }) => {
         fontFamily: theme.fontFamily,
       }}
     >
-      {ITEMS.map(({ key, label }) => {
+      {ITEMS.filter((it) => hasFlow || !it.flowOnly).map(({ key, label }) => {
         const on = layers[key];
         return (
           <button
@@ -45,8 +46,8 @@ export const Toolbar: FC<ToolbarProps> = ({ layers, toggleLayer, theme }) => {
               lineHeight: 1.4,
               padding: "3px 10px",
               borderRadius: 999,
-              border: `1px solid ${on ? theme.colors.palaceLink : "rgba(0,0,0,0.18)"}`,
-              background: on ? theme.colors.palaceLink : "transparent",
+              border: `1px solid ${on ? theme.colors.palaceName : "rgba(0,0,0,0.18)"}`,
+              background: on ? theme.colors.palaceName : "transparent",
               color: on ? "#fff" : theme.colors.palaceName,
               transition: "all 140ms ease",
             }}

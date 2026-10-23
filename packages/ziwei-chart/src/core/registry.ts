@@ -121,3 +121,15 @@ export function palaceNamesByMingBranch(
   }
   return out;
 }
+
+/** 同 palaceNamesByMingBranch，但回 地支碼 → 該層宮位碼（疊層畫宮位圖示 h{碼} 用）。 */
+export function palaceCodesByMingBranch(mingBranch: string): Record<string, string> {
+  const mingInt = parseInt(mingBranch, 10);
+  const out: Record<string, string> = {};
+  if (!mingInt || Number.isNaN(mingInt)) return out;
+  for (let k = 0; k < 12; k++) {
+    const b = (((mingInt - 1 - k) % 12) + 12) % 12 + 1;
+    out[String(b).padStart(2, "0")] = _NAME_SEQ_CODES[k];
+  }
+  return out;
+}

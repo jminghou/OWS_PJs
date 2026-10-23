@@ -19,7 +19,7 @@ export const SanfangLines: FC<SanfangLinesProps> = ({ sanfang, theme }) => {
           x2={ln.x2}
           y2={ln.y2}
           stroke={theme.colors.palaceLink}
-          strokeWidth={0.8}
+          strokeWidth={theme.layout.palaceLinkWidth}
           strokeDasharray="4 2"
           style={{
             transition:

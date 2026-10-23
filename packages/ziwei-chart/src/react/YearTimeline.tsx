@@ -7,10 +7,12 @@ interface YearTimelineProps {
   index: number;
   onSelect: (index: number) => void;
   theme: ZiweiTheme;
+  /** 作用中刻度與步進鈕的強調色。 */
+  accent: string;
 }
 
 /** 流年時間軸：可橫向捲動的年份刻度，附前/後一年步進，作用年份自動置中。 */
-export const YearTimeline: FC<YearTimelineProps> = ({ years, index, onSelect, theme }) => {
+export const YearTimeline: FC<YearTimelineProps> = ({ years, index, onSelect, theme, accent }) => {
   const activeRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     activeRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
@@ -25,9 +27,9 @@ export const YearTimeline: FC<YearTimelineProps> = ({ years, index, onSelect, th
     lineHeight: 1,
     padding: "6px 8px",
     borderRadius: 8,
-    border: `1px solid ${disabled ? "rgba(0,0,0,0.12)" : theme.colors.palaceLink}`,
+    border: `1px solid ${disabled ? "rgba(0,0,0,0.12)" : accent}`,
     background: "transparent",
-    color: disabled ? "rgba(0,0,0,0.3)" : theme.colors.palaceLink,
+    color: disabled ? "rgba(0,0,0,0.3)" : accent,
   });
 
   const tick = (on: boolean): CSSProperties => ({
@@ -40,11 +42,11 @@ export const YearTimeline: FC<YearTimelineProps> = ({ years, index, onSelect, th
     minWidth: 48,
     padding: "3px 6px 5px",
     borderRadius: 8,
-    border: `1px solid ${on ? theme.colors.palaceLink : "transparent"}`,
+    border: `1px solid ${on ? accent : "transparent"}`,
     borderBottom: on
-      ? `2px solid ${theme.colors.palaceLink}`
+      ? `2px solid ${accent}`
       : `2px solid rgba(0,0,0,0.12)`,
-    background: on ? theme.colors.palaceLink : "transparent",
+    background: on ? accent : "transparent",
     color: on ? "#fff" : theme.colors.palaceName,
     transition: "all 140ms ease",
   });

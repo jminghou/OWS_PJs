@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import type { CSSProperties, FC } from "react";
 import { STAR_SVG_DATA } from "./starSvgData";
 import { starNameZh } from "../core/registry";
 
@@ -9,6 +9,8 @@ interface StarIconProps {
   size: number;
   /** 圖示墨色（圖內 currentColor 由此決定，預設黑）。 */
   glyphColor?: string;
+  /** 線寬倍率（圖內 stroke-width 乘上 --zw-sw）；副星縮小後補到與主星同粗。 */
+  strokeScale?: number;
 }
 
 /**
@@ -16,7 +18,14 @@ interface StarIconProps {
  * 圖內深色墨已轉 currentColor，故由 color 控制墨色以支援深色/特殊主題。
  * 無圖檔者以置中文字（中文名）替代。
  */
-export const StarIcon: FC<StarIconProps> = ({ code, x, y, size, glyphColor = "#231815" }) => {
+export const StarIcon: FC<StarIconProps> = ({
+  code,
+  x,
+  y,
+  size,
+  glyphColor = "#231815",
+  strokeScale = 1,
+}) => {
   const d = STAR_SVG_DATA[code];
   if (d) {
     return (
@@ -28,6 +37,7 @@ export const StarIcon: FC<StarIconProps> = ({ code, x, y, size, glyphColor = "#2
         viewBox={d.viewBox}
         preserveAspectRatio="xMidYMid meet"
         color={glyphColor}
+        style={{ "--zw-sw": strokeScale } as CSSProperties}
         dangerouslySetInnerHTML={{ __html: d.inner }}
       />
     );

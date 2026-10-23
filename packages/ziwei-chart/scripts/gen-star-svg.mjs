@@ -52,6 +52,10 @@ function buildData(dir, list, classPrefix = "") {
     inner = inner.replace(/(#[0-9A-Fa-f]{3,6})/g, (m) => (isDarkInk(m) ? "currentColor" : m));
     // 宮位圖的 stroke 也要跟著主題走（星曜圖是 fill 線稿，宮位圖是 stroke 線稿）
     inner = inner.replace(/stroke="#[0-9A-Fa-f]{3,6}"/g, 'stroke="currentColor"');
+    // 線寬乘上 --zw-sw（使用端以 style 給值，預設 1）：副星縮小後要補到與主星同粗、
+    // 宮位圖示要與主星同粗——與 p_e_artist 的 stroke_scale 同義。
+    inner = inner.replace(/stroke-width:\s*([0-9.]+)px/g, "stroke-width: calc($1px * var(--zw-sw, 1))");
+    inner = inner.replace(/stroke-width="([0-9.]+)"/g, 'style="stroke-width: calc($1px * var(--zw-sw, 1))"');
     inner = inner.replace(/\s+/g, " ").trim();
     out[code] = { viewBox, inner };
   }
@@ -92,4 +96,22 @@ writeFileSync(
   "utf-8",
 );
 console.log(`gen:stars → 星曜/徽章 ${files.length} 個、宮位 ${palaceFiles.length} 個寫入 ${OUT}`);
+
+// 圖形實際範圍（四化徽章要貼著圖形放）：_bounds.json 由 P_Union p_e_artist/assets/gen_bounds.py
+// 以 Inkscape 量測產生，換圖示時連同 SVG 一起搬過來。core 不能依賴 react/，故另寫一檔。
+const boundsSrc = join(STARS_DIR, "_bounds.json");
+const boundsOut = join(here, "..", "src", "core", "starBounds.ts");
+const bounds = JSON.parse(readFileSync(boundsSrc, "utf-8"));
+writeFileSync(
+  boundsOut,
+  `/**
+ * 星曜圖示「實際圖形」佔畫框的比例 {l,t,r,b}（0–1）—— 由 scripts/gen-star-svg.mjs
+ * 自 src/assets/stars/_bounds.json 產生，請勿手改。來源：P_Union p_e_artist/assets/gen_bounds.py。
+ */
+export interface ArtBounds { l: number; t: number; r: number; b: number; }
+export const STAR_ART_BOUNDS: Record<string, ArtBounds> = ${JSON.stringify(bounds, null, 2)};
+`,
+  "utf-8",
+);
+console.log(`gen:stars → 圖形範圍 ${Object.keys(bounds).length} 個寫入 ${boundsOut}`);
 console.log("distinct fill colors:", [...colors].sort().join(", "));

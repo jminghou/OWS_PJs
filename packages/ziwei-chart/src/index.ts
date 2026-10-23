@@ -12,8 +12,8 @@ export { ZiweiChart } from "./react/ZiweiChart";
 export { DefineChart } from "./react/DefineChart";
 export { Toolbar } from "./react/Toolbar";
 export { useChartState } from "./react/useChartState";
-export { DEFAULT_LAYERS } from "./react/types";
-export type { ZiweiChartProps, LayerFlags } from "./react/types";
+export { DEFAULT_LAYERS, DEFAULT_OVERLAY } from "./react/types";
+export type { ZiweiChartProps, LayerFlags, OverlayState } from "./react/types";
 
 // 重新匯出核心型別與工具（方便消費端直接取用）
 export * from "./core";

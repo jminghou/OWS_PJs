@@ -1,11 +1,10 @@
-import { Fragment, type FC } from "react";
+import { Fragment, type CSSProperties, type FC } from "react";
 import type { PalaceInfo } from "../core/model";
-import type { PalaceLayout, StarIconBox } from "../core/layout";
+import type { BadgeBox, HeadItem, PalaceLayout, StarIconBox } from "../core/layout";
 import type { ZiweiTheme } from "../core/theme";
 import { brightnessNameZh, starNameZh } from "../core/registry";
-import { isFlowStar } from "../core/constants";
 import { StarIcon } from "./StarIcon";
-import { palaceSvg, STAR_SVG_DATA } from "./starSvgData";
+import { PALACE_SVG_DATA, STAR_SVG_DATA } from "./starSvgData";
 import type { LayerFlags } from "./types";
 
 interface PalaceProps {
@@ -13,59 +12,45 @@ interface PalaceProps {
   layout: PalaceLayout;
   theme: ZiweiTheme;
   layers: LayerFlags;
-  cnName: string;
-  enName: string;
   branchLabel: string;
   /** 宮干（宮格左下角）；無宮干時為空字串。 */
   stemLabel?: string;
-  /** 宮位碼（取宮位圖示用）。 */
-  palaceCode?: string;
   isAxis: boolean;
   inSanfang: boolean;
   onClick: (code: string) => void;
 }
 
-function Badge({
-  box,
-  theme,
-  bg,
-  ink,
-}: {
-  box: NonNullable<StarIconBox["badge"]>;
-  theme: ZiweiTheme;
-  bg?: string;
-  ink?: string;
-}) {
-  const fs = theme.sizes.sihuaTag;
-  // 四化徽章優先用圖示（assets/stars 的 F/P/H/I）：祿圓、權六角、科方、忌三角，
+function Badge({ box, theme }: { box: BadgeBox; theme: ZiweiTheme }) {
+  // 四化徽章用圖示（assets/stars 的 F/P/H/I）：祿圓、權六角、科方、忌三角，
   // 形狀本身就在表意。圖內底色已轉 currentColor、白字保留 ⇒ color 給底色即可。
   const glyph = STAR_SVG_DATA[box.label];
   if (glyph) {
-    const size = box.r * 2;
     return (
       <svg
-        x={box.cx - box.r}
-        y={box.cy - box.r}
-        width={size}
-        height={size}
+        x={box.x}
+        y={box.y}
+        width={box.size}
+        height={box.size}
         viewBox={glyph.viewBox}
         preserveAspectRatio="xMidYMid meet"
-        color={bg ?? theme.colors.sihuaBadgeBg}
+        color={box.ink}
         style={{ pointerEvents: "none" }}
         dangerouslySetInnerHTML={{ __html: glyph.inner }}
       />
     );
   }
+  const r = box.size / 2;
+  const fs = theme.sizes.sihuaTag;
   return (
     <g style={{ pointerEvents: "none" }}>
-      <circle cx={box.cx} cy={box.cy} r={box.r} fill={bg ?? theme.colors.sihuaBadgeBg} />
+      <circle cx={box.x + r} cy={box.y + r} r={r} fill={box.ink} />
       <text
-        x={box.cx}
-        y={box.cy + fs * 0.35}
+        x={box.x + r}
+        y={box.y + r + fs * 0.35}
         textAnchor="middle"
         fontSize={fs}
         fontWeight="bold"
-        fill={ink ?? theme.colors.sihuaTagInk}
+        fill={theme.colors.sihuaTagInk}
         fontFamily={theme.fontFamily}
       >
         {box.label}
@@ -91,7 +76,8 @@ function IconWithExtras({
         x={box.x}
         y={box.y}
         size={box.size}
-        glyphColor={theme.colors.starGlyph}
+        strokeScale={box.strokeScale}
+        glyphColor={box.ink || theme.colors.starGlyph}
       />
       {bright ? (
         <text
@@ -105,11 +91,43 @@ function IconWithExtras({
           {bright}
         </text>
       ) : null}
-      {layers.sihua && box.badge ? <Badge box={box.badge} theme={theme} /> : null}
-      {layers.sihua && box.flowBadge ? (
-        <Badge box={box.flowBadge} theme={theme} bg={theme.colors.flowStar} ink="#ffffff" />
-      ) : null}
+      {layers.sihua
+        ? box.badges.map((b, i) => <Badge key={i} box={b} theme={theme} />)
+        : null}
     </g>
+  );
+}
+
+function Head({ item, theme }: { item: HeadItem; theme: ZiweiTheme }) {
+  if (item.type === "icon") {
+    const d = PALACE_SVG_DATA[item.key];
+    if (!d) return null;
+    return (
+      <svg
+        x={item.x}
+        y={item.y}
+        width={item.w}
+        height={item.h}
+        viewBox={d.viewBox}
+        preserveAspectRatio="xMidYMid meet"
+        color={item.ink}
+        style={{ pointerEvents: "none", "--zw-sw": item.strokeScale } as CSSProperties}
+        dangerouslySetInnerHTML={{ __html: d.inner }}
+      />
+    );
+  }
+  return (
+    <text
+      x={item.x}
+      y={item.y}
+      fontSize={item.fontSize}
+      fontWeight={item.role === "en" ? undefined : item.role === "layer" ? 600 : "bold"}
+      fill={item.ink}
+      fontFamily={theme.fontFamily}
+      style={{ pointerEvents: "none" }}
+    >
+      {item.text}
+    </text>
   );
 }
 
@@ -119,21 +137,17 @@ export const Palace: FC<PalaceProps> = ({
   layout,
   theme,
   layers,
-  cnName,
-  enName,
   branchLabel,
   stemLabel = "",
-  palaceCode = "",
   isAxis,
   inSanfang,
   onClick,
 }) => {
   const { cell } = layout;
-  const palaceSvgData = palaceCode ? palaceSvg(palaceCode) : undefined;
   const highlightFill = isAxis
     ? theme.colors.axisHighlight
     : inSanfang
-      ? "rgba(200, 155, 60, 0.04)"
+      ? theme.colors.sanfangHighlight
       : "transparent";
 
   return (
@@ -152,73 +166,24 @@ export const Palace: FC<PalaceProps> = ({
         style={{ transition: "fill 180ms ease" }}
       />
 
-      {/* header：宮位圖示（palaceNameStyle="icon"）或文字宮名 */}
-      {layout.palaceIcon && palaceSvgData ? (
-        <>
-          <svg
-            x={layout.palaceIcon.x}
-            y={layout.palaceIcon.y}
-            width={layout.palaceIcon.w}
-            height={layout.palaceIcon.h}
-            viewBox={palaceSvgData.viewBox}
-            preserveAspectRatio="xMidYMid meet"
-            color={isAxis ? theme.colors.palaceLink : theme.colors.palaceName}
-            style={{ pointerEvents: "none" }}
-            dangerouslySetInnerHTML={{ __html: palaceSvgData.inner }}
-          />
-          {/* 身宮＝圖示外一圈同粗細外框 */}
-          {layout.bodyFrame ? (
-            <rect
-              x={layout.bodyFrame.x}
-              y={layout.bodyFrame.y}
-              width={layout.bodyFrame.w}
-              height={layout.bodyFrame.h}
-              rx={1.5}
-              fill="none"
-              stroke={isAxis ? theme.colors.palaceLink : theme.colors.palaceName}
-              strokeWidth={layout.bodyFrame.strokeWidth}
-              strokeLinejoin="round"
-              style={{ pointerEvents: "none" }}
-            />
-          ) : null}
-        </>
-      ) : (
-        <text
-          x={layout.name.x}
-          y={layout.name.y}
-          fontSize={theme.sizes.palaceName}
-          fontWeight="bold"
-          fill={isAxis ? theme.colors.palaceLink : theme.colors.palaceName}
-          fontFamily={theme.fontFamily}
+      {/* 表頭：宮位圖示（疊盤時本命＋各層半寬圖示並排）或文字宮名 */}
+      {layout.head.map((item, i) => (
+        <Head key={i} item={item} theme={theme} />
+      ))}
+      {/* 身宮＝本命圖示外一圈同粗細外框 */}
+      {layout.bodyFrame ? (
+        <rect
+          x={layout.bodyFrame.x}
+          y={layout.bodyFrame.y}
+          width={layout.bodyFrame.w}
+          height={layout.bodyFrame.h}
+          rx={1.5}
+          fill="none"
+          stroke={layout.bodyFrame.ink}
+          strokeWidth={layout.bodyFrame.strokeWidth}
+          strokeLinejoin="round"
           style={{ pointerEvents: "none" }}
-        >
-          {cnName}
-        </text>
-      )}
-      {layout.flowTag ? (
-        <text
-          x={layout.flowTag.x}
-          y={layout.flowTag.y}
-          fontSize={theme.sizes.palaceName}
-          fontWeight="bold"
-          fill={theme.colors.flowStar}
-          fontFamily={theme.fontFamily}
-          style={{ pointerEvents: "none" }}
-        >
-          {layout.flowTag.text}
-        </text>
-      ) : null}
-      {layers.palaceNameEn && enName ? (
-        <text
-          x={layout.nameEn.x}
-          y={layout.nameEn.y}
-          fontSize={theme.sizes.palaceNameEn}
-          fill={theme.colors.palaceNameEn}
-          fontFamily={theme.fontFamily}
-          style={{ pointerEvents: "none" }}
-        >
-          {enName}
-        </text>
+        />
       ) : null}
       {stemLabel ? (
         <text
@@ -260,50 +225,45 @@ export const Palace: FC<PalaceProps> = ({
       {layout.majorIcons.map((box, i) => (
         <IconWithExtras key={`m-${i}`} box={box} theme={theme} layers={layers} />
       ))}
-      {/* 副星 */}
+      {/* 副星＋流曜 */}
       {layout.subIcons.map((box, i) => (
         <IconWithExtras key={`s-${i}`} box={box} theme={theme} layers={layers} />
       ))}
+      {layout.overflow ? (
+        <text
+          x={layout.overflow.x}
+          y={layout.overflow.y}
+          textAnchor="middle"
+          fontSize={theme.sizes.starMinor}
+          fontWeight="bold"
+          fill={theme.colors.starMinor}
+          opacity={0.7}
+          fontFamily={theme.fontFamily}
+          style={{ pointerEvents: "none" }}
+        >
+          {layout.overflow.text}
+        </text>
+      ) : null}
 
-      {/* 小星／流曜文字（流曜以區隔色標記，各自可開關） */}
-      {layout.minorText
-        ? (() => {
-            const sep = theme.layout.minorSeparator;
-            const shown = palace.minors.filter((s) =>
-              isFlowStar(s.code) ? layers.flowStars : layers.minorStars,
-            );
-            if (shown.length === 0) return null;
-            return (
-              <text
-                x={layout.minorText!.x}
-                y={layout.minorText!.y}
-                textAnchor="middle"
-                fontSize={theme.sizes.starMinor}
-                fontFamily={theme.fontFamily}
-                style={{ pointerEvents: "none" }}
-              >
-                {shown.map((s, i) => {
-                  const flow = isFlowStar(s.code);
-                  return (
-                    <Fragment key={`${s.code}-${i}`}>
-                      {i > 0 ? (
-                        <tspan fill={theme.colors.starMinor} opacity={0.55}>
-                          {sep}
-                        </tspan>
-                      ) : null}
-                      <tspan
-                        fill={flow ? theme.colors.flowStar : theme.colors.starMinor}
-                        fontWeight={flow ? 600 : undefined}
-                      >
-                        {starNameZh(s.code)}
-                      </tspan>
-                    </Fragment>
-                  );
-                })}
-              </text>
-            );
-          })()
-        : null}
+      {/* 小星文字（書籍命盤不列，預設關） */}
+      {layout.minorText && layers.minorStars && palace.minors.length ? (
+        <text
+          x={layout.minorText.x}
+          y={layout.minorText.y}
+          textAnchor="middle"
+          fontSize={theme.sizes.starMinor}
+          fill={theme.colors.starMinor}
+          fontFamily={theme.fontFamily}
+          style={{ pointerEvents: "none" }}
+        >
+          {palace.minors.map((s, i) => (
+            <Fragment key={`${s.code}-${i}`}>
+              {i > 0 ? <tspan opacity={0.55}>{theme.layout.minorSeparator}</tspan> : null}
+              <tspan>{starNameZh(s.code)}</tspan>
+            </Fragment>
+          ))}
+        </text>
+      ) : null}
     </g>
   );
 };
