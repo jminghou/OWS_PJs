@@ -121,11 +121,11 @@ export default function ZiweiQuickChart() {
         gender,
         time_type: useSolarTime ? 'solar_time' : 'clock_time',
         place: useSolarTime ? toZiweiPlace(place) : undefined,
-        // 與完整表單一致：公開頁只要本命層的互動命盤，靜態 SVG 作渲染失敗時的備援
-        // 排盤在瀏覽器算（@ows/ziwei-engine）；靜態 SVG 由後端出，只在會員頁下載時才取
+        // 與完整表單一致：首頁就是完整版命盤（本命＋大限／小限／流年疊盤），不分公開／會員。
+        // 排盤在瀏覽器算（@ows/ziwei-engine），流盤也在本機算，不增加後端負擔
         render: false,
         include_chart_json: true,
-        include_flow: false,
+        include_flow: true,
       });
       setSubmitted(payload);
       setResult(res);

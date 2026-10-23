@@ -74,12 +74,11 @@ export default function ZiweiChartForm() {
           form.timeType === 'solar_time'
             ? toZiweiPlace(form.place)
             : undefined,
-        // 公開頁直接呈現互動命盤（本命層）；靜態 SVG 僅作渲染失敗時的備援。
-        // 流盤（大限／流年）屬會員專區進階功能，公開頁不請求。
-        // 排盤在瀏覽器算（@ows/ziwei-engine）；靜態 SVG 由後端出，只在會員頁下載時才取
+        // 完整版命盤（本命＋大限／小限／流年疊盤），不分公開／會員；靜態 SVG 僅作渲染失敗時的備援。
+        // 排盤在瀏覽器算（@ows/ziwei-engine），流盤也在本機算，不增加後端負擔
         render: false,
         include_chart_json: true,
-        include_flow: false,
+        include_flow: true,
       });
       setSubmitted(chartPayload());
       setResult(res);

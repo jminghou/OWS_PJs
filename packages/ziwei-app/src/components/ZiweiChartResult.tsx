@@ -1,13 +1,10 @@
 'use client';
 
-import { forwardRef, useState } from 'react';
+import { forwardRef } from 'react';
+import Link from 'next/link';
 import type { TimeType, ZiweiPlace } from '../api/astrology';
-import { useRouter } from 'next/navigation';
 import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
-import Button from '@ows/ui/ui/Button';
-import { useAuthStore } from '@ows/platform-api';
-import { stashPendingChart } from '../pendingChart';
-import { astrologyApi, type ZiweiCalcResponse } from '../api/astrology';
+import type { ZiweiCalcResponse } from '../api/astrology';
 
 /** 存盤／暫存用的命盤資料（對應 astrologyApi.saveMyChart 與 stashPendingChart）。 */
 export interface ZiweiChartPayload {
@@ -27,51 +24,17 @@ export interface ZiweiChartPayload {
 
 interface ZiweiChartResultProps {
   result: ZiweiCalcResponse;
-  /** 排出這張盤時送出的資料；CTA 存的就是它 */
+  /** 排出這張盤時送出的資料（目前未用；保留給日後把這張盤帶進購買流程） */
   payload: ZiweiChartPayload;
 }
 
 /**
- * 排盤結果：互動命盤（本命層）＋唯一的 CTA。/ziwei 的完整表單與首頁的滾輪排盤共用。
- * - 未登入：CTA「加入會員，儲存這張命盤」→ 暫存命盤並前往
- *   /login?mode=register，註冊／登入成功後命盤自動存入帳號並直開詳情頁。
- * - 已登入：CTA「儲存並開啟進階命盤」→ 直接把剛排的盤存進帳號
- *   （後端有去重，重複儲存回既有盤），再導向該命盤詳情頁。
+ * 排盤結果：完整版互動命盤（本命＋大限／小限／流年疊盤切換）＋唯一的 CTA。/ziwei 的完整表單與首頁的滾輪排盤共用。
+ * 新版規劃：會員中心不再放命盤（只有訂購與報告），所以 CTA 不分登入與否，一律導向購買報告 /report。
  */
 const ZiweiChartResult = forwardRef<HTMLDivElement, ZiweiChartResultProps>(function ZiweiChartResult(
-  { result, payload }, ref,
+  { result }, ref,
 ) {
-  const router = useRouter();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const [ctaBusy, setCtaBusy] = useState(false);
-  const [ctaError, setCtaError] = useState('');
-
-  // ── 訪客 CTA：暫存剛排的命盤 → 前往登入／註冊合一頁 ──
-  const goJoin = () => {
-    stashPendingChart(payload);
-    router.push('/login?mode=register');
-  };
-
-  // ── 會員 CTA：直接把剛排的盤存進帳號（後端去重），再開該命盤詳情頁 ──
-  const goAdvanced = async () => {
-    setCtaBusy(true);
-    setCtaError('');
-    try {
-      const res = await astrologyApi.saveMyChart(payload);
-      router.push(`/account/charts/${res.chart_id}`);
-    } catch (err: any) {
-      if (err?.status === 401) {
-        // 登入狀態已過期（本地狀態過時）→ 退回訪客流程：暫存後前往登入
-        stashPendingChart(payload);
-        router.push('/login');
-        return;
-      }
-      setCtaError(err.message || '儲存失敗，請稍後再試');
-      setCtaBusy(false);
-    }
-    // 成功導頁時不重設 busy，避免按鈕在跳轉前閃回可按狀態
-  };
-
   const mingGong = result.data?.['宮位資料']?.['命宮'];
 
   return (
@@ -91,9 +54,9 @@ const ZiweiChartResult = forwardRef<HTMLDivElement, ZiweiChartResultProps>(funct
         {result.solar_time && <span>真太陽時：{result.solar_time}</span>}
       </div>
 
-      {/* 互動命盤（本命層）；chart_json 缺失時退回靜態 SVG */}
+      {/* 互動命盤（含疊盤切換）；chart_json 缺失時退回靜態 SVG */}
       {result.chart_json ? (
-        <ZiweiChart chart={result.chart_json} theme={NAMED_THEMES.light} />
+        <ZiweiChart chart={result.chart_json} flow={result.flow ?? undefined} theme={NAMED_THEMES.light} />
       ) : result.svg ? (
         <div
           className="w-full overflow-x-auto flex justify-center [&>svg]:max-w-full [&>svg]:h-auto"
@@ -106,41 +69,15 @@ const ZiweiChartResult = forwardRef<HTMLDivElement, ZiweiChartResultProps>(funct
         </p>
       )}
 
-      {/* 唯一的按鈕：依登入狀態決定 CTA */}
+      {/* 唯一的按鈕：為這張命盤撰寫報告 → 購買報告 */}
       <div className="mt-6 text-center">
-        {ctaError && (
-          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-banner text-red-700 text-sm">
-            {ctaError}
-          </div>
-        )}
-        {isAuthenticated ? (
-          <>
-            <Button
-              type="button"
-              onClick={goAdvanced}
-              disabled={ctaBusy}
-              className="bg-brand-purple-600 hover:bg-brand-purple-700"
-            >
-              {ctaBusy ? '儲存中…' : '儲存並開啟進階命盤'}
-            </Button>
-            <p className="mt-3 text-xs text-gray-400">
-              會把這張命盤存進你的帳號（重複儲存不會建立新盤），並開啟大限／流年、版型切換與下載等進階功能。
-            </p>
-          </>
-        ) : (
-          <>
-            <Button
-              type="button"
-              onClick={goJoin}
-              className="bg-brand-purple-600 hover:bg-brand-purple-700"
-            >
-              加入會員，儲存這張命盤
-            </Button>
-            <p className="mt-3 text-xs text-gray-400">
-              註冊後會自動把這張命盤存進帳號，並解鎖大限／流年、版型切換與下載等進階功能。
-            </p>
-          </>
-        )}
+        <Link
+          href="/report"
+          // 與 @ows/ui Button 預設樣式一致（原本的 CTA 就是 Button＋品牌紫）
+          className="inline-flex h-10 items-center justify-center rounded-md bg-brand-purple-600 px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-brand-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          為這張命盤撰寫報告
+        </Link>
       </div>
     </div>
   );
