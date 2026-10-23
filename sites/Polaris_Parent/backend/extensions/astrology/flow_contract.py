@@ -14,7 +14,10 @@
     含十四主星 + 流曜，格式與本命一致。
   - encoded_array 內四化是「生年四化」，非該層四化；故清掉後改套該層四化：
       · 大限：取自 chart["大限四化"]（order→星）。
-      · 流年/小限：依該層 lunar_year 的天干，查天干四化表（與引擎 four_trans.py 同表）。
+      · 流年：依該層 lunar_year 的天干（太歲干），查天干四化表（與引擎 four_trans.py 同表）。
+      · 小限：小限命宮所在地支的宮干（五虎遁，由 chart["大限資料"] 反查 宮位→年干），
+        ⚠️ 非小限農曆年干——與 encoder_flow.calculate_small_limit_chart_encoding 及
+        P_Union 疊盤 overlay_resolver 同一條義理（2026-07-16 定案）。
   - 流年/小限的 palace code 已重排到該層命宮（code1=該層命宮）；前端一律用 mingBranch
     依地支重排宮名，故 re-root 與否皆正確。
 
@@ -153,8 +156,12 @@ def _build_decades(chart, parser, serialize_chart) -> List[Dict[str, Any]]:
     return out
 
 
-def _build_age_layer(chart, parser, serialize_chart, enc_key: str) -> List[Dict[str, Any]]:
-    """流年(year_flow_encoding) 與 小限(small_limit_encoding) 共用：依 lunar_year 天干套四化。"""
+def _build_age_layer(chart, parser, serialize_chart, enc_key: str,
+                     stem_by_branch: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+    """流年(year_flow_encoding) 與 小限(small_limit_encoding) 共用。
+
+    四化天干：給了 stem_by_branch（小限）＝該層命宮地支的宮干；否則（流年）＝lunar_year 天干。
+    """
     enc = (chart.get("快速條件編碼") or {}).get(enc_key) or []
     out: List[Dict[str, Any]] = []
     for entry in enc:
@@ -162,7 +169,11 @@ def _build_age_layer(chart, parser, serialize_chart, enc_key: str) -> List[Dict[
         if ch is None:
             continue
         ganzhi = entry.get("lunar_year") or ""
-        _apply_sihua_by_names(ch, _stem_sihua_names(ganzhi))
+        if stem_by_branch is not None:
+            stem = stem_by_branch.get((entry.get("palace_position") or "").strip(), "")
+        else:
+            stem = ganzhi
+        _apply_sihua_by_names(ch, _stem_sihua_names(stem))
         try:
             age = int(entry.get("age"))
         except (TypeError, ValueError):
@@ -189,7 +200,14 @@ def build_flow_layers(chart: Dict[str, Any], parser, serialize_chart) -> Optiona
     """
     decades = _build_decades(chart, parser, serialize_chart)
     years = _build_age_layer(chart, parser, serialize_chart, "year_flow_encoding")
-    small = _build_age_layer(chart, parser, serialize_chart, "small_limit_encoding")
+    # 地支 → 宮干（五虎遁）：大限資料每宮 宮位=地支字、年干=宮干
+    stem_by_branch = {
+        info.get("宮位"): info.get("年干")
+        for info in (chart.get("大限資料") or {}).values()
+        if isinstance(info, dict) and info.get("年干")
+    }
+    small = _build_age_layer(chart, parser, serialize_chart, "small_limit_encoding",
+                             stem_by_branch=stem_by_branch)
     if not decades and not years and not small:
         return None
     return {"decades": decades, "years": years, "smallLimits": small}

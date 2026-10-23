@@ -1,5 +1,6 @@
 from datetime import datetime
 from ..palace.subject import calculate_twelve_palaces
+from ..core.sxtwl_utils import get_birth_lunar_year
 # 移除循环导入
 # from ..function.lunar import get_complete_lunar_info
 
@@ -57,7 +58,7 @@ def get_one_palace_data(solar_date, basic_data, palace_info, lunar_info=None):
                 year_branch = day_gz[1]  # 在这里我们尝试使用日支作为替代
         
         # 获取出生年
-        birth_year = solar_date[0]
+        birth_year = get_birth_lunar_year(*solar_date[:3])  # 農曆出生年（正月初一前出生＝前一年）；用國曆年會讓西元年晚一年
         
         if not year_branch:
             # 移除冗余日志

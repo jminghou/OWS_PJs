@@ -49,9 +49,18 @@ export function isAfterLunarNewYear(year: number, month: number, day: number): b
   return month * 100 + day >= nm * 100 + nd;
 }
 
+/**
+ * 出生所在的農曆年（以西元年數表示）：正月初一（含）之後＝當年，之前＝前一年。
+ * 與 getCorrectYearGz 同一條年界；虛歲 1 歲＝這一年，流年／小限西元年與大限西元區間
+ * 都從這裡起算（用國曆出生年會讓年前出生者全部晚一年）。對應 Python get_birth_lunar_year。
+ */
+export function getBirthLunarYear(year: number, month: number, day: number): number {
+  return isAfterLunarNewYear(year, month, day) ? year : year - 1;
+}
+
 /** 年干支：以農曆新年為界（公元 4 年為甲子）。 */
 export function getCorrectYearGz(year: number, month: number, day: number): string {
-  const target = isAfterLunarNewYear(year, month, day) ? year : year - 1;
+  const target = getBirthLunarYear(year, month, day);
   const off = target - 4;
   return STEMS[mod(off, 10)] + BRANCHES[mod(off, 12)];
 }

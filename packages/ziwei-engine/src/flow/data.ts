@@ -5,7 +5,7 @@
  * 輸出沿用 Python 的中文鍵與「逗號串」格式（歲數 "3,15,27,…"），因為 encoder_flow
  * 就是吃這些字串；一路逐字對齊，黃金檔才能直接比對。
  */
-import { BRANCHES, STEMS } from "../lunar";
+import { BRANCHES, STEMS, getBirthLunarYear } from "../lunar";
 import type { NatalChart } from "../natal/chart";
 import { calculateTwelvePalaces } from "../natal/palaces";
 import { getMoonStars, getYearGStars, getYearZStars } from "../natal/stars";
@@ -49,7 +49,7 @@ export function buildDecadeData(chart: NatalChart): DecadeData {
   const bureau = chart.命盤數據.五行局;
   const m = bureau.match(/([二三四五六])/);
   const bureauNumber = m ? ({ 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 } as Record<string, number>)[m[1]] : 2;
-  const birthYear = chart._solar[0];
+  const birthYear = getBirthLunarYear(chart._solar[0], chart._solar[1], chart._solar[2]); // 農曆出生年
   const twelve = chart._palaceInfo.twelve;
   const palaceGz = chart._palaceInfo.palaceGz;
 
@@ -137,7 +137,7 @@ function gzOfAge(birthStem: string, birthBranch: string, age: number): string {
 export function buildSmallLimitData(chart: NatalChart): SmallLimitData {
   const gender = chart.基本資料.性別 || "男";
   const { yearStem, yearBranch } = chart._lunar;
-  const birthYear = chart._solar[0];
+  const birthYear = getBirthLunarYear(chart._solar[0], chart._solar[1], chart._solar[2]); // 農曆出生年
   const positions = ONE_LIMIT_TABLE[`${yearBranchGroup(yearBranch)},${gender}`];
   if (!positions) return {};
   const twelve = calculateTwelvePalaces(chart._palaceInfo.命宮);
@@ -183,7 +183,7 @@ export function buildSmallLimitData(chart: NatalChart): SmallLimitData {
 /** year_palace.get_year_palace_data ＋ year_star.calculate_year_star_position 合併。 */
 export function buildYearFlowData(chart: NatalChart): YearFlowData {
   const { yearStem, yearBranch } = chart._lunar;
-  const birthYear = chart._solar[0];
+  const birthYear = getBirthLunarYear(chart._solar[0], chart._solar[1], chart._solar[2]); // 農曆出生年
   const bi = BRANCHES.indexOf(yearBranch);
   const byBranch: Record<string, { ages: string[]; gz: string[]; years: string[] }> = {};
   for (const b of BRANCHES) byBranch[b] = { ages: [], gz: [], years: [] };

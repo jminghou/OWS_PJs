@@ -7,7 +7,7 @@
 import { encodedArrayToChartJson, type ChartJson } from "../convert";
 import { BRANCH_CODE_MAP, STAR_CODE_MAP } from "../natal/encoder";
 import { FOUR_TRANSFORMATIONS } from "../natal/tables";
-import type { DecadeSihua } from "./data";
+import type { DecadeData, DecadeSihua } from "./data";
 import type { AgeEncoding, DecadeEncoding } from "./encoder";
 
 const SIHUA_ZH_TO_CODE: Array<[string, string]> = [["祿", "FO"], ["權", "PW"], ["科", "HO"], ["忌", "BI"]];
@@ -84,13 +84,18 @@ export function buildDecadeLayer(enc: DecadeEncoding[], dasian: DecadeSihua | nu
   return out;
 }
 
-export function buildAgeLayer(enc: AgeEncoding[]): FlowAgeEntry[] {
+/**
+ * 流年／小限共用。四化天干：給了 stemByBranch（小限）＝該層命宮地支的宮干（五虎遁，
+ * 非小限農曆年干，與 encoder 及 P_Union 疊盤同一條義理）；否則（流年）＝lunar_year 天干。
+ */
+export function buildAgeLayer(enc: AgeEncoding[], stemByBranch?: Record<string, string>): FlowAgeEntry[] {
   const out: FlowAgeEntry[] = [];
   for (const e of enc) {
     const ch = normalize(e.encoded_array);
     if (!ch) continue;
     const gz = e.lunar_year || "";
-    applySihuaByNames(ch, stemSihuaNames(gz));
+    const stem = stemByBranch ? stemByBranch[(e.palace_position || "").trim()] ?? "" : gz;
+    applySihuaByNames(ch, stemSihuaNames(stem));
     const age = parseInt(e.age, 10);
     const year = parseInt(e.western_year, 10);
     out.push({
@@ -103,10 +108,14 @@ export function buildAgeLayer(enc: AgeEncoding[]): FlowAgeEntry[] {
 
 export function buildFlowLayers(
   decades: DecadeEncoding[], years: AgeEncoding[], small: AgeEncoding[], dasian: DecadeSihua | null,
+  decadeData: DecadeData | null = null,
 ): FlowLayers | null {
+  // 地支 → 宮干（五虎遁）：大限資料每宮 宮位=地支字、年干=宮干
+  const stemByBranch: Record<string, string> = {};
+  for (const info of Object.values(decadeData ?? {})) if (info.年干) stemByBranch[info.宮位] = info.年干;
   const d = buildDecadeLayer(decades, dasian);
   const y = buildAgeLayer(years);
-  const s = buildAgeLayer(small);
+  const s = buildAgeLayer(small, stemByBranch);
   if (!d.length && !y.length && !s.length) return null;
   return { decades: d, years: y, smallLimits: s };
 }

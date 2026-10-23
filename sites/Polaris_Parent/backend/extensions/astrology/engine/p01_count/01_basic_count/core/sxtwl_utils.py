@@ -82,6 +82,16 @@ def is_after_lunar_new_year(year, month, day):
     
     return current_date >= new_year_date
 
+def get_birth_lunar_year(year, month, day):
+    """
+    出生所在的農曆年（以西元年數表示）：正月初一（含）之後＝當年，之前＝前一年。
+
+    與 get_correct_year_gz 同一條年界。虛歲 1 歲＝這一年，所以流年／小限的西元年
+    （＝這一年＋虛歲−1）與大限西元區間都必須從這裡起算，不能用國曆出生年——
+    否則 1/1～正月初一前出生者的西元年全部晚一年（歲數與干支卻是對的）。
+    """
+    return year if is_after_lunar_new_year(year, month, day) else year - 1
+
 def get_correct_year_gz(year, month, day, hour, minute):
     """
     根據農曆新年正確計算年干支
@@ -90,13 +100,8 @@ def get_correct_year_gz(year, month, day, hour, minute):
     heavenly_stems = "甲乙丙丁戊己庚辛壬癸"
     earthly_branches = "子丑寅卯辰巳午未申酉戌亥"
     
-    # 判斷是否已過農曆新年
-    if is_after_lunar_new_year(year, month, day):
-        # 已過農曆新年，使用當年干支
-        target_year = year
-    else:
-        # 未過農曆新年，使用前一年干支
-        target_year = year - 1
+    # 未過農曆新年者使用前一年干支
+    target_year = get_birth_lunar_year(year, month, day)
     
     # 計算干支（以甲子年為起點，公元4年為甲子年）
     year_offset = target_year - 4

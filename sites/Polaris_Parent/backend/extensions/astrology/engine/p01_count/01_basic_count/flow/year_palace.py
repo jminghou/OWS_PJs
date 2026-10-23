@@ -1,4 +1,5 @@
 from ..function.lunar import get_complete_lunar_info
+from ..core.sxtwl_utils import get_birth_lunar_year
 from ..palace.gz import get_palace_gz
 from datetime import datetime
 
@@ -8,7 +9,7 @@ def calculate_years_in_palace(birth_year, birth_year_branch, birth_year_stem, ag
     以命主出生年支为1岁的命宫，以农历为基准
 
     Args:
-        birth_year: 出生年份(西元)
+        birth_year: 出生所在的農曆年（西元年數，見 get_birth_lunar_year；非國曆出生年）
         birth_year_branch: 出生年支
         birth_year_stem: 出生年干
         age_range: 计算的年龄范围
@@ -101,7 +102,7 @@ def get_year_palace_data(solar_date, basic_data, palace_info):
         dict: 流年宫位数据
     """
     try:
-        birth_year = solar_date[0]
+        birth_year = get_birth_lunar_year(*solar_date[:3])  # 農曆出生年（正月初一前出生＝前一年）；用國曆年會讓西元年晚一年
         gender = basic_data.get('性別', basic_data.get('基本資料', {}).get('性別', ''))
         
         # 获取完整的历法信息

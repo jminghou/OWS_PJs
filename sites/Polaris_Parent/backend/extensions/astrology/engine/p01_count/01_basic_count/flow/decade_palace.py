@@ -1,5 +1,5 @@
 # from ..core.core_import import import_data
-from ..core.sxtwl_utils import calculate_lunar_date
+from ..core.sxtwl_utils import calculate_lunar_date, get_birth_lunar_year
 from ..palace.bureau import get_bureau
 from ..palace.subject import calculate_twelve_palaces
 from ..palace.gz import get_palace_gz
@@ -44,7 +44,7 @@ def get_ten_palace_info(yin_yang_gender, bureau, twelve_palaces, solar_date, pal
     start_age = bureau_number
     
     # 获取出生年份
-    birth_year = solar_date[0]
+    birth_year = get_birth_lunar_year(*solar_date[:3])  # 農曆出生年（正月初一前出生＝前一年）；用國曆年會讓西元年晚一年
     
     # 存储大限宫位信息
     ten_palace_data = {}

@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-27T09:53:52",
+ "generated_at": "2026-10-23T09:30:57",
  "seed": 20260927,
  "count": 300,
  "full_first": 5,
@@ -13,6 +13,6 @@
   120
  ],
  "edge_cases": 12,
- "vendor_version": "﻿source: D:\\P_Polaris_Parent\\1_run\\P_Union\ncommit: e027d739\nsynced: 2026-09-22 00:46:25",
+ "vendor_version": "﻿source: D:\\P_Polaris_Parent\\1_run\\P_Union\ncommit: e027d739\nsynced: 2026-09-22 00:46:25\n\n\npartial: 2026-10-23 p01_count core/sxtwl_utils.py + flow/{decade,small_limit,year}_palace.py ← P_Union 工作區（生於農曆新年前者西元年差一修正；其餘仍為 e027d739）",
  "charts": 312
 }

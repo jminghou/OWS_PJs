@@ -107,6 +107,7 @@ export function calculateChart(input: CalculateInput, opts: CalculateOptions = {
     encoding.year_flow_encoding = calculateYearFlowEncoding(natalArray, flowRaw);
     flow = buildFlowLayers(
       encoding.decade_chart_encoding, encoding.year_flow_encoding, encoding.small_limit_encoding, flowRaw.大限四化,
+      flowRaw.大限資料,
     );
   }
   const chart_json = encodedArrayToChartJson(natalArray, chart.chart_id);
