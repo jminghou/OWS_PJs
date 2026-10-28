@@ -142,7 +142,7 @@ export function ModuleDataEditor({ type, data, onChange }: { type: ModuleType; d
           <ListItems items={list} onChange={setItems} blank={() => ({ icon: 'book', text: '' })} addLabel="新增亮點"
             renderItem={(h, update) => (
               <div className="flex gap-2">
-                <select value={h.icon} onChange={(e) => update({ icon: e.target.value })} className={`${fieldCls} w-24 shrink-0`} aria-label="圖示">
+                <select value={h.icon} onChange={(e) => update({ icon: e.target.value })} className={`${fieldCls.replace('w-full', 'w-24')} shrink-0`} aria-label="圖示">
                   {HIGHLIGHT_ICONS.map((i) => <option key={i.value} value={i.value}>{i.label}</option>)}
                 </select>
                 <Input value={h.text ?? ''} onChange={(e) => update({ text: e.target.value })} placeholder="例如：付款前先預覽主角的命盤與樣張" />
