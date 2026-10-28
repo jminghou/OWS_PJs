@@ -78,6 +78,7 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
   const addon = addonPrice(prices);
   const ui = reportUi(locale);
   const home = reportBase(locale);
+  const audiences = product.audiences ?? catalog.audiences;
 
   return (
     <div className="mx-auto max-w-content px-4 py-8 md:px-6 md:py-12">
@@ -96,7 +97,7 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
           <h1 className="mt-3 font-heading text-[32px] font-normal text-ink md:text-h1">{product.name}</h1>
           <p className="mt-3 text-[17px] text-text md:text-lead">{product.tagline}</p>
 
-          <ul className="mt-6 space-y-3">
+          {product.highlights.length > 0 && <ul className="mt-6 space-y-3">
             {product.highlights.map((h) => {
               const Icon = ICONS[h.icon];
               return (
@@ -106,7 +107,7 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
                 </li>
               );
             })}
-          </ul>
+          </ul>}
 
           {/* 主推方案：墨底報告卡（規範 §6.5，一頁最多一張） */}
           <div className="mt-8 rounded-card bg-ink p-7 text-white">
@@ -133,21 +134,23 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
             {ui.wizardNote && <p className="mt-1 text-center text-caption text-[#A9ADBD]">{ui.wizardNote}</p>}
           </div>
 
-          <figure className="mt-6 rounded-inner bg-blue-50 px-6 py-5">
-            <blockquote className="font-heading text-blue-800">「{product.testimonial.quote}」</blockquote>
-            <figcaption className="mt-2 text-caption text-blue-800">— {product.testimonial.author}</figcaption>
-          </figure>
+          {product.testimonial && (
+            <figure className="mt-6 rounded-inner bg-blue-50 px-6 py-5">
+              <blockquote className="font-heading text-blue-800">「{product.testimonial.quote}」</blockquote>
+              {product.testimonial.author && <figcaption className="mt-2 text-caption text-blue-800">— {product.testimonial.author}</figcaption>}
+            </figure>
+          )}
         </div>
       </section>
 
-      {/* 詳細說明（可展開） */}
-      <section aria-label="報告說明" className="mt-16 max-w-[760px] md:mt-24">
-        <div className="space-y-4 text-text">
+      {/* 詳細說明（可展開）；後台模組沒選的區塊不顯示 */}
+      {(product.intro.length > 0 || product.details.length > 0) && <section aria-label="報告說明" className="mt-16 max-w-[760px] md:mt-24">
+        {product.intro.length > 0 && <div className="mb-8 space-y-4 text-text">
           {product.intro.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
-        </div>
-        <div className="mt-8">
+        </div>}
+        {product.details.length > 0 && <div>
           <Accordion
             items={product.details.map((d, i) => ({
               title: d.title,
@@ -161,11 +164,11 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
               ),
             }))}
           />
-        </div>
-      </section>
+        </div>}
+      </section>}
 
       {/* 圖文特色 */}
-      <section aria-label="特色" className="mt-16 space-y-12 md:mt-24 md:space-y-16">
+      {product.features.length > 0 && <section aria-label="特色" className="mt-16 space-y-12 md:mt-24 md:space-y-16">
         {product.features.map((f, i) => (
           <div key={f.title} className="grid grid-cols-1 items-center gap-6 md:grid-cols-2 md:gap-12">
             {f.imageUrl ? (
@@ -201,11 +204,11 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
             </div>
           </div>
         ))}
-      </section>
+      </section>}
 
       {/* 製作方式 */}
-      <section aria-labelledby="pd-process" className="mt-16 md:mt-24">
-        <h2 id="pd-process" className={sectionTitle}>{ui.process}</h2>
+      {product.process.length > 0 && <section aria-labelledby="pd-process" className="mt-16 md:mt-24">
+        <h2 id="pd-process" className={sectionTitle}>{product.titles?.process ?? ui.process}</h2>
         <ol className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
           {product.process.map((s, i) => (
             <li key={s.title} className="rounded-card bg-white p-6 md:p-8">
@@ -215,11 +218,11 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
             </li>
           ))}
         </ol>
-      </section>
+      </section>}
 
       {/* 評價 */}
-      <section aria-labelledby="pd-reviews" className="mt-16 md:mt-24">
-        <h2 id="pd-reviews" className={sectionTitle}>{ui.reviews}</h2>
+      {product.reviews.length > 0 && <section aria-labelledby="pd-reviews" className="mt-16 md:mt-24">
+        <h2 id="pd-reviews" className={sectionTitle}>{product.titles?.reviews ?? ui.reviews}</h2>
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
           {product.reviews.map((r, n) => (
             <figure key={n} className="rounded-card bg-white p-6 md:p-8">
@@ -233,14 +236,16 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
             </figure>
           ))}
         </div>
-      </section>
+      </section>}
 
-      {/* FAQ */}
-      <section aria-labelledby="pd-faq" className="mt-16 max-w-[760px] md:mt-24">
-        <h2 id="pd-faq" className={sectionTitle}>{ui.faqOf(product.name)}</h2>
-        <div className="mt-6">
-          <Accordion items={product.faq.map((f) => ({ title: f.q, body: <p>{f.a}</p> }))} />
-        </div>
+      {/* FAQ（交易政策連結一律顯示） */}
+      <section aria-labelledby={product.faq.length ? 'pd-faq' : undefined} className="mt-16 max-w-[760px] md:mt-24">
+        {product.faq.length > 0 && <>
+          <h2 id="pd-faq" className={sectionTitle}>{product.titles?.faq ?? ui.faqOf(product.name)}</h2>
+          <div className="mt-6">
+            <Accordion items={product.faq.map((f) => ({ title: f.q, body: <p>{f.a}</p> }))} />
+          </div>
+        </>}
         <p className="mt-4 text-sm text-muted">
           {ui.policyPrefix}
           <Link
@@ -258,11 +263,11 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
         <StartButtons book={addon.available} locale={locale} ui={ui} className="mt-6" />
       </section>
 
-      {/* 你想送給誰 */}
-      <section aria-labelledby="pd-audience" className="mt-16 md:mt-24">
-        <h2 id="pd-audience" className={sectionTitle}>{ui.audience}</h2>
+      {/* 你想送給誰：商品選的模組；沒改用模組時用目錄頁的 */}
+      {audiences.length > 0 && <section aria-labelledby="pd-audience" className="mt-16 md:mt-24">
+        <h2 id="pd-audience" className={sectionTitle}>{product.titles?.audiences ?? ui.audience}</h2>
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {catalog.audiences.map((a) => (
+          {audiences.map((a) => (
             <Link
               key={a.label}
               href={home}
@@ -276,7 +281,7 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
             </Link>
           ))}
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

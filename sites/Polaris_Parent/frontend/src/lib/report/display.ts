@@ -8,10 +8,23 @@
  *                               ＋商品頁內容：介紹、亮點、推薦語、詳細說明、特色文字、怎麼製作、讀者怎麼說、常見問題
  *   attributes.report_catalog（＋report_catalog_faq）→ 目錄頁與「你想送給誰」等所有報告共用的文字
  * 後台留空的欄位沿用預設值；清單類（亮點、FAQ…）有任何一項就整段取代預設。後台沒建商品或 API 失敗時整份都用預設值。
- * 編輯介面在 components/admin/ReportDisplaySection.tsx 與 ReportContentSection.tsx。
+ *
+ * 2026-10-28 起商品頁內容與目錄頁改用「模組管理」的模組（lib/report/modules.ts）：商品有 attributes.report_modules
+ * 就只讀模組（沒選的位置不顯示）；還沒改用模組的商品照舊讀 report_display 與 catalog.ts 的預設。
+ * 編輯介面在 components/admin/ReportDisplaySection.tsx、ReportModulesTab.tsx 與 app/admin/page-modules。
  */
 import { productApi } from '@/lib/api';
 import { REPORT_CATALOG, REPORT_PRODUCTS, type CoverPalette, type HighlightIcon, type ReportProduct } from './catalog';
+import {
+  CATALOG_MODULE_KEY,
+  cleanTitle,
+  fetchModules,
+  moduleAt,
+  productModuleRefs,
+  readModule,
+  type ModuleRefs,
+  type ResolvedModules,
+} from './modules';
 
 /** attributes 裡的頂層鍵；後端依頂層鍵合併，不會動到其他鍵 */
 export const REPORT_DISPLAY_KEY = 'report_display';
@@ -115,11 +128,39 @@ export function applyReportContent(base: ReportProduct, d: ReportDisplayAttribut
   };
 }
 
-export function applyReportDisplay(base: ReportProduct, remote: RemoteProduct | null): ReportProduct {
+/** 改用模組的商品：每個位置取選用的模組；沒選或沒有該語言版本的位置是空的（前台不顯示那一段） */
+export function applyReportModules(base: ReportProduct, refs: ModuleRefs, mods: ResolvedModules): ReportProduct {
+  const at = <T extends Parameters<typeof moduleAt>[2]>(slot: string, type: T) => moduleAt(mods, refs[slot], type);
+  const process = at('process', 'process');
+  const reviews = at('reviews', 'reviews');
+  const faq = at('faq', 'faq');
+  const audiences = at('audiences', 'audiences');
+  return {
+    ...base,
+    intro: readModule.intro(at('intro', 'intro')),
+    highlights: readModule.highlights(at('highlights', 'highlights')).map((h) => ({ icon: isIcon(h.icon) ? h.icon : 'book', text: h.text })),
+    testimonial: readModule.testimonial(at('testimonial', 'testimonial')),
+    details: readModule.details(at('details', 'details')),
+    features: readModule.features(at('features', 'features')),
+    process: readModule.process(process),
+    reviews: readModule.reviews(reviews),
+    faq: readModule.faq(faq),
+    audiences: readModule.audiences(audiences),
+    titles: {
+      process: cleanTitle(process?.title),
+      reviews: cleanTitle(reviews?.title),
+      faq: cleanTitle(faq?.title),
+      audiences: cleanTitle(audiences?.title),
+    },
+  };
+}
+
+export function applyReportDisplay(base: ReportProduct, remote: RemoteProduct | null, mods: ResolvedModules = {}): ReportProduct {
   if (!remote) return base;
   const d: ReportDisplayAttributes = remote.attributes?.[REPORT_DISPLAY_KEY] ?? {};
   const palette = COVER_PALETTES.some((p) => p.value === d.cover_palette) ? d.cover_palette! : base.cover.palette;
-  const content = applyReportContent(base, d);
+  const refs = productModuleRefs(remote.attributes);
+  const content = refs ? applyReportModules(base, refs, mods) : applyReportContent(base, d);
   return {
     ...content,
     name: text(remote.name, base.name),
@@ -135,8 +176,16 @@ export function applyReportDisplay(base: ReportProduct, remote: RemoteProduct | 
       image: text(d.cover_image, '') || undefined,
     },
     galleryImages: strings(d.gallery_images),
-    features: content.features.map((f, i) => ({ ...f, imageUrl: text(d.feature_images?.[i], '') || undefined })),
+    // 模組的圖片存在模組裡；舊的商品頁內容用 feature_images 依序對應
+    features: refs ? content.features : content.features.map((f, i) => ({ ...f, imageUrl: text(d.feature_images?.[i], '') || undefined })),
   };
+}
+
+/** 商品＋它選用的模組（content=false 只要名稱、書封等卡片資料，不讀模組） */
+async function resolveProduct(base: ReportProduct, remote: RemoteProduct | null, language: string, content = true) {
+  const refs = content ? productModuleRefs(remote?.attributes) : null;
+  const mods = refs ? await fetchModules(Object.values(refs), language) : {};
+  return applyReportDisplay(base, remote, mods);
 }
 
 /**
@@ -156,20 +205,20 @@ async function fetchRemote(productId: string, language: string) {
 }
 
 /** 繁中：後台沒建商品或 API 失敗時整份用程式預設 */
-export async function loadReportProduct(base: ReportProduct, language = 'zh-TW'): Promise<ReportProduct> {
-  return applyReportDisplay(base, await fetchRemote(base.displayProductId, language));
+export async function loadReportProduct(base: ReportProduct, language = 'zh-TW', content = true): Promise<ReportProduct> {
+  return resolveProduct(base, await fetchRemote(base.displayProductId, language), language, content);
 }
 
 /** 其他語言：該語言版本沒上架就回 null（前台顯示「目前只有中文版」） */
-export async function loadReportProductIn(base: ReportProduct, language: string): Promise<ReportProduct | null> {
-  if (language === 'zh-TW') return loadReportProduct(base);
+export async function loadReportProductIn(base: ReportProduct, language: string, content = true): Promise<ReportProduct | null> {
+  if (language === 'zh-TW') return loadReportProduct(base, language, content);
   const remote = await fetchRemote(base.displayProductId, language);
-  return remote ? applyReportDisplay(base, remote) : null;
+  return remote ? resolveProduct(base, remote, language, content) : null;
 }
 
-/** 目錄頁：繁中列出全部；其他語言只列出該語言已上架的報告 */
+/** 目錄頁：繁中列出全部；其他語言只列出該語言已上架的報告（只要卡片資料） */
 export async function loadReportProducts(language = 'zh-TW'): Promise<ReportProduct[]> {
-  const all = await Promise.all(REPORT_PRODUCTS.map((p) => loadReportProductIn(p, language)));
+  const all = await Promise.all(REPORT_PRODUCTS.map((p) => loadReportProductIn(p, language, false)));
   return all.filter((p): p is ReportProduct => p !== null);
 }
 
@@ -190,8 +239,33 @@ export function applyReportCatalog(attributes: Record<string, any> | null | unde
   };
 }
 
-/** 目錄頁與商品頁「你想送給誰」共用；API 暫時無法使用時用程式內的定稿版本 */
+/** 目錄頁設定模組（report-catalog）＋它選用的送禮對象、常見問題；沒選的區塊是空的（不顯示） */
+export function applyCatalogModules(catalog: Record<string, any>, mods: ResolvedModules): ReportCatalogView {
+  const audiences = moduleAt(mods, catalog.audiences, 'audiences');
+  const faq = moduleAt(mods, catalog.faq, 'faq');
+  return {
+    ...REPORT_CATALOG,
+    title: text(catalog.title, ''),
+    subtitle: text(catalog.subtitle, ''),
+    promo: text(catalog.promo, ''),
+    audienceTitle: text(audiences?.title, REPORT_CATALOG.audienceTitle),
+    audienceConsent: text(audiences?.note, ''),
+    faqTitle: text(faq?.title, REPORT_CATALOG.faqTitle),
+    audiences: readModule.audiences(audiences),
+    faq: readModule.faq(faq),
+  };
+}
+
+/**
+ * 目錄頁與商品頁「你想送給誰」共用。有該語言的目錄頁模組就用模組；
+ * 還沒建立目錄頁模組時照舊讀第一款報告的 report_catalog（API 暫時無法使用時用程式內的定稿版本）。
+ */
 export async function loadReportCatalog(language = 'zh-TW'): Promise<ReportCatalogView> {
+  const page = (await fetchModules([CATALOG_MODULE_KEY], language))[CATALOG_MODULE_KEY];
+  if (page?.type === 'catalog_page') {
+    const data = page.data ?? {};
+    return applyCatalogModules(data, await fetchModules([data.audiences, data.faq], language));
+  }
   const remote = await fetchRemote(REPORT_PRODUCTS[0].displayProductId, language);
   return applyReportCatalog(remote?.attributes);
 }

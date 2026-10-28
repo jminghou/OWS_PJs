@@ -665,3 +665,32 @@ class OrderSourceRecord(db.Model):
 
     def __repr__(self):
         return f'<OrderSourceRecord order={self.order_id} {self.kind}>'
+
+
+class PageModule(db.Model):
+    """shop.page_modules — 行銷管理「模組管理」：商品頁與目錄頁的內容區塊（2026-10-28）。
+
+    一個模組一個 module_key、一種語言一筆（同商品多語言的規則）；商品在 attributes.report_modules 依位置引用 module_key，
+    前台取該語言那一筆。type 決定內容格式（介紹、亮點、FAQ…）；name 只給後台辨識，前台標題在 data.title。
+    meta_data：原文那筆記 content_updated_at；語言版本記 translation {confirmed, synced_at, copied_from}。
+    """
+    __tablename__ = 'page_modules'
+    __table_args__ = (
+        db.UniqueConstraint('module_key', 'language', name='uq_page_modules_key_language'),
+        {'schema': 'shop'},
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    module_key = db.Column(db.String(80), nullable=False, index=True)
+    language = db.Column(db.String(10), nullable=False)
+    type = db.Column(db.String(30), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    data = db.Column(JSONB, nullable=False, default=dict, server_default='{}')
+    is_active = db.Column(db.Boolean, nullable=False, server_default='true')
+    original_id = db.Column(db.BigInteger, db.ForeignKey('shop.page_modules.id', ondelete='SET NULL'))
+    meta_data = db.Column(JSONB, nullable=False, default=dict, server_default='{}')
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f'<PageModule {self.module_key} {self.language}>'

@@ -5,12 +5,23 @@
  * 商品頁的文案來自該語言商品的後台設定；這裡只放頁面固定的介面文字（按鈕、區塊標題）。
  * 下單精靈目前只有中文介面，語言與幣別透過 ?lang= 帶進草稿，訂單用該語言建立。
  *
- * 要加語言：這裡的 REPORT_LOCALES 與 REPORT_UI、i18n/config.ts、後台產品頁的 LANGUAGES、後端 SUPPORTED_LANGUAGES。
+ * 要加語言：這裡的 REPORT_LOCALES、REPORT_UI 與 SALES_LANGUAGES、i18n/config.ts、後端 SUPPORTED_LANGUAGES 與 page_modules.LANGUAGES。
  */
 
 export const REPORT_DEFAULT_LOCALE = 'zh-TW';
 export const REPORT_LOCALES = ['zh-TW', 'zh-CN', 'en', 'ja'] as const;
 export type ReportLocale = (typeof REPORT_LOCALES)[number];
+
+/**
+ * 後台販售語言（產品管理、模組管理共用）：一種語言一筆商品／模組；預設幣別＝該國幣別。
+ * 要加語言：在這裡加一列，並同步 i18n/config.ts 的 locales（前台語系）與後端 SUPPORTED_LANGUAGES、page_modules.LANGUAGES。
+ */
+export const SALES_LANGUAGES = [
+  { code: 'zh-TW', label: '繁體中文', short: '繁中', currency: 'TWD' },
+  { code: 'zh-CN', label: '簡體中文', short: '簡中', currency: 'CNY' },
+  { code: 'en', label: '英文', short: '英文', currency: 'USD' },
+  { code: 'ja', label: '日文', short: '日文', currency: 'JPY' },
+];
 
 /** 中文介面（下單精靈、會員中心）顯示用的語言名稱 */
 export const LANGUAGE_NAMES: Record<string, string> = { 'zh-TW': '繁體中文', 'zh-CN': '簡體中文', en: '英文', ja: '日文' };

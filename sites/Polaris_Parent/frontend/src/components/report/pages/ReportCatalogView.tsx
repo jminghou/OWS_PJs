@@ -23,12 +23,12 @@ export default async function ReportCatalogView({ locale = REPORT_DEFAULT_LOCALE
 
   return (
     <div>
-      <p className="bg-ink px-4 py-2.5 text-center text-sm text-white">{catalog.promo}</p>
+      {catalog.promo && <p className="bg-ink px-4 py-2.5 text-center text-sm text-white">{catalog.promo}</p>}
 
       <div className="mx-auto max-w-content px-4 pt-8 pb-12 md:px-6 md:pt-10 md:pb-16">
         <section className="max-w-2xl">
           <h1 className="font-heading text-[32px] font-normal text-ink md:text-h1">{catalog.title}</h1>
-          <p className="mt-2 text-[17px] text-text md:text-lead">{catalog.subtitle}</p>
+          {catalog.subtitle && <p className="mt-2 text-[17px] text-text md:text-lead">{catalog.subtitle}</p>}
         </section>
 
         <section id="reports" aria-label="報告列表" className="mt-8 scroll-mt-24">
@@ -73,7 +73,7 @@ export default async function ReportCatalogView({ locale = REPORT_DEFAULT_LOCALE
           </ul>
         </section>
 
-        <section aria-labelledby="catalog-audience" className="mt-12 md:mt-20">
+        {catalog.audiences.length > 0 && <section aria-labelledby="catalog-audience" className="mt-12 md:mt-20">
           <h2 id="catalog-audience" className="font-heading text-[26px] font-normal text-ink md:text-h2">
             {catalog.audienceTitle}
           </h2>
@@ -94,10 +94,10 @@ export default async function ReportCatalogView({ locale = REPORT_DEFAULT_LOCALE
               </Link>
             ))}
           </div>
-          <p className="mt-5 max-w-2xl text-small text-muted">{catalog.audienceConsent}</p>
-        </section>
+          {catalog.audienceConsent && <p className="mt-5 max-w-2xl text-small text-muted">{catalog.audienceConsent}</p>}
+        </section>}
 
-        <section aria-labelledby="catalog-faq" className="mt-16 max-w-[720px] md:mt-24">
+        {faq.length > 0 && <section aria-labelledby="catalog-faq" className="mt-16 max-w-[720px] md:mt-24">
           <h2 id="catalog-faq" className="font-heading text-[26px] font-normal text-ink md:text-h2">
             {catalog.faqTitle}
           </h2>
@@ -116,7 +116,7 @@ export default async function ReportCatalogView({ locale = REPORT_DEFAULT_LOCALE
               </details>
             ))}
           </div>
-        </section>
+        </section>}
       </div>
     </div>
   );

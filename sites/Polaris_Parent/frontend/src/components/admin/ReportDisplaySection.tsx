@@ -13,6 +13,7 @@ import type { ProductAttributeTab, ProductAttributesSectionProps } from '@ows/co
 import { getImageUrl } from '@/lib/utils';
 import { REPORT_PRODUCTS, REPORT_VARIANTS, type ReportProduct } from '@/lib/report/catalog';
 import { COVER_PALETTES, REPORT_DISPLAY_KEY, applyReportContent, type ReportDisplayAttributes } from '@/lib/report/display';
+import { productModuleRefs } from '@/lib/report/modules';
 
 const labelCls = 'mb-1 block text-sm font-medium text-foreground';
 const hintCls = 'mt-1 text-xs text-muted-foreground';
@@ -136,7 +137,7 @@ function ReportTextTab(props: ProductAttributesSectionProps) {
 // ─────────────────────────────────────────────────────────
 
 /** 單張圖片格：空的是虛線框「選擇圖片」，有圖時滑過出現「更換／移除」 */
-function ImageSlot({
+export function ImageSlot({
   value,
   ratio,
   label,
@@ -190,6 +191,8 @@ function ReportImagesTab(props: ProductAttributesSectionProps) {
   const pendingGallery = useRef<string[]>([]);
 
   const gallery = d.gallery_images ?? [];
+  // 改用模組後，特色區塊的圖片在「模組管理」的圖文特色模組裡上傳
+  const usesModules = !!productModuleRefs(props.attributes);
   // 特色區塊可能在「商品頁內容」自訂過：依目前生效的清單對圖片
   const features = applyReportContent(report, d).features;
   const featureImages = features.map((_, i) => d.feature_images?.[i] ?? '');
@@ -231,6 +234,7 @@ function ReportImagesTab(props: ProductAttributesSectionProps) {
     <>
       <p className="rounded-lg bg-muted px-4 py-3 text-xs leading-relaxed text-muted-foreground">
         沒上傳的位置，前台維持現在的樣子：書封用程式繪製、內頁與特色區塊顯示佔位框。
+        {usesModules && ' 特色區塊的圖片改在「模組管理」的圖文特色模組上傳。'}
         預覽頁的書封會印上主角姓名，所以那裡一律用程式繪製的書封。
       </p>
 
@@ -279,7 +283,7 @@ function ReportImagesTab(props: ProductAttributesSectionProps) {
         </div>
       </Group>
 
-      <Group title="特色區塊" description="橫式 4:3，顯示在商品頁的圖文介紹。">
+      {!usesModules && <Group title="特色區塊" description="橫式 4:3，顯示在商品頁的圖文介紹。">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {features.map((f, i) => (
             <div key={i}>
@@ -294,7 +298,7 @@ function ReportImagesTab(props: ProductAttributesSectionProps) {
             </div>
           ))}
         </div>
-      </Group>
+      </Group>}
 
       <MediaBrowser
         isOpen={browseTarget !== null}

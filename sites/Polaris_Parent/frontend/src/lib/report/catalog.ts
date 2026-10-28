@@ -54,7 +54,8 @@ export interface ReportProduct {
   galleryImages?: string[];
   highlights: { icon: HighlightIcon; text: string }[];
   intro: string[];
-  testimonial: { quote: string; author: string };
+  /** 改用模組後可以不放推薦語 */
+  testimonial?: { quote: string; author: string };
   /** 「讀者怎麼說」區塊的評價卡片 */
   reviews: { quote: string; author: string }[];
   /** 可展開的詳細說明（對應 Wonderbly 的 How is it personalised / What's the story / Size & quality） */
@@ -64,6 +65,10 @@ export interface ReportProduct {
   features: { title: string; body: string; image: string; imageUrl?: string }[];
   process: { title: string; body: string }[];
   faq: { q: string; a: string }[];
+  /** 模組自訂的區塊標題（留空用頁面預設，見 lib/report/locale.ts） */
+  titles?: { process?: string; reviews?: string; faq?: string; audiences?: string };
+  /** 商品頁「你想送給誰」：改用模組後由商品選；沒有就用目錄頁的 */
+  audiences?: { label: string; note: string }[];
 }
 
 export const REPORT_PRODUCT: ReportProduct = {

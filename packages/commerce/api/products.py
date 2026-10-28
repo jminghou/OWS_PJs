@@ -226,6 +226,16 @@ def _translation_state(product, root=None):
     }
 
 
+# 站台加掛的上架檢查：fn(product) -> list[str]（例如 Polaris 檢查商品頁引用的模組有沒有該語言版本）
+_ACTIVATION_CHECKS = []
+
+
+def register_activation_check(fn):
+    if fn not in _ACTIVATION_CHECKS:
+        _ACTIVATION_CHECKS.append(fn)
+    return fn
+
+
 def _activation_problems(product):
     """上架前的完整度檢查"""
     problems = []
@@ -237,6 +247,8 @@ def _activation_problems(product):
     state = _translation_state(product)
     if state and not state['confirmed']:
         problems.append('這是從其他語言複製的版本，內容改寫完成後請先按「確認內容已完成」')
+    for check in _ACTIVATION_CHECKS:
+        problems.extend(check(product) or [])
     return problems
 
 
