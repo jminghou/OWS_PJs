@@ -3,6 +3,7 @@
 import { ProductAdmin } from '@ows/platform-api/types';
 import { Search, Plus, Trash2 } from 'lucide-react';
 import { AdminPagination } from '@ows/ui/admin';
+import type { ProductPreset } from './ProductForm';
 
 interface ProductSidebarProps {
   products: ProductAdmin[];
@@ -19,6 +20,9 @@ interface ProductSidebarProps {
   onSearchChange: (value: string) => void;
   onStatusFilterChange: (value: string) => void;
   onDeleteProduct: (id: number, name: string) => void;
+  /** 還沒建立的站台商品：在清單上方提醒，點了直接進新增 */
+  missingPresets?: ProductPreset[];
+  onCreatePreset?: (preset: ProductPreset) => void;
 }
 
 const statusTabs: { key: string; label: string }[] = [
@@ -42,6 +46,8 @@ export default function ProductSidebar({
   onSearchChange,
   onStatusFilterChange,
   onDeleteProduct,
+  missingPresets = [],
+  onCreatePreset,
 }: ProductSidebarProps) {
   return (
     <div className="flex flex-col h-full">
@@ -60,6 +66,27 @@ export default function ProductSidebar({
           新增產品
         </button>
       </div>
+
+      {/* 還沒建立的站台商品 */}
+      {missingPresets.length > 0 && (
+        <div className="mx-3 mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+          <p className="font-medium">還沒建立的站台商品</p>
+          <p className="mt-0.5 text-amber-700">前台目前顯示程式內建的預設內容</p>
+          <ul className="mt-1.5 space-y-1">
+            {missingPresets.map((p) => (
+              <li key={p.productId}>
+                <button
+                  type="button"
+                  onClick={() => onCreatePreset?.(p)}
+                  className="text-left font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
+                >
+                  建立「{p.label}」
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Search */}
       <div className="px-3 pt-3">

@@ -54,6 +54,16 @@ interface EditFormData {
   detail_content_id: string;
 }
 
+/**
+ * 站台程式指定代碼的商品（例如 Polaris 的報告商品）：前台程式用固定的 product_id 讀它，
+ * 所以新增時從「產品類型」選，代碼自動帶入且不能改；手動輸入同樣的代碼會被擋下。
+ */
+export interface ProductPreset {
+  productId: string;
+  label: string;
+  description?: string;
+}
+
 /** 站台注入的分頁（例如 Polaris 的前台文字、前台圖片），排在「價格與庫存」之後 */
 export interface ProductFormExtraTab {
   key: string;
@@ -72,6 +82,10 @@ interface ProductFormCreateProps {
   onFormChange: (updates: Partial<CreateFormData>) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  /** 還沒建立、可以從「產品類型」選的站台商品 */
+  presets?: ProductPreset[];
+  /** 保留給站台程式的代碼（含已建立的站台商品與隱藏商品），不能手動輸入 */
+  reservedIds?: string[];
 }
 
 interface ProductFormEditProps {
@@ -86,6 +100,8 @@ interface ProductFormEditProps {
   onCancel: () => void;
   onToggleStatus: () => void;
   extraTabs?: ProductFormExtraTab[];
+  /** 這筆是站台商品時顯示的類型名稱 */
+  presetLabel?: string;
   /** @deprecated 改用 extraTabs；仍傳入時會變成一個「站台設定」分頁 */
   extraSection?: ReactNode;
 }
@@ -121,6 +137,10 @@ function Required() {
 export default function ProductForm(props: ProductFormProps) {
   const { mode, formData, categories, tags, saving, onFormChange, onSubmit, onCancel } = props;
   const edit = mode === 'edit' ? (props as ProductFormEditProps) : null;
+  const create = mode === 'create' ? (props as ProductFormCreateProps) : null;
+  const presets = create?.presets ?? [];
+  const preset = presets.find((p) => p.productId === formData.product_id);
+  const reservedClash = !!create && !preset && (create.reservedIds ?? []).includes(formData.product_id.trim());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -177,6 +197,11 @@ export default function ProductForm(props: ProductFormProps) {
           {edit ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
               <code className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">{formData.product_id}</code>
+              {edit.presetLabel && (
+                <span className="rounded bg-admin-accent-50 px-1.5 py-0.5 font-medium text-admin-accent-700 dark:bg-admin-accent-500/15 dark:text-admin-accent-200">
+                  {edit.presetLabel}
+                </span>
+              )}
               <span className="text-muted-foreground">{product!.language || 'zh-TW'}</span>
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
@@ -231,6 +256,23 @@ export default function ProductForm(props: ProductFormProps) {
             {panel('basic', (
               <>
                 <Group title="名稱與描述">
+                  {mode === 'create' && presets.length > 0 && (
+                    <div>
+                      <label className={labelCls}>產品類型</label>
+                      <select
+                        value={preset?.productId ?? ''}
+                        onChange={(e) => onFormChange({ product_id: e.target.value } as any)}
+                        className={selectCls}
+                      >
+                        <option value="">一般商品（自訂產品 ID）</option>
+                        {presets.map((p) => (
+                          <option key={p.productId} value={p.productId}>{p.label}</option>
+                        ))}
+                      </select>
+                      {preset?.description && <p className={hintCls}>{preset.description}</p>}
+                    </div>
+                  )}
+
                   {mode === 'create' && (
                     <div>
                       <label className={labelCls}>產品 ID<Required /></label>
@@ -240,9 +282,17 @@ export default function ProductForm(props: ProductFormProps) {
                         value={formData.product_id}
                         onChange={handleChange}
                         placeholder="例如：consultation-basic"
+                        disabled={!!preset}
+                        className={preset ? 'bg-muted' : undefined}
                         required
                       />
-                      <p className={hintCls}>唯一識別碼，建立後不能修改；建議用英文小寫和連字號</p>
+                      {reservedClash ? (
+                        <p className="mt-1 text-xs text-red-600">這個 ID 保留給站台程式使用，請換一個；要建立站台商品請從上方「產品類型」選。</p>
+                      ) : (
+                        <p className={hintCls}>
+                          {preset ? '由站台程式指定，已自動帶入，不能修改' : '唯一識別碼，建立後不能修改；建議用英文小寫和連字號'}
+                        </p>
+                      )}
                     </div>
                   )}
 

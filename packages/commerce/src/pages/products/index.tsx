@@ -8,6 +8,9 @@ import AdminLayout from '@ows/admin-app/components/AdminLayout';
 import { AdminListLayout, AdminEmptyState } from '@ows/ui/admin';
 import { ProductSidebar, ProductForm } from './_components';
 import type { CreateFormData, EditFormData } from './_components';
+import type { ProductPreset } from './_components/ProductForm';
+
+export type { ProductPreset };
 import { Package } from 'lucide-react';
 
 /**
@@ -42,6 +45,8 @@ interface ProductsPageProps {
   hiddenProductIds?: string[];
   /** 編輯儲存成功後呼叫（站台可同步代管的商品）；丟出錯誤會提示但不影響已存的資料 */
   onAfterSave?: (saved: { productId: string; price: number; attributes: Record<string, any> }) => Promise<void> | void;
+  /** 站台程式指定代碼的商品：新增時可從「產品類型」選、代碼鎖住；還沒建立的會在清單上方提醒 */
+  presetProducts?: ProductPreset[];
 }
 
 const emptyCreateForm: CreateFormData = {
@@ -88,7 +93,7 @@ export default function ProductsPage() {
   return <ProductsAdmin />;
 }
 
-export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductIds = [], onAfterSave }: ProductsPageProps) {
+export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductIds = [], onAfterSave, presetProducts = [] }: ProductsPageProps) {
   const siteTabs: ProductAttributeTab[] = [
     ...(attributeTabs ?? []),
     ...(AttributesSection ? [{ key: 'attributes', label: '前台顯示設定', Component: AttributesSection }] : []),
@@ -112,6 +117,30 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
   const [selectedProduct, setSelectedProduct] = useState<ProductAdmin | null>(null);
   const [attributes, setAttributes] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
+
+  // 站台商品哪些已建立（null＝還在查，先不提醒）
+  const [existingPresetIds, setExistingPresetIds] = useState<Set<string> | null>(null);
+  const presetKey = presetProducts.map((p) => p.productId).join(',');
+  const missingPresets = existingPresetIds ? presetProducts.filter((p) => !existingPresetIds.has(p.productId)) : [];
+  const reservedIds = [...presetProducts.map((p) => p.productId), ...hiddenProductIds];
+
+  const fetchPresetStatus = useCallback(async () => {
+    if (!presetProducts.length) return;
+    try {
+      const found = await Promise.all(presetProducts.map(async (p) => {
+        const res = await productApi.adminGetList({ search: p.productId, per_page: 50 });
+        return res.products.some((x) => x.product_id === p.productId) ? p.productId : null;
+      }));
+      setExistingPresetIds(new Set(found.filter((x): x is string => !!x)));
+    } catch (error) {
+      console.error('Failed to check preset products:', error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetKey]);
+
+  useEffect(() => {
+    fetchPresetStatus();
+  }, [fetchPresetStatus]);
 
   // Shared data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -203,12 +232,12 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
     fetchProduct(id);
   };
 
-  const handleNewProduct = () => {
-    if (isCreateMode) return;
+  const handleNewProduct = (preset?: ProductPreset) => {
+    if (isCreateMode && !preset) return;
     setSelectedId(null);
     setIsCreateMode(true);
     setSelectedProduct(null);
-    setCreateForm({ ...emptyCreateForm });
+    setCreateForm({ ...emptyCreateForm, product_id: preset?.productId ?? '' });
   };
 
   const handleCancel = () => {
@@ -223,6 +252,11 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
     e.preventDefault();
     if (!createForm.product_id || !createForm.name_zh || !createForm.price) {
       alert('請填寫必填欄位：產品ID、名稱（中文）、價格');
+      return;
+    }
+    const pid = createForm.product_id.trim();
+    if (reservedIds.includes(pid) && !missingPresets.some((p) => p.productId === pid)) {
+      alert('這個產品 ID 保留給站台程式使用，或已經建立過了，請換一個');
       return;
     }
 
@@ -249,6 +283,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
       const result = await productApi.adminCreate(createData);
       alert('產品建立成功');
       fetchProducts();
+      fetchPresetStatus();
 
       // Switch to edit mode for the new product
       if (result.id) {
@@ -322,6 +357,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
       await productApi.adminDelete(id);
       alert('產品刪除成功');
       fetchProducts();
+      fetchPresetStatus();
       if (selectedId === id) {
         handleCancel();
       }
@@ -375,11 +411,13 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
             searchTerm={searchTerm}
             statusFilter={statusFilter}
             onSelectProduct={handleSelectProduct}
-            onNewProduct={handleNewProduct}
+            onNewProduct={() => handleNewProduct()}
             onPageChange={setCurrentPage}
             onSearchChange={handleSearchChange}
             onStatusFilterChange={handleStatusFilterChange}
             onDeleteProduct={handleDeleteProduct}
+            missingPresets={missingPresets}
+            onCreatePreset={handleNewProduct}
           />
         }
       >
@@ -395,6 +433,8 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
               onFormChange={(updates) => setCreateForm(prev => ({ ...prev, ...updates }))}
               onSubmit={handleCreateSubmit}
               onCancel={handleCancel}
+              presets={missingPresets}
+              reservedIds={reservedIds}
             />
           ) : (
             <ProductForm
@@ -409,6 +449,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
               onSubmit={handleEditSubmit}
               onCancel={handleCancel}
               onToggleStatus={handleToggleStatus}
+              presetLabel={presetProducts.find((p) => p.productId === selectedProduct!.product_id)?.label}
               extraTabs={siteTabs
                 .filter((tab) => !tab.appliesTo || tab.appliesTo(selectedProduct!.product_id))
                 .map(({ key, label, Component }) => ({
