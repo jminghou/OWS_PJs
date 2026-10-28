@@ -1,22 +1,21 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowRight, BookOpen, Check, ChevronDown, Clock, Eye, PenLine, Star, Users, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Star } from 'lucide-react';
 import ReportGallery from '@/components/report/ReportGallery';
 import Tag from '@/components/ui/Tag';
 import { brandButton } from '@/components/ui/BrandButton';
 import {
   PHYSICAL_ADDON,
   productBySlug,
-  type HighlightIcon,
 } from '@/lib/report/catalog';
 import { loadReportCatalog, loadReportProductIn } from '@/lib/report/display';
 import { REPORT_DEFAULT_LOCALE, reportBase, reportUi, withLang, type ReportUi } from '@/lib/report/locale';
 import ReportUnavailable from '@/components/report/ReportUnavailable';
 import { addonPrice, loadReportPrices } from '@/lib/report/prices';
 import { getImageUrl } from '@/lib/utils';
+import { highlightIcon } from '@/lib/report/highlightIcons';
 import { OFFER_HREFS } from '@/lib/report/offers';
 
-const ICONS: Record<HighlightIcon, LucideIcon> = { users: Users, eye: Eye, clock: Clock, book: BookOpen, pen: PenLine };
 
 const sectionTitle = 'font-heading text-[26px] font-normal text-ink md:text-h2';
 
@@ -99,7 +98,7 @@ export default async function ReportProductView({ slug, locale = REPORT_DEFAULT_
 
           {product.highlights.length > 0 && <ul className="mt-6 space-y-3">
             {product.highlights.map((h) => {
-              const Icon = ICONS[h.icon];
+              const Icon = highlightIcon(h.icon);
               return (
                 <li key={h.text} className="flex items-center gap-3 text-sm text-text">
                   <Icon className="h-5 w-5 shrink-0 text-blue-500" strokeWidth={2} aria-hidden="true" />

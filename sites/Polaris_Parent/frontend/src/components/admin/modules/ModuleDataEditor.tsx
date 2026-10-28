@@ -4,12 +4,12 @@
  * 模組內容編輯器：依模組類型編輯 page_modules.data（格式見 lib/report/modules.ts 的 ModuleData）。
  * 目錄頁設定（catalog_page）另有 CatalogPageEditor，因為它要選用其他模組。
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import Input from '@ows/ui/ui/Input';
 import MediaBrowser from '@ows/admin-app/components/MediaBrowser';
 import { ImageSlot } from '@/components/admin/ReportDisplaySection';
-import { HIGHLIGHT_ICONS } from '@/lib/report/display';
+import { HIGHLIGHT_ICONS, highlightIcon } from '@/lib/report/highlightIcons';
 import { moduleTypeInfo, type ModuleType } from '@/lib/report/modules';
 
 export const labelCls = 'mb-1 block text-sm font-medium text-foreground';
@@ -25,6 +25,45 @@ const fromParagraphs = (v: string[] | undefined) => (v ?? []).join('\n\n');
 
 export function TextArea({ value, onChange, rows = 3, placeholder }: { value: string; onChange: (v: string) => void; rows?: number; placeholder?: string }) {
   return <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} className={fieldCls} />;
+}
+
+/** 亮點圖示：按鈕顯示目前的圖示，點開是圖示表 */
+function IconPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const Current = highlightIcon(value);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="選擇圖示" aria-expanded={open}
+        className="flex h-10 w-12 items-center justify-center rounded-lg border border-border bg-card text-blue-500 hover:bg-muted">
+        <Current className="h-5 w-5" strokeWidth={2} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-30 mt-1 w-[19rem] rounded-lg border border-border bg-card p-2 shadow-lg sm:w-[25rem]">
+          <div className="grid max-h-72 grid-cols-6 gap-1 overflow-y-auto sm:grid-cols-8">
+            {HIGHLIGHT_ICONS.map(({ value: v, label, Icon }) => (
+              <button key={v} type="button" title={label} aria-label={label}
+                onClick={() => { onChange(v); setOpen(false); }}
+                className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[10px] leading-tight text-muted-foreground hover:bg-muted ${v === value ? 'bg-admin-accent-50 ring-1 ring-admin-accent-500 dark:bg-admin-accent-500/15' : ''}`}>
+                <Icon className="h-5 w-5 text-blue-500" strokeWidth={2} />
+                <span className="w-full truncate text-center">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** 可新增、刪除、上下移的清單 */
@@ -142,9 +181,7 @@ export function ModuleDataEditor({ type, data, onChange }: { type: ModuleType; d
           <ListItems items={list} onChange={setItems} blank={() => ({ icon: 'book', text: '' })} addLabel="新增亮點"
             renderItem={(h, update) => (
               <div className="flex gap-2">
-                <select value={h.icon} onChange={(e) => update({ icon: e.target.value })} className={`${fieldCls.replace('w-full', 'w-24')} shrink-0`} aria-label="圖示">
-                  {HIGHLIGHT_ICONS.map((i) => <option key={i.value} value={i.value}>{i.label}</option>)}
-                </select>
+                <IconPicker value={h.icon} onChange={(icon) => update({ icon })} />
                 <Input value={h.text ?? ''} onChange={(e) => update({ text: e.target.value })} placeholder="例如：付款前先預覽主角的命盤與樣張" />
               </div>
             )} />

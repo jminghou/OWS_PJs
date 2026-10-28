@@ -23,7 +23,8 @@ export interface ReportVariantInfo {
 export type CoverPalette = 'purple' | 'indigo' | 'rose' | 'teal';
 
 /** 商品頁亮點列的圖示（lucide-react） */
-export type HighlightIcon = 'users' | 'eye' | 'clock' | 'book' | 'pen';
+/** 圖示代碼，可選的清單在 lib/report/highlightIcons.ts */
+export type HighlightIcon = string;
 
 /**
  * 一種客製報告（商品）。版型參考 Wonderbly 的商品頁：

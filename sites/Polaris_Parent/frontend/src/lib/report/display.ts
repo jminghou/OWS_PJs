@@ -14,6 +14,7 @@
  * 編輯介面在 components/admin/ReportDisplaySection.tsx、ReportModulesTab.tsx 與 app/admin/page-modules。
  */
 import { productApi } from '@/lib/api';
+import { isHighlightIcon } from './highlightIcons';
 import { REPORT_CATALOG, REPORT_PRODUCTS, type CoverPalette, type HighlightIcon, type ReportProduct } from './catalog';
 import {
   CATALOG_MODULE_KEY,
@@ -31,14 +32,6 @@ export const REPORT_DISPLAY_KEY = 'report_display';
 /** 所有報告共用的目錄文字，存在第一款報告的商品上 */
 export const REPORT_CATALOG_KEY = 'report_catalog';
 export const REPORT_CATALOG_FAQ_KEY = 'report_catalog_faq';
-
-export const HIGHLIGHT_ICONS: { value: HighlightIcon; label: string }[] = [
-  { value: 'users', label: '人物' },
-  { value: 'eye', label: '眼睛' },
-  { value: 'clock', label: '時鐘' },
-  { value: 'book', label: '書本' },
-  { value: 'pen', label: '筆' },
-];
 
 export const COVER_PALETTES: { value: CoverPalette; label: string }[] = [
   { value: 'purple', label: '墨色' },
@@ -106,15 +99,13 @@ function list<T>(v: unknown, ok: (x: any) => boolean, fallback: T[]): T[] {
   return items.length ? (items as T[]) : fallback;
 }
 
-const isIcon = (v: unknown): v is HighlightIcon => HIGHLIGHT_ICONS.some((i) => i.value === v);
-
 /** 只套用商品頁內容（不含圖片）；後台的圖片分頁也用它找出目前生效的特色區塊 */
 export function applyReportContent(base: ReportProduct, d: ReportDisplayAttributes): ReportProduct {
   return {
     ...base,
     intro: strings(d.intro).length ? strings(d.intro) : base.intro,
     highlights: list<{ icon: unknown; text: string }>(d.highlights, (h) => filled(h.text), base.highlights)
-      .map((h) => ({ icon: isIcon(h.icon) ? h.icon : 'book', text: h.text })),
+      .map((h) => ({ icon: isHighlightIcon(h.icon) ? h.icon : 'book', text: h.text })),
     testimonial: d.testimonial && filled(d.testimonial.quote)
       ? { quote: d.testimonial.quote, author: d.testimonial.author ?? '' }
       : base.testimonial,
@@ -138,7 +129,7 @@ export function applyReportModules(base: ReportProduct, refs: ModuleRefs, mods: 
   return {
     ...base,
     intro: readModule.intro(at('intro', 'intro')),
-    highlights: readModule.highlights(at('highlights', 'highlights')).map((h) => ({ icon: isIcon(h.icon) ? h.icon : 'book', text: h.text })),
+    highlights: readModule.highlights(at('highlights', 'highlights')).map((h) => ({ icon: isHighlightIcon(h.icon) ? h.icon : 'book', text: h.text })),
     testimonial: readModule.testimonial(at('testimonial', 'testimonial')),
     details: readModule.details(at('details', 'details')),
     features: readModule.features(at('features', 'features')),
