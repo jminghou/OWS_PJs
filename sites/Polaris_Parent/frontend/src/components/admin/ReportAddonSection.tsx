@@ -15,6 +15,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import Input from '@ows/ui/ui/Input';
+import { getCurrencySymbol } from '@ows/ui/lib/currency';
 import MediaBrowser from '@ows/admin-app/components/MediaBrowser';
 import { productApi, type ProductAttributesSectionProps } from '@ows/commerce';
 import { getImageUrl } from '@/lib/utils';
@@ -71,16 +72,17 @@ export const isAddonOwner = (productId: string) => productId === DIGITAL_ID;
 /** 產品清單裡要藏起來的加購品 */
 export const REPORT_ADDON_HIDDEN_IDS = [PHYSICAL_ID];
 
-async function findProduct(productId: string) {
+/** 同一個產品 ID 的某個語言版本（每個語言一筆商品） */
+async function findProduct(productId: string, language: string) {
   const res = await productApi.adminGetList({ search: productId, per_page: 50 });
-  return res.products.find((p) => p.product_id === productId && (p.language || 'zh-TW') === 'zh-TW') ?? null;
+  return res.products.find((p) => p.product_id === productId && (p.language || 'zh-TW') === language) ?? null;
 }
 
-/** 結帳實際用的台幣價格：有「台幣價格」那一列就用它，否則用基本售價 */
-async function effectivePrice(product: { id: number; price: number }) {
+/** 結帳實際用的價格：有該幣別的「其他幣別價格」那一列就用它，否則用基本售價 */
+async function effectivePrice(product: { id: number; price: number }, currency: string) {
   const { prices } = await productApi.adminGetPrices(product.id);
-  const twd = prices.find((p) => p.currency === 'TWD' && p.is_active);
-  return { price: twd ? twd.price : product.price, twdRow: prices.find((p) => p.currency === 'TWD') ?? null };
+  const row = prices.find((p) => p.currency === currency && p.is_active);
+  return { price: row ? row.price : product.price, currencyRow: prices.find((p) => p.currency === currency) ?? null };
 }
 
 const newKey = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
@@ -89,7 +91,6 @@ const toInt = (v: string, allowNegative = false) => {
   if (Number.isNaN(n)) return 0;
   return allowNegative ? n : Math.max(0, n);
 };
-const signed = (n: number) => (n < 0 ? `−NT$${(-n).toLocaleString('zh-TW')}` : `NT$${n.toLocaleString('zh-TW')}`);
 
 const labelCls = 'block text-sm font-medium text-foreground mb-2';
 const hintCls = 'mt-1.5 text-xs text-muted-foreground';
@@ -123,7 +124,9 @@ function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange
 const isNewSchema = (v: unknown): v is ReportAddonAttributes =>
   !!v && typeof v === 'object' && 'first_copy_price' in (v as Record<string, unknown>);
 
-export function ReportAddonTab({ attributes, onChange, price = 0 }: ProductAttributesSectionProps) {
+export function ReportAddonTab({ attributes, onChange, price = 0, language = 'zh-TW', currency = 'TWD' }: ProductAttributesSectionProps) {
+  const symbol = getCurrencySymbol(currency);
+  const signed = (n: number) => (n < 0 ? `−${symbol}${(-n).toLocaleString('zh-TW')}` : `${symbol}${n.toLocaleString('zh-TW')}`);
   const saved = attributes[REPORT_ADDON_KEY];
   const ready = isNewSchema(saved);
   const [loading, setLoading] = useState(!ready);
@@ -134,7 +137,7 @@ export function ReportAddonTab({ attributes, onChange, price = 0 }: ProductAttri
   useEffect(() => {
     if (ready) return;
     let alive = true;
-    findProduct(PHYSICAL_ID)
+    findProduct(PHYSICAL_ID, language)
       .then((physical) => {
         if (!alive) return;
         onChange({ ...attributes, [REPORT_ADDON_KEY]: { physical_enabled: !!physical?.is_active, ...DEFAULTS } });
@@ -193,7 +196,7 @@ export function ReportAddonTab({ attributes, onChange, price = 0 }: ProductAttri
             </div>
           </div>
           <p className={hintCls}>
-            下單選實體書版：數位版 NT${price.toLocaleString('zh-TW')} ＋ 實體書 {signed(value.first_copy_price + minDelta)} 起。
+            下單選實體書版：數位版 {symbol}{price.toLocaleString('zh-TW')} ＋ 實體書 {signed(value.first_copy_price + minDelta)} 起。
           </p>
         </Group>
 
@@ -308,27 +311,33 @@ export function ReportAddonTab({ attributes, onChange, price = 0 }: ProductAttri
 }
 
 /** 數位版儲存成功後，把實體書設定同步到實體書那筆商品（ProductsAdmin 的 onAfterSave） */
-export async function syncReportAddon(saved: { productId: string; price: number; attributes: Record<string, any> }) {
+export async function syncReportAddon(saved: {
+  productId: string; price: number; attributes: Record<string, any>; language: string; currency: string;
+}) {
   if (!isAddonOwner(saved.productId)) return;
   const addon = saved.attributes[REPORT_ADDON_KEY];
   if (!isNewSchema(addon)) return; // 還沒打開過實體書設定分頁：維持原狀
 
-  const digital = await findProduct(DIGITAL_ID);
-  const base = digital ? (await effectivePrice(digital)).price : saved.price;
+  // 每個語言版本各有一筆實體書商品，跟著該語言數位版的售價與幣別
+  const { language, currency } = saved;
+  const digital = await findProduct(DIGITAL_ID, language);
+  const base = digital ? (await effectivePrice(digital, currency)).price : saved.price;
   const total = base + addon.first_copy_price;
 
-  const physical = await findProduct(PHYSICAL_ID);
+  const physical = await findProduct(PHYSICAL_ID, language);
   if (physical) {
-    await productApi.adminUpdate(physical.id, { price: total, is_active: addon.physical_enabled });
-    const { twdRow } = await effectivePrice(physical);
-    if (twdRow && twdRow.price !== total) await productApi.adminUpdatePrice(physical.id, twdRow.id, { price: total });
+    await productApi.adminUpdate(physical.id, { price: total, is_active: addon.physical_enabled, currency });
+    const { currencyRow } = await effectivePrice(physical, currency);
+    if (currencyRow && currencyRow.price !== total) await productApi.adminUpdatePrice(physical.id, currencyRow.id, { price: total });
   } else if (addon.physical_enabled) {
-    const name = `${REPORT_PRODUCTS[0]?.name ?? '客製報告'}（實體書）`;
+    const name = `${digital?.names?.[language] || REPORT_PRODUCTS[0]?.name || '客製報告'}（實體書）`;
     await productApi.adminCreate({
       product_id: PHYSICAL_ID,
-      names: { 'zh-TW': name },
-      descriptions: { 'zh-TW': '' },
-      short_descriptions: { 'zh-TW': '' },
+      language,
+      currency,
+      names: { [language]: name },
+      descriptions: { [language]: '' },
+      short_descriptions: { [language]: '' },
       price: total,
       stock_quantity: -1,
       stock_status: 'in_stock',

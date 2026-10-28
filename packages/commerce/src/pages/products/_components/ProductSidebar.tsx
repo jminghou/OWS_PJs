@@ -3,7 +3,9 @@
 import { ProductAdmin } from '@ows/platform-api/types';
 import { Search, Plus, Trash2 } from 'lucide-react';
 import { AdminPagination } from '@ows/ui/admin';
+import { getCurrencySymbol } from '@ows/ui/lib/currency';
 import type { ProductPreset } from './ProductForm';
+import { LanguageChip, versionTitle, type ProductLanguage } from './LanguageBar';
 
 interface ProductSidebarProps {
   products: ProductAdmin[];
@@ -23,6 +25,8 @@ interface ProductSidebarProps {
   /** 還沒建立的站台商品：在清單上方提醒，點了直接進新增 */
   missingPresets?: ProductPreset[];
   onCreatePreset?: (preset: ProductPreset) => void;
+  /** 站台的語言清單；超過一種時每列顯示各語言版本的狀態，點了直接切到那個版本 */
+  languages?: ProductLanguage[];
 }
 
 const statusTabs: { key: string; label: string }[] = [
@@ -48,7 +52,9 @@ export default function ProductSidebar({
   onDeleteProduct,
   missingPresets = [],
   onCreatePreset,
+  languages = [],
 }: ProductSidebarProps) {
+  const multi = languages.length > 1;
   return (
     <div className="flex flex-col h-full">
       {/* New product button */}
@@ -134,7 +140,8 @@ export default function ProductSidebar({
         ) : products.length > 0 ? (
           <div>
             {products.map((product) => {
-              const displayName = product.names['zh-TW'] || product.product_id;
+              const displayName = product.names[product.language || 'zh-TW'] || product.names['zh-TW'] || product.product_id;
+              const selected = selectedId === product.id || !!product.languages?.some((l) => l.id === selectedId);
               return (
                 <div
                   key={product.id}
@@ -143,7 +150,7 @@ export default function ProductSidebar({
                   onClick={() => onSelectProduct(product.id)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectProduct(product.id); }}
                   className={`group w-full text-left px-3 py-2.5 border-l-3 transition-colors cursor-pointer ${
-                    selectedId === product.id
+                    selected
                       ? 'border-l-blue-600 bg-blue-50'
                       : 'border-l-transparent hover:bg-gray-50'
                   }`}
@@ -168,9 +175,21 @@ export default function ProductSidebar({
                           {product.product_id}
                         </span>
                         <span className="text-xs text-gray-500 font-medium">
-                          NT$ {product.price}
+                          {getCurrencySymbol(product.currency || 'TWD')} {product.price}
                         </span>
                       </div>
+                      {multi && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {languages.map((l) => {
+                            const v = product.languages?.find((x) => x.language === l.code);
+                            return (
+                              <LanguageChip key={l.code} label={l.short} version={v} title={`${l.label}：${versionTitle(v)}`}
+                                current={!!v && v.id === selectedId}
+                                onClick={v ? () => onSelectProduct(v.id) : undefined} />
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <button
                       type="button"

@@ -9,8 +9,9 @@ import { AdminListLayout, AdminEmptyState } from '@ows/ui/admin';
 import { ProductSidebar, ProductForm } from './_components';
 import type { CreateFormData, EditFormData } from './_components';
 import type { ProductPreset } from './_components/ProductForm';
+import LanguageBar, { DEFAULT_LANGUAGES, languageLabel, type ProductLanguage } from './_components/LanguageBar';
 
-export type { ProductPreset };
+export type { ProductPreset, ProductLanguage };
 import { Package } from 'lucide-react';
 
 /**
@@ -26,6 +27,9 @@ export interface ProductAttributesSectionProps {
   onChange: (attributes: Record<string, any>) => void;
   /** 表單上目前的售價（尚未儲存的也算） */
   price?: number;
+  /** 這筆商品的語言與售價幣別（每個語言是一筆獨立商品） */
+  language?: string;
+  currency?: string;
 }
 
 /** 站台自訂的分頁：在編輯產品時排在「價格與庫存」之後 */
@@ -44,19 +48,25 @@ interface ProductsPageProps {
   /** 不在產品清單出現的商品代碼（例如由別件商品的分頁代管的加購品） */
   hiddenProductIds?: string[];
   /** 編輯儲存成功後呼叫（站台可同步代管的商品）；丟出錯誤會提示但不影響已存的資料 */
-  onAfterSave?: (saved: { productId: string; price: number; attributes: Record<string, any> }) => Promise<void> | void;
+  onAfterSave?: (saved: {
+    productId: string; price: number; attributes: Record<string, any>; language: string; currency: string;
+  }) => Promise<void> | void;
   /** 站台程式指定代碼的商品：新增時可從「產品類型」選、代碼鎖住；還沒建立的會在清單上方提醒 */
   presetProducts?: ProductPreset[];
+  /**
+   * 站台販售的語言（第一個是預設）。一種語言是一筆獨立商品，同一個產品 ID 以語言區分；
+   * 超過一種時清單顯示各語言狀態、編輯頁有語言列可切換與新增。
+   */
+  languages?: ProductLanguage[];
 }
 
 const emptyCreateForm: CreateFormData = {
   product_id: '',
+  language: 'zh-TW',
+  currency: 'TWD',
   name_zh: '',
-  name_en: '',
   description_zh: '',
-  description_en: '',
   short_description_zh: '',
-  short_description_en: '',
   price: '',
   original_price: '',
   stock_quantity: '-1',
@@ -75,6 +85,7 @@ const emptyEditForm: EditFormData = {
   name: '',
   description: '',
   short_description: '',
+  currency: 'TWD',
   price: '',
   original_price: '',
   stock_quantity: '',
@@ -93,7 +104,11 @@ export default function ProductsPage() {
   return <ProductsAdmin />;
 }
 
-export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductIds = [], onAfterSave, presetProducts = [] }: ProductsPageProps) {
+export function ProductsAdmin({
+  attributeTabs, AttributesSection, hiddenProductIds = [], onAfterSave, presetProducts = [], languages = DEFAULT_LANGUAGES,
+}: ProductsPageProps) {
+  const defaultLanguage = languages[0] ?? DEFAULT_LANGUAGES[0];
+  const blankCreateForm = (): CreateFormData => ({ ...emptyCreateForm, language: defaultLanguage.code, currency: defaultLanguage.currency });
   const siteTabs: ProductAttributeTab[] = [
     ...(attributeTabs ?? []),
     ...(AttributesSection ? [{ key: 'attributes', label: '前台顯示設定', Component: AttributesSection }] : []),
@@ -107,12 +122,15 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
   const [pagination, setPagination] = useState({ page: 1, pages: 1, has_prev: false, has_next: false, total: 0 });
   const perPage = 20;
 
+  // 目前編輯的那一筆屬於哪一個產品 ID（清單是一個產品 ID 一列）
+  const selectedGroup = (id: number | null) => products.find((p) => p.id === id || p.languages?.some((l) => l.id === id));
+
   // Selection state
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isCreateMode, setIsCreateMode] = useState(false);
 
   // Form state
-  const [createForm, setCreateForm] = useState<CreateFormData>({ ...emptyCreateForm });
+  const [createForm, setCreateForm] = useState<CreateFormData>(blankCreateForm);
   const [editForm, setEditForm] = useState<EditFormData>({ ...emptyEditForm });
   const [selectedProduct, setSelectedProduct] = useState<ProductAdmin | null>(null);
   const [attributes, setAttributes] = useState<Record<string, any>>({});
@@ -164,7 +182,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const params: any = { page: currentPage, per_page: perPage };
+      const params: any = { page: currentPage, per_page: perPage, group: true };
       if (statusFilter) params.is_active = statusFilter;
       if (searchTerm.trim()) params.search = searchTerm.trim();
 
@@ -202,6 +220,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
         name: productData.names[currentLanguage] || productData.names['zh-TW'] || '',
         description: productData.descriptions[currentLanguage] || productData.descriptions['zh-TW'] || '',
         short_description: productData.short_descriptions[currentLanguage] || productData.short_descriptions['zh-TW'] || '',
+        currency: productData.currency || 'TWD',
         price: productData.price.toString(),
         original_price: productData.original_price?.toString() || '',
         stock_quantity: productData.stock_quantity.toString(),
@@ -237,21 +256,21 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
     setSelectedId(null);
     setIsCreateMode(true);
     setSelectedProduct(null);
-    setCreateForm({ ...emptyCreateForm, product_id: preset?.productId ?? '' });
+    setCreateForm({ ...blankCreateForm(), product_id: preset?.productId ?? '' });
   };
 
   const handleCancel = () => {
     setSelectedId(null);
     setIsCreateMode(false);
     setSelectedProduct(null);
-    setCreateForm({ ...emptyCreateForm });
+    setCreateForm(blankCreateForm());
     setEditForm({ ...emptyEditForm });
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createForm.product_id || !createForm.name_zh || !createForm.price) {
-      alert('請填寫必填欄位：產品ID、名稱（中文）、價格');
+      alert('請填寫必填欄位：產品ID、名稱、價格');
       return;
     }
     const pid = createForm.product_id.trim();
@@ -264,9 +283,11 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
       setSaving(true);
       const createData = {
         product_id: createForm.product_id,
-        names: { 'zh-TW': createForm.name_zh, 'en': createForm.name_en },
-        descriptions: { 'zh-TW': createForm.description_zh, 'en': createForm.description_en },
-        short_descriptions: { 'zh-TW': createForm.short_description_zh, 'en': createForm.short_description_en },
+        language: createForm.language,
+        currency: createForm.currency,
+        names: { [createForm.language]: createForm.name_zh },
+        descriptions: { [createForm.language]: createForm.description_zh },
+        short_descriptions: { [createForm.language]: createForm.short_description_zh },
         price: parseInt(createForm.price),
         original_price: createForm.original_price ? parseInt(createForm.original_price) : undefined,
         stock_quantity: parseInt(createForm.stock_quantity),
@@ -316,6 +337,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
         description: editForm.description,
         short_description: editForm.short_description,
         language: currentLanguage,
+        currency: editForm.currency,
         price: parseInt(editForm.price),
         original_price: editForm.original_price ? parseInt(editForm.original_price) : undefined,
         stock_quantity: parseInt(editForm.stock_quantity),
@@ -335,7 +357,9 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
       await productApi.adminUpdate(selectedId, updateData);
       if (onAfterSave) {
         try {
-          await onAfterSave({ productId: editForm.product_id, price: updateData.price, attributes });
+          await onAfterSave({
+            productId: editForm.product_id, price: updateData.price, attributes, language: currentLanguage, currency: editForm.currency,
+          });
         } catch (syncError: any) {
           alert(`產品已更新，但同步失敗：${syncError?.message || syncError}`);
           fetchProducts();
@@ -352,7 +376,13 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
   };
 
   const handleDeleteProduct = async (id: number, name: string) => {
-    if (!confirm(`確定要刪除產品「${name}」嗎？`)) return;
+    const group = selectedGroup(id);
+    const others = (group?.languages?.length ?? 1) - 1;
+    const lang = languageLabel(languages, group?.languages?.find((l) => l.id === id)?.language || 'zh-TW');
+    const msg = others > 0
+      ? `確定要刪除「${name}」的${lang}版本嗎？其他 ${others} 個語言版本會保留。`
+      : `確定要刪除產品「${name}」嗎？`;
+    if (!confirm(msg)) return;
     try {
       await productApi.adminDelete(id);
       alert('產品刪除成功');
@@ -376,6 +406,31 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
       if (selectedProduct) {
         setSelectedProduct({ ...selectedProduct, is_active: result.is_active });
       }
+    } catch (error: any) {
+      alert(error.message || '操作失敗');
+    }
+  };
+
+  const handleAddLanguage = async (language: ProductLanguage, copyFromId: number) => {
+    try {
+      const result = await productApi.adminCreate({ copy_from: copyFromId, language: language.code, currency: language.currency } as any);
+      await fetchProducts();
+      if (result.id) {
+        setSelectedId(result.id);
+        setSelectedProduct(null);
+        fetchProduct(result.id);
+      }
+    } catch (error: any) {
+      alert(error.message || '建立失敗');
+    }
+  };
+
+  const handleConfirmTranslation = async () => {
+    if (!selectedId) return;
+    try {
+      await productApi.adminConfirmTranslation(selectedId);
+      fetchProduct(selectedId);
+      fetchProducts();
     } catch (error: any) {
       alert(error.message || '操作失敗');
     }
@@ -418,6 +473,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
             onDeleteProduct={handleDeleteProduct}
             missingPresets={missingPresets}
             onCreatePreset={handleNewProduct}
+            languages={languages}
           />
         }
       >
@@ -435,6 +491,7 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
               onCancel={handleCancel}
               presets={missingPresets}
               reservedIds={reservedIds}
+              languages={languages}
             />
           ) : (
             <ProductForm
@@ -450,13 +507,27 @@ export function ProductsAdmin({ attributeTabs, AttributesSection, hiddenProductI
               onCancel={handleCancel}
               onToggleStatus={handleToggleStatus}
               presetLabel={presetProducts.find((p) => p.productId === selectedProduct!.product_id)?.label}
+              languageLabel={languageLabel(languages, selectedProduct!.language || 'zh-TW')}
+              languageBar={languages.length > 1 && (
+                <LanguageBar
+                  key={selectedProduct!.id}
+                  languages={languages}
+                  versions={selectedGroup(selectedProduct!.id)?.languages ?? []}
+                  currentId={selectedProduct!.id}
+                  translation={selectedProduct!.translation}
+                  onSwitch={handleSelectProduct}
+                  onAdd={handleAddLanguage}
+                  onConfirm={handleConfirmTranslation}
+                />
+              )}
               extraTabs={siteTabs
                 .filter((tab) => !tab.appliesTo || tab.appliesTo(selectedProduct!.product_id))
                 .map(({ key, label, Component }) => ({
                   key,
                   label,
                   content: (
-                    <Component productId={selectedProduct!.product_id} attributes={attributes} onChange={setAttributes} price={parseInt(editForm.price) || 0} />
+                    <Component productId={selectedProduct!.product_id} attributes={attributes} onChange={setAttributes} price={parseInt(editForm.price) || 0}
+                      language={selectedProduct!.language || 'zh-TW'} currency={editForm.currency} />
                   ),
                 }))}
             />

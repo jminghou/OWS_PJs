@@ -6,20 +6,21 @@ import Button from '@ows/ui/ui/Button';
 import Input from '@ows/ui/ui/Input';
 import TiptapEditor from '@ows/admin-app/components/TiptapEditor';
 import ContentSelector from '@ows/admin-app/components/ContentSelector';
+import { getCurrencyName, getCurrencySymbol, getSupportedCurrencies } from '@ows/ui/lib/currency';
 import PriceManager from '../../../components/PriceManager';
-import ProductLanguageManager from '../../../components/ProductLanguageManager';
 import { Save, Plus } from 'lucide-react';
+import type { ProductLanguage } from './LanguageBar';
 
 // --- Create mode types ---
 
 interface CreateFormData {
   product_id: string;
+  /** 這筆商品的語言；名稱與描述都用這個語言寫 */
+  language: string;
+  currency: string;
   name_zh: string;
-  name_en: string;
   description_zh: string;
-  description_en: string;
   short_description_zh: string;
-  short_description_en: string;
   price: string;
   original_price: string;
   stock_quantity: string;
@@ -40,6 +41,7 @@ interface EditFormData {
   name: string;
   description: string;
   short_description: string;
+  currency: string;
   price: string;
   original_price: string;
   stock_quantity: string;
@@ -86,6 +88,8 @@ interface ProductFormCreateProps {
   presets?: ProductPreset[];
   /** 保留給站台程式的代碼（含已建立的站台商品與隱藏商品），不能手動輸入 */
   reservedIds?: string[];
+  /** 站台的語言清單；超過一種時顯示「語言」選單 */
+  languages?: ProductLanguage[];
 }
 
 interface ProductFormEditProps {
@@ -102,6 +106,10 @@ interface ProductFormEditProps {
   extraTabs?: ProductFormExtraTab[];
   /** 這筆是站台商品時顯示的類型名稱 */
   presetLabel?: string;
+  /** 語言名稱（例如「繁體中文」） */
+  languageLabel?: string;
+  /** 標頭下方的語言列（各語言版本切換、新增、翻譯狀態） */
+  languageBar?: ReactNode;
   /** @deprecated 改用 extraTabs；仍傳入時會變成一個「站台設定」分頁 */
   extraSection?: ReactNode;
 }
@@ -202,7 +210,7 @@ export default function ProductForm(props: ProductFormProps) {
                   {edit.presetLabel}
                 </span>
               )}
-              <span className="text-muted-foreground">{product!.language || 'zh-TW'}</span>
+              <span className="text-muted-foreground">{edit.languageLabel || product!.language || 'zh-TW'}</span>
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium ${
                   isActive
@@ -228,6 +236,8 @@ export default function ProductForm(props: ProductFormProps) {
           </button>
         )}
       </div>
+
+      {edit?.languageBar}
 
       {/* ── 分頁列 ── */}
       <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-border px-4">
@@ -273,6 +283,23 @@ export default function ProductForm(props: ProductFormProps) {
                     </div>
                   )}
 
+                  {create && (create.languages?.length ?? 0) > 1 && (
+                    <div>
+                      <label className={labelCls}>語言</label>
+                      <select
+                        value={(formData as CreateFormData).language}
+                        onChange={(e) => {
+                          const l = create.languages!.find((x) => x.code === e.target.value);
+                          onFormChange({ language: e.target.value, ...(l ? { currency: l.currency } : {}) } as any);
+                        }}
+                        className={selectCls}
+                      >
+                        {create.languages!.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+                      </select>
+                      <p className={hintCls}>一種語言是一筆獨立商品，名稱與描述都用這個語言寫；其他語言建立後在語言列新增。</p>
+                    </div>
+                  )}
+
                   {mode === 'create' && (
                     <div>
                       <label className={labelCls}>產品 ID<Required /></label>
@@ -297,9 +324,9 @@ export default function ProductForm(props: ProductFormProps) {
                   )}
 
                   {mode === 'create' ? (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
                       <div>
-                        <label className={labelCls}>產品名稱（中文）<Required /></label>
+                        <label className={labelCls}>產品名稱<Required /></label>
                         <Input
                           type="text"
                           name="name_zh"
@@ -322,16 +349,6 @@ export default function ProductForm(props: ProductFormProps) {
                           required
                         />
                       </div>
-                      <div>
-                        <label className={labelCls}>產品名稱（英文）</label>
-                        <Input
-                          type="text"
-                          name="name_en"
-                          value={(formData as CreateFormData).name_en}
-                          onChange={handleChange}
-                          placeholder="Basic Consultation"
-                        />
-                      </div>
                     </div>
                   ) : (
                     <div>
@@ -348,27 +365,15 @@ export default function ProductForm(props: ProductFormProps) {
                   )}
 
                   {mode === 'create' ? (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div>
-                        <label className={labelCls}>簡短描述（中文）</label>
-                        <Input
-                          type="text"
-                          name="short_description_zh"
-                          value={(formData as CreateFormData).short_description_zh}
-                          onChange={handleChange}
-                          placeholder="一句話介紹，顯示在列表與卡片上"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>簡短描述（英文）</label>
-                        <Input
-                          type="text"
-                          name="short_description_en"
-                          value={(formData as CreateFormData).short_description_en}
-                          onChange={handleChange}
-                          placeholder="Short description"
-                        />
-                      </div>
+                    <div>
+                      <label className={labelCls}>簡短描述</label>
+                      <Input
+                        type="text"
+                        name="short_description_zh"
+                        value={(formData as CreateFormData).short_description_zh}
+                        onChange={handleChange}
+                        placeholder="一句話介紹，顯示在列表與卡片上"
+                      />
                     </div>
                   ) : (
                     <div>
@@ -384,22 +389,13 @@ export default function ProductForm(props: ProductFormProps) {
                   )}
 
                   {mode === 'create' ? (
-                    <>
-                      <div>
-                        <label className={`${labelCls} mb-2`}>產品描述（中文）</label>
-                        <TiptapEditor
-                          content={(formData as CreateFormData).description_zh}
-                          onChange={(content) => onFormChange({ description_zh: content } as any)}
-                        />
-                      </div>
-                      <div>
-                        <label className={`${labelCls} mb-2`}>產品描述（英文）</label>
-                        <TiptapEditor
-                          content={(formData as CreateFormData).description_en}
-                          onChange={(content) => onFormChange({ description_en: content } as any)}
-                        />
-                      </div>
-                    </>
+                    <div>
+                      <label className={`${labelCls} mb-2`}>產品描述</label>
+                      <TiptapEditor
+                        content={(formData as CreateFormData).description_zh}
+                        onChange={(content) => onFormChange({ description_zh: content } as any)}
+                      />
+                    </div>
                   ) : (
                     <div>
                       <label className={`${labelCls} mb-2`}>產品描述</label>
@@ -453,10 +449,18 @@ export default function ProductForm(props: ProductFormProps) {
             {/* ═══ 價格與庫存 ═══ */}
             {panel('pricing', (
               <>
-                <Group title="售價">
+                <Group title="售價" description="以這個語言版本的幣別計價，填整數元。">
+                  <div className="max-w-xs">
+                    <label className={labelCls}>幣別</label>
+                    <select name="currency" value={formData.currency} onChange={handleChange} className={selectCls}>
+                      {getSupportedCurrencies().map((c) => (
+                        <option key={c} value={c}>{getCurrencySymbol(c)} {getCurrencyName(c, 'zh-TW')}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className={labelCls}>售價<Required /></label>
+                      <label className={labelCls}>售價（{formData.currency}）<Required /></label>
                       <Input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="1200" required min="0" />
                     </div>
                     <div>
@@ -487,7 +491,7 @@ export default function ProductForm(props: ProductFormProps) {
 
                 {edit && (
                   <Group title="其他幣別的價格" description="這一塊各自有儲存按鈕，不受下方「儲存變更」影響。">
-                    <PriceManager productId={product!.id} language="zh-TW" />
+                    <PriceManager productId={product!.id} language={product!.language || 'zh-TW'} />
                   </Group>
                 )}
               </>
@@ -552,10 +556,6 @@ export default function ProductForm(props: ProductFormProps) {
                       <Input type="text" value={formData.product_id} disabled className="bg-muted" />
                       <p className={hintCls}>建立後不能修改；站台程式依這個代碼對應商品</p>
                     </div>
-                  </Group>
-
-                  <Group title="多語言版本" description="這一塊各自儲存，不受下方「儲存變更」影響。">
-                    <ProductLanguageManager productId={product!.id} currentLanguage={product!.language || 'zh-TW'} />
                   </Group>
 
                   <Group title="詳情內容關聯" description="選一篇已發佈的文章作為產品詳情頁內容。">

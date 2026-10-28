@@ -47,6 +47,8 @@ export const productApi = {
     per_page?: number;
     is_active?: string;
     search?: string;
+    /** 一個產品 ID 一列，附各語言版本（languages） */
+    group?: boolean;
   }): Promise<ProductAdminListResponse> => {
     return request<ProductAdminListResponse>('/admin/products', { params });
   },
@@ -110,6 +112,11 @@ export const productApi = {
     return request<{ message: string }>(`/admin/products/${productId}/prices/${priceId}`, {
       method: 'DELETE',
     });
+  },
+
+  /** 確認語言版本的內容已完成／已同步原文 */
+  adminConfirmTranslation: async (id: number): Promise<{ message: string }> => {
+    return request<{ message: string }>(`/admin/products/${id}/translation-confirm`, { method: 'POST' });
   },
 
   adminGetTranslations: async (productId: number): Promise<ProductTranslationListResponse> => {

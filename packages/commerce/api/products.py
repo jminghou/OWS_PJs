@@ -11,9 +11,16 @@ Provides endpoints for product management:
 - DELETE /admin/products/<id> - Delete product
 - POST /admin/products/<id>/toggle-status - Toggle product status
 - GET/POST/PUT/DELETE /admin/products/<id>/prices - Product price management
-- GET/POST /admin/products/<id>/translations - Product translation management
+- GET/POST /admin/products/<id>/translations - Product translation management（舊介面，保留相容）
+- POST /admin/products/<id>/translation-confirm - 確認語言版本內容已完成／已跟上原文
 - PUT /admin/products/sort-order - Batch update sort order
+
+多語言（2026-10-28）：一個語言一筆獨立商品，同一個 product_id 以 (product_id, language) 區分。
+最早建立的那筆是「原文」（original_id 為空），其他語言版本的 original_id 指向它。
+從別的語言複製建立的版本要按「確認內容已完成」才能上架；原文內容改過後，各語言版本標示「原文已更新」。
 """
+import copy
+from datetime import datetime
 
 from flask import jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -180,6 +187,79 @@ def get_product(product_id):
 
 # ==================== Admin Products API ====================
 
+# 會影響「內容」的欄位：原文改了這些，其他語言版本就標示待更新
+_CONTENT_FIELDS = ('names', 'descriptions', 'short_descriptions', 'meta_title', 'meta_description', 'attributes')
+
+
+def _now_iso():
+    return datetime.utcnow().isoformat(timespec='seconds')
+
+
+def _root_of(product):
+    """同一個 product_id 的原文那一筆"""
+    if product.original_id:
+        root = Product.query.get(product.original_id)
+        if root:
+            return root
+    return product
+
+
+def _content_snapshot(product):
+    return [copy.deepcopy(getattr(product, f)) for f in _CONTENT_FIELDS]
+
+
+def _translation_state(product, root=None):
+    """語言版本相對原文的狀態；原文本身回 None"""
+    root = root or _root_of(product)
+    if root.id == product.id:
+        return None
+    t = (product.meta_data or {}).get('translation') or {}
+    source_changed = (root.meta_data or {}).get('content_updated_at')
+    synced_at = t.get('synced_at')
+    return {
+        'source_id': root.id,
+        'source_language': root.language,
+        'confirmed': t.get('confirmed', True),
+        'synced_at': synced_at,
+        'source_updated_at': source_changed,
+        'stale': bool(source_changed and synced_at and source_changed > synced_at),
+    }
+
+
+def _activation_problems(product):
+    """上架前的完整度檢查"""
+    problems = []
+    name = (product.names or {}).get(product.language) or ''
+    if not name.strip():
+        problems.append('產品名稱還沒填')
+    if not product.price or product.price <= 0:
+        problems.append('售價還沒設定')
+    state = _translation_state(product)
+    if state and not state['confirmed']:
+        problems.append('這是從其他語言複製的版本，內容改寫完成後請先按「確認內容已完成」')
+    return problems
+
+
+def _admin_dict(product, root=None):
+    d = product.to_admin_dict()
+    d['translation'] = _translation_state(product, root)
+    return d
+
+
+def _language_summary(product, root):
+    state = _translation_state(product, root)
+    return {
+        'id': product.id,
+        'language': product.language,
+        'is_active': product.is_active,
+        'name': (product.names or {}).get(product.language) or '',
+        'price': product.price,
+        'currency': product.currency,
+        'is_root': product.id == root.id,
+        'stale': bool(state and state['stale']),
+        'confirmed': state['confirmed'] if state else True,
+    }
+
 @bp.route('/admin/products', methods=['GET'])
 @jwt_required()
 @require_permission('products.read')
@@ -205,6 +285,9 @@ def admin_get_products():
             name_match = func.json_extract(Product.names, '$.zh-TW').ilike(f'%{search}%')
         query = query.filter(or_(Product.product_id.ilike(f'%{search}%'), name_match))
 
+    if request.args.get('group') in ('1', 'true'):
+        return _grouped_list(query, page, per_page)
+
     query = query.order_by(Product.sort_order.asc(), Product.id.desc())
     products_page = query.paginate(page=page, per_page=per_page, error_out=False)
 
@@ -221,6 +304,35 @@ def admin_get_products():
     }), 200
 
 
+def _grouped_list(query, page, per_page):
+    """一個產品 ID 一列（代表那筆是原文），languages 列出所有語言版本；篩選條件命中任一語言版本就列出"""
+    ids = (query.with_entities(Product.product_id, func.min(Product.sort_order).label('so'), func.max(Product.id).label('mx'))
+           .group_by(Product.product_id).order_by(func.min(Product.sort_order).asc(), func.max(Product.id).desc()))
+    total = ids.count()
+    page_ids = [r[0] for r in ids.offset((page - 1) * per_page).limit(per_page).all()]
+    rows = Product.query.filter(Product.product_id.in_(page_ids)).all() if page_ids else []
+    by_id = {}
+    for r in rows:
+        by_id.setdefault(r.product_id, []).append(r)
+    items = []
+    for pid in page_ids:
+        group = by_id.get(pid, [])
+        if not group:
+            continue
+        root = next((r for r in group if not r.original_id), None) or min(group, key=lambda r: r.id)
+        d = _admin_dict(root, root)
+        d['languages'] = [_language_summary(r, root) for r in sorted(group, key=lambda r: r.id)]
+        items.append(d)
+    pages = (total + per_page - 1) // per_page if per_page else 1
+    return jsonify({
+        'products': items,
+        'pagination': {
+            'page': page, 'pages': pages, 'per_page': per_page, 'total': total,
+            'has_next': page < pages, 'has_prev': page > 1,
+        }
+    }), 200
+
+
 @bp.route('/admin/products/<int:id>', methods=['GET'])
 @jwt_required()
 @require_permission('products.read')
@@ -230,7 +342,7 @@ def admin_get_product(id):
     if not product:
         return jsonify({'message': 'Product not found'}), 404
 
-    return jsonify(product.to_admin_dict()), 200
+    return jsonify(_admin_dict(product)), 200
 
 
 @bp.route('/admin/products', methods=['POST'])
@@ -238,13 +350,19 @@ def admin_get_product(id):
 @require_permission('products.create')
 def admin_create_product():
     """Admin: Create new product"""
-    data = request.get_json()
+    data = request.get_json() or {}
 
+    if data.get('copy_from'):
+        return _create_language_copy(data)
+
+    language = data.get('language') or 'zh-TW'
     if not data.get('product_id') or not data.get('names') or not data.get('price'):
         return jsonify({'message': 'Missing required fields: product_id, names, price'}), 400
 
-    if Product.query.filter_by(product_id=data['product_id']).first():
+    if Product.query.filter_by(product_id=data['product_id'], language=language).first():
         return jsonify({'message': 'Product ID already exists'}), 400
+    # 同一個產品 ID 已有其他語言：這筆是新的語言版本（從頭撰寫，不必再確認）
+    root = Product.query.filter_by(product_id=data['product_id'], original_id=None).order_by(Product.id).first()
 
     detail_content_id = data.get('detail_content_id')
     if detail_content_id:
@@ -273,6 +391,9 @@ def admin_create_product():
             meta_description=data.get('meta_description'),
             detail_content_id=detail_content_id,
             attributes=data['attributes'] if isinstance(data.get('attributes'), dict) else {},
+            language=language,
+            original_id=root.id if root else None,
+            meta_data={'currency': data.get('currency') or 'TWD'},
         )
 
         tag_ids = data.get('tag_ids', [])
@@ -294,6 +415,57 @@ def admin_create_product():
         return jsonify({'message': 'Failed to create product'}), 500
 
 
+def _create_language_copy(data):
+    """從某個語言版本複製出新語言版本：文案、圖片、站台設定都帶過去當草稿，預設停用、待確認"""
+    src = Product.query.get(data['copy_from'])
+    if not src:
+        return jsonify({'message': 'Product not found'}), 404
+    language = (data.get('language') or '').strip()
+    if not language:
+        return jsonify({'message': 'Missing language field'}), 400
+    if Product.query.filter_by(product_id=src.product_id, language=language).first():
+        return jsonify({'message': f'這個產品已經有 {language} 版本'}), 400
+    root = _root_of(src)
+    sl = src.language
+    pick = lambda m: (m or {}).get(sl, '')  # noqa: E731
+    try:
+        product = Product(
+            product_id=src.product_id,
+            language=language,
+            original_id=root.id,
+            names={language: data.get('name') or pick(src.names)},
+            descriptions={language: pick(src.descriptions)},
+            short_descriptions={language: pick(src.short_descriptions)},
+            # 幣別不同時價格不能照抄：沒給就是 0，上架前一定要設
+            price=int(data.get('price') or 0),
+            stock_quantity=src.stock_quantity,
+            stock_status=src.stock_status,
+            featured_image=src.featured_image,
+            gallery_images=copy.deepcopy(src.gallery_images or []),
+            category_id=src.category_id,
+            is_active=False,
+            is_featured=src.is_featured,
+            sort_order=src.sort_order,
+            meta_title=src.meta_title,
+            meta_description=src.meta_description,
+            detail_content_id=src.detail_content_id,
+            attributes=copy.deepcopy(src.attributes or {}),
+            meta_data={
+                'currency': data.get('currency') or src.currency,
+                'translation': {'confirmed': False, 'copied_from': src.id, 'copied_language': sl,
+                                'synced_at': None},
+            },
+        )
+        product.tags = list(src.tags)
+        db.session.add(product)
+        db.session.commit()
+        return jsonify({'message': 'Language version created', 'id': product.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error copying product language version: {e}")
+        return jsonify({'message': 'Failed to create product'}), 500
+
+
 @bp.route('/admin/products/<int:id>', methods=['PUT'])
 @jwt_required()
 @require_permission('products.update')
@@ -306,10 +478,19 @@ def admin_update_product(id):
     data = request.get_json()
 
     try:
+        before = _content_snapshot(product)
+        was_active = product.is_active
+
         if 'product_id' in data and data['product_id'] != product.product_id:
-            if Product.query.filter_by(product_id=data['product_id']).first():
+            if Product.query.filter_by(product_id=data['product_id']).count() > 0 or \
+                    Product.query.filter_by(product_id=product.product_id).count() > 1:
                 return jsonify({'message': 'Product ID already exists'}), 400
             product.product_id = data['product_id']
+
+        if data.get('currency'):
+            meta = dict(product.meta_data or {})
+            meta['currency'] = data['currency']
+            product.meta_data = meta
 
         # Support two update modes:
         # 1. New: Single language fields (name, description, short_description, language)
@@ -377,6 +558,18 @@ def admin_update_product(id):
             merged.update(data['attributes'])
             product.attributes = merged  # 重新賦值新 dict 讓 SQLAlchemy 偵測到變更
 
+        if product.is_active and not was_active:
+            problems = _activation_problems(product)
+            if problems:
+                db.session.rollback()
+                return jsonify({'message': '還不能上架：' + '；'.join(problems), 'problems': problems}), 400
+
+        # 原文內容有變：記下時間，其他語言版本據此標示「原文已更新」
+        if not product.original_id and _content_snapshot(product) != before:
+            meta = dict(product.meta_data or {})
+            meta['content_updated_at'] = _now_iso()
+            product.meta_data = meta
+
         db.session.commit()
 
         return jsonify({'message': 'Product updated successfully'}), 200
@@ -397,6 +590,19 @@ def admin_delete_product(id):
         return jsonify({'message': 'Product not found'}), 404
 
     try:
+        others = Product.query.filter(Product.product_id == product.product_id, Product.id != product.id).order_by(Product.id).all()
+        if others and not product.original_id:
+            new_root = next((o for o in others if o.is_active), others[0])
+            new_root.original_id = None
+            for o in others:
+                if o.id != new_root.id:
+                    o.original_id = new_root.id
+            db.session.flush()
+        else:
+            for o in others:
+                if o.original_id == product.id:
+                    o.original_id = _root_of(product).id if product.original_id else None
+            db.session.flush()
         db.session.delete(product)
         db.session.commit()
         return jsonify({'message': 'Product deleted successfully'}), 200
@@ -415,6 +621,11 @@ def admin_toggle_product_status(id):
     if not product:
         return jsonify({'message': 'Product not found'}), 404
 
+    if not product.is_active:
+        problems = _activation_problems(product)
+        if problems:
+            return jsonify({'message': '還不能上架：' + '；'.join(problems), 'problems': problems}), 400
+
     try:
         product.is_active = not product.is_active
         db.session.commit()
@@ -424,6 +635,25 @@ def admin_toggle_product_status(id):
         db.session.rollback()
         current_app.logger.error(f"Error toggling product status: {e}")
         return jsonify({'message': 'Operation failed'}), 500
+
+
+@bp.route('/admin/products/<int:id>/translation-confirm', methods=['POST'])
+@jwt_required()
+@require_permission('products.update')
+def admin_confirm_translation(id):
+    """確認語言版本的內容已用該語言寫完、跟上目前的原文"""
+    product = Product.query.get(id)
+    if not product:
+        return jsonify({'message': 'Product not found'}), 404
+    if not product.original_id:
+        return jsonify({'message': '這一筆是原文，不需要確認'}), 400
+    meta = dict(product.meta_data or {})
+    t = dict(meta.get('translation') or {})
+    t.update({'confirmed': True, 'synced_at': _now_iso()})
+    meta['translation'] = t
+    product.meta_data = meta
+    db.session.commit()
+    return jsonify({'message': 'Confirmed', 'translation': _translation_state(product)}), 200
 
 
 # ==================== Product Price Management API ====================

@@ -120,11 +120,19 @@ class Product(db.Model):
             'attributes': self.attributes or {},
         }
 
+    @property
+    def currency(self) -> str:
+        """這個語言版本的售價幣別（price 是該幣別的整數元）；舊資料沒設就是台幣。"""
+        return (self.meta_data or {}).get('currency') or 'TWD'
+
     def to_admin_dict(self) -> Dict[str, Any]:
         """Convert to admin format (full data)."""
         return {
             'id': self.id,
             'product_id': self.product_id,
+            'language': self.language,
+            'original_id': self.original_id,
+            'currency': self.currency,
             'names': self.names,
             'descriptions': self.descriptions,
             'short_descriptions': self.short_descriptions,
@@ -164,7 +172,8 @@ class Product(db.Model):
             'USD': '$',
             'EUR': '€',
             'JPY': '¥',
-            'GBP': '£'
+            'GBP': '£',
+            'CNY': 'CN¥',
         }
 
         # Check eager-loaded prices first
@@ -191,12 +200,12 @@ class Product(db.Model):
                 'currency_symbol': CURRENCY_SYMBOLS.get(currency, currency)
             }
 
-        # Fallback to default (TWD)
+        # 沒有另外設定該幣別的價格：用這個語言版本自己的售價與幣別
         return {
             'price': self.price,
             'original_price': self.original_price,
-            'currency': 'TWD',
-            'currency_symbol': 'NT$'
+            'currency': self.currency,
+            'currency_symbol': CURRENCY_SYMBOLS.get(self.currency, self.currency)
         }
 
     def __repr__(self):

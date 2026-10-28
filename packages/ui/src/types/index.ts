@@ -389,10 +389,34 @@ export interface ProductAdmin {
     status: string;
     language: string;
   };
-  // 多語言欄位
+  // 多語言：一種語言一筆商品，同一個 product_id 以 language 區分；original_id 指向原文那一筆
   language?: string;
   original_id?: number;
+  /** 這個語言版本的售價幣別（price 是該幣別的整數元） */
+  currency?: string;
   attributes?: Record<string, any>;
+  meta_data?: Record<string, any>;
+  /** 相對原文的狀態；原文本身為 null */
+  translation?: {
+    source_id: number;
+    source_language: string;
+    confirmed: boolean;
+    synced_at: string | null;
+    source_updated_at: string | null;
+    stale: boolean;
+  } | null;
+  /** 清單用 group=1 時：同一個產品 ID 的所有語言版本 */
+  languages?: {
+    id: number;
+    language: string;
+    is_active: boolean;
+    name: string;
+    price: number;
+    currency: string;
+    is_root: boolean;
+    stale: boolean;
+    confirmed: boolean;
+  }[];
 }
 
 export interface ProductListResponse {
@@ -426,6 +450,11 @@ export interface CreateProductData {
   detail_content_id?: number;
   /** 更新時依頂層鍵合併，不會清掉其他鍵 */
   attributes?: Record<string, any>;
+  /** 這筆商品的語言（預設 zh-TW）；同一個 product_id 每個語言一筆 */
+  language?: string;
+  currency?: string;
+  /** 從這筆商品複製出新語言版本（文案、圖片、站台設定都帶過去，預設停用） */
+  copy_from?: number;
 }
 
 // 產品價格管理類型
