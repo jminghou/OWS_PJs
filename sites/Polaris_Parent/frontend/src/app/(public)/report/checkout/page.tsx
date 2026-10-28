@@ -15,6 +15,7 @@ import { memberAccountApi, reportOrdersApi, type ShippingInfo } from '@/lib/api'
 import { PHYSICAL_ADDON, POLICY_VERSION, REPORT_PRODUCT, variantInfo } from '@/lib/report/catalog';
 import { clearDraft, isReadyForCheckout, loadDraft, type ReportDraft } from '@/lib/report/draft';
 import { loadReportPrices, type ReportPrices } from '@/lib/report/prices';
+import { LANGUAGE_NAMES, REPORT_DEFAULT_LOCALE } from '@/lib/report/locale';
 import { pricePhysical, type PriceLine } from '@/lib/api/reportOrders';
 import { PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
 import { PREVIEW_HREF } from '@/lib/report/steps';
@@ -59,7 +60,7 @@ export default function ReportCheckoutPage() {
       return;
     }
     setDraft(d);
-    loadReportPrices().then(setPrices).catch(() => setPrices(null));
+    loadReportPrices(d?.language).then(setPrices).catch(() => setPrices(null));
   }, [checkAuth, router]);
 
   useEffect(() => {
@@ -163,6 +164,9 @@ export default function ReportCheckoutPage() {
           <h2 className={cardTitleCls}>金額</h2>
           <div className="mt-3">
             {lines.length ? <PriceBreakdown lines={lines} total={total} symbol={prices?.symbol} /> : <p className="text-sm text-muted">載入中…</p>}
+            {draft.language && draft.language !== REPORT_DEFAULT_LOCALE && (
+              <p className="mt-2 text-sm text-muted">報告語言：{LANGUAGE_NAMES[draft.language] ?? draft.language}（完成後交付{LANGUAGE_NAMES[draft.language] ?? draft.language}版報告）</p>
+            )}
           </div>
           <p className="mt-2 text-caption text-muted">實際金額以送出訂單時的售價為準。</p>
         </section>

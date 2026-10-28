@@ -299,9 +299,13 @@ def create_order():
         return _error('請先閱讀並同意交易政策', 400, code='policy_required', policy_version=service.POLICY_VERSION)
 
     clean, errors = validate_order(data)
+    language = data.get('language') or service.LANGUAGE
+    if language not in service.SUPPORTED_LANGUAGES:
+        errors['language'] = '不支援這個語言'
     if errors:
         # 欄位錯誤放在 errors：前端 request() 會把它帶進 RequestError.errors
         return _error('資料有誤，請檢查後再送出', 400, code='invalid', errors=errors)
+    clean['language'] = language
 
     bank, expires_at = None, None
     if mode == 'manual':
@@ -655,8 +659,11 @@ def admin_reject_transfer(order_no):
 # ── 實體書：設定、事後加購、取消 ─────────────────────────────────────────────
 @bp.route('/report-physical-config', methods=['GET'])
 def physical_config():
-    """前台顯示用：是否開放實體書、加購價、規格、封面款式、加購頁價格。"""
-    return jsonify({'success': True, 'config': physical.public_config()})
+    """前台顯示用：是否開放實體書、加購價、規格、封面款式、加購頁價格。?language= 取該語言版本（預設繁中）。"""
+    language = request.args.get('language') or service.LANGUAGE
+    if language not in service.SUPPORTED_LANGUAGES:
+        return _error('不支援這個語言', 400)
+    return jsonify({'success': True, 'config': physical.public_config(language)})
 
 
 @bp.route('/report-orders/<order_no>/addons', methods=['POST'])

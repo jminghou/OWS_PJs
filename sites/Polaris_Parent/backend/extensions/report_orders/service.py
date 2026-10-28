@@ -23,6 +23,8 @@ from sites.Polaris_Parent.backend.models import ReportFulfillment, Shipment
 # 交易政策版本：政策文字（前端 /report/policy）改版時一起改，訂單記錄的是同意當下的版本
 POLICY_VERSION = '2026-10-03'
 LANGUAGE = 'zh-TW'
+# 官網販售的語言（一種語言一筆商品，2026-10-28）；訂單語言決定交付的報告語言（handoff 帶給紫微端）
+SUPPORTED_LANGUAGES = ('zh-TW', 'zh-CN', 'en', 'ja')
 CURRENCY = 'TWD'
 PRODUCT_IDS = {'digital': 'natal-report-digital', 'physical': 'natal-report-physical'}
 VARIANT_LABELS = {'digital': '數位版', 'physical': '實體書版'}
@@ -49,11 +51,11 @@ def find_by_submission_key(submission_key):
     return checkout.order if checkout else None
 
 
-def _product_and_price(variant):
-    product = Product.query.filter_by(product_id=PRODUCT_IDS[variant], language=LANGUAGE, is_active=True).first()
+def _product_and_price(variant, language=LANGUAGE):
+    product = Product.query.filter_by(product_id=PRODUCT_IDS[variant], language=language, is_active=True).first()
     if product is None:
         raise OrderError('這個版本尚未開放購買', 409, 'product_unavailable')
-    price = product.get_price(CURRENCY).get('price')
+    price = product.get_price(product.currency).get('price')
     if not isinstance(price, int) or price <= 0:
         raise OrderError('這個版本尚未設定價格', 409, 'product_unavailable')
     return product, price
@@ -115,7 +117,11 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
 
     from . import physical as phys
 
-    cfg = phys.load_config()
+    # 官網下單：語言版本決定商品、售價與幣別；代客建單沿用繁中商品資料（平台訂單的語系可能沒有對應商品）
+    language = (clean.get('language') or LANGUAGE) if terms is None else LANGUAGE
+    if language not in SUPPORTED_LANGUAGES:
+        raise OrderError('不支援這個語言', 400, 'invalid')
+    cfg = phys.load_config(language)
     selection = None
     errors = {}
     if clean['variant'] == 'physical':
@@ -140,20 +146,23 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
             raise OrderError('官網還沒有建立這個報告商品的資料，請先到後台「產品」建立', 409, 'product_unavailable')
         price = terms['amount']
     elif selection is not None:
-        product = Product.query.filter_by(product_id=PRODUCT_IDS['physical'], language=LANGUAGE).first()
+        product = Product.query.filter_by(product_id=PRODUCT_IDS['physical'], language=language).first()
         if product is None or cfg['digital_price'] is None:
             raise OrderError('實體書目前沒有開放購買', 409, 'product_unavailable')
         price = cfg['digital_price'] + selection['line_total']
     else:
-        product, price = _product_and_price(clean['variant'])
-    currency, language, policy_version = CURRENCY, LANGUAGE, POLICY_VERSION
+        product, price = _product_and_price(clean['variant'], language)
+    currency, policy_version = cfg['currency'], POLICY_VERSION
+    if terms is None and currency != CURRENCY and payment_mode == 'manual':
+        # 人工匯款只收台幣；外幣要等國際金流
+        raise OrderError('這個語言版本目前還不能付款，請改選繁體中文版本', 409, 'currency_unavailable')
     if terms is not None:
         price, currency = terms['amount'], terms['currency']
         language, policy_version = terms.get('language') or LANGUAGE, terms['policy_version']
     chart, chart_time = _save_chart(clean, email, eng, save_chart)
 
     variant = clean['variant']
-    name = f"{(product.names or {}).get(LANGUAGE) or product.product_id}（{VARIANT_LABELS[variant]}）"
+    name = f"{(product.names or {}).get(product.language) or product.product_id}（{VARIANT_LABELS[variant]}）"
     item_no = _new_item_no()
     customization = {
         'subject_name': clean['subject_name'],

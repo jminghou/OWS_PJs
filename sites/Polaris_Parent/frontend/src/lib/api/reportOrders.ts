@@ -734,7 +734,9 @@ export const reportOrdersApi = {
       '/report-payment-mode'
     ),
 
-  physicalConfig: () => request<{ success: boolean; config: PhysicalConfig }>('/report-physical-config'),
+  /** 某個語言版本的實體書與專人解讀設定（預設繁中） */
+  physicalConfig: (language?: string) =>
+    request<{ success: boolean; config: PhysicalConfig }>('/report-physical-config', language && language !== 'zh-TW' ? { params: { language } } : {}),
 
   create: (body: CreateReportOrderRequest) =>
     post<{ success: boolean; created: boolean; order: ReportOrderSummary }>('/report-orders', body),

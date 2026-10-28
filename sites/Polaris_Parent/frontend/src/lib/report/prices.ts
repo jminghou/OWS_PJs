@@ -18,10 +18,10 @@ export const formatPrice = (amount: number, symbol = 'NT$') => `${symbol}${amoun
 
 const label = (amount: number, symbol: string): PriceLabel => ({ text: formatPrice(amount, symbol), available: true, amount });
 
-/** 實體書與專人解讀設定；兩者都沒開放或 API 失敗時回 null（實體書是否開放看 cfg.enabled） */
-export async function loadPhysicalConfig(): Promise<PhysicalConfig | null> {
+/** 實體書與專人解讀設定（某個語言版本）；兩者都沒開放或 API 失敗時回 null（實體書是否開放看 cfg.enabled） */
+export async function loadPhysicalConfig(language = 'zh-TW'): Promise<PhysicalConfig | null> {
   try {
-    const { config } = await reportOrdersApi.physicalConfig();
+    const { config } = await reportOrdersApi.physicalConfig(language);
     return config && (config.enabled || config.consult) ? config : null;
   } catch {
     return null;
@@ -34,12 +34,14 @@ export function physicalStartPrice(cfg: PhysicalConfig): number {
   return cfg.first_copy_price + minDelta;
 }
 
-export async function loadReportPrices(): Promise<ReportPrices> {
+/** 某個語言版本的售價（一種語言一筆商品，各自的幣別）；預設繁中台幣 */
+export async function loadReportPrices(language = 'zh-TW'): Promise<ReportPrices> {
   let symbol = 'NT$';
   let digital: PriceLabel = UNAVAILABLE;
+  const zh = language === 'zh-TW';
   const [digitalRes, physicalConfig] = await Promise.all([
-    productApi.getById('natal-report-digital', 'zh-TW', 'TWD').catch(() => null),
-    loadPhysicalConfig(),
+    productApi.getById('natal-report-digital', language, zh ? 'TWD' : undefined).catch(() => null),
+    loadPhysicalConfig(language),
   ]);
   const p: any = digitalRes;
   if (typeof p?.price === 'number') {

@@ -169,7 +169,7 @@ class Product(db.Model):
         """Get price for specified currency."""
         CURRENCY_SYMBOLS = {
             'TWD': 'NT$',
-            'USD': '$',
+            'USD': 'US$',
             'EUR': '€',
             'JPY': '¥',
             'GBP': '£',

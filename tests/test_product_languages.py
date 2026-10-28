@@ -7,7 +7,8 @@ from core.backend_engine.models import Category, Tag
 from core.backend_engine.services.rbac import RBACService
 from packages.commerce.models import Product, product_tags
 
-from tests.test_report_orders import _Base, _make_app
+from packages.commerce.models import Order, OrderItem
+from tests.test_report_orders import BANK, _Base, _make_app, payload
 
 PERMS = {'products.read', 'products.create', 'products.update', 'products.delete'}
 
@@ -120,3 +121,63 @@ class ProductLanguageTests(_Base):
         ja = db.session.get(Product, ja.id)
         self.assertIsNotNone(ja)
         self.assertIsNone(ja.original_id)
+
+
+class ReportOrderLanguageTests(_Base):
+    """官網下單：語言版本決定商品、售價與幣別（訂單語言再交給紫微端決定交付語言）。"""
+
+    def add_language(self, variant_id='natal-report-digital', language='en', currency='USD', price=49, active=True):
+        root = Product.query.filter_by(product_id=variant_id, language='zh-TW').one()
+        p = Product(product_id=variant_id, language=language, original_id=root.id, names={language: 'Natal Report'},
+                    price=price, is_active=active, meta_data={'currency': currency})
+        db.session.add(p)
+        db.session.commit()
+        return p
+
+    def test_english_order_uses_english_product_and_currency(self):
+        en = self.add_language()
+        r = self.post(payload(language='en'))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        o = Order.query.filter_by(order_no=r.get_json()['order']['order_no']).one()
+        self.assertEqual((o.language, o.currency, o.amount), ('en', 'USD', 49))
+        item = OrderItem.query.filter_by(order_id=o.id).one()
+        self.assertEqual((item.product_id, item.currency), (en.id, 'USD'))
+        self.assertTrue(item.name.startswith('Natal Report'))
+
+    def test_language_without_product_is_unavailable(self):
+        self.add_language(active=False)
+        r = self.post(payload(language='en'))
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(self.post(payload(language='xx', submission_key='draft-key-0002')).status_code, 400)
+
+    def test_default_is_traditional_chinese(self):
+        r = self.post(payload())
+        self.assertEqual(r.status_code, 201, r.get_json())
+        o = Order.query.filter_by(order_no=r.get_json()['order']['order_no']).one()
+        self.assertEqual((o.language, o.currency), ('zh-TW', 'TWD'))
+
+    def test_physical_config_per_language(self):
+        self.add_language()
+        r = self.client.get('/api/v1/report-physical-config?language=en')
+        self.assertEqual(r.get_json()['config']['currency'], 'USD')
+        self.assertEqual(r.get_json()['config']['digital_price'], 49)
+        self.assertEqual(self.client.get('/api/v1/report-physical-config').get_json()['config']['currency'], 'TWD')
+
+
+class ManualForeignCurrencyTests(_Base):
+    MODE = 'manual'
+
+    def setUp(self):
+        super().setUp()
+        self._saved = {k: self.app.config.get(k) for k in BANK}
+        self.app.config.update(BANK)
+
+    def tearDown(self):
+        self.app.config.update(self._saved)
+        super().tearDown()
+
+    def test_manual_transfer_only_accepts_twd(self):
+        ReportOrderLanguageTests.add_language(self)
+        r = self.post(payload(language='en'))
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.get_json().get('code'), 'currency_unavailable')

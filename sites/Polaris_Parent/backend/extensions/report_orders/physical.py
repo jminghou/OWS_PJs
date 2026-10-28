@@ -53,8 +53,8 @@ _PRE_PRINT = ('awaiting_customization', 'awaiting_proof', 'proof_ready', 'change
 
 
 # ── 設定 ─────────────────────────────────────────────────────────────────────
-def _product(variant):
-    return Product.query.filter_by(product_id=PRODUCT_IDS[variant], language=LANGUAGE).first()
+def _product(variant, language=LANGUAGE):
+    return Product.query.filter_by(product_id=PRODUCT_IDS[variant], language=language).first()
 
 
 def _int(v, default=0, minimum=0):
@@ -107,12 +107,13 @@ def _block(raw, default, fields):
     return out
 
 
-def load_config():
-    """目前的實體書與專人解讀設定。"""
-    digital, physical = _product('digital'), _product('physical')
+def load_config(language=LANGUAGE):
+    """某個語言版本的實體書與專人解讀設定（存在該語言數位版的 attributes；金額是該語言版本的幣別）。"""
+    digital, physical = _product('digital', language), _product('physical', language)
+    currency = digital.currency if digital is not None else CURRENCY
     digital_price = None
     if digital is not None and digital.is_active:
-        p = digital.get_price(CURRENCY).get('price')
+        p = digital.get_price(currency).get('price')
         digital_price = p if isinstance(p, int) and p > 0 else None
 
     attrs = (digital.attributes or {}).get(ADDON_KEY) if digital is not None else None
@@ -128,7 +129,7 @@ def load_config():
         consult = _block(attrs.get('consult'), DEFAULT_CONSULT, ('label', 'minutes', 'price', 'max_sessions'))
     else:
         # 還沒在後台存過新版設定：第一本沿用「實體書售價 − 數位版售價」，其餘選項關閉
-        phys_price = physical.get_price(CURRENCY).get('price') if physical is not None else None
+        phys_price = physical.get_price(currency).get('price') if physical is not None else None
         first = (phys_price - digital_price) if isinstance(phys_price, int) and digital_price else 0
         enabled, extra, specs, styles = True, first, [], DEFAULT_COVER_STYLES
         custom = {k: {**DEFAULT_CUSTOM[k], 'enabled': False} for k in CUSTOM_KEYS}
@@ -150,13 +151,14 @@ def load_config():
         'consult': consult,
         'consult_enabled': consult_ok,
         'max_quantity': MAX_QUANTITY,
-        'currency': CURRENCY,
+        'currency': currency,
+        'language': language,
     }
 
 
-def public_config():
+def public_config(language=LANGUAGE):
     """前台用：只給顯示與選擇需要的欄位（停用的選項不給）。"""
-    c = load_config()
+    c = load_config(language)
     return {
         'enabled': c['enabled'],
         'digital_price': c['digital_price'],
@@ -172,6 +174,7 @@ def public_config():
                     if c['consult_enabled'] else None),
         'max_quantity': c['max_quantity'],
         'currency': c['currency'],
+        'language': c['language'],
     }
 
 
@@ -277,7 +280,7 @@ def create_consult_item(order, report_item, consult):
     item = OrderItem(order_id=order.id, item_no=_new_item_no(), product_id=report_item.product_id,
                      product_code='report-consult', name=f'{consult["label"]}（{consult["minutes"]} 分鐘）',
                      variant='consult', kind='service', parent_item_id=report_item.id,
-                     unit_price=consult['unit_price'], currency=CURRENCY, quantity=consult['sessions'],
+                     unit_price=consult['unit_price'], currency=order.currency, quantity=consult['sessions'],
                      customization={'parent_item_no': report_item.item_no})
     db.session.add(item)
     db.session.flush()
@@ -289,7 +292,7 @@ def create_consult_item(order, report_item, consult):
 def item_snapshot(item):
     """orders.items JSONB 快照的一列。"""
     return {'product_id': item.product_code, 'name': item.name, 'price': item.unit_price, 'quantity': item.quantity,
-            'currency': CURRENCY, 'variant': item.variant, 'kind': item.kind, 'item_no': item.item_no}
+            'currency': item.currency, 'variant': item.variant, 'kind': item.kind, 'item_no': item.item_no}
 
 
 # ── 事後加購 ─────────────────────────────────────────────────────────────────
@@ -305,7 +308,7 @@ def addon_offer(order, cfg=None):
     item = report_item(order)
     if order.status != 'paid' or item is None:
         return None
-    cfg = cfg or load_config()
+    cfg = cfg or load_config(order.language or LANGUAGE)
     return {'physical': cfg['enabled'], 'consult': cfg['consult_enabled'], 'available': cfg['enabled']}
 
 
@@ -327,7 +330,8 @@ def create_addon_order(user, parent_order, data, shipping, submission_key, payme
     if parent is None or parent_order.status != 'paid':
         raise OrderError('原訂單完成付款後才能加購', 409, 'parent_not_paid')
 
-    cfg = load_config()
+    language = parent_order.language or LANGUAGE
+    cfg = load_config(language)
     want_physical = isinstance(data.get('physical'), dict)
     physical_sel = consult_sel = None
     errors = {}
@@ -355,7 +359,7 @@ def create_addon_order(user, parent_order, data, shipping, submission_key, payme
     c = parent.customization or {}
     audience = c.get('audience') or {}
     order = Order(order_no=_new_order_no(), user_id=user.id, amount=0, status='pending', items=[],
-                  language=LANGUAGE, currency=CURRENCY, payment_method=payment_mode)
+                  language=language, currency=cfg['currency'], payment_method=payment_mode)
     db.session.add(order)
     db.session.flush()
     now = datetime.utcnow()
@@ -363,11 +367,13 @@ def create_addon_order(user, parent_order, data, shipping, submission_key, payme
                                  policy_consented_at=now, expires_at=expires_at))
     items, amount = [], 0
     if physical_sel:
-        physical = _product('physical')
-        name = f"{(physical.names or {}).get(LANGUAGE) or physical.product_id}（實體書加購）"
+        physical = _product('physical', language)
+        if physical is None:
+            raise OrderError('目前沒有開放加購實體書', 409, 'addon_unavailable')
+        name = f"{(physical.names or {}).get(language) or physical.product_id}（實體書加購）"
         item = OrderItem(order_id=order.id, item_no=_new_item_no(), product_id=physical.id,
                          product_code=physical.product_id, name=name, variant='physical', kind='addon',
-                         parent_item_id=parent.id, unit_price=physical_sel['line_total'], currency=CURRENCY,
+                         parent_item_id=parent.id, unit_price=physical_sel['line_total'], currency=order.currency,
                          quantity=physical_sel['quantity'],
                          customization={'subject_name': c.get('subject_name'),
                                         'audience': {'call_name': audience.get('call_name'),

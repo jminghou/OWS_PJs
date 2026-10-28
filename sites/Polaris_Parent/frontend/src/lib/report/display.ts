@@ -139,20 +139,39 @@ export function applyReportDisplay(base: ReportProduct, remote: RemoteProduct | 
   };
 }
 
-/** 即時讀取後台顯示設定；preview 跳過後端公開回應快取，no-store 跳過 Next 資料快取。 */
-export async function loadReportProduct(base: ReportProduct): Promise<ReportProduct> {
+/**
+ * 讀某個語言版本的商品（一種語言一筆商品）；沒有或未上架回 null。
+ * preview 跳過後端公開回應快取，no-store 跳過 Next 資料快取。繁中帶 TWD；其他語言用該版本自己的幣別。
+ */
+async function fetchRemote(productId: string, language: string) {
+  const zh = language === 'zh-TW';
   try {
-    const remote = await productApi.getById(base.displayProductId, 'zh-TW', 'TWD', {
+    return await productApi.getById(productId, language, zh ? 'TWD' : undefined, {
       cache: 'no-store',
-      params: { language: 'zh-TW', currency: 'TWD', preview: 'true' },
+      params: { language, ...(zh ? { currency: 'TWD' } : {}), preview: 'true' },
     });
-    return applyReportDisplay(base, remote);
   } catch {
-    return base; // 後台尚未建立此商品
+    return null;
   }
 }
 
-export const loadReportProducts = () => Promise.all(REPORT_PRODUCTS.map(loadReportProduct));
+/** 繁中：後台沒建商品或 API 失敗時整份用程式預設 */
+export async function loadReportProduct(base: ReportProduct, language = 'zh-TW'): Promise<ReportProduct> {
+  return applyReportDisplay(base, await fetchRemote(base.displayProductId, language));
+}
+
+/** 其他語言：該語言版本沒上架就回 null（前台顯示「目前只有中文版」） */
+export async function loadReportProductIn(base: ReportProduct, language: string): Promise<ReportProduct | null> {
+  if (language === 'zh-TW') return loadReportProduct(base);
+  const remote = await fetchRemote(base.displayProductId, language);
+  return remote ? applyReportDisplay(base, remote) : null;
+}
+
+/** 目錄頁：繁中列出全部；其他語言只列出該語言已上架的報告 */
+export async function loadReportProducts(language = 'zh-TW'): Promise<ReportProduct[]> {
+  const all = await Promise.all(REPORT_PRODUCTS.map((p) => loadReportProductIn(p, language)));
+  return all.filter((p): p is ReportProduct => p !== null);
+}
 
 /** 共用目錄文字：後台留空的欄位用 catalog.ts 的預設；FAQ 存在獨立屬性 report_catalog_faq */
 export function applyReportCatalog(attributes: Record<string, any> | null | undefined): ReportCatalogView {
@@ -172,14 +191,7 @@ export function applyReportCatalog(attributes: Record<string, any> | null | unde
 }
 
 /** 目錄頁與商品頁「你想送給誰」共用；API 暫時無法使用時用程式內的定稿版本 */
-export async function loadReportCatalog(): Promise<ReportCatalogView> {
-  try {
-    const remote = await productApi.getById(REPORT_PRODUCTS[0].displayProductId, 'zh-TW', 'TWD', {
-      cache: 'no-store',
-      params: { language: 'zh-TW', currency: 'TWD', preview: 'true' },
-    });
-    return applyReportCatalog(remote.attributes);
-  } catch {
-    return applyReportCatalog(null);
-  }
+export async function loadReportCatalog(language = 'zh-TW'): Promise<ReportCatalogView> {
+  const remote = await fetchRemote(REPORT_PRODUCTS[0].displayProductId, language);
+  return applyReportCatalog(remote?.attributes);
 }

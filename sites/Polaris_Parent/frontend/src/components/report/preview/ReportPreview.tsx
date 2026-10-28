@@ -18,7 +18,8 @@ import {
   variantInfo,
 } from '@/lib/report/catalog';
 import { clearDraft, loadDraft, saveDraft, type ReportDraft } from '@/lib/report/draft';
-import { addonPrice, type ReportPrices } from '@/lib/report/prices';
+import { addonPrice, loadReportPrices, type ReportPrices } from '@/lib/report/prices';
+import { LANGUAGE_NAMES, REPORT_DEFAULT_LOCALE } from '@/lib/report/locale';
 import { pricePhysical } from '@/lib/api/reportOrders';
 import PhysicalOptions, { normaliseSelection } from '@/components/report/PhysicalOptions';
 import { OFFER_HREFS, OFFER_NAMES } from '@/lib/report/offers';
@@ -41,13 +42,26 @@ function fill(template: string, draft: ReportDraft) {
  * 專人解讀不在購買流程裡，改從會員中心「專人解讀」分頁預約。
  * 未登入時按結帳會先到登入頁，登入後回到結帳頁。
  */
-export default function ReportPreview({ prices }: { prices: ReportPrices }) {
+export default function ReportPreview({ prices: zhPrices }: { prices: ReportPrices }) {
   const router = useRouter();
+  // 其他語言版本的草稿：售價與實體書設定改讀那個語言的商品（各自的幣別）
+  const [prices, setPrices] = useState<ReportPrices>(zhPrices);
+  const [pricesLang, setPricesLang] = useState(REPORT_DEFAULT_LOCALE);
   const { isAuthenticated } = useAuthStore();
   const [draft, setDraft] = useState<ReportDraft | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    const lang = loadDraft()?.language;
+    if (lang && lang !== REPORT_DEFAULT_LOCALE && lang !== pricesLang) {
+      loadReportPrices(lang).then((p) => { setPrices(p); setPricesLang(lang); }).catch(() => setPricesLang(lang));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const lang = loadDraft()?.language ?? REPORT_DEFAULT_LOCALE;
+    if (lang !== pricesLang) return; // 等該語言的售價載入完再檢查草稿
     const d = loadDraft();
     const pending = d && firstIncompleteStep(d);
     // 草稿不完整（例如直接打開本頁）→ 回精靈補齊
@@ -68,7 +82,7 @@ export default function ReportPreview({ prices }: { prices: ReportPrices }) {
       setDraft(d);
     }
     setLoaded(true);
-  }, [router, prices]);
+  }, [router, prices, pricesLang]);
 
   if (!loaded) return null;
 
@@ -239,6 +253,9 @@ export default function ReportPreview({ prices }: { prices: ReportPrices }) {
           <div className="min-w-0 text-sm">
             <span className="text-muted">{physical ? `${OFFER_NAMES.digital}＋${OFFER_NAMES.book}` : OFFER_NAMES.digital}・合計</span>
             <span className="ml-2 font-latin font-extrabold text-ink">{total.text}</span>
+            {draft.language && draft.language !== REPORT_DEFAULT_LOCALE && (
+              <span className="ml-2 text-caption text-muted">（{LANGUAGE_NAMES[draft.language] ?? draft.language}版報告）</span>
+            )}
           </div>
           <BrandButton onClick={proceed} variant="primary" className="shrink-0">
             {isAuthenticated ? '前往結帳' : '登入並結帳'}

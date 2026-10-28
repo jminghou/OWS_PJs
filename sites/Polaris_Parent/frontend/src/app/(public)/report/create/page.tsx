@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import BrandButton from '@/components/ui/BrandButton';
 import { emptyDraft, loadDraft, saveDraft, type ReportDraft } from '@/lib/report/draft';
 import { PREVIEW_HREF, REPORT_STEPS, firstIncompleteStep, stepHref } from '@/lib/report/steps';
+import { REPORT_DEFAULT_LOCALE, isReportLocale } from '@/lib/report/locale';
 
 /**
  * 精靈入口。沒有草稿 → 直接從第一題開始；
  * 這台裝置留有先前填寫的草稿 → 先問要接續還是重新開始（不默默帶入舊資料）。
  * `?variant=digital|physical`（舊網址相容）會預選版本，預覽頁仍可更改。
+ * `?lang=en` 等：從其他語言的商品頁進來，草稿記住買哪個語言版本（售價幣別與交付的報告語言）。
  */
 function Start() {
   const router = useRouter();
@@ -18,9 +20,11 @@ function Start() {
 
   const v = searchParams.get('variant');
   const presetVariant = v === 'digital' || v === 'physical' ? v : null;
+  const l = searchParams.get('lang');
+  const language = isReportLocale(l) ? l : REPORT_DEFAULT_LOCALE;
 
   const startFresh = () => {
-    saveDraft(emptyDraft(presetVariant ?? 'digital'));
+    saveDraft({ ...emptyDraft(presetVariant ?? 'digital'), language });
     router.replace(stepHref(REPORT_STEPS[0].slug));
   };
 
@@ -34,7 +38,7 @@ function Start() {
   if (!saved) return null;
 
   const resume = () => {
-    const draft: ReportDraft = presetVariant ? { ...saved, variant: presetVariant } : saved;
+    const draft: ReportDraft = { ...(presetVariant ? { ...saved, variant: presetVariant } : saved), language };
     saveDraft(draft);
     const pending = firstIncompleteStep(draft);
     router.push(pending ? stepHref(pending.slug) : PREVIEW_HREF);

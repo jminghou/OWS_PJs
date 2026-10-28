@@ -35,6 +35,8 @@ export interface ReportDraft {
   consult_sessions?: number;
   /** 每份草稿一個固定鍵，建單時作為 submission_key，重送不會重複建單 */
   submission_key: string;
+  /** 買哪個語言版本（一種語言一筆商品；決定售價幣別與交付的報告語言）；沒有就是繁中 */
+  language?: string;
 }
 
 const KEY = 'polaris_report_draft';

@@ -154,7 +154,7 @@ const pairs = (items: { a: string; b?: string }[]) => (
 // 商品頁內容（每款報告各一份）
 // ─────────────────────────────────────────────────────────
 
-function ReportContentTab({ productId, attributes, onChange }: ProductAttributesSectionProps) {
+function ReportContentTab({ productId, attributes, onChange, language = 'zh-TW' }: ProductAttributesSectionProps) {
   const report = reportFor(productId)!; // appliesTo 保證有值
   const d: ReportDisplayAttributes = attributes[REPORT_DISPLAY_KEY] ?? {};
   const set = (patch: Partial<ReportDisplayAttributes>) => {
@@ -169,6 +169,11 @@ function ReportContentTab({ productId, attributes, onChange }: ProductAttributes
         對應前台 /report/{report.slug} 商品頁的各段文字。每段預設顯示程式內建的內容；按「自訂這一段」會以預設內容為起點讓你修改，
         儲存後前台改用你的版本。「還原預設」會清掉你的版本。標記「［佔位］」的是暫定文字，正式開賣前記得換掉。
       </Hint>
+      {language !== 'zh-TW' && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+          這是非繁中的語言版本：程式預設的內容是中文，沒有自訂的段落在前台會顯示中文。請每一段都按「自訂這一段」改寫成這個語言。
+        </p>
+      )}
 
       <Customizable
         title="亮點"
