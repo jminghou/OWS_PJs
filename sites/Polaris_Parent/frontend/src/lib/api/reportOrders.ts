@@ -648,6 +648,8 @@ export interface CreateAddonRequest {
   shipping?: ShippingInfo;
   /** 付款前設計好的草稿（連到這次加購的實體書） */
   design_id?: number;
+  /** 預約專人解讀時一併留下的方便時段（會員中心「專人解讀」分頁） */
+  consult_preferences?: ConsultPreferences;
 }
 
 // ── 設計你的書 ───────────────────────────────────────────────────────────

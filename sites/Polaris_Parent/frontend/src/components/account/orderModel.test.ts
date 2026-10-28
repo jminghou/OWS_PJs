@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ReportOrderSummary } from '@/lib/api';
 import type { MyPerson } from '@/lib/api/astrology';
-import { addBusinessDays, buildTodos, groupFamily, groupReports, reportStatusText } from './orderModel';
+import { addBusinessDays, bookTitle, buildTodos, groupFamily, groupReports, ownedBooks, reportStatusText } from './orderModel';
 
 type Over = Omit<Partial<ReportOrderSummary>, 'item'> & { item?: Partial<NonNullable<ReportOrderSummary['item']>> };
 const order = (over: Over): ReportOrderSummary => ({
@@ -73,5 +73,23 @@ describe('buildTodos for my own report', () => {
     const mine = order({ status: 'pending', paid_at: null, item: { subject_name: '王美華', call_name: '', person_user_id: '9000' } });
     expect(buildTodos([mine], Date.now(), '9000')[0].label).toBe('你的報告');
     expect(buildTodos([mine], Date.now(), '1')[0].label).toBe('王美華的報告');
+  });
+});
+
+describe('ownedBooks', () => {
+  it('lists paid reports only and flags what can be added', () => {
+    const books = ownedBooks([
+      order({ order_no: 'A', addon_offer: { physical: true, consult: true, available: true } }),
+      order({ order_no: 'B', status: 'pending' }),
+      order({ order_no: 'C', payment_mode: 'external_verified', item: { variant: 'physical' } }),
+      order({ order_no: 'D', item: { kind: 'addon', parent_order_no: 'A' } }),
+    ]);
+    expect(books.map((b) => b.order.order_no)).toEqual(['A', 'C']);
+    expect(books[0]).toMatchObject({ canPrint: true, canConsult: true, external: false, isPhysical: false });
+    expect(books[1]).toMatchObject({ canPrint: false, canConsult: false, external: true, isPhysical: true });
+  });
+
+  it('names a book after its reader', () => {
+    expect(bookTitle(order({ item: { name: '本命客製報告（數位版）' } }))).toBe('小明的本命客製報告');
   });
 });

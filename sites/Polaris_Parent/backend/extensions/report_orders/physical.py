@@ -340,6 +340,13 @@ def create_addon_order(user, parent_order, data, shipping, submission_key, payme
             errors['shipping'] = '請填寫收件資料'
     consult_sel, e = price_consult(cfg, data.get('consult_sessions'))
     errors.update(e)
+    # 專人解讀從會員中心「專人解讀」預約時，一併留下方便的時段（之後付款前、排定前都還能改）
+    prefs = None
+    if consult_sel and data.get('consult_preferences') is not None:
+        try:
+            prefs = clean_consult_preferences(data.get('consult_preferences'))
+        except OrderError as exc:
+            errors['consult_preferences'] = exc.message
     if errors:
         raise _err(errors)
     if not physical_sel and not consult_sel:
@@ -384,6 +391,9 @@ def create_addon_order(user, parent_order, data, shipping, submission_key, payme
         ci = create_consult_item(order, parent, consult_sel)
         ci.customization = {**(ci.customization or {}), 'parent_order_no': parent_order.order_no,
                             'subject_name': c.get('subject_name'), 'audience': {'call_name': audience.get('call_name')}}
+        if prefs:
+            consult = consultation_for(ci)
+            consult.preferences, consult.preferences_at = prefs, now
         items.append(ci)
         amount += consult_sel['line_total']
     order.amount = amount
@@ -624,17 +634,10 @@ CONSULT_MAX_SLOTS = 3
 CONSULT_PREF_DAYS = 60
 
 
-def set_consult_preferences(consult, raw, today=None):
-    """會員填方便的時段（1–3 個，明天起 60 天內）與備註；待安排時間時才能填、可重填。"""
+def clean_consult_preferences(raw, today=None):
+    """方便的時段（1–3 個，明天起 60 天內）與備註 → {'slots', 'note'}；一個合格的時段都沒有就丟 OrderError。"""
     from datetime import date, timedelta
-    from . import commerce
 
-    item = db.session.get(OrderItem, consult.order_item_id)
-    commerce.lock_order(item.order)
-    db.session.refresh(consult)
-
-    if consult.status != 'to_schedule':
-        raise OrderError('目前無法更改時段；已約好時間的話，請直接回覆確認信', 409, 'invalid_status')
     raw = raw if isinstance(raw, dict) else {}
     today = today or date.today()
     first, last = today + timedelta(days=1), today + timedelta(days=CONSULT_PREF_DAYS)
@@ -652,7 +655,20 @@ def set_consult_preferences(consult, raw, today=None):
         slots.append({'date': d.isoformat(), 'period': s['period']})
     if not slots:
         raise OrderError(f'請至少選一個時段（明天起 {CONSULT_PREF_DAYS} 天內）', 400, 'invalid')
-    consult.preferences = {'slots': slots[:CONSULT_MAX_SLOTS], 'note': str(raw.get('note') or '').strip()[:500]}
+    return {'slots': slots[:CONSULT_MAX_SLOTS], 'note': str(raw.get('note') or '').strip()[:500]}
+
+
+def set_consult_preferences(consult, raw, today=None):
+    """會員填方便的時段與備註；付款前（預約時留的）與待安排時間時都能改，約好時間後就不能改。"""
+    from . import commerce
+
+    item = db.session.get(OrderItem, consult.order_item_id)
+    commerce.lock_order(item.order)
+    db.session.refresh(consult)
+
+    if consult.status not in ('awaiting_payment', 'to_schedule'):
+        raise OrderError('目前無法更改時段；已約好時間的話，請直接回覆確認信', 409, 'invalid_status')
+    consult.preferences = clean_consult_preferences(raw, today)
     consult.preferences_at = datetime.utcnow()
     from . import audit
     audit.log(item.order, 'consult_preferences', item.order.user_id)

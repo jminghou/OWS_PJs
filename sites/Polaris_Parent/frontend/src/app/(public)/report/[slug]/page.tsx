@@ -14,6 +14,7 @@ import {
 import { loadReportProduct } from '@/lib/report/display';
 import { addonPrice, loadReportPrices } from '@/lib/report/prices';
 import { getImageUrl } from '@/lib/utils';
+import { OFFER_HREFS, OFFER_NAMES } from '@/lib/report/offers';
 
 // 價格與主區文字由商品後台設定；每 10 分鐘重新取得
 export const revalidate = 600;
@@ -26,17 +27,27 @@ export function generateStaticParams() {
 
 const ICONS: Record<HighlightIcon, LucideIcon> = { users: Users, eye: Eye, clock: Clock, book: BookOpen, pen: PenLine };
 
-// 精靈目前只服務一種報告；報告變多時改為 /report/{slug}/create
-const START = '/report/create';
-
 const sectionTitle = 'font-heading text-[26px] font-normal text-ink md:text-h2';
 
-function StartButton({ className = '' }: { className?: string }) {
+/**
+ * 兩個獨立的購買入口（2026-10-28）：數位報告直接進填寫精靈；實體書先選「全新實體書／用我的報告做成書」。
+ * 精靈目前只服務一種報告；報告變多時改為 /report/{slug}/create。
+ */
+function StartButtons({ book, onDark = false, className = '' }: { book: boolean; onDark?: boolean; className?: string }) {
   return (
-    <Link href={START} className={brandButton({ variant: 'primary', size: 'L', className })}>
-      開始客製我的報告
-      <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-    </Link>
+    <div className={`flex flex-col gap-3 ${onDark ? '' : 'sm:flex-row sm:justify-center'} ${className}`}>
+      <Link href={OFFER_HREFS.digital} className={brandButton({ variant: 'primary', size: 'L', className: onDark ? 'w-full' : '' })}>
+        購買{OFFER_NAMES.digital}
+        <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+      </Link>
+      {book && (
+        <Link href={OFFER_HREFS.book}
+          className={brandButton({ variant: onDark ? 'soft' : 'secondary', size: 'L', className: onDark ? 'w-full' : '' })}>
+          購買{OFFER_NAMES.book}
+          <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+        </Link>
+      )}
+    </div>
   );
 }
 
@@ -100,7 +111,7 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
 
           {/* 主推方案：墨底報告卡（規範 §6.5，一頁最多一張） */}
           <div className="mt-8 rounded-card bg-ink p-7 text-white">
-            <p className="text-sm text-[#D5D7E0]">數位版</p>
+            <p className="text-sm text-[#D5D7E0]">{OFFER_NAMES.digital}</p>
             <p
               className={`mt-1 font-latin text-[30px] font-extrabold leading-tight ${
                 prices.digital.available ? 'text-white' : 'text-[#A9ADBD]'
@@ -111,14 +122,14 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
                 <span className="ml-1 font-body text-base font-normal text-[#D5D7E0]">起</span>
               )}
             </p>
-            {/* 後台「加購實體書」關閉時不顯示 */}
+            {/* 後台「開放實體書」關閉時不顯示 */}
             {addon.available && (
               <p className="mt-2 text-sm text-[#D5D7E0]">
-                {PHYSICAL_ADDON.label}
+                {OFFER_NAMES.book}（含{OFFER_NAMES.digital}）
                 <span className="ml-2 font-latin font-semibold text-white">{addon.text}</span>
               </p>
             )}
-            <StartButton className="mt-6 w-full" />
+            <StartButtons book={addon.available} onDark className="mt-6" />
             <p className="mt-3 text-center text-caption text-[#D5D7E0]">約 3 分鐘填完資料，付款前可以先預覽。</p>
           </div>
 
@@ -244,7 +255,7 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
 
       <section className="mt-16 rounded-card bg-white p-8 text-center md:mt-24 md:p-12">
         <p className="font-heading text-[22px] text-ink md:text-h3">準備好為重要的人製作一份報告了嗎？</p>
-        <StartButton className="mt-6" />
+        <StartButtons book={addon.available} className="mt-6" />
       </section>
 
       {/* 你想送給誰 */}

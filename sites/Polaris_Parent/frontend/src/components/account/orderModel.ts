@@ -229,3 +229,35 @@ export function buildTodos(orders: ReportOrderSummary[], now = Date.now(), selfP
   }
   return [...todos.filter((t) => t.tone === 'action'), ...todos.filter((t) => t.tone === 'info')];
 }
+
+// ── 書（2026-10-28 購買流程改版）──────────────────────────────────────
+// 「書」＝一份已付款的報告（數位報告，或一開始就買實體書的那份報告）。
+// 「用我的報告做成書」與「專人解讀」都要先選一本書；事後加購的實體書內容就是原報告，所以不另外算一本。
+
+export interface OwnedBook {
+  order: ReportOrderSummary;
+  /** 可以再印成書 */
+  canPrint: boolean;
+  /** 可以預約專人解讀 */
+  canConsult: boolean;
+  /** 在外部平台購買的書：官網暫不開放加購 */
+  external: boolean;
+  /** 一開始就是實體書版 */
+  isPhysical: boolean;
+}
+
+export function ownedBooks(orders: ReportOrderSummary[]): OwnedBook[] {
+  return orders
+    .filter((o) => o.item?.kind === 'purchase' && o.status === 'paid')
+    .map((o) => ({
+      order: o,
+      canPrint: !!o.addon_offer?.physical,
+      canConsult: !!o.addon_offer?.consult,
+      external: o.payment_mode === 'external_verified',
+      isPhysical: o.item?.variant === 'physical',
+    }));
+}
+
+/** 書的名稱：「小明的本命客製報告」 */
+export const bookTitle = (o: ReportOrderSummary) =>
+  `${o.item?.call_name || o.item?.subject_name || ''}的${(o.item?.name || '').replace(/（.*）$/, '')}`;

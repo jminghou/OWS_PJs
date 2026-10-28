@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * 事後加購：已付款的報告訂單 → 實體書（規格／數量／特殊客製）與／或專人解讀 → 收件資料（有實體書才需要）
- * → 同意交易政策 → 建立新的待付款訂單。加購訂單連回原報告（不重新排盤、不重新製作報告）。
- * 網址帶 ?item=consult 時預設只買專人解讀。
- * 報告已完成時，付款前就能用整本書的預覽「設計你的書」（可略過，付款後再做）；草稿隨加購送出連到訂單。
+ * 用我的報告做成書（2026-10-28 起只處理實體書）：已付款的報告 → 規格／數量／特殊客製 → 設計你的書 → 收件資料
+ * → 同意交易政策 → 建立新的待付款訂單。新訂單連回原報告（不重新排盤、不重新製作報告）；
+ * 書裡的改寫與加內容只套用在這本書上，原報告不受影響。
+ * 報告已完成時，付款前就能用整本書的預覽「設計你的書」（可略過，付款後再做）；草稿隨訂單送出連到訂單。
+ * 專人解讀改從會員中心「專人解讀」分頁預約；舊網址 ?item=consult 轉到那裡。
  */
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -14,15 +15,16 @@ import { clsx } from 'clsx';
 import Alert from '@/components/ui/Alert';
 import BrandButton from '@/components/ui/BrandButton';
 import EmailVerifyBox from '@/components/report/EmailVerifyBox';
-import PhysicalOptions, { ConsultOption, PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
+import PhysicalOptions, { PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
 import BookDesigner from '@/components/report/design/BookDesigner';
 import ShippingFields, { EMPTY_SHIPPING, SHIPPING_LABELS } from '@/components/report/ShippingFields';
 import { useAuthStore } from '@/store/auth';
 import { memberAccountApi, reportOrdersApi, type ReportOrderSummary, type ShippingInfo } from '@/lib/api';
-import { priceConsult, pricePhysical, type DesignView, type PhysicalConfig, type PhysicalSelection, type PriceLine } from '@/lib/api/reportOrders';
+import { pricePhysical, type DesignView, type PhysicalConfig, type PhysicalSelection, type PriceLine } from '@/lib/api/reportOrders';
 import { POLICY_VERSION } from '@/lib/report/catalog';
 import { newSubmissionKey } from '@/lib/report/draft';
 import { formatPrice } from '@/lib/report/prices';
+import { OFFER_HREFS, OFFER_NAMES } from '@/lib/report/offers';
 
 const cardCls = 'rounded-card bg-white p-6 md:p-8';
 const cardTitleCls = 'font-heading text-[18px] font-normal text-ink md:text-h4';
@@ -53,16 +55,14 @@ export default function ReportAddonPage() {
 function ReportAddonContent() {
   const router = useRouter();
   const { order_no: orderNo } = useParams<{ order_no: string }>();
-  const consultOnly = useSearchParams().get('item') === 'consult';
+  const consultLink = useSearchParams().get('item') === 'consult';
   const { isAuthenticated, checkAuth } = useAuthStore();
   const [checked, setChecked] = useState(false);
   const [order, setOrder] = useState<ReportOrderSummary | null>(null);
   const [cfg, setCfg] = useState<PhysicalConfig | null | undefined>(undefined);
   const [verification, setVerification] = useState<{ email: string; verified: boolean } | null>(null);
   const [payMode, setPayMode] = useState<{ mode: string; available: boolean; deadline_days: number | null } | null>(null);
-  const [wantBook, setWantBook] = useState(!consultOnly);
   const [selection, setSelection] = useState<PhysicalSelection | null>(null);
-  const [sessions, setSessions] = useState(consultOnly ? 1 : 0);
   const [shipping, setShipping] = useState<ShippingInfo>(EMPTY_SHIPPING);
   const [consented, setConsented] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -79,8 +79,12 @@ function ReportAddonContent() {
   }, [checkAuth]);
 
   useEffect(() => {
+    if (consultLink) {
+      router.replace(OFFER_HREFS.consultFor(orderNo));  // 專人解讀已移到會員中心
+      return;
+    }
     if (!checked) return;
-    const here = `/report/orders/${orderNo}/addon${consultOnly ? '?item=consult' : ''}`;
+    const here = OFFER_HREFS.bookFor(orderNo);
     if (!isAuthenticated) {
       router.replace(`/login?next=${encodeURIComponent(here)}`);
       return;
@@ -90,14 +94,13 @@ function ReportAddonContent() {
       .then((r) => {
         setCfg(r.config);
         if (r.config.enabled) setSelection(normaliseSelection(r.config, null));
-        if (!r.config.enabled) setWantBook(false);
       })
       .catch(() => setCfg(null));
     reportOrdersApi.paymentMode().then(setPayMode).catch(() => setPayMode(null));
     memberAccountApi.getVerification()
       .then((v) => setVerification({ email: v.email, verified: v.email_verified }))
       .catch(() => setVerification({ email: '', verified: false }));
-  }, [checked, isAuthenticated, orderNo, router, consultOnly]);
+  }, [checked, isAuthenticated, orderNo, router, consultLink]);
 
   if (error && !order) {
     return <div className="mx-auto max-w-xl px-4 py-16"><Alert tone="error">{error}</Alert></div>;
@@ -105,29 +108,25 @@ function ReportAddonContent() {
   if (!order || cfg === undefined || !verification) return null;
 
   const back = (
-    <Link href={`/report/orders/${orderNo}`} className="inline-flex min-h-[44px] items-center gap-1 text-sm text-blue-500 hover:underline">
-      <ArrowLeft className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 回到訂單
+    <Link href={OFFER_HREFS.fromReport} className="inline-flex min-h-[44px] items-center gap-1 text-sm text-blue-500 hover:underline">
+      <ArrowLeft className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 選其他報告
     </Link>
   );
 
   const canBook = !!cfg?.enabled && !!order.addon_offer?.physical;
-  const canConsult = !!cfg?.consult && !!order.addon_offer?.consult;
-  if (!order.addon_offer || !cfg || (!canBook && !canConsult)) {
+  if (!order.addon_offer || !cfg || !canBook || !selection) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16">
         {back}
         <Alert tone="info" className="mt-4">
-          {order.status !== 'paid' ? '原訂單完成付款後才能加購。' : '目前沒有開放加購。'}
+          {order.status !== 'paid' ? '這份報告完成付款後才能做成書。' : `${OFFER_NAMES.book}目前沒有開放購買。`}
         </Alert>
       </div>
     );
   }
 
-  const book = wantBook && canBook && selection;
-  const lines: PriceLine[] = [];
-  if (book) lines.push(...pricePhysical(cfg, selection).lines.map((l) => ({ ...l, label: `實體書・${l.label}` })));
-  const consultLine = canConsult ? priceConsult(cfg, sessions) : null;
-  if (consultLine) lines.push(consultLine);
+  const book = selection;
+  const lines: PriceLine[] = pricePhysical(cfg, selection).lines.map((l) => ({ ...l, label: `${OFFER_NAMES.book}・${l.label}` }));
   const total = lines.reduce((a, l) => a + l.amount, 0);
   const manualOpen = payMode?.mode === 'manual' && payMode.available;
 
@@ -155,10 +154,6 @@ function ReportAddonContent() {
     e.preventDefault();
     setError('');
     setFieldErrors({});
-    if (!lines.length) {
-      setError('請選擇要加購的實體書或專人解讀');
-      return;
-    }
     if (!consented) {
       setError('請先閱讀並同意交易政策');
       return;
@@ -169,8 +164,8 @@ function ReportAddonContent() {
         submission_key: submissionKey,
         policy_consented: true,
         policy_version: POLICY_VERSION,
-        consult_sessions: consultLine ? sessions : 0,
-        ...(book ? { physical: selection, shipping, ...(design ? { design_id: design.id } : {}) } : {}),
+        consult_sessions: 0,
+        physical: selection, shipping, ...(design ? { design_id: design.id } : {}),
       });
       try { sessionStorage.removeItem(`polaris_addon_key_${orderNo}`); } catch { /* ignore */ }
       router.push(`/report/orders/${res.order.order_no}`);
@@ -190,9 +185,10 @@ function ReportAddonContent() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 md:px-6 md:py-16">
       {back}
-      <h1 className="mt-2 font-heading text-[28px] font-normal text-ink md:text-h1">{consultOnly && !wantBook ? '加購專人解讀' : '加購實體書'}</h1>
+      <h1 className="mt-2 font-heading text-[28px] font-normal text-ink md:text-h1">把「{who}」的報告做成書</h1>
       <p className="mt-2 text-text">
-        為「{who}」的報告（訂單 <span className="font-latin">{order.order_no}</span>）加購。內容沿用這份報告，不需要重新填寫資料。
+        內容沿用這份報告，不需要重新填寫資料。你在書裡修改的文字、放進的照片只會出現在這本書上，原本的報告不會被改動；
+        付款後，會員中心會多一本新的書。
       </p>
 
       <div className="mt-8 space-y-6">
@@ -201,22 +197,13 @@ function ReportAddonContent() {
             onVerified={() => setVerification((v) => (v ? { ...v, verified: true } : v))} />
         )}
 
-        {canBook && (
-          <section className={cardCls}>
-            <label className="flex cursor-pointer items-start gap-3">
-              <input type="checkbox" className={checkboxCls} checked={wantBook} onChange={(e) => setWantBook(e.target.checked)} />
-              <span>
-                <span className={`block ${cardTitleCls}`}>印成實體書</span>
-                <span className="block text-sm text-text">選規格與數量；報告完成後，用整本書的預覽設計封面、扉頁與要修改的地方，送印前會請你確認完整內容。</span>
-              </span>
-            </label>
-            {wantBook && selection && (
-              <div className="mt-6 border-t border-line pt-6">
-                <PhysicalOptions cfg={cfg} value={selection} onChange={setSelection} />
-              </div>
-            )}
-          </section>
-        )}
+        <section className={cardCls}>
+          <h2 className={cardTitleCls}>規格與數量</h2>
+          <p className="mt-1 text-sm text-text">送印前會請你確認完整內容。</p>
+          <div className="mt-6 border-t border-line pt-6">
+            <PhysicalOptions cfg={cfg} value={selection} onChange={setSelection} />
+          </div>
+        </section>
 
         {book && (
           <section className={cardCls}>
@@ -250,12 +237,6 @@ function ReportAddonContent() {
           </section>
         )}
 
-        {canConsult && (
-          <section className={cardCls}>
-            <ConsultOption cfg={cfg} value={sessions} onChange={setSessions} />
-          </section>
-        )}
-
         <form onSubmit={submit} className="space-y-6">
           {book && (
             <section className={clsx(cardCls, 'space-y-5')}>
@@ -268,9 +249,7 @@ function ReportAddonContent() {
           <section className={cardCls}>
             <h2 className={cardTitleCls}>金額與付款</h2>
             <div className="mt-3">
-              {lines.length
-                ? <PriceBreakdown lines={lines} total={total} totalLabel={book ? '合計（含運費）' : '合計'} />
-                : <p className="text-sm text-muted">請選擇要加購的項目。</p>}
+              <PriceBreakdown lines={lines} total={total} totalLabel="合計（含運費）" />
             </div>
             <Alert tone={manualOpen ? 'info' : 'warning'} className="mt-4">
               {manualOpen
@@ -284,7 +263,7 @@ function ReportAddonContent() {
           <label className="flex cursor-pointer items-start gap-3 rounded-card bg-white p-6 text-sm leading-6 text-text md:px-8">
             <input type="checkbox" checked={consented} onChange={(e) => setConsented(e.target.checked)} className={checkboxCls} />
             <span>
-              我了解{book ? '實體書為客製化商品，不適用七日解除權；在我確認打樣、送印之前可以取消並退款，確認送印後不受理取消' : '專人解讀依交易政策處理'}（例外情形依
+              我了解實體書為客製化商品，不適用七日解除權；在我確認打樣、送印之前可以取消並退款，確認送印後不受理取消（例外情形依
               <Link href="/report/policy" target="_blank" className="text-blue-500 underline-offset-[3px] hover:underline">《交易政策》</Link>
               處理）。
             </span>
@@ -293,8 +272,8 @@ function ReportAddonContent() {
           {error && <Alert tone="error">{error}</Alert>}
 
           <BrandButton type="submit" variant="primary" size="L" className="w-full"
-            disabled={busy || !consented || !lines.length || !verification.verified || payMode?.available === false}>
-            {busy ? '送出中…' : `送出加購（${formatPrice(total)}）`}
+            disabled={busy || !consented || !verification.verified || payMode?.available === false}>
+            {busy ? '送出中…' : `送出（${formatPrice(total)}）`}
           </BrandButton>
         </form>
       </div>

@@ -293,6 +293,29 @@ class PhysicalTests(_Base):
         self.assertEqual([x['report_order_no'] for x in listing['consultations']], [o['order_no']])
         self.assertEqual(listing['consultations'][0]['call_name'], '小明')
 
+    def test_consult_booking_keeps_preferences_before_payment(self):
+        """會員中心「專人解讀」預約：選一本書＋次數＋時段，一張加購訂單；付款前時段就存著、也能改。"""
+        from datetime import date, timedelta
+        self.configure()
+        o = self.paid_order()
+        d1 = (date.today() + timedelta(days=5)).isoformat()
+        prefs = {'slots': [{'date': d1, 'period': 'evening'}], 'note': '想聊孩子的學習'}
+        bad = self.addon(o['order_no'], consult=1, shipping={}, submission_key='consult-bad-1',
+                         consult_preferences={'slots': [{'date': date.today().isoformat(), 'period': 'morning'}]})
+        self.assertIn('consult_preferences', bad.get_json()['errors'])
+        r = self.addon(o['order_no'], consult=1, shipping={}, consult_preferences=prefs)
+        self.assertEqual(r.status_code, 201, r.get_json())
+        a = r.get_json()['order']
+        self.assertEqual((a['status'], a['consult']['status'], a['consult']['preferences']),
+                         ('pending', 'awaiting_payment', prefs))
+        url = f'/api/v1/report-orders/{a["order_no"]}/consult-preferences'
+        d2 = (date.today() + timedelta(days=6)).isoformat()
+        r = self.client.post(url, json={'slots': [{'date': d2, 'period': 'morning'}]}, headers=self.headers())
+        self.assertEqual(r.status_code, 200, r.get_json())  # 付款前也能改
+        self.confirm(a['order_no'], a['amount'])
+        c = ReportConsultation.query.one()
+        self.assertEqual((c.status, c.preferences['slots'][0]['date']), ('to_schedule', d2))
+
     def test_member_consult_preferences(self):
         from datetime import date, timedelta
         self.configure()

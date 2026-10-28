@@ -16,6 +16,7 @@ import Tag from '@/components/ui/Tag';
 import { reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
 import type { MyChart } from '@/lib/api/astrology';
 import type { ConsultView, PhysicalView } from '@/lib/api/reportOrders';
+import { OFFER_HREFS, OFFER_NAMES } from '@/lib/report/offers';
 import {
   bookStatusText, fmtDateTime, orderHref, orderTitle, relLabel, reportStatusText,
   type FamilyMember, type ReportGroup,
@@ -140,13 +141,13 @@ function WorkCard({ group }: { group: ReportGroup }) {
           </p>
           <div className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1">
             {offer.physical && (
-              <Link href={`/report/orders/${m.order_no}/addon`} className="inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:underline">
+              <Link href={OFFER_HREFS.bookFor(m.order_no)} className="inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:underline">
                 印成精裝書<ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
               </Link>
             )}
             {offer.consult && (
-              <Link href={`/report/orders/${m.order_no}/addon?item=consult`} className="inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:underline">
-                請老師一對一解讀<ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              <Link href={OFFER_HREFS.consultFor(m.order_no)} className="inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:underline">
+                預約{OFFER_NAMES.consult}<ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
               </Link>
             )}
           </div>

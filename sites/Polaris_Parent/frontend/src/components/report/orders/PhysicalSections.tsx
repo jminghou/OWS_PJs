@@ -4,7 +4,7 @@
  * 訂單頁的實體書與專人解讀區塊：
  * - PhysicalStatus：這張訂單的實體書進度（實體書版或加購訂單）、取消、退款狀態
  * - ConsultStatus：這張訂單的專人解讀（待安排時可填方便的時段／已約時間／已完成）
- * - AddonSection：原報告訂單底下「加購實體書」「加購專人解讀」入口與已加購的訂單
+ * - AddonSection：原報告訂單底下「做成書」「預約專人解讀」入口與已加購的訂單
  */
 import Link from 'next/link';
 import { useState } from 'react';
@@ -15,6 +15,7 @@ import BrandButton, { brandButton } from '@/components/ui/BrandButton';
 import { reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
 import { CONSULT_PERIOD_LABELS, type ConsultPeriod, type ProofVersion } from '@/lib/api/reportOrders';
 import { formatMoney } from '@/lib/money';
+import { OFFER_HREFS, OFFER_NAMES } from '@/lib/report/offers';
 
 const cardCls = 'rounded-card bg-white p-6 md:p-8';
 const cardTitleCls = 'font-heading text-[18px] font-normal text-ink md:text-h4';
@@ -271,18 +272,51 @@ const isoDay = (offset: number) => {
 const fmtSlot = (s: { date: string; period: ConsultPeriod }) =>
   `${new Date(`${s.date}T00:00:00`).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' })} ${CONSULT_PERIOD_LABELS[s.period]}`;
 
-/** 會員填方便的時段（最多 3 個）＋備註，給我們約時間參考 */
+export type ConsultSlot = { date: string; period: ConsultPeriod };
+export const EMPTY_SLOT: ConsultSlot = { date: '', period: 'afternoon' };
+
+/** 方便的時段（1–3 個，明天起 60 天內）＋備註的欄位；預約表單（會員中心「專人解讀」）與改時段表單共用 */
+export function ConsultSlotsFields({ slots, onSlots, note, onNote }: {
+  slots: ConsultSlot[]; onSlots: (s: ConsultSlot[]) => void; note: string; onNote: (n: string) => void;
+}) {
+  const set = (i: number, patch: Partial<ConsultSlot>) => onSlots(slots.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  return (
+    <>
+      {slots.map((x, i) => (
+        <div key={i} className="flex flex-wrap items-center gap-2">
+          <input type="date" aria-label={`第 ${i + 1} 個日期`} className={clsx(INPUT_CLS, 'w-auto flex-1 font-latin')}
+            min={isoDay(1)} max={isoDay(60)} value={x.date} onChange={(e) => set(i, { date: e.target.value })} />
+          <select aria-label={`第 ${i + 1} 個時段`} className={clsx(INPUT_CLS, 'w-auto')} value={x.period}
+            onChange={(e) => set(i, { period: e.target.value as ConsultPeriod })}>
+            {(Object.keys(CONSULT_PERIOD_LABELS) as ConsultPeriod[]).map((k) => <option key={k} value={k}>{CONSULT_PERIOD_LABELS[k]}</option>)}
+          </select>
+          {slots.length > 1 && (
+            <button type="button" onClick={() => onSlots(slots.filter((_, j) => j !== i))}
+              className="min-h-[44px] px-2 text-sm text-muted hover:text-ink">移除</button>
+          )}
+        </div>
+      ))}
+      {slots.length < 3 && (
+        <button type="button" onClick={() => onSlots([...slots, EMPTY_SLOT])}
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-blue-500 hover:underline">
+          <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 再加一個時段
+        </button>
+      )}
+      <textarea rows={2} maxLength={500} className={INPUT_CLS} value={note} onChange={(e) => onNote(e.target.value)}
+        placeholder="想先讓我們知道的事（選填），例如：平日 19:00 後、想聚焦書裡的哪幾章" aria-label="備註" />
+    </>
+  );
+}
+
+/** 會員填方便的時段（最多 3 個）＋備註，給我們約時間參考（付款前與排定前都能改） */
 function ConsultPreferenceForm({ order, onUpdated, onDone }: {
   order: ReportOrderSummary; onUpdated: (o: ReportOrderSummary) => void; onDone: () => void;
 }) {
   const saved = order.consult?.preferences;
-  const [slots, setSlots] = useState<{ date: string; period: ConsultPeriod }[]>(
-    saved?.slots.length ? saved.slots : [{ date: '', period: 'afternoon' }]);
+  const [slots, setSlots] = useState<ConsultSlot[]>(saved?.slots.length ? saved.slots : [EMPTY_SLOT]);
   const [note, setNote] = useState(saved?.note ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const set = (i: number, patch: Partial<{ date: string; period: ConsultPeriod }>) =>
-    setSlots((xs) => xs.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   const submit = async () => {
     const filled = slots.filter((x) => x.date);
@@ -306,28 +340,7 @@ function ConsultPreferenceForm({ order, onUpdated, onDone }: {
   return (
     <div className="mt-4 space-y-3 rounded-inner bg-tint p-4">
       <p className="text-sm text-text">選 1–3 個你方便的時段（明天起 60 天內），我們會從中挑一個跟你確認。</p>
-      {slots.map((x, i) => (
-        <div key={i} className="flex flex-wrap items-center gap-2">
-          <input type="date" aria-label={`第 ${i + 1} 個日期`} className={clsx(INPUT_CLS, 'w-auto flex-1 font-latin')}
-            min={isoDay(1)} max={isoDay(60)} value={x.date} onChange={(e) => set(i, { date: e.target.value })} />
-          <select aria-label={`第 ${i + 1} 個時段`} className={clsx(INPUT_CLS, 'w-auto')} value={x.period}
-            onChange={(e) => set(i, { period: e.target.value as ConsultPeriod })}>
-            {(Object.keys(CONSULT_PERIOD_LABELS) as ConsultPeriod[]).map((k) => <option key={k} value={k}>{CONSULT_PERIOD_LABELS[k]}</option>)}
-          </select>
-          {slots.length > 1 && (
-            <button type="button" onClick={() => setSlots((xs) => xs.filter((_, j) => j !== i))}
-              className="min-h-[44px] px-2 text-sm text-muted hover:text-ink">移除</button>
-          )}
-        </div>
-      ))}
-      {slots.length < 3 && (
-        <button type="button" onClick={() => setSlots((xs) => [...xs, { date: '', period: 'afternoon' }])}
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-blue-500 hover:underline">
-          <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 再加一個時段
-        </button>
-      )}
-      <textarea rows={2} maxLength={500} className={INPUT_CLS} value={note} onChange={(e) => setNote(e.target.value)}
-        placeholder="想先讓我們知道的事（選填），例如：平日 19:00 後、想聚焦感情與工作" aria-label="備註" />
+      <ConsultSlotsFields slots={slots} onSlots={setSlots} note={note} onNote={setNote} />
       {error && <Alert tone="error">{error}</Alert>}
       <div className="flex flex-wrap gap-2">
         <BrandButton variant="primary" size="S" onClick={submit} disabled={busy}>{busy ? '送出中…' : '送出時段'}</BrandButton>
@@ -342,7 +355,8 @@ export function ConsultStatus({ order, onUpdated }: { order: ReportOrderSummary;
   const [editing, setEditing] = useState(false);
   if (!c) return null;
   const prefs = c.preferences;
-  const canEdit = c.status === 'to_schedule' && !!onUpdated;
+  const open = c.status === 'to_schedule' || c.status === 'awaiting_payment';
+  const canEdit = open && !!onUpdated;
   const needsActivation = order.commerce?.entitlements.some((e) =>
     e.kind === 'consult' && e.activation && e.activation.status !== 'redeemed');
   return (
@@ -355,19 +369,23 @@ export function ConsultStatus({ order, onUpdated }: { order: ReportOrderSummary;
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
         <dt className="text-muted">次數</dt><dd className="text-ink">{c.sessions} 次（共 {c.sessions * c.minutes} 分鐘）</dd>
         {c.scheduled_at && <><dt className="text-muted">約定時間</dt><dd className="text-ink">{fmtDateTime(c.scheduled_at)}</dd></>}
-        {prefs && c.status === 'to_schedule' && (
+        {prefs && open && (
           <>
             <dt className="text-muted">你方便的時段</dt>
             <dd className="text-ink">{prefs.slots.map(fmtSlot).join('、')}{prefs.note && <span className="block text-text">{prefs.note}</span>}</dd>
           </>
         )}
       </dl>
-      {c.status === 'to_schedule' && (
+      {open && (
         canEdit && (editing || !prefs) ? (
           <ConsultPreferenceForm order={order} onUpdated={onUpdated!} onDone={() => setEditing(false)} />
         ) : (
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <p className="text-sm text-text">{prefs ? '收到你的時段了，我們會盡快以 Email 跟你確認時間。' : '付款已確認，我們會以 Email 或電話跟你約時間。'}</p>
+            <p className="text-sm text-text">
+              {c.status === 'awaiting_payment'
+                ? '完成付款後，我們會依你方便的時段安排，並以 Email 跟你確認時間。'
+                : prefs ? '收到你的時段了，我們會盡快以 Email 跟你確認時間。' : '付款已確認，我們會以 Email 或電話跟你約時間。'}
+            </p>
             {canEdit && <BrandButton variant="soft" size="S" onClick={() => setEditing(true)}>修改時段</BrandButton>}
           </div>
         )
@@ -387,7 +405,7 @@ export function AddonSection({ order }: { order: ReportOrderSummary }) {
   const offer = order.addon_offer;
   const addons = order.addons ?? [];
   if (!offer?.physical && !offer?.consult && addons.length === 0) return null;
-  const base = `/report/orders/${order.order_no}/addon`;
+  const base = OFFER_HREFS.bookFor(order.order_no);
 
   return (
     <>
@@ -416,22 +434,22 @@ export function AddonSection({ order }: { order: ReportOrderSummary }) {
 
       {offer?.physical && (
         <section className={clsx(cardCls, 'mt-6')}>
-          <h2 className={cardTitleCls}>{order.item?.variant === 'physical' || addons.some((a) => a.physical) ? '再加購實體書' : '加購實體書'}</h2>
+          <h2 className={cardTitleCls}>{order.item?.variant === 'physical' || addons.some((a) => a.physical) ? '再印一本書' : '把這份報告做成書'}</h2>
           <p className="mt-2 text-sm text-text">
             把這份報告印成實體書，可以選規格、數量與特殊客製，付款前用整本書的預覽確認內容。
           </p>
           <Link href={base} className={brandButton({ variant: 'primary', className: 'mt-5' })}>
-            <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 加購實體書
+            <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 做成書
           </Link>
         </section>
       )}
 
       {offer?.consult && (
         <section className={clsx(cardCls, 'mt-6')}>
-          <h2 className={cardTitleCls}>加購專人解讀</h2>
-          <p className="mt-2 text-sm text-text">由專人陪你一起讀這份報告，付款後我們以 Email 或電話跟你約時間。</p>
-          <Link href={`${base}?item=consult`} className={brandButton({ variant: 'soft', className: 'mt-5' })}>
-            <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 加購專人解讀
+          <h2 className={cardTitleCls}>預約{OFFER_NAMES.consult}</h2>
+          <p className="mt-2 text-sm text-text">由專人圍繞這本書的內容，陪你一起讀。在會員中心選好這本書、留下方便的時段就能預約。</p>
+          <Link href={OFFER_HREFS.consultFor(order.order_no)} className={brandButton({ variant: 'soft', className: 'mt-5' })}>
+            <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" /> 預約{OFFER_NAMES.consult}
           </Link>
         </section>
       )}

@@ -15,7 +15,7 @@ import { memberAccountApi, reportOrdersApi, type ShippingInfo } from '@/lib/api'
 import { PHYSICAL_ADDON, POLICY_VERSION, REPORT_PRODUCT, variantInfo } from '@/lib/report/catalog';
 import { clearDraft, isReadyForCheckout, loadDraft, type ReportDraft } from '@/lib/report/draft';
 import { loadReportPrices, type ReportPrices } from '@/lib/report/prices';
-import { priceConsult, pricePhysical, type PriceLine } from '@/lib/api/reportOrders';
+import { pricePhysical, type PriceLine } from '@/lib/api/reportOrders';
 import { PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
 import { PREVIEW_HREF } from '@/lib/report/steps';
 
@@ -98,14 +98,11 @@ export default function ReportCheckoutPage() {
   const physical = draft.variant === 'physical';
   const cfg = prices?.physicalConfig ?? null;
   const selection = physical && cfg?.enabled ? normaliseSelection(cfg, draft.physical) : null;
-  const sessions = cfg?.consult ? Math.min(draft.consult_sessions ?? 0, cfg.consult.max_sessions) : 0;
-  // 金額明細：數位版＋實體書（第一本／第二本起／特殊客製）＋專人解讀
+  // 金額明細：數位報告＋實體書（第一本／第二本起／特殊客製）。專人解讀不在購買流程裡（會員中心「專人解讀」分頁預約）
   const lines: PriceLine[] = [];
   if (prices?.digital.amount != null) {
     lines.push({ label: `${REPORT_PRODUCT.name}・${variantInfo('digital').label}`, amount: prices.digital.amount });
     if (selection && cfg) lines.push(...pricePhysical(cfg, selection).lines.map((l) => ({ ...l, label: `實體書・${l.label}` })));
-    const consultLine = cfg ? priceConsult(cfg, sessions) : null;
-    if (consultLine) lines.push(consultLine);
   }
   const total = lines.reduce((a, l) => a + l.amount, 0);
 
@@ -124,7 +121,7 @@ export default function ReportCheckoutPage() {
         policy_consented: true,
         policy_version: POLICY_VERSION,
         ...(physical ? { shipping, physical: selection ?? undefined } : {}),
-        consult_sessions: sessions,
+        consult_sessions: 0,
       });
       clearDraft();
       router.push(`/report/orders/${res.order.order_no}`);

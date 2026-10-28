@@ -3,13 +3,15 @@
 /**
  * 會員中心：以家人為中心（2026-10-21 改版，取代 10-12 的「以訂單為中心」）。
  * 頁首打招呼 →（有事才出現）需要你幫忙的事 → 分頁：我的家（一位家人一張卡，報告／書／解讀／命盤都掛在人底下）
- * ／購買紀錄／我的優惠。新會員的「我的家」是引導區。訂單號只在購買紀錄與訂單詳情出現。
+ * ／購買紀錄／專人解讀／我的優惠。新會員的「我的家」是引導區。訂單號只在購買紀錄與訂單詳情出現。
+ * 專人解讀（2026-10-28）：從所有購買流程拉出來，只在這個分頁預約；一律先選一本書（?tab=consult&book=書的訂單號 預選）。
  */
 import MyReportOrders from '@/components/report/orders/MyReportOrders';
 import AccountTodos from '@/components/account/AccountTodos';
 import FamilyCard from '@/components/account/FamilyCard';
 import FamilyChartViewer from '@/components/account/FamilyChartViewer';
 import Welcome from '@/components/account/Welcome';
+import ConsultTab from '@/components/account/ConsultTab';
 import { buildTodos, groupFamily, groupReports } from '@/components/account/orderModel';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -45,14 +47,17 @@ const pillCls = (active: boolean) =>
   'whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors duration-150 ease-out ' +
   'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 ' +
   (active ? 'bg-blue-50 text-blue-800' : 'text-ink hover:bg-tint active:bg-line');
-type Tab = 'home' | 'orders' | 'coupons';
+type Tab = 'home' | 'orders' | 'consult' | 'coupons';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'home', label: '我的家' },
   { key: 'orders', label: '購買紀錄' },
+  { key: 'consult', label: '專人解讀' },
   { key: 'coupons', label: '我的優惠' },
 ];
 /** 通知信與舊連結的 ?tab= 值（reports、charts 是改版前的分頁）→ 現在的分頁 */
-const TAB_ALIASES: Record<string, Tab> = { home: 'home', reports: 'home', charts: 'home', orders: 'orders', coupons: 'coupons' };
+const TAB_ALIASES: Record<string, Tab> = {
+  home: 'home', reports: 'home', charts: 'home', orders: 'orders', consult: 'consult', coupons: 'coupons',
+};
 // 登出：結束性動作，hover 走 error 色（不用品牌粉）
 const QUIET_DANGER_BTN =
   'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-text transition-colors duration-150 ease-out ' +
@@ -66,10 +71,13 @@ export default function AccountPage() {
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
 
   const [tab, setTab] = useState<Tab>('home');
-  // 通知信或其他頁面帶 ?tab= 進來時直接開該分頁（舊的 reports／charts 都落在「我的家」）
+  const [consultBook, setConsultBook] = useState<string | null>(null);
+  // 通知信或其他頁面帶 ?tab= 進來時直接開該分頁（舊的 reports／charts 都落在「我的家」）；?book= 預選專人解讀的書
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('tab');
+    const q = new URLSearchParams(window.location.search);
+    const t = q.get('tab');
     if (t && TAB_ALIASES[t]) setTab(TAB_ALIASES[t]);
+    setConsultBook(q.get('book'));
   }, []);
   const [reportOrders, setReportOrders] = useState<ReportOrderSummary[] | null>(null);
   const [ordersErr, setOrdersErr] = useState('');
@@ -101,10 +109,13 @@ export default function AccountPage() {
     if (!isLoading && !isAuthenticated) router.push('/login');
   }, [isLoading, isAuthenticated, router]);
 
+  const reloadOrders = () =>
+    reportOrdersApi.list().then((r) => setReportOrders(r.orders)).catch((e) => setOrdersErr(e.message || '暫時讀不到你的報告，請稍後再試'));
+
   // 報告訂單與家人的命盤：一進來就一起載入（我的家要把兩者對起來）
   useEffect(() => {
     if (!isAuthenticated) return;
-    reportOrdersApi.list().then((r) => setReportOrders(r.orders)).catch((e) => setOrdersErr(e.message || '暫時讀不到你的報告，請稍後再試'));
+    reloadOrders();
     // 命盤服務沒開或失敗時靜默降級：報告改依主角名字分組，不顯示錯誤
     astrologyApi.myCharts()
       .then((c) => setPeople(c.people || []))
@@ -338,6 +349,12 @@ export default function AccountPage() {
           !ordersErr && <p className="text-muted">載入中…</p>
         ) : (
           <MyReportOrders orders={reportOrders} />
+        )
+      ) : tab === 'consult' ? (
+        !reportOrders ? (
+          !ordersErr && <p className="text-muted">載入中…</p>
+        ) : (
+          <ConsultTab orders={reportOrders} initialBook={consultBook} onChanged={reloadOrders} />
         )
       ) : tab === 'coupons' ? (
         // ── 我的優惠（含外部平台訂單換回購優惠） ─────────────────────
