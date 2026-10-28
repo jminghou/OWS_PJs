@@ -55,6 +55,8 @@ export interface ReportProduct {
   highlights: { icon: HighlightIcon; text: string }[];
   intro: string[];
   testimonial: { quote: string; author: string };
+  /** 「讀者怎麼說」區塊的評價卡片 */
+  reviews: { quote: string; author: string }[];
   /** 可展開的詳細說明（對應 Wonderbly 的 How is it personalised / What's the story / Size & quality） */
   details: { title: string; body: string[] }[];
   /** 圖文特色區塊（對應 Wonderbly 的 When is a book not just a book / Add some extra magic） */
@@ -85,6 +87,11 @@ export const REPORT_PRODUCT: ReportProduct = {
     '［佔位］內容涵蓋性格、天賦、人際與成長方向等主題；你可以指定這份報告要給誰讀、書中怎麼稱呼主角，並在扉頁留下一段話。',
   ],
   testimonial: { quote: '［佔位］讀完才發現，原來有些事早就寫在命盤裡。', author: '［佔位］讀者 A' },
+  reviews: [
+    { quote: '［佔位］讀者評價 1', author: '［佔位］讀者' },
+    { quote: '［佔位］讀者評價 2', author: '［佔位］讀者' },
+    { quote: '［佔位］讀者評價 3', author: '［佔位］讀者' },
+  ],
   details: [
     {
       title: '報告如何客製？',

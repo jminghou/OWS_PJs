@@ -6,12 +6,11 @@ import Tag from '@/components/ui/Tag';
 import { brandButton } from '@/components/ui/BrandButton';
 import {
   PHYSICAL_ADDON,
-  REPORT_CATALOG,
   REPORT_PRODUCTS,
   productBySlug,
   type HighlightIcon,
 } from '@/lib/report/catalog';
-import { loadReportProduct } from '@/lib/report/display';
+import { loadReportCatalog, loadReportProduct } from '@/lib/report/display';
 import { addonPrice, loadReportPrices } from '@/lib/report/prices';
 import { getImageUrl } from '@/lib/utils';
 import { OFFER_HREFS, OFFER_NAMES } from '@/lib/report/offers';
@@ -77,7 +76,7 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const base = productBySlug(slug);
   if (!base) notFound();
-  const [product, prices] = await Promise.all([loadReportProduct(base), loadReportPrices()]);
+  const [product, prices, catalog] = await Promise.all([loadReportProduct(base), loadReportPrices(), loadReportCatalog()]);
   const addon = addonPrice(prices);
 
   return (
@@ -143,8 +142,8 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
       {/* 詳細說明（可展開） */}
       <section aria-label="報告說明" className="mt-16 max-w-[760px] md:mt-24">
         <div className="space-y-4 text-text">
-          {product.intro.map((p) => (
-            <p key={p}>{p}</p>
+          {product.intro.map((p, i) => (
+            <p key={i}>{p}</p>
           ))}
         </div>
         <div className="mt-8">
@@ -221,15 +220,15 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
       <section aria-labelledby="pd-reviews" className="mt-16 md:mt-24">
         <h2 id="pd-reviews" className={sectionTitle}>讀者怎麼說</h2>
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
-          {[1, 2, 3].map((n) => (
+          {product.reviews.map((r, n) => (
             <figure key={n} className="rounded-card bg-white p-6 md:p-8">
               <p aria-label="五顆星" className="flex gap-0.5 text-star-500">
                 {[0, 1, 2, 3, 4].map((s) => (
                   <Star key={s} className="h-4 w-4 fill-current" strokeWidth={2} aria-hidden="true" />
                 ))}
               </p>
-              <blockquote className="mt-3 text-small text-text">［佔位］讀者評價 {n}</blockquote>
-              <figcaption className="mt-2 text-caption text-muted">— ［佔位］讀者</figcaption>
+              <blockquote className="mt-3 text-small text-text">{r.quote}</blockquote>
+              {r.author && <figcaption className="mt-2 text-caption text-muted">— {r.author}</figcaption>}
             </figure>
           ))}
         </div>
@@ -262,7 +261,7 @@ export default async function ReportProductPage({ params }: { params: Promise<{ 
       <section aria-labelledby="pd-audience" className="mt-16 md:mt-24">
         <h2 id="pd-audience" className={sectionTitle}>你想送給誰？</h2>
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {REPORT_CATALOG.audiences.map((a) => (
+          {catalog.audiences.map((a) => (
             <Link
               key={a.label}
               href="/report"

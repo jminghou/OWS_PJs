@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { ArrowRight, ChevronDown } from 'lucide-react';
 import ReportBookCover from '@/components/report/ReportBookCover';
 import Tag from '@/components/ui/Tag';
-import { REPORT_CATALOG, productHref } from '@/lib/report/catalog';
-import { loadReportCatalogFaq, loadReportProducts } from '@/lib/report/display';
+import { productHref } from '@/lib/report/catalog';
+import { loadReportCatalog, loadReportProducts } from '@/lib/report/display';
 import { loadReportPrices } from '@/lib/report/prices';
 
 // 價格沿用快取；卡片文字由 loadReportProducts 即時讀取後台設定。
@@ -18,16 +18,17 @@ export const metadata: Metadata = {
 /** 所有客製報告的目錄頁：每份報告以書封呈現，點進去是該報告的商品頁。 */
 export default async function ReportCatalogPage() {
   // 目前所有報告共用同一組商品代碼；之後報告各自定價時改成依報告讀取
-  const [prices, products, faq] = await Promise.all([loadReportPrices(), loadReportProducts(), loadReportCatalogFaq()]);
+  const [prices, products, catalog] = await Promise.all([loadReportPrices(), loadReportProducts(), loadReportCatalog()]);
+  const { faq } = catalog;
 
   return (
     <div>
-      <p className="bg-ink px-4 py-2.5 text-center text-sm text-white">{REPORT_CATALOG.promo}</p>
+      <p className="bg-ink px-4 py-2.5 text-center text-sm text-white">{catalog.promo}</p>
 
       <div className="mx-auto max-w-content px-4 pt-8 pb-12 md:px-6 md:pt-10 md:pb-16">
         <section className="max-w-2xl">
-          <h1 className="font-heading text-[32px] font-normal text-ink md:text-h1">{REPORT_CATALOG.title}</h1>
-          <p className="mt-2 text-[17px] text-text md:text-lead">{REPORT_CATALOG.subtitle}</p>
+          <h1 className="font-heading text-[32px] font-normal text-ink md:text-h1">{catalog.title}</h1>
+          <p className="mt-2 text-[17px] text-text md:text-lead">{catalog.subtitle}</p>
         </section>
 
         <section id="reports" aria-label="報告列表" className="mt-8 scroll-mt-24">
@@ -74,10 +75,10 @@ export default async function ReportCatalogPage() {
 
         <section aria-labelledby="catalog-audience" className="mt-12 md:mt-20">
           <h2 id="catalog-audience" className="font-heading text-[26px] font-normal text-ink md:text-h2">
-            {REPORT_CATALOG.audienceTitle}
+            {catalog.audienceTitle}
           </h2>
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {REPORT_CATALOG.audiences.map((a) => (
+            {catalog.audiences.map((a) => (
               <Link
                 key={a.label}
                 href="#reports"
@@ -93,12 +94,12 @@ export default async function ReportCatalogPage() {
               </Link>
             ))}
           </div>
-          <p className="mt-5 max-w-2xl text-small text-muted">{REPORT_CATALOG.audienceConsent}</p>
+          <p className="mt-5 max-w-2xl text-small text-muted">{catalog.audienceConsent}</p>
         </section>
 
         <section aria-labelledby="catalog-faq" className="mt-16 max-w-[720px] md:mt-24">
           <h2 id="catalog-faq" className="font-heading text-[26px] font-normal text-ink md:text-h2">
-            {REPORT_CATALOG.faqTitle}
+            {catalog.faqTitle}
           </h2>
           <div className="mt-6 space-y-3">
             {faq.map((f) => (

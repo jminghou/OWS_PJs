@@ -12,7 +12,7 @@ import MediaBrowser from '@ows/admin-app/components/MediaBrowser';
 import type { ProductAttributeTab, ProductAttributesSectionProps } from '@ows/commerce';
 import { getImageUrl } from '@/lib/utils';
 import { REPORT_PRODUCTS, REPORT_VARIANTS, type ReportProduct } from '@/lib/report/catalog';
-import { COVER_PALETTES, REPORT_DISPLAY_KEY, type ReportDisplayAttributes } from '@/lib/report/display';
+import { COVER_PALETTES, REPORT_DISPLAY_KEY, applyReportContent, type ReportDisplayAttributes } from '@/lib/report/display';
 
 const labelCls = 'mb-1 block text-sm font-medium text-foreground';
 const hintCls = 'mt-1 text-xs text-muted-foreground';
@@ -190,7 +190,9 @@ function ReportImagesTab(props: ProductAttributesSectionProps) {
   const pendingGallery = useRef<string[]>([]);
 
   const gallery = d.gallery_images ?? [];
-  const featureImages = report.features.map((_, i) => d.feature_images?.[i] ?? '');
+  // 特色區塊可能在「商品頁內容」自訂過：依目前生效的清單對圖片
+  const features = applyReportContent(report, d).features;
+  const featureImages = features.map((_, i) => d.feature_images?.[i] ?? '');
 
   const moveGallery = (from: number, to: number) => {
     if (to < 0 || to >= gallery.length) return;
@@ -279,8 +281,8 @@ function ReportImagesTab(props: ProductAttributesSectionProps) {
 
       <Group title="特色區塊" description="橫式 4:3，顯示在商品頁的圖文介紹。">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {report.features.map((f, i) => (
-            <div key={f.title}>
+          {features.map((f, i) => (
+            <div key={i}>
               <p className={labelCls}>{f.title}</p>
               <ImageSlot
                 value={featureImages[i] || undefined}
