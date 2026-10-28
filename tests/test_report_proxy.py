@@ -293,3 +293,23 @@ class DirectOrderTests(_ProxyBase):
         ch = CommerceChannel.query.filter_by(channel='direct').one()
         r = self.create(self.body(channel_id=ch.id, external_order_id='X-1'))
         self.assertEqual(r.status_code, 400)
+
+    def test_proxy_orders_work_before_site_opens_for_sale(self):
+        """正式站還沒開賣（數位版沒上架、沒售價，實體書沒開放、沒有規格）：外部與直接接單照樣能建，官網下單仍擋。"""
+        for p in Product.query.filter(Product.product_id.in_(['natal-report-digital', 'natal-report-physical'])).all():
+            p.is_active = False
+            p.attributes = {}
+        db.session.commit()
+        r = self.create(self.direct_body(external_order_id='D-PRESALE-1'))  # 實體書、平台金額
+        self.assertEqual(r.status_code, 201, r.get_json())
+        order = Order.query.filter_by(order_no=r.get_json()['order_no']).one()
+        job = ReportPrintJob.query.one()
+        self.assertEqual((order.amount, job.status, job.spec['label']), (3980, 'awaiting_proof', ''))  # 沒有規格時留空，之後補
+        digital = self.direct_body(external_order_id='D-PRESALE-2')
+        digital['order']['variant'] = 'digital'
+        r = self.create(digital)
+        self.assertEqual(r.status_code, 201, r.get_json())
+        # 官網會員自己下單仍擋
+        member = self.make_user('buyer@example.test', verified=True)
+        r = self.client.post('/api/v1/report-orders', json={'variant': 'digital'}, headers=self.headers(member))
+        self.assertNotEqual(r.status_code, 201)

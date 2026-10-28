@@ -120,7 +120,8 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
     errors = {}
     if clean['variant'] == 'physical':
         # 實體書版：數位版售價＋實體書（第一本含規格＋第二本起＋特殊客製），設定見 physical.py
-        if not cfg['enabled']:
+        # 代客建單（terms）以平台成交金額為準，不受官網「是否開放實體書」限制（官網還沒開賣也能接外部訂單）
+        if not cfg['enabled'] and terms is None:
             raise OrderError('實體書目前沒有開放購買', 409, 'product_unavailable')
         selection, e = phys.price_physical(cfg, clean.get('physical'))
         errors.update(e)
@@ -132,8 +133,16 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
         err = OrderError('資料有誤，請檢查後再送出', 400, 'invalid')
         err.errors = errors
         raise err
-    if selection is not None:
+    if terms is not None:
+        # 代客建單：只要官網有這個商品資料（訂單項目要指向它）；不要求上架、不要求有售價，金額用平台成交
+        product = Product.query.filter_by(product_id=PRODUCT_IDS[clean['variant']], language=LANGUAGE).first()
+        if product is None:
+            raise OrderError('官網還沒有建立這個報告商品的資料，請先到後台「產品」建立', 409, 'product_unavailable')
+        price = terms['amount']
+    elif selection is not None:
         product = Product.query.filter_by(product_id=PRODUCT_IDS['physical'], language=LANGUAGE).first()
+        if product is None or cfg['digital_price'] is None:
+            raise OrderError('實體書目前沒有開放購買', 409, 'product_unavailable')
         price = cfg['digital_price'] + selection['line_total']
     else:
         product, price = _product_and_price(clean['variant'])
