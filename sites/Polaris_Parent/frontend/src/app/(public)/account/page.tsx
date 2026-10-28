@@ -1,118 +1,85 @@
 'use client';
 
 /**
- * 會員中心：以訂單為中心（2026-10-12 改版）。
- * 最上方「需要你處理」→ 分頁：我的報告（一份報告一張卡，加購掛在底下）／訂單紀錄／折扣券／命盤資料（唯讀）。
+ * 會員中心：以家人為中心（2026-10-21 改版，取代 10-12 的「以訂單為中心」）。
+ * 頁首打招呼 →（有事才出現）需要你幫忙的事 → 分頁：我的家（一位家人一張卡，報告／書／解讀／命盤都掛在人底下）
+ * ／購買紀錄／我的優惠。新會員的「我的家」是引導區。訂單號只在購買紀錄與訂單詳情出現。
  */
 import MyReportOrders from '@/components/report/orders/MyReportOrders';
 import AccountTodos from '@/components/account/AccountTodos';
-import MyReports from '@/components/account/MyReports';
-import { buildTodos } from '@/components/account/orderModel';
+import FamilyCard from '@/components/account/FamilyCard';
+import FamilyChartViewer from '@/components/account/FamilyChartViewer';
+import Welcome from '@/components/account/Welcome';
+import { buildTodos, groupFamily, groupReports } from '@/components/account/orderModel';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ZiweiChart, NAMED_THEMES } from '@ows/ziwei-chart';
-import { StarfieldSection } from '@ows/ziwei-app';
 import { useAuthStore } from '@/store/auth';
 import { astrologyApi, membershipApi, reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
-import type {
-  MyPerson,
-  MyChart,
-  ZiweiCalcResponse,
-} from '@/lib/api/astrology';
+import type { MyPerson, MyChart, ZiweiCalcResponse } from '@/lib/api/astrology';
 import type {
   ExternalProduct,
   OrderSubmission,
   MemberReward,
 } from '@/lib/api/membership';
 import {
+  ChevronDown,
   Copy,
-  Download,
-  LayoutGrid,
   LogOut,
   Receipt,
   RotateCcw,
   Ticket,
-  X,
   type LucideIcon,
 } from 'lucide-react';
-import BrandButton, { brandButton } from '@/components/ui/BrandButton';
+import BrandButton from '@/components/ui/BrandButton';
 import Alert from '@/components/ui/Alert';
-import Tag, { TAG_BASE } from '@/components/ui/Tag';
+import { TAG_BASE } from '@/components/ui/Tag';
 
 // 表單（品牌規範 §6.3）
 const INPUT =
   'w-full rounded-2xl border-[1.5px] border-line-strong bg-white px-[18px] py-[13px] text-base text-ink ' +
   'placeholder:text-muted focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100';
-// 工具列內的小型下拉（同樣式、內距縮小以對齊 S 按鈕高度）
-const INPUT_SM =
-  'rounded-2xl border-[1.5px] border-line-strong bg-white px-3.5 py-1.5 text-sm text-ink ' +
-  'focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100';
 const LABEL = 'mb-1.5 block text-sm font-medium text-ink';
 // 分頁／切換：膠囊項目，跟頁首導覽同一套（選中淡藍底、其他 hover 暖灰底）
 const pillCls = (active: boolean) =>
   'whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors duration-150 ease-out ' +
   'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 ' +
   (active ? 'bg-blue-50 text-blue-800' : 'text-ink hover:bg-tint active:bg-line');
-type Tab = 'reports' | 'orders' | 'coupons' | 'charts';
+type Tab = 'home' | 'orders' | 'coupons';
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'reports', label: '我的報告' },
-  { key: 'orders', label: '訂單紀錄' },
-  { key: 'coupons', label: '折扣券' },
-  { key: 'charts', label: '命盤資料' },
+  { key: 'home', label: '我的家' },
+  { key: 'orders', label: '購買紀錄' },
+  { key: 'coupons', label: '我的優惠' },
 ];
-// 低調的文字按鈕（關閉）
-const QUIET_BTN =
-  'inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm text-muted transition-colors duration-150 ease-out ' +
-  'hover:bg-tint hover:text-ink active:bg-line focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100';
+/** 通知信與舊連結的 ?tab= 值（reports、charts 是改版前的分頁）→ 現在的分頁 */
+const TAB_ALIASES: Record<string, Tab> = { home: 'home', reports: 'home', charts: 'home', orders: 'orders', coupons: 'coupons' };
 // 登出：結束性動作，hover 走 error 色（不用品牌粉）
 const QUIET_DANGER_BTN =
-  'inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm text-text transition-colors duration-150 ease-out ' +
+  'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-text transition-colors duration-150 ease-out ' +
   'hover:bg-error-bg hover:text-error-fg active:brightness-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100';
 
-const RELATION_LABELS: Record<string, string> = {
-  self: '我自己',
-  father: '父親',
-  mother: '母親',
-  son: '兒子',
-  daughter: '女兒',
-  brother: '兄弟',
-  sister: '姊妹',
-  spouse: '配偶',
-  friend: '朋友',
-};
-const relLabel = (r?: string | null) => (r ? RELATION_LABELS[r] || r : '');
-const birthText = (c: MyChart) =>
-  c.birth
-    ? `${c.birth.year}/${c.birth.month}/${c.birth.day} ${String(c.birth.hour).padStart(2, '0')}:${String(c.birth.minute).padStart(2, '0')}`
-    : c.clock_time || '';
+/** 回購優惠的送審狀態：後端值不變，只換成客人看得懂的說法 */
+const SUB_STATUS_LABELS: Record<string, string> = { 待審核: '確認中', 通過: '已發券', 退回: '需要補資料' };
 
 export default function AccountPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
 
-  const [tab, setTab] = useState<Tab>('reports');
-  // 通知信或其他頁面帶 ?tab=orders／coupons／charts 進來時直接開該分頁
+  const [tab, setTab] = useState<Tab>('home');
+  // 通知信或其他頁面帶 ?tab= 進來時直接開該分頁（舊的 reports／charts 都落在「我的家」）
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('tab');
-    if (t && TABS.some((x) => x.key === t)) setTab(t as Tab);
+    if (t && TAB_ALIASES[t]) setTab(TAB_ALIASES[t]);
   }, []);
   const [reportOrders, setReportOrders] = useState<ReportOrderSummary[] | null>(null);
   const [ordersErr, setOrdersErr] = useState('');
   const [people, setPeople] = useState<MyPerson[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [chartsLoaded, setChartsLoaded] = useState(false);
+  const [chartsDone, setChartsDone] = useState(false);
   const [err, setErr] = useState('');
-  const [viewing, setViewing] = useState<ZiweiCalcResponse | null>(null);
+  const [viewing, setViewing] = useState<{ chartId: string; name: string; res: ZiweiCalcResponse } | null>(null);
   const [viewBusy, setViewBusy] = useState(false);
-  // 進階檢視工具（互動／靜態、版型、下載）— 進階功能只在會員專區提供
-  const [viewMode, setViewMode] = useState<'interactive' | 'static'>('interactive');
-  const [chartTheme, setChartTheme] = useState<'light' | 'dark' | 'sepia'>('light');
-  /** 互動命盤上點到的宮位（1…C）；星場分析的星曜能量分頁會收斂到這一宮。 */
-  const [axisPalace, setAxisPalace] = useState<string | null>(null);
-  const [pngBusy, setPngBusy] = useState(false);
 
-  // 我的訂單 / 折扣券
+  // 我的優惠
   const [submissions, setSubmissions] = useState<OrderSubmission[]>([]);
   const [rewards, setRewards] = useState<MemberReward[]>([]);
   const [products, setProducts] = useState<ExternalProduct[]>([]);
@@ -120,7 +87,7 @@ export default function AccountPage() {
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);
   const [form, setForm] = useState({ product_type_id: 0, external_order_no: '', chart_id: '', note: '' });
-  // 退回重送
+  // 補資料重送
   const [resubmitTarget, setResubmitTarget] = useState<OrderSubmission | null>(null);
   const [resubmitNo, setResubmitNo] = useState('');
   const [resubmitNote, setResubmitNote] = useState('');
@@ -134,26 +101,24 @@ export default function AccountPage() {
     if (!isLoading && !isAuthenticated) router.push('/login');
   }, [isLoading, isAuthenticated, router]);
 
-  // 報告訂單：一進來就載入（需要你處理、我的報告、訂單紀錄共用）
+  // 報告訂單與家人的命盤：一進來就一起載入（我的家要把兩者對起來）
   useEffect(() => {
     if (!isAuthenticated) return;
-    reportOrdersApi.list().then((r) => setReportOrders(r.orders)).catch((e) => setOrdersErr(e.message || '無法載入訂單'));
+    reportOrdersApi.list().then((r) => setReportOrders(r.orders)).catch((e) => setOrdersErr(e.message || '暫時讀不到你的報告，請稍後再試'));
+    // 命盤服務沒開或失敗時靜默降級：報告改依主角名字分組，不顯示錯誤
+    astrologyApi.myCharts()
+      .then((c) => setPeople(c.people || []))
+      .catch(() => setPeople([]))
+      .finally(() => setChartsDone(true));
   }, [isAuthenticated]);
 
-  // 命盤資料：切到「命盤資料」或打開「登錄訂單號」時才載入（命盤服務沒開時不影響其他分頁）
-  const needCharts = tab === 'charts' || submitOpen;
-  useEffect(() => {
-    if (!needCharts || !isAuthenticated || chartsLoaded) return;
-    setLoading(true);
-    astrologyApi.myCharts()
-      .then((c) => { setPeople(c.people || []); setChartsLoaded(true); })
-      .catch((e) => { if (tab === 'charts') setErr(e.message || '載入命盤失敗'); })
-      .finally(() => setLoading(false));
-  }, [needCharts, isAuthenticated, chartsLoaded, tab]);
-
-  const viewChart = async (c: MyChart) => {
+  const viewChart = async (c: MyChart, name: string) => {
+    if (viewing?.chartId === c.chart_id) {
+      setViewing(null);
+      return;
+    }
     if (!c.birth) {
-      setErr('此命盤缺少生辰資料，無法重繪');
+      setErr('這張命盤少了生辰資料，暫時無法顯示，請聯絡我們');
       return;
     }
     setViewBusy(true);
@@ -175,80 +140,15 @@ export default function AccountPage() {
         include_star_energy: true,
         include_readings: true,
       });
-      setViewMode('interactive');
-      setViewing(res);
-      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      setViewing({ chartId: c.chart_id, name, res });
     } catch (e: any) {
-      setErr(e.message || '重繪失敗');
+      setErr(e.message || '命盤暫時打不開，請稍後再試');
     } finally {
       setViewBusy(false);
     }
   };
 
-  // ── 下載（全部在前端，零伺服器成本；自公開頁搬入，進階功能限會員專區）──
-  const downloadBlob = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadSvg = () => {
-    if (!viewing?.svg) return;
-    downloadBlob(
-      new Blob([viewing.svg], { type: 'image/svg+xml;charset=utf-8' }),
-      `ziwei_${viewing.chart_id || 'chart'}.svg`
-    );
-  };
-
-  // 用 canvas 把 SVG 點陣化成 PNG（2x 清晰度），全在瀏覽器完成
-  const downloadPng = async (scale = 2) => {
-    if (!viewing?.svg) return;
-    setPngBusy(true);
-    try {
-      const svg = viewing.svg;
-      const m =
-        svg.match(/viewBox="0\s+0\s+([\d.]+)\s+([\d.]+)"/) ||
-        svg.match(/width="([\d.]+)"[^>]*height="([\d.]+)"/);
-      const w = m ? parseFloat(m[1]) : 800;
-      const h = m ? parseFloat(m[2]) : 800;
-
-      const svgUrl = URL.createObjectURL(
-        new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
-      );
-      const img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('SVG 載入失敗'));
-        img.src = svgUrl;
-      });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(w * scale);
-      canvas.height = Math.round(h * scale);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('無法建立繪圖環境');
-      ctx.fillStyle = '#ffffff'; // 白底，避免透明背景
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(svgUrl);
-
-      await new Promise<void>((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) downloadBlob(blob, `ziwei_${viewing.chart_id || 'chart'}.png`);
-          resolve();
-        }, 'image/png');
-      });
-    } catch (e: any) {
-      setErr(e.message || 'PNG 轉換失敗');
-    } finally {
-      setPngBusy(false);
-    }
-  };
-
-  // 切到「我的訂單」時載入商業循環資料
+  // 切到「我的優惠」時載入
   useEffect(() => {
     if (tab !== 'coupons' || !isAuthenticated || commerceLoaded) return;
     (async () => {
@@ -263,7 +163,7 @@ export default function AccountPage() {
         setProducts(p.products || []);
         setCommerceLoaded(true);
       } catch (e: any) {
-        setErr(e.message || '載入訂單資料失敗');
+        setErr(e.message || '暫時讀不到優惠資料，請稍後再試');
       }
     })();
   }, [tab, isAuthenticated, commerceLoaded]);
@@ -272,11 +172,11 @@ export default function AccountPage() {
 
   const submitOrder = async () => {
     if (!form.product_type_id) {
-      setErr('請選擇商品');
+      setErr('請選擇你買的商品');
       return;
     }
     if (!form.external_order_no.trim()) {
-      setErr('請輸入訂單號');
+      setErr('請填寫訂單編號');
       return;
     }
     setSubmitBusy(true);
@@ -294,7 +194,7 @@ export default function AccountPage() {
       const s = await membershipApi.myOrderSubmissions();
       setSubmissions(s.submissions || []);
     } catch (e: any) {
-      setErr(e.message || '登錄訂單失敗');
+      setErr(e.message || '送出失敗，請稍後再試');
     } finally {
       setSubmitBusy(false);
     }
@@ -310,7 +210,7 @@ export default function AccountPage() {
   const doResubmit = async () => {
     if (!resubmitTarget) return;
     if (!resubmitNo.trim()) {
-      setErr('請輸入訂單號');
+      setErr('請填寫訂單編號');
       return;
     }
     setResubmitBusy(true);
@@ -324,7 +224,7 @@ export default function AccountPage() {
       const s = await membershipApi.myOrderSubmissions();
       setSubmissions(s.submissions || []);
     } catch (e: any) {
-      setErr(e.message || '重送失敗');
+      setErr(e.message || '送出失敗，請稍後再試');
     } finally {
       setResubmitBusy(false);
     }
@@ -333,13 +233,13 @@ export default function AccountPage() {
   const copyCode = (code: string) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(code).then(
-        () => alert(`已複製折扣碼：${code}`),
+        () => alert(`已複製優惠碼：${code}`),
         () => {/* ignore */},
       );
     }
   };
 
-  // 審核狀態徽章：通過 success、退回 error、其餘（審核中）warning（品牌規範 §3.4）
+  // 送審狀態徽章：已發券 success、需要補資料 error、其餘（確認中）warning（品牌規範 §3.4）
   const subStatusCls = (s: string) =>
     s === '通過'
       ? 'bg-success-bg text-success-fg'
@@ -351,32 +251,51 @@ export default function AccountPage() {
     return <div className="mx-auto max-w-3xl px-4 py-16 text-center text-muted">載入中…</div>;
   }
 
+  // 稱呼：命盤裡「我自己」的名字 → 非 email 的帳號名 → email 的 @ 前段
+  const selfName = people.find((p) => p.relation_label === 'self')?.display_name;
+  const handle = user?.username && !user.username.includes('@') ? user.username : (user?.email || '').split('@')[0];
+  const greetName = selfName || handle;
+  const selfPersonId = people.find((p) => p.relation_label === 'self')?.user_id;
+  const todos = reportOrders ? buildTodos(reportOrders, Date.now(), selfPersonId) : [];
+
+  const homeReady = reportOrders !== null && chartsDone;
+  const family = homeReady ? groupFamily(groupReports(reportOrders!), people) : [];
+  const isNew = homeReady && family.length === 0;
+
   const cardCls = 'flex flex-wrap items-center justify-between gap-3 rounded-inner bg-white p-4 md:px-6';
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 md:py-12">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-[32px] font-normal text-ink md:text-h1">會員中心</h1>
-        <div className="flex items-center gap-2 text-sm text-muted">
-          <span className="min-w-0 truncate">{user?.email || user?.username}</span>
-          <button
-            type="button"
-            onClick={() => logout().then(() => router.push('/login'))}
-            className={QUIET_DANGER_BTN}
-          >
-            <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-            登出
-          </button>
+      <div className="mb-8 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-heading text-[30px] font-normal text-ink md:text-h1">
+            嗨，{greetName || '歡迎回來'}
+          </h1>
+          <p className="mt-1 text-text">你和家人的命盤、報告與書，都在這裡。</p>
         </div>
+        {/* 帳號選單：email 與登出收在這裡，不搶畫面 */}
+        <details className="group relative shrink-0">
+          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-full px-3 py-2 text-sm text-text transition-colors hover:bg-tint focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 [&::-webkit-details-marker]:hidden">
+            帳號
+            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" strokeWidth={2} aria-hidden="true" />
+          </summary>
+          <div className="absolute right-0 z-20 mt-1 w-64 rounded-2xl bg-white p-2 shadow-lg">
+            <p className="truncate px-3 py-2 text-sm text-muted">{user?.email || user?.username}</p>
+            <button
+              type="button"
+              onClick={() => logout().then(() => router.push('/login'))}
+              className={QUIET_DANGER_BTN}
+            >
+              <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              登出
+            </button>
+          </div>
+        </details>
       </div>
 
-      {/* 需要你處理 */}
+      {/* 需要你幫忙的事（沒有就不顯示） */}
       {ordersErr && <Alert tone="error" className="mb-6">{ordersErr}</Alert>}
-      {reportOrders && <div className="mb-8"><AccountTodos todos={buildTodos(reportOrders)} /></div>}
-      <p className="-mt-4 mb-8 text-sm text-text">
-        在小紅書、Etsy、Pinkoi 向我們訂購過報告？
-        <Link href="/account/claim" className="ml-1 text-blue-700 underline-offset-2 hover:underline">用認領碼把訂單接到這個帳號</Link>
-      </p>
+      {todos.length > 0 && <div className="mb-8"><AccountTodos todos={todos} /></div>}
 
       <div className="-mx-4 mb-5 overflow-x-auto px-4">
         <div className="flex gap-2" role="tablist" aria-label="會員中心分頁">
@@ -390,170 +309,43 @@ export default function AccountPage() {
       </div>
 
       {err && <Alert tone="error" className="mb-4">{err}</Alert>}
-      {tab === 'charts' && viewBusy && <p className="mb-4 text-sm text-muted">重繪命盤中…</p>}
 
-      {/* 重繪的命盤（互動命盤 + 進階工具列：會員專區限定）*/}
-      {tab === 'charts' && viewing && (viewing.chart_json || viewing.svg) && (
-        <div className="mb-8 rounded-card bg-white p-6 md:p-8">
-          <div className="mb-3 flex items-center justify-between text-sm text-text">
-            <span>命盤 ID：<span className="font-latin">{viewing.chart_id}</span></span>
-            <button
-              type="button"
-              onClick={() => setViewing(null)}
-              className={QUIET_BTN}
-            >
-              關閉
-              <X className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-            </button>
-          </div>
-
-
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            {/* 互動 / 靜態 檢視切換 */}
-            {viewing.chart_json && viewing.svg && (
-              <div className="inline-flex gap-1" role="group" aria-label="檢視方式">
-                <button
-                  type="button"
-                  aria-pressed={viewMode === 'interactive'}
-                  onClick={() => setViewMode('interactive')}
-                  className={pillCls(viewMode === 'interactive')}
-                >
-                  互動命盤
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={viewMode === 'static'}
-                  onClick={() => setViewMode('static')}
-                  className={pillCls(viewMode === 'static')}
-                >
-                  靜態圖
-                </button>
-              </div>
-            )}
-
-            {/* 版型樣式（互動命盤）*/}
-            {viewing.chart_json && viewMode === 'interactive' && (
-              <label className="inline-flex items-center gap-2 text-sm font-medium text-ink">
-                版型
-                <select
-                  value={chartTheme}
-                  onChange={(e) =>
-                    setChartTheme(e.target.value as 'light' | 'dark' | 'sepia')
-                  }
-                  className={`${INPUT_SM} w-auto`}
-                >
-                  <option value="light">淺色</option>
-                  <option value="dark">深色</option>
-                  <option value="sepia">宣紙</option>
-                </select>
-              </label>
-            )}
-
-            {viewing.svg && (
-              <>
-                <BrandButton variant="soft" size="S" onClick={downloadSvg}>
-                  <Download className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                  下載 SVG
-                </BrandButton>
-                <BrandButton variant="soft" size="S" onClick={() => downloadPng(2)} disabled={pngBusy}>
-                  <Download className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                  {pngBusy ? '轉換中…' : '下載 PNG'}
-                </BrandButton>
-              </>
-            )}
-          </div>
-
-          {viewing.chart_json && viewMode === 'interactive' ? (
-            <div
-              className="w-full rounded-inner p-2 sm:p-4"
-              style={{
-                background: chartTheme === 'light' ? 'transparent' : NAMED_THEMES[chartTheme].colors?.bg,
-                transition: 'background 200ms ease-out',
-              }}
-            >
-              <ZiweiChart
-                chart={viewing.chart_json}
-                flow={viewing.flow ?? undefined}
-                theme={NAMED_THEMES[chartTheme]}
-                onPalaceClick={setAxisPalace}
+      {tab === 'home' ? (
+        !homeReady ? (
+          !ordersErr && <p className="text-muted">載入中…</p>
+        ) : isNew ? (
+          <Welcome />
+        ) : (
+          <div className="space-y-5">
+            {family.map((m) => (
+              <FamilyCard
+                key={m.key}
+                member={m}
+                onViewChart={(c) => viewChart(c, m.name)}
+                viewingChartId={viewing?.chartId}
+                viewBusy={viewBusy}
+                viewer={viewing && <FamilyChartViewer key={viewing.chartId} viewing={viewing.res} name={viewing.name} onClose={() => setViewing(null)} />}
               />
-            </div>
-          ) : viewing.svg ? (
-            <div
-              className="flex w-full justify-center overflow-x-auto [&>svg]:h-auto [&>svg]:max-w-full"
-              // SVG 由自家後端 p_e_artist 產生（可信來源）
-              dangerouslySetInnerHTML={{ __html: viewing.svg }}
-            />
-          ) : null}
-
-          {/* 星場分析（點上方互動命盤的宮位，星曜能量會收斂到該宮） */}
-          {(viewing.star_energy || viewing.readings) && (
-            <div className="mt-6 border-t border-line pt-5">
-              <StarfieldSection
-                starEnergy={viewing.star_energy}
-                readings={viewing.readings}
-                palaceCode={axisPalace}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-
-      {tab === 'reports' || tab === 'orders' ? (
+            ))}
+            <p className="pt-2 text-sm text-text">
+              在小紅書、Etsy、Pinkoi 向我們訂過報告？
+              <Link href="/account/claim" className="ml-1 text-blue-700 underline-offset-2 hover:underline">用認領碼接到這個帳號</Link>
+            </p>
+          </div>
+        )
+      ) : tab === 'orders' ? (
         !reportOrders ? (
           !ordersErr && <p className="text-muted">載入中…</p>
-        ) : tab === 'reports' ? (
-          <MyReports orders={reportOrders} />
         ) : (
           <MyReportOrders orders={reportOrders} />
         )
-      ) : tab === 'charts' ? (
-        loading ? (
-          <p className="text-muted">載入中…</p>
-        ) : people.length === 0 ? (
-          <EmptyState icon={LayoutGrid}>還沒有命盤資料。訂購報告時填的生辰資料會存在這裡，方便核對訂單。</EmptyState>
-        ) : (
-          <div className="space-y-6">
-            <p className="text-sm text-text">這裡是你訂購報告時使用的生辰資料，方便核對訂單；需要修改請聯絡我們。</p>
-            {people.map((p) => (
-              <div key={p.user_id}>
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="font-medium text-ink">{p.display_name || '（未命名）'}</span>
-                  {p.relation_label && <Tag tone="category">{relLabel(p.relation_label)}</Tag>}
-                </div>
-                <div className="space-y-2">
-                  {p.charts.map((c) => (
-                    <div key={c.chart_id} className={cardCls}>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text">
-                        <span className="font-latin text-xs text-muted">#{c.chart_id.slice(-6)}</span>
-                        <span>
-                          {c.gender === 'F' || c.gender === '女' ? '女' : '男'}　<span className="font-latin">{birthText(c)}</span>
-                        </span>
-                        {c.has_fortune && <Tag tone="category">完整版</Tag>}
-                      </div>
-                      <div className="flex gap-2">
-                        <BrandButton variant="secondary" size="S" onClick={() => viewChart(c)}>
-                          檢視命盤
-                        </BrandButton>
-                        <Link href={`/account/charts/${c.chart_id}`} className={brandButton({ variant: 'soft', size: 'S' })}>
-                          詳情 / 管理
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )
       ) : tab === 'coupons' ? (
-        // ── 折扣券（含外部訂單登錄） ──────────────────────────────
+        // ── 我的優惠（含外部平台訂單換回購優惠） ─────────────────────
         <div className="space-y-8">
           <div className="space-y-3">
-            <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">可用的折扣券</h2>
+            <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">可以用的優惠</h2>
             {rewards.length === 0 ? (
-              <EmptyState icon={Ticket}>尚無折扣券。完成購買並登錄訂單號、經審核通過後即可領取。</EmptyState>
+              <EmptyState icon={Ticket}>目前還沒有優惠。在蝦皮、Pinkoi 買過我們的商品，可以在下面領一張回購優惠。</EmptyState>
             ) : (
               <div className="space-y-2">
                 {rewards.map((r) => (
@@ -564,7 +356,7 @@ export default function AccountPage() {
                     </div>
                     <BrandButton variant="soft" size="S" onClick={() => copyCode(r.coupon_code_snapshot)}>
                       <Copy className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                      複製折扣碼
+                      複製優惠碼
                     </BrandButton>
                   </div>
                 ))}
@@ -575,19 +367,19 @@ export default function AccountPage() {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">登錄外部訂單換折扣券</h2>
-                <p className="mt-1 text-sm text-text">在蝦皮、Pinkoi 買過我們的商品？登錄訂單號，審核通過就會發折扣券給你。</p>
+                <h2 className="font-heading text-[18px] font-normal text-ink md:text-h4">在蝦皮、Pinkoi 買過？領一張回購優惠</h2>
+                <p className="mt-1 text-sm text-text">填上那邊的訂單編號，我們確認後就把優惠碼放到這裡。</p>
               </div>
               <BrandButton
                 variant="secondary"
                 size="S"
                 onClick={() => { setSubmitOpen(true); setErr(''); }}
               >
-                登錄訂單號
+                填訂單編號
               </BrandButton>
             </div>
             {submissions.length === 0 ? (
-              <EmptyState icon={Receipt}>尚無訂單登錄記錄。</EmptyState>
+              <EmptyState icon={Receipt}>還沒有填過訂單編號。</EmptyState>
             ) : (
               <div className="space-y-2">
                 {submissions.map((s) => (
@@ -595,21 +387,21 @@ export default function AccountPage() {
                     <div className="min-w-0 flex-1 text-sm text-text">
                       <div className="mb-1 flex flex-wrap items-center gap-2">
                         <span className="font-medium text-ink">{s.product_name}</span>
-                        <span className={`${TAG_BASE} ${subStatusCls(s.status)}`}>{s.status}</span>
+                        <span className={`${TAG_BASE} ${subStatusCls(s.status)}`}>{SUB_STATUS_LABELS[s.status] || s.status}</span>
                       </div>
-                      <span className="text-muted">{s.platform}・訂單號 </span>
+                      <span className="text-muted">{s.platform}・訂單編號 </span>
                       <span className="font-latin text-xs">{s.external_order_no}</span>
                       {s.status === '退回' && s.note && (
-                        <p className="mt-1 text-[13px] text-error-fg">退回原因：{s.note}</p>
+                        <p className="mt-1 text-[13px] text-error-fg">需要補充：{s.note}</p>
                       )}
                       {s.coupon_code && (
-                        <p className="mt-1 text-[13px] text-success-fg">折扣碼：<span className="font-latin font-semibold">{s.coupon_code}</span></p>
+                        <p className="mt-1 text-[13px] text-success-fg">優惠碼：<span className="font-latin font-semibold">{s.coupon_code}</span></p>
                       )}
                     </div>
                     {s.status === '退回' && (
                       <BrandButton variant="soft" size="S" onClick={() => openResubmit(s)}>
                         <RotateCcw className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-                        修正並重送
+                        補上資料
                       </BrandButton>
                     )}
                   </div>
@@ -620,18 +412,18 @@ export default function AccountPage() {
         </div>
       ) : null}
 
-      {/* 登錄訂單號 Modal */}
+      {/* 填訂單編號 Modal */}
       {submitOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-ink/40" onClick={() => setSubmitOpen(false)} />
           <div role="dialog" aria-modal="true" aria-labelledby="submit-order-title" className="relative w-full max-w-md space-y-5 rounded-card bg-white p-7 shadow-lg md:p-8">
-            <h3 id="submit-order-title" className="font-heading text-[18px] font-normal text-ink md:text-h4">登錄訂單號</h3>
+            <h3 id="submit-order-title" className="font-heading text-[18px] font-normal text-ink md:text-h4">領回購優惠</h3>
             {products.length === 0 ? (
-              <p className="text-sm text-muted">目前沒有可登錄的商品。</p>
+              <p className="text-sm text-muted">目前沒有可以領優惠的商品。</p>
             ) : (
               <>
                 <div>
-                  <label htmlFor="so-product" className={LABEL}>商品</label>
+                  <label htmlFor="so-product" className={LABEL}>你買的商品</label>
                   <select
                     id="so-product"
                     value={form.product_type_id}
@@ -645,39 +437,41 @@ export default function AccountPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="so-order-no" className={LABEL}>訂單號</label>
+                  <label htmlFor="so-order-no" className={LABEL}>訂單編號</label>
                   <input
                     id="so-order-no"
                     value={form.external_order_no}
                     onChange={(e) => setForm({ ...form, external_order_no: e.target.value })}
                     className={`${INPUT} font-latin`}
-                    placeholder="在蝦皮 / Pinkoi 完成購買後的訂單編號"
+                    placeholder="在蝦皮 / Pinkoi 的訂單編號"
                   />
                 </div>
-                <div>
-                  <label htmlFor="so-chart" className={LABEL}>關聯命盤（選填）</label>
-                  <select
-                    id="so-chart"
-                    value={form.chart_id}
-                    onChange={(e) => setForm({ ...form, chart_id: e.target.value })}
-                    className={INPUT}
-                  >
-                    <option value="">不指定</option>
-                    {people.flatMap((p) =>
-                      p.charts.map((c) => (
-                        <option key={c.chart_id} value={c.chart_id}>
-                          {p.display_name || '（未命名）'}・#{c.chart_id.slice(-6)}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
+                {people.some((p) => p.charts.length > 0) && (
+                  <div>
+                    <label htmlFor="so-chart" className={LABEL}>是買給誰的？（選填）</label>
+                    <select
+                      id="so-chart"
+                      value={form.chart_id}
+                      onChange={(e) => setForm({ ...form, chart_id: e.target.value })}
+                      className={INPUT}
+                    >
+                      <option value="">不指定</option>
+                      {people.flatMap((p) =>
+                        p.charts.map((c, i) => (
+                          <option key={c.chart_id} value={c.chart_id}>
+                            {p.display_name || '（還沒取名字）'}{p.charts.length > 1 ? `（命盤 ${i + 1}）` : ''}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                )}
                 <div className="flex justify-end gap-2 pt-1">
                   <BrandButton variant="soft" size="S" onClick={() => setSubmitOpen(false)}>
                     取消
                   </BrandButton>
                   <BrandButton variant="primary" size="S" onClick={submitOrder} disabled={submitBusy}>
-                    {submitBusy ? '送出中…' : '送出審核'}
+                    {submitBusy ? '送出中…' : '送出'}
                   </BrandButton>
                 </div>
               </>
@@ -686,20 +480,20 @@ export default function AccountPage() {
         </div>
       )}
 
-      {/* 退回重送 Modal */}
+      {/* 補資料重送 Modal */}
       {resubmitTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-ink/40" onClick={() => setResubmitTarget(null)} />
           <div role="dialog" aria-modal="true" aria-labelledby="resubmit-title" className="relative w-full max-w-md space-y-5 rounded-card bg-white p-7 shadow-lg md:p-8">
-            <h3 id="resubmit-title" className="font-heading text-[18px] font-normal text-ink md:text-h4">修正並重送</h3>
+            <h3 id="resubmit-title" className="font-heading text-[18px] font-normal text-ink md:text-h4">補上資料</h3>
             <p className="text-sm text-text">
               {resubmitTarget.product_name}（{resubmitTarget.platform}）
               {resubmitTarget.note && (
-                <span className="mt-1 block text-[13px] text-error-fg">退回原因：{resubmitTarget.note}</span>
+                <span className="mt-1 block text-[13px] text-error-fg">需要補充：{resubmitTarget.note}</span>
               )}
             </p>
             <div>
-              <label htmlFor="rs-order-no" className={LABEL}>訂單號</label>
+              <label htmlFor="rs-order-no" className={LABEL}>訂單編號</label>
               <input
                 id="rs-order-no"
                 value={resubmitNo}
@@ -709,13 +503,13 @@ export default function AccountPage() {
               />
             </div>
             <div>
-              <label htmlFor="rs-note" className={LABEL}>補充說明（選填）</label>
+              <label htmlFor="rs-note" className={LABEL}>想跟我們說的話（選填）</label>
               <input
                 id="rs-note"
                 value={resubmitNote}
                 onChange={(e) => setResubmitNote(e.target.value)}
                 className={INPUT}
-                placeholder="給審核者的補充說明"
+                placeholder="例如：截圖在小紅書私訊給你們了"
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">
@@ -723,7 +517,7 @@ export default function AccountPage() {
                 取消
               </BrandButton>
               <BrandButton variant="primary" size="S" onClick={doResubmit} disabled={resubmitBusy}>
-                {resubmitBusy ? '送出中…' : '重新送審'}
+                {resubmitBusy ? '送出中…' : '再送一次'}
               </BrandButton>
             </div>
           </div>

@@ -255,6 +255,9 @@ def order_summary(order):
             'kind': item.kind,
             'quantity': item.quantity,
             'parent_order_no': c.get('parent_order_no'),
+            # 會員中心依家人分組用（對 my-charts 的 person user_id）；加購訂單沒有 fulfillment，跟著原報告走
+            'person_user_id': str(fulfillment.person_user_id) if fulfillment and fulfillment.person_user_id else None,
+            'chart_id': str(fulfillment.chart_id) if fulfillment and fulfillment.chart_id else None,
         },
         'lines': [{'name': i.name, 'kind': i.kind, 'variant': i.variant, 'quantity': i.quantity,
                    'amount': commerce.legacy_line_total(i)}

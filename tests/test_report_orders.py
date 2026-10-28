@@ -296,6 +296,8 @@ class ReportOrderTests(_Base):
         theirs = self.client.get('/api/v1/report-orders', headers=self.headers(other)).get_json()['orders']
         self.assertEqual([o['order_no'] for o in mine], [order_no])
         self.assertEqual(theirs, [])
+        # 會員中心依家人分組：帶命盤主人的 person user_id 與 chart_id（字串，避免 JS 大數失真）
+        self.assertEqual((mine[0]['item']['person_user_id'], mine[0]['item']['chart_id']), ('777', '202005011000000001'))
 
 
 BANK = {'MANUAL_PAYMENT_BANK_NAME': '測試銀行', 'MANUAL_PAYMENT_BANK_CODE': '812',

@@ -427,6 +427,9 @@ export interface ReportOrderSummary {
   item: {
     item_no: string; name: string; variant: string; subject_name: string; call_name: string;
     kind: 'purchase' | 'addon' | 'service'; quantity: number; parent_order_no: string | null;
+    /** 報告主角（對 my-charts 的 MyPerson.user_id）；加購訂單是 null，跟著原報告 */
+    person_user_id?: string | null;
+    chart_id?: string | null;
   } | null;
   /** 這張訂單的所有品項 */
   lines: { name: string; kind: string; variant: string; quantity: number; amount: number }[];

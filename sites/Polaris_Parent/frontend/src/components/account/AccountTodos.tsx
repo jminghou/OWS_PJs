@@ -1,9 +1,9 @@
 'use client';
 
-/** 會員中心最上方「需要你處理」：待付款、設計你的書、確認打樣、預約解讀等，按下直接去做。 */
+/** 會員中心最上方「需要你幫忙的事」：待付款、設計書、看打樣、選解讀時間等，按下直接去做；沒有就不顯示。 */
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { Todo } from './orderModel';
 
@@ -13,20 +13,14 @@ export default function AccountTodos({ todos }: { todos: Todo[] }) {
   const [all, setAll] = useState(false);
   const actions = todos.filter((t) => t.tone === 'action').length;
 
-  if (!todos.length) {
-    return (
-      <p className="flex items-center gap-2 rounded-card bg-white px-5 py-4 text-sm text-text">
-        <CheckCircle2 className="h-5 w-5 text-success-fg" strokeWidth={2} aria-hidden="true" />
-        目前沒有需要你處理的事項。
-      </p>
-    );
-  }
+  // 沒事就不打擾：整塊不顯示
+  if (!todos.length) return null;
 
   const shown = all ? todos : todos.slice(0, SHOW);
   return (
     <section aria-labelledby="todo-title">
       <h2 id="todo-title" className="mb-3 font-heading text-[18px] font-normal text-ink md:text-h4">
-        {actions ? <>需要你處理<span className="ml-2 font-latin text-blue-500">{actions}</span></> : '最新動態'}
+        {actions ? <>需要你幫忙的事<span className="ml-2 font-latin text-blue-500">{actions}</span></> : '最近的好消息'}
       </h2>
       <ul className="grid gap-3 sm:grid-cols-2">
         {shown.map((t) => (
