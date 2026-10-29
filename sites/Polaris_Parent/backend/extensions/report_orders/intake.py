@@ -177,6 +177,8 @@ def review(receipt_id, data, actor):
         from . import binding, commerce
         order = binding.lock_bound_order(row)
         if order is not None:
+            from . import control
+            control.change(order, 'paused', note or '外部成交證據已作廢', actor, control.view(order)['revision'])
             commerce.event(order, f'order:{order.id}:external-voided', 'external_evidence_voided', actor,
                            receipt_id=row.id, reason=note)
     row.status, row.channel_revision = action, channel.revision

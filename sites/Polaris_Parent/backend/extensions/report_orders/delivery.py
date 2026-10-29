@@ -30,9 +30,10 @@ def document_view(doc):
             'uploaded_at': doc.created_at.isoformat() if doc.created_at else None}
 
 
-def upload_report_pdf(report_item, admin_id, filename, data: bytes):
+def upload_report_pdf(report_item, admin_id, filename, data: bytes, *, source_manifest=None):
     """上傳（或更正後重傳）報告 PDF。回傳 (document, first_time)。"""
     from . import commerce
+    order = commerce.lock_order(report_item.order)
     commerce.require(report_item, 'report')
     if report_item.order.status != 'paid':
         raise OrderError('訂單付款後才能上傳報告', 409, 'not_paid')
@@ -56,9 +57,12 @@ def upload_report_pdf(report_item, admin_id, filename, data: bytes):
     if f is not None:
         commerce.complete(report_item, 'report', 'report_fulfillment', f.id, admin_id)
     db.session.flush()
+    if source_manifest is not None:
+        order.attributes = {**(order.attributes or {}), 'report_artifact_import':
+                            {**source_manifest, 'document_id': doc.id}}
     from . import audit
     audit.log(report_item.order, 'report_uploaded', admin_id, ref=doc.id, filename=doc.filename,
-              correction=previous is not None)
+              correction=previous is not None, source=source_manifest)
     db.session.commit()
     return doc, previous is None
 

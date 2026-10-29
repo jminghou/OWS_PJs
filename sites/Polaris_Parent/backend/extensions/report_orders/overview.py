@@ -163,6 +163,7 @@ def _related(order, summary):
 
 
 def detail(order):
+    from . import control
     s = service.order_summary(order)
     report_item = next((i for i in order.order_items if i.kind == 'purchase'), None)
     f = ReportFulfillment.query.filter_by(order_item_id=report_item.id).first() if report_item else None
@@ -174,6 +175,7 @@ def detail(order):
     return {
         **row(order),
         'summary': s,
+          'fulfilment_control': control.view(order),
         'handoff': handoff.view(f),
         'documents': [{'filename': d.filename, 'bytes': d.bytes, 'is_current': d.is_current,
                        'uploaded_at': d.created_at.isoformat() if d.created_at else None} for d in docs],

@@ -107,7 +107,8 @@ def create_customer(data, actor, channel_id=None):
         _fail('客人資料有誤', errors=errors)
     email = f'c-{uuid.uuid4().hex[:16]}@{CUSTOMER_DOMAIN}'
     user = User(username=email, email=email, role='member', is_active=True)
-    user.set_password(secrets.token_urlsafe(32))  # 沒有人知道的密碼：這個帳號不能登入
+    # Preserve random entropy while guaranteeing the shared complexity rules.
+    user.set_password(secrets.token_urlsafe(32) + 'Aa1')
     db.session.add(user)
     db.session.flush()
     c = ExternalCustomer(app_user_id=user.id, channel_id=channel_id, display_name=name, platform_handle=handle,
@@ -362,6 +363,11 @@ def create_order(data, actor, eng, save_chart):
         _fail('資料有誤，請檢查後再送出', errors=errors)
     if customer is None:
         customer = create_customer(data['customer'], actor, channel.id)
+        # The production service uses a different DB connection. It must see the
+        # identity before save-and-register; otherwise its unique-key insert
+        # waits for this transaction while we wait for its HTTP response.
+        # A failed order may leave a reusable customer profile, but no paid order.
+        db.session.commit()
     user = db.session.get(User, customer.app_user_id)
     email = user.email or user.username
 
@@ -387,6 +393,7 @@ def create_order(data, actor, eng, save_chart):
 
 def _settle(order, channel, external_id, customer, user, actor, data, sources):
     """把剛建好的待付款訂單認列為平台已成交（同一個交易）。"""
+    channel = intake.locked_channel(channel.id, require_active=not is_direct_channel(channel))
     item = next(i for i in order.order_items if i.kind == 'purchase')
     snapshot = dict(channel_id=channel.id, external_order_id=external_id, member_id=user.id,
                     amount=order.amount, currency=order.currency,
@@ -438,6 +445,7 @@ def mark_delivered_via_platform(order, actor, note=None):
     item = next((i for i in order.order_items if i.kind == 'purchase'), None)
     if item is None or item.variant != 'digital':
         _fail('實體書訂單出貨後即完成，不需要這個步驟', 'not_digital', 409)
+    commerce.require(item, 'report')
     if delivery.current_document(item) is None:
         _fail('請先在「報告交付」上傳報告 PDF', 'no_document', 409)
     audit.log(order, 'delivered_via_platform', actor, ref='delivered', note=_text(note, 500) or None)

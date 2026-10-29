@@ -33,6 +33,9 @@ def _nt(v, d=None):
 
 # 事件類型 → 顯示文字（d＝detail）
 LABELS = {
+    'fulfilment_retry': lambda d: f'重新排入履約同步（版本 {d.get("revision")}）',
+    'fulfilment_paused': lambda d: f'暫停履約：{d.get("reason") or "-"}',
+    'fulfilment_active': lambda d: f'申請恢復履約：{d.get("reason") or "-"}',
     # 契約層（commerce.py）
     'order_created': lambda d: '建立訂單',
     'payment_confirmed': lambda d: '確認收款',

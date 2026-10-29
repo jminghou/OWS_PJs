@@ -71,6 +71,16 @@ def _handoff_reports(now):
     return {'sent': sent, 'failed': failed}
 
 
+def _fulfilment_controls(now):
+    from . import control
+    return control.sync_due()
+
+
+def _production_progress(now):
+    from . import progress
+    return progress.sync_due()
+
+
 def _claim_sync(now):
     from . import claims
     ok, failed = claims.sync_due()
@@ -109,6 +119,8 @@ def _purge_mail_bodies(now):
 
 # (名稱, 週期, 說明, 函式)
 JOBS = [
+    ('production_progress', timedelta(minutes=5), '同步製作進度', _production_progress),
+    ('fulfilment_controls', timedelta(0), '同步履約暫停與恢復', _fulfilment_controls),
     ('expire_overdue', timedelta(minutes=10), '取消逾期未回報轉帳的訂單', _expire_overdue),
     ('payment_reminders', timedelta(minutes=30), '匯款期限前 24 小時提醒', _payment_reminders),
     ('retry_mail', timedelta(0), '重寄寄失敗的通知信', _retry_mail),

@@ -173,6 +173,7 @@ export interface TimelineEntry {
 }
 
 export interface AdminOrderDetail extends AdminOrderRow {
+  fulfilment_control: FulfilmentControl;
   summary: ReportOrderSummary;
   handoff: HandoffView | null;
   documents: { filename: string; bytes: number; is_current: boolean; uploaded_at: string | null }[];
@@ -409,6 +410,7 @@ export interface TransferReport {
 }
 
 export interface ReportOrderSummary {
+  fulfilment_control?: { blocked: boolean };
   commerce?: CommerceSummary;
   order_no: string;
   status: 'pending' | 'paid' | 'cancelled' | string;
@@ -433,7 +435,7 @@ export interface ReportOrderSummary {
   } | null;
   /** 這張訂單的所有品項 */
   lines: { name: string; kind: string; variant: string; quantity: number; amount: number }[];
-  production: { handoff_status: string; ziwei_status: string | null; member_note: string | null } | null;
+  production: { handoff_status: string; ziwei_status: string | null; member_note: string | null; progress?: ProductionProgress | null } | null;
   shipment: { status: string; carrier: string | null; tracking_no: string | null } | null;
   /** 報告成品檔（已付款的報告訂單、管理者已上傳時才有） */
   report: ReportDocumentView | null;
@@ -472,6 +474,8 @@ export interface AdminDelivery {
 export type HandoffStatus = 'not_ready' | 'pending' | 'sent' | 'failed' | 'cancelled';
 
 export interface HandoffView {
+  progress?: ProductionProgress | null;
+  control?: FulfilmentControl;
   status: HandoffStatus;
   status_label: string;
   attempts: number;
@@ -480,6 +484,26 @@ export interface HandoffView {
   /** 紫微工作單狀態（queued／in_progress／needs_info／completed…），送出當下的快照 */
   ziwei_status: string | null;
   next_attempt_at: string | null;
+}
+
+export interface FulfilmentControl {
+  revision: number;
+  desired: 'active' | 'paused';
+  blocked: boolean;
+  sync: 'pending' | 'synced' | 'attention';
+  reason: string | null;
+  error?: string | null;
+  attempts?: number;
+}
+
+export interface ProductionProgress {
+  status: string | null;
+  status_label: string | null;
+  member_note: string | null;
+  last_synced_at: string | null;
+  stale: boolean;
+  error?: string | null;
+  next_attempt_at?: string | null;
 }
 
 /** 製作報告用的命盤資訊：到紫微系統（PolarisUI）找這張盤的依據 */
@@ -894,6 +918,21 @@ export const reportOrdersApi = {
     request<{ success: boolean; customer: ExternalCustomer }>(`/admin/external-customers/${id}`, {
       method: 'PUT', body: JSON.stringify(body),
     }),
+
+  adminProductionArtifact: (orderNo: string) =>
+    request<{ success: boolean; artifact: { version: number; sha256: string; bytes: number; filename: string }; current_document_id: number | null }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/production-artifact`),
+
+  adminReceiveArtifact: (orderNo: string, body: { version: number; sha256: string; current_document_id: number | null }) =>
+    post<{ success: boolean; first_time: boolean; duplicate: boolean }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/production-artifact`, body),
+
+  adminSyncProduction: (orderNo: string) =>
+    post<{ success: boolean; progress: ProductionProgress }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/production-sync`, {}),
+
+  adminFulfilmentControl: (orderNo: string, body: { desired: 'active' | 'paused'; reason: string; revision: number }) =>
+    post<{ success: boolean; control: FulfilmentControl }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/fulfilment-control`, body),
+
+  adminRetryFulfilmentControl: (orderNo: string, revision: number) =>
+    post<{ success: boolean; control: FulfilmentControl }>(`/admin/report-orders/${encodeURIComponent(orderNo)}/fulfilment-control`, { action: 'retry', revision }),
 
   /** 發（或重發）認領碼；明碼只在這次回應出現 */
   issueClaimCode: (customerId: number, days = 90) =>

@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
+import FulfilmentControlPanel from '@/components/admin/FulfilmentControlPanel';
 import { AdminLoadingSkeleton } from '@ows/ui/admin';
 import { ArrowLeft, Bot, ExternalLink, Mail, Paperclip, ShieldCheck, User } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
@@ -267,6 +268,7 @@ export default function ReportOrderDetailPage() {
             </div>
 
             {order.external_detail && <ExternalPanel order={order} onChange={setOrder} onError={setError} />}
+            <FulfilmentControlPanel orderNo={order.order_no} control={order.fulfilment_control} done={load} />
 
             {order.todos.length > 0 && (
               <div className="flex flex-wrap gap-2">

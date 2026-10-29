@@ -454,6 +454,8 @@ def admin_resend_notification(note_id):
     order = db.session.get(Order, note.order_id)
     view = notify.notification_view(note, order_no=order.order_no if order else None)
     if not sent:
+        if note.status in ('pending', 'skipped'):
+            return _error(note.error or '目前不符合寄送條件', 409, code='notification_held', notification=view)
         return _error(f'重寄失敗：{note.error or "未知錯誤"}', 502, code='send_failed', notification=view)
     return jsonify({'success': True, 'notification': view})
 
@@ -1404,6 +1406,11 @@ def admin_send_handoff(order_no):
     order = _admin_order(order_no)
     if order is None:
         return _error('找不到這筆報告訂單', 404)
+    from . import control
+    try:
+        control.require(order)
+    except service.OrderError as exc:
+        return _error(exc.message, exc.status, code=exc.code)
     results = handoff.send_now(order, actor=int(get_jwt_identity()))
     if not results:
         return _error('這筆訂單沒有待送出的工作單（已送出或尚未付款）', 409, code='nothing_to_send')
@@ -1413,6 +1420,79 @@ def admin_send_handoff(order_no):
     if failed:
         return _error(f'送出失敗：{failed[0] or "未知錯誤"}', 502, code='handoff_failed', handoff=handoff.view(f))
     return jsonify({'success': True, 'handoff': handoff.view(f)})
+
+
+@bp.route('/admin/report-orders/<order_no>/fulfilment-control', methods=['POST'])
+@_limit('20 per minute')
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_fulfilment_control(order_no):
+    from . import control
+    order = _admin_order(order_no)
+    if order is None:
+        return _error('找不到訂單', 404)
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return _error('請提供 JSON 物件', 400)
+    try:
+        if data.get('action') == 'retry':
+            result = control.retry(order, int(get_jwt_identity()), data.get('revision'))
+        else:
+            result = control.change(order, data.get('desired'), data.get('reason'),
+                                    int(get_jwt_identity()), data.get('revision'))
+        db.session.commit()
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    return jsonify(success=True, control=result)
+
+
+@bp.route('/admin/report-orders/<order_no>/production-sync', methods=['POST'])
+@_limit('20 per minute')
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_production_sync(order_no):
+    from . import progress
+    order = _admin_order(order_no)
+    item = _report_item_of(order) if order is not None else None
+    f = ReportFulfillment.query.filter_by(order_item_id=item.id).first() if item else None
+    if f is None or f.handoff_status != 'sent':
+        return _error('尚無已送出的製作工作單', 409)
+    success = progress.sync_one(f.id)
+    return jsonify(success=success, progress=progress.view(f)), 200 if success else 502
+
+
+@bp.route('/admin/report-orders/<order_no>/production-artifact', methods=['GET', 'POST'])
+@_limit('10 per minute')
+@jwt_required()
+@require_permission('report_orders.fulfill')
+def admin_production_artifact(order_no):
+    from . import artifacts
+    order = _admin_order(order_no)
+    item = _report_item_of(order) if order is not None else None
+    if item is None:
+        return _error('找不到這筆報告訂單', 404)
+    try:
+        if request.method == 'GET':
+            f = ReportFulfillment.query.filter_by(order_item_id=item.id).first()
+            m = artifacts.manifest(item, f)
+            doc = delivery.current_document(item)
+            return jsonify(success=True, artifact=m, current_document_id=doc.id if doc else None)
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict) or 'current_document_id' not in body:
+            return _error('請先查詢成品版本', 400)
+        doc, first_time, duplicate = artifacts.receive(item, int(get_jwt_identity()), body.get('version'),
+                                                      body.get('sha256'), body['current_document_id'])
+    except service.OrderError as exc:
+        db.session.rollback()
+        return _error(exc.message, exc.status, code=exc.code)
+    except private_storage.StorageError as exc:
+        db.session.rollback()
+        return _error(str(exc), 503)
+    email = _buyer_email(order)
+    if first_time and email:
+        notify.send_report_ready(order, email, physical.pending_design_jobs(item))
+    return jsonify(success=True, document=delivery.document_view(doc), first_time=first_time, duplicate=duplicate)
 
 
 @bp.route('/admin/report-orders/<order_no>/report-pdf', methods=['POST'])
@@ -1428,7 +1508,7 @@ def admin_upload_report_pdf(order_no):
         return _error('請選擇要上傳的 PDF')
     admin_id = int(get_jwt_identity())
     try:
-        doc, first_time = delivery.upload_report_pdf(item, admin_id, upload.filename, upload.read())
+        doc, first_time = delivery.upload_report_pdf(item, admin_id, upload.filename, upload.read(delivery.MAX_PDF_BYTES + 1))
     except service.OrderError as exc:
         db.session.rollback()
         return _error(exc.message, exc.status, code=exc.code)
