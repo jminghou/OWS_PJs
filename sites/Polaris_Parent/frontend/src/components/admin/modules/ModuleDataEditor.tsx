@@ -49,14 +49,13 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
         <Current className="h-5 w-5" strokeWidth={2} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-[19rem] rounded-lg border border-border bg-card p-2 shadow-lg sm:w-[25rem]">
+        <div className="absolute left-0 top-full z-30 mt-1 w-[17rem] rounded-lg border border-border bg-card p-2 shadow-lg sm:w-[22rem]">
           <div className="grid max-h-72 grid-cols-6 gap-1 overflow-y-auto sm:grid-cols-8">
             {HIGHLIGHT_ICONS.map(({ value: v, label, Icon }) => (
               <button key={v} type="button" title={label} aria-label={label}
                 onClick={() => { onChange(v); setOpen(false); }}
-                className={`flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[10px] leading-tight text-muted-foreground hover:bg-muted ${v === value ? 'bg-admin-accent-50 ring-1 ring-admin-accent-500 dark:bg-admin-accent-500/15' : ''}`}>
+                className={`flex aspect-square items-center justify-center rounded-md hover:bg-muted ${v === value ? 'bg-admin-accent-50 ring-1 ring-admin-accent-500 dark:bg-admin-accent-500/15' : ''}`}>
                 <Icon className="h-5 w-5 text-blue-500" strokeWidth={2} />
-                <span className="w-full truncate text-center">{label}</span>
               </button>
             ))}
           </div>

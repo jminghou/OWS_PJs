@@ -93,31 +93,37 @@ export default function AdminLabeledShell({ children }: { children: React.ReactN
     router.push('/admin/login');
   };
 
+  // 兩層：分組標題（主選單）粗體、深色、箭頭在右；項目（次選單）縮排、掛在左側導引線上、字較小較淡
   const sidebar = (
     <nav className="flex-1 overflow-y-auto px-3 py-3">
       {visible.map((g, idx) => {
         const activeInside = g.items.some((i) => isNavActive(pathname, i.href));
         const closed = g.collapsible && isCollapsed(g, idx) && !activeInside;
+        const nested = !!g.label;
+        const headerCls = `w-full flex items-center gap-2 px-2.5 py-2.5 lg:py-2 rounded-lg text-[15px] lg:text-sm font-semibold ${
+          activeInside ? 'text-admin-accent-700 dark:text-admin-accent-200' : 'text-foreground'
+        }`;
         return (
-          <div key={groupKey(g, idx)} className="mb-4">
+          <div key={groupKey(g, idx)} className={idx > 0 && nested ? 'mt-1 pt-1 border-t border-border/60' : ''}>
             {g.label && (
               g.collapsible ? (
                 <button
                   type="button"
                   onClick={() => toggleGroup(g, idx)}
-                  className="w-full flex items-center gap-1 px-2 py-2 lg:py-0 mb-1 text-xs lg:text-[11px] font-medium tracking-wide text-muted-foreground hover:text-foreground"
+                  aria-expanded={!closed}
+                  className={`${headerCls} hover:bg-muted`}
                 >
-                  <svg className={`w-3 h-3 transition-transform ${closed ? '' : 'rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="flex-1 text-left truncate">{g.label}</span>
+                  <svg className={`w-4 h-4 flex-shrink-0 text-muted-foreground transition-transform ${closed ? '' : 'rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                   </svg>
-                  {g.label}
                 </button>
               ) : (
-                <div className="px-2 mb-1 text-[11px] font-medium tracking-wide text-muted-foreground">{g.label}</div>
+                <div className={headerCls}>{g.label}</div>
               )
             )}
             {!closed && (
-              <ul className="space-y-0.5">
+              <ul className={`space-y-0.5 ${nested ? 'ml-[19px] mb-2 pl-2 border-l border-border' : 'mb-2'}`}>
                 {g.items.map((item) => {
                   const active = isNavActive(pathname, item.href);
                   return (
@@ -125,13 +131,13 @@ export default function AdminLabeledShell({ children }: { children: React.ReactN
                       <Link
                         href={item.href}
                         onClick={() => setDrawerOpen(false)}
-                        className={`flex items-center gap-2.5 px-2.5 py-2.5 lg:py-1.5 rounded-lg text-[15px] lg:text-sm transition-colors ${
+                        className={`flex items-center gap-2.5 px-2.5 py-2 lg:py-1.5 rounded-lg text-[14px] lg:text-[13px] transition-colors ${
                           active
                             ? 'bg-admin-accent-100 text-admin-accent-800 font-medium dark:bg-admin-accent-800/40 dark:text-admin-accent-100'
-                            : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                         }`}
                       >
-                        <span className={`flex-shrink-0 [&>svg]:w-[18px] [&>svg]:h-[18px] ${active ? '' : 'text-muted-foreground'}`}>
+                        <span className={`flex-shrink-0 [&>svg]:w-4 [&>svg]:h-4 ${active ? '' : 'text-muted-foreground/80'}`}>
                           {item.icon ?? <GenericNavIcon />}
                         </span>
                         <span className="truncate flex-1">{item.label}</span>

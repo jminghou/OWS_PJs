@@ -9,7 +9,7 @@ import { SALES_LANGUAGES } from '@/lib/report/locale';
 
 /**
  * 共用的商品後台，加掛客製報告的「前台文字」「前台圖片」「頁面模組」「實體書設定」分頁。
- * 商品頁價格卡以下的內容與目錄頁改用「行銷管理 › 模組管理」的模組（2026-10-28），這裡只選用。
+ * 商品頁價格卡以下的內容與目錄頁改用「產品管理 › 模組管理」的模組（2026-10-28），這裡只選用。
  * 實體書是數位版的加購選項：不在產品清單出現，改在數位版的「實體書設定」分頁設定。
  * 報告商品的代碼由程式決定（catalog.ts），新增時從「產品類型」選，不用自己填。
  */
@@ -38,6 +38,7 @@ export default function AdminProductsPage() {
       onAfterSave={syncReportAddon}
       presetProducts={presets}
       languages={LANGUAGES}
+      createLabel="新增出版"
     />
   );
 }

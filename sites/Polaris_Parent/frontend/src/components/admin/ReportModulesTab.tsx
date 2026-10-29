@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 產品管理的「頁面模組」分頁：商品頁每個固定位置用下拉選單選一個模組（行銷管理 › 模組管理建立的）。
+ * 產品管理的「頁面模組」分頁：商品頁每個固定位置用下拉選單選一個模組（產品管理 › 模組管理建立的）。
  * 存在 attributes.report_modules（{slot: module_key}；空字串＝不顯示）。同一個語言版本的商品取模組的同語言版本，
  * 缺該語言版本或未啟用的模組，商品不能上架（後端 page_modules 的上架檢查）。
  */
@@ -43,7 +43,7 @@ function ReportModulesTab({ productId, attributes, onChange, language = 'zh-TW' 
       <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
         <p className="font-medium">這個商品頁還沒改用模組，前台目前顯示舊的「商品頁內容」設定。</p>
         <p className="text-xs leading-relaxed">
-          第一次使用請到「行銷管理 › 模組管理」按「從現有內容建立模組」：會把現有內容轉成模組並自動幫報告商品選好，前台看起來不變。
+          第一次使用請到「產品管理 › 模組管理」按「從現有內容建立模組」：會把現有內容轉成模組並自動幫報告商品選好，前台看起來不變。
           如果是全新的報告，也可以直接在這裡開始選模組（沒選的位置前台不顯示）。
         </p>
         <div className="flex flex-wrap gap-2">
@@ -70,7 +70,7 @@ function ReportModulesTab({ productId, attributes, onChange, language = 'zh-TW' 
     <>
       <p className="rounded-lg bg-muted px-4 py-3 text-xs leading-relaxed text-muted-foreground">
         對應前台 /report/{report.slug} 商品頁從價格卡以下的各段內容。每個位置選一個模組，選「不顯示」就隱藏那一段。
-        模組的內容在「行銷管理 › 模組管理」編輯，改一次所有用到它的商品一起更新；選完記得按「儲存變更」。
+        模組的內容在「產品管理 › 模組管理」編輯，改一次所有用到它的商品一起更新；選完記得按「儲存變更」。
         {language !== 'zh-TW' && ` 這是${langShort(language)}版商品：前台會顯示每個模組的${langShort(language)}版本。`}
       </p>
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}

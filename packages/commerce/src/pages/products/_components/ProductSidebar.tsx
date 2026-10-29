@@ -27,6 +27,7 @@ interface ProductSidebarProps {
   onCreatePreset?: (preset: ProductPreset) => void;
   /** 站台的語言清單；超過一種時每列顯示各語言版本的狀態，點了直接切到那個版本 */
   languages?: ProductLanguage[];
+  createLabel?: string;
 }
 
 const statusTabs: { key: string; label: string }[] = [
@@ -53,6 +54,7 @@ export default function ProductSidebar({
   missingPresets = [],
   onCreatePreset,
   languages = [],
+  createLabel = '新增產品',
 }: ProductSidebarProps) {
   const multi = languages.length > 1;
   return (
@@ -69,7 +71,7 @@ export default function ProductSidebar({
           }`}
         >
           <Plus size={16} />
-          新增產品
+          {createLabel}
         </button>
       </div>
 

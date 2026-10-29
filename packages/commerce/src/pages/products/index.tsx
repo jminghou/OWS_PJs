@@ -58,6 +58,8 @@ interface ProductsPageProps {
    * 超過一種時清單顯示各語言狀態、編輯頁有語言列可切換與新增。
    */
   languages?: ProductLanguage[];
+  /** 「新增」按鈕與新增頁標題的文字（預設「新增產品」），例如只管出版品的站台用「新增出版」 */
+  createLabel?: string;
 }
 
 const emptyCreateForm: CreateFormData = {
@@ -105,7 +107,7 @@ export default function ProductsPage() {
 }
 
 export function ProductsAdmin({
-  attributeTabs, AttributesSection, hiddenProductIds = [], onAfterSave, presetProducts = [], languages = DEFAULT_LANGUAGES,
+  attributeTabs, AttributesSection, hiddenProductIds = [], onAfterSave, presetProducts = [], languages = DEFAULT_LANGUAGES, createLabel = '新增產品',
 }: ProductsPageProps) {
   const defaultLanguage = languages[0] ?? DEFAULT_LANGUAGES[0];
   const blankCreateForm = (): CreateFormData => ({ ...emptyCreateForm, language: defaultLanguage.code, currency: defaultLanguage.currency });
@@ -454,9 +456,10 @@ export function ProductsAdmin({
         sidebarWidth={280}
         mobileView={selectedId !== null || isCreateMode ? 'detail' : 'list'}
         onMobileBack={handleCancel}
-        mobileTitle={isCreateMode ? '新增產品' : editForm.name}
+        mobileTitle={isCreateMode ? createLabel : editForm.name}
         sidebar={
           <ProductSidebar
+            createLabel={createLabel}
             products={products}
             loading={loading}
             selectedId={selectedId}
@@ -482,6 +485,7 @@ export function ProductsAdmin({
             <ProductForm
               key="new"
               mode="create"
+              createLabel={createLabel}
               formData={createForm}
               categories={categories}
               tags={tags}
@@ -537,7 +541,7 @@ export function ProductsAdmin({
             <AdminEmptyState
               icon={<Package size={48} className="text-gray-300" />}
               title="選擇產品開始編輯"
-              description="從左側選擇一個產品，或點擊「新增產品」建立新項目"
+              description={`從左側選擇一個產品，或點擊「${createLabel}」建立新項目`}
             />
           </div>
         )}

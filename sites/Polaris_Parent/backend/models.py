@@ -668,7 +668,7 @@ class OrderSourceRecord(db.Model):
 
 
 class PageModule(db.Model):
-    """shop.page_modules — 行銷管理「模組管理」：商品頁與目錄頁的內容區塊（2026-10-28）。
+    """shop.page_modules — 產品管理「模組管理」：商品頁與目錄頁的內容區塊（2026-10-28）。
 
     一個模組一個 module_key、一種語言一筆（同商品多語言的規則）；商品在 attributes.report_modules 依位置引用 module_key，
     前台取該語言那一筆。type 決定內容格式（介紹、亮點、FAQ…）；name 只給後台辨識，前台標題在 data.title。

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 行銷管理 › 模組管理（2026-10-28）：商品頁與報告目錄頁的內容區塊。
+ * 產品管理 › 模組管理（2026-10-28）：商品頁與報告目錄頁的內容區塊。
  * 每個模組有後台名稱、類型與各語言版本；商品在產品管理的「頁面模組」分頁用選單選用（components/admin/ReportModulesTab.tsx）。
  * 規則（後端 extensions/page_modules）：語言版本從原文複製、確認後才能啟用；上架中頁面正在用的版本不能停用，被引用的不能刪除。
  */
@@ -167,7 +167,7 @@ export default function PageModulesAdmin() {
       const r = await pageModuleApi.duplicate(group!.root_id, n.trim());
       await reload();
       setSelection({ key: r.module.module_key, language: 'zh-TW' });
-    }, '已複製成新模組（繁中）。要用在商品上，到產品管理的「頁面模組」分頁選它。');
+    }, '已複製成新模組（繁中）。要用在商品上，到出版商品的「頁面模組」分頁選它。');
   };
 
   const remove = () => {
@@ -396,7 +396,7 @@ export default function PageModulesAdmin() {
                         </p>
                       </>
                     ) : (
-                      <p className="mt-1 text-xs text-muted-foreground">還沒有頁面使用。到產品管理的「頁面模組」分頁選用。</p>
+                      <p className="mt-1 text-xs text-muted-foreground">還沒有頁面使用。到出版商品的「頁面模組」分頁選用。</p>
                     )}
                   </section>
 

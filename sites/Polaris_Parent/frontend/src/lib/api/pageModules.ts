@@ -1,5 +1,5 @@
 /**
- * 頁面模組 API client（行銷管理「模組管理」）
+ * 頁面模組 API client（產品管理「模組管理」）
  * 對應後端 sites/Polaris_Parent/backend/extensions/page_modules
  *   GET    /api/v1/admin/page-modules                       （products.read）
  *   GET    /api/v1/admin/page-modules/:id                   （products.read）

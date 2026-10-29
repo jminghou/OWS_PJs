@@ -43,7 +43,7 @@ SITE_EXTENSIONS = [
         url_prefix='/api/v1',
         enabled=True,
     ),
-    # 行銷管理「模組管理」：商品頁與目錄頁的內容區塊（/page-modules、/admin/page-modules）
+    # 產品管理「模組管理」：商品頁與目錄頁的內容區塊（/page-modules、/admin/page-modules）
     BlueprintConfig(
         module_path='sites.Polaris_Parent.backend.extensions.page_modules',
         url_prefix='/api/v1',

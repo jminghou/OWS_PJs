@@ -35,9 +35,9 @@ const siteNav = [
   },
 ];
 
-// 行銷相關：產品、外部商品、折扣碼
+// 產品管理：出版商品（數位報告）、模組管理、外部商品、折扣碼；其他類別的產品之後另開一區
 const marketingNav = [
-  commerceNav,
+  { ...commerceNav, label: '出版商品' },
   {
     href: '/admin/page-modules',
     label: '模組管理',
@@ -137,7 +137,7 @@ configureAdminApp({
     ...studioNavGroups,
     // 訂單管理：天天會用，預設展開
     { label: '訂單管理', collapsible: true, items: orderNav },
-    { label: '行銷管理', collapsible: true, items: marketingNav },
+    { label: '產品管理', collapsible: true, items: marketingNav },
     // 平台後台（文章、媒體、電子報…）：預設收合，需要時展開
     {
       label: '網站管理',

@@ -1,5 +1,5 @@
 """
-Page Modules Extension — 行銷管理「模組管理」（2026-10-28，Polaris 專屬）
+Page Modules Extension — 產品管理「模組管理」（2026-10-28，Polaris 專屬）
 
 商品頁與報告目錄頁的內容區塊（介紹、亮點、推薦語、詳細說明、圖文特色、製作流程、讀者評價、FAQ、送禮對象）
 各自是一個模組；商品的 attributes.report_modules 依位置引用 module_key（{slot: module_key}，'' 或沒有＝不顯示），

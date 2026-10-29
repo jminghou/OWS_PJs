@@ -1,5 +1,5 @@
 /**
- * 頁面模組（行銷管理「模組管理」，2026-10-28）。
+ * 頁面模組（產品管理「模組管理」，2026-10-28）。
  *
  * 商品頁與目錄頁的內容區塊各自是一個模組（後端 extensions/page_modules，表 shop.page_modules）：
  * - 商品在 attributes.report_modules 依「位置」引用模組代碼：{ intro: 'natal-report-intro', faq: 'faq-1a2b3c', … }；

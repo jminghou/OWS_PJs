@@ -90,6 +90,8 @@ interface ProductFormCreateProps {
   reservedIds?: string[];
   /** 站台的語言清單；超過一種時顯示「語言」選單 */
   languages?: ProductLanguage[];
+  /** 標題文字（預設「新增產品」） */
+  createLabel?: string;
 }
 
 interface ProductFormEditProps {
@@ -200,7 +202,7 @@ export default function ProductForm(props: ProductFormProps) {
       <div className="flex items-start justify-between gap-4 border-b border-border px-6 pb-0 pt-5">
         <div className="min-w-0 pb-4">
           <h2 className="truncate text-lg font-semibold text-foreground">
-            {edit ? (edit.formData.name || '未命名產品') : '新增產品'}
+            {edit ? (edit.formData.name || '未命名產品') : (create?.createLabel ?? '新增產品')}
           </h2>
           {edit ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
