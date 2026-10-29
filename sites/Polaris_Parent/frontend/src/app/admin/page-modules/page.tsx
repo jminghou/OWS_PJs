@@ -5,13 +5,13 @@
  * 每個模組有後台名稱、類型與各語言版本；商品在產品管理的「頁面模組」分頁用選單選用（components/admin/ReportModulesTab.tsx）。
  * 規則（後端 extensions/page_modules）：語言版本從原文複製、確認後才能啟用；上架中頁面正在用的版本不能停用，被引用的不能刪除。
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Copy, Plus, Save, Trash2 } from 'lucide-react';
 import { AdminLayout } from '@ows/admin-app';
 import { AdminListLayout } from '@ows/ui/admin';
 import Input from '@ows/ui/ui/Input';
-import { pageModuleApi, type ModuleUsage, type PageModuleDetail, type PageModuleGroup } from '@/lib/api/pageModules';
+import { pageModuleApi, type ModulePage, type ModuleUsage, type PageModuleDetail, type PageModuleGroup } from '@/lib/api/pageModules';
 import { SALES_LANGUAGES } from '@/lib/report/locale';
 import {
   CATALOG_MODULE_KEY,
@@ -25,6 +25,7 @@ import {
 import { IMPORT_SUMMARY, importReportModules } from '@/lib/report/moduleImport';
 import { ModuleDataEditor, fieldCls, labelCls } from '@/components/admin/modules/ModuleDataEditor';
 import { moduleAvailability } from '@/components/admin/ReportModulesTab';
+import ModuleBrowser from '@/components/admin/modules/ModuleBrowser';
 
 const btn = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50';
 const primaryBtn = `${btn} bg-admin-accent-600 text-white hover:bg-admin-accent-700`;
@@ -73,12 +74,14 @@ export default function PageModulesAdmin() {
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
-  const [typeFilter, setTypeFilter] = useState<ModuleType | ''>('');
+  const [pages, setPages] = useState<ModulePage[]>([]);
+  const [deepLink, setDeepLink] = useState<Selection>(null);
   const [creating, setCreating] = useState<{ type: ModuleType; name: string } | null>(null);
 
   const reload = useCallback(async () => {
     const r = await pageModuleApi.list();
     setGroups(r.modules);
+    setPages(r.pages ?? []);
     return r.modules;
   }, []);
 
@@ -86,7 +89,11 @@ export default function PageModulesAdmin() {
     reload().catch((e) => setMessage({ tone: 'error', text: e.message || '讀取失敗' }));
     // 從產品管理「編輯模組」連過來：?key=…&lang=…
     const q = new URLSearchParams(window.location.search);
-    if (q.get('key')) setSelection({ key: q.get('key')!, language: q.get('lang') || 'zh-TW' });
+    if (q.get('key')) {
+      const link = { key: q.get('key')!, language: q.get('lang') || 'zh-TW' };
+      setSelection(link);
+      setDeepLink(link);
+    }
   }, [reload]);
 
   const group = groups?.find((g) => g.module_key === selection?.key) ?? null;
@@ -198,65 +205,22 @@ export default function PageModulesAdmin() {
   };
 
   const catalog = groups?.find((g) => g.module_key === CATALOG_MODULE_KEY);
-  const listed = useMemo(
-    () => (groups ?? []).filter((g) => g.type !== 'catalog_page' && (!typeFilter || g.type === typeFilter)),
-    [groups, typeFilter],
-  );
-
-  const chips = (g: PageModuleGroup) => (
-    <span className="mt-1 flex flex-wrap gap-1">
-      {g.versions.map((v) => (
-        <span key={v.language} className={`rounded-full px-1.5 text-[10px] ${v.is_active ? 'bg-admin-accent-600 text-white' : 'border border-border text-muted-foreground'}`}>
-          {langShort(v.language)}
-        </span>
-      ))}
-      {g.used_by.length > 0 && <span className="text-[10px] text-muted-foreground">・{g.used_by.length} 處使用</span>}
-    </span>
-  );
-
-  const itemCls = (active: boolean) =>
-    `block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${active ? 'bg-admin-accent-50 text-admin-accent-700 dark:bg-admin-accent-500/15 dark:text-admin-accent-200' : 'text-foreground hover:bg-muted'}`;
 
   const sidebar = (
-    <div className="space-y-4 p-3">
+    <div className="space-y-3 p-3">
       <button type="button" className={`${primaryBtn} w-full justify-center`} onClick={() => setCreating({ type: 'faq', name: '' })}>
         <Plus className="h-4 w-4" /> 新增模組
       </button>
-      <div>
-        <p className="px-1 pb-1 text-[11px] font-medium text-muted-foreground">頁面設定</p>
-        {catalog ? (
-          <button type="button" className={itemCls(selection?.key === CATALOG_MODULE_KEY)} onClick={() => select({ key: CATALOG_MODULE_KEY, language: 'zh-TW' })}>
-            報告目錄頁{chips(catalog)}
-          </button>
-        ) : (
-          <p className="px-3 text-xs text-muted-foreground">尚未建立（按「從現有內容建立模組」）</p>
-        )}
-      </div>
-      <div>
-        <div className="flex items-center justify-between px-1 pb-1">
-          <p className="text-[11px] font-medium text-muted-foreground">內容模組</p>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as ModuleType | '')} className="rounded border border-border bg-card px-1 py-0.5 text-[11px]">
-            <option value="">全部類型</option>
-            {MODULE_TYPES.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
-          </select>
-        </div>
-        {MODULE_TYPES.filter((t) => !typeFilter || t.type === typeFilter).map((t) => {
-          const items = listed.filter((g) => g.type === t.type);
-          if (!items.length) return null;
-          return (
-            <div key={t.type} className="mb-2">
-              <p className="px-3 pt-1 text-[11px] text-muted-foreground">{t.label}</p>
-              {items.map((g) => (
-                <button key={g.module_key} type="button" className={itemCls(selection?.key === g.module_key)}
-                  onClick={() => select({ key: g.module_key, language: g.versions.find((v) => v.language === selection?.language)?.language ?? g.versions[0].language })}>
-                  {g.name}{chips(g)}
-                </button>
-              ))}
-            </div>
-          );
-        })}
-        {groups && !listed.length && <p className="px-3 text-xs text-muted-foreground">還沒有模組</p>}
-      </div>
+      {groups && (
+        <ModuleBrowser
+          groups={groups}
+          pages={pages}
+          selectedKey={selection?.key ?? null}
+          deepLink={deepLink}
+          onSelect={(key, language) => select({ key, language })}
+          onLanguageChange={(language) => { if (selection && selection.language !== language) select({ key: selection.key, language }); }}
+        />
+      )}
     </div>
   );
 
@@ -267,7 +231,7 @@ export default function PageModulesAdmin() {
     <AdminLayout>
       <AdminListLayout
         sidebar={sidebar}
-        sidebarWidth={260}
+        sidebarWidth={300}
         mobileView={selection || creating ? 'detail' : 'list'}
         onMobileBack={() => { setCreating(null); select(null); }}
         mobileTitle={detail?.name ?? '模組管理'}

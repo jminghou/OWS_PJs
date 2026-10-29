@@ -158,6 +158,8 @@ class PageModuleTests(_Base):
         g = groups[0]
         self.assertEqual([v['language'] for v in g['versions']], ['zh-TW', 'en'])
         self.assertEqual(g['used_by'][0]['slot'], 'faq')
+        pages = self.api('get', '').get_json()['pages']
+        self.assertEqual([(p['kind'], p['refs']) for p in pages], [('product', {'faq': m['module_key']})])
 
     def test_bulk_import_links_languages_and_skips_existing(self):
         items = [

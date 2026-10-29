@@ -48,6 +48,17 @@ export interface ModuleUsage {
   is_active: boolean;
 }
 
+/** 改用模組的頁面（一種語言一筆）與各位置選的模組；依出版品檢視時用 */
+export interface ModulePage {
+  kind: 'product' | 'catalog';
+  id: number;
+  product_id?: string;
+  language: string;
+  name: string;
+  is_active: boolean;
+  refs: Record<string, string>;
+}
+
 export interface PageModuleGroup {
   module_key: string;
   type: ModuleType;
@@ -68,7 +79,7 @@ export interface BulkModule {
 const json = (method: string, body?: unknown) => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
 
 export const pageModuleApi = {
-  list: () => request<{ modules: PageModuleGroup[] }>('/admin/page-modules', { cache: 'no-store' }),
+  list: () => request<{ modules: PageModuleGroup[]; pages: ModulePage[] }>('/admin/page-modules', { cache: 'no-store' }),
   get: (id: number) => request<{ module: PageModuleDetail; used_by: ModuleUsage[] }>(`/admin/page-modules/${id}`, { cache: 'no-store' }),
   create: (body: { type: ModuleType; name: string; data?: Record<string, unknown> }) =>
     request<{ module: PageModuleDetail }>('/admin/page-modules', json('POST', body)),

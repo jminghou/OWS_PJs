@@ -238,7 +238,22 @@ def admin_list():
         g.setdefault('root_id', g['versions'][0]['id'])
         g.setdefault('name', g['versions'][0]['name'])
         g['used_by'] = _usages(g['module_key'])
-    return jsonify({'success': True, 'modules': list(groups.values())})
+    return jsonify({'success': True, 'modules': list(groups.values()), 'pages': _pages()})
+
+
+def _pages():
+    """改用模組的頁面（各語言商品＋目錄頁）與各位置選的模組；後台依出版品檢視時連沒選的位置也要列出"""
+    out = []
+    for p in Product.query.order_by(Product.product_id, Product.id).all():
+        if not isinstance((p.attributes or {}).get(PRODUCT_REFS_KEY), dict):
+            continue
+        out.append({'kind': 'product', 'id': p.id, 'product_id': p.product_id, 'language': p.language,
+                    'name': (p.names or {}).get(p.language) or p.product_id, 'is_active': bool(p.is_active),
+                    'refs': _product_refs(p)})
+    for c in PageModule.query.filter_by(module_key=CATALOG_KEY).all():
+        out.append({'kind': 'catalog', 'id': c.id, 'language': c.language, 'name': '報告目錄頁',
+                    'is_active': bool(c.is_active), 'refs': _catalog_refs(c)})
+    return out
 
 
 @bp.route('/admin/page-modules/<int:id>', methods=['GET'])
