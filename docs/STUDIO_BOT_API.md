@@ -6,7 +6,7 @@
 
 ---
 
-## 一、認證：服務帳號 + JWT
+## 一、認證：服務帳號 + Cookie + CSRF
 
 ### 1.1 建立服務帳號（一次性）
 
@@ -19,17 +19,10 @@
 | role | `editor`（自動有 `studio.write` + `contents.*`）|
 | password | 由運維設定強密碼 |
 
-或透過 CLI/SQL 建立（運維操作，密碼不 commit）：
-```sql
--- 範例，實際密碼由運維設定
-INSERT INTO blog.users (username, email, password_hash, role, is_active)
-VALUES ('banana-bot', 'banana-bot@internal', '<bcrypt_hash>', 'editor', true);
-```
-
-### 1.2 登入取得 JWT
+### 1.2 登入取得 Session
 
 ```http
-POST /auth/login
+POST /api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -38,27 +31,47 @@ Content-Type: application/json
 }
 ```
 
-回應：
+**回應（200）**：
 ```json
 {
-  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "token_type": "Bearer"
+  "user": {
+    "id": 1,
+    "username": "banana-bot",
+    "email": "...",
+    "role": "editor"
+  }
 }
 ```
 
-### 1.3 使用 JWT 呼叫 API
+**重要**：JWT 不在 JSON body！而是透過 `Set-Cookie` 設定：
 
-所有 `/api/v1/studio/*` 請求帶上：
-```
-Authorization: Bearer <access_token>
+| Cookie 名稱 | 說明 |
+|------------|------|
+| `access_token_cookie` | JWT（httpOnly，不可讀取） |
+| `csrf_access_token` | CSRF token（可讀取，需帶在後續請求 header） |
+
+### 1.3 後續 API 呼叫
+
+所有 `/api/v1/studio/*` 請求需要：
+
+1. **帶上 cookies**（自動，使用 cookie jar / session）
+2. **帶上 CSRF header**（從 `csrf_access_token` cookie 讀取）
+
+```http
+POST /api/v1/studio/projects
+Cookie: access_token_cookie=...; csrf_access_token=...
+X-CSRF-TOKEN: <csrf_access_token 的值>
+Content-Type: application/json
+
+{"title": "..."}
 ```
 
 ### 1.4 Token 過期處理
 
-JWT 預設 15-60 分鐘過期。Bot 應：
-1. 快取 token，重複使用
+JWT 預設 1 小時過期。Bot 應：
+1. 維護 session（cookie jar），重複使用
 2. 收到 401 時重新登入
-3. 或定期（如每 10 分鐘）refresh
+3. 或用 `POST /api/v1/auth/refresh` 更新 token
 
 ---
 
@@ -68,7 +81,8 @@ JWT 預設 15-60 分鐘過期。Bot 應：
 
 ```http
 POST /api/v1/studio/projects
-Authorization: Bearer <token>
+Cookie: access_token_cookie=...; csrf_access_token=...
+X-CSRF-TOKEN: <csrf_token>
 Content-Type: application/json
 
 {
@@ -106,7 +120,8 @@ Content-Type: application/json
 
 ```http
 POST /api/v1/studio/projects/<project_id>/documents
-Authorization: Bearer <token>
+Cookie: ...
+X-CSRF-TOKEN: <csrf_token>
 Content-Type: application/json
 
 {
@@ -152,7 +167,8 @@ Content-Type: application/json
 
 ```http
 PUT /api/v1/studio/documents/<document_id>
-Authorization: Bearer <token>
+Cookie: ...
+X-CSRF-TOKEN: <csrf_token>
 Content-Type: application/json
 
 {
@@ -167,7 +183,8 @@ Content-Type: application/json
 
 ```http
 POST /api/v1/studio/documents/<document_id>/autosave
-Authorization: Bearer <token>
+Cookie: ...
+X-CSRF-TOKEN: <csrf_token>
 Content-Type: application/json
 
 {
@@ -185,7 +202,8 @@ Content-Type: application/json
 
 ```http
 POST /api/v1/studio/documents/<document_id>/sync-to-content
-Authorization: Bearer <token>
+Cookie: ...
+X-CSRF-TOKEN: <csrf_token>
 Content-Type: application/json
 
 {
@@ -211,10 +229,11 @@ Content-Type: application/json
 ```
 Banana                          Studio API                    人工
   │                                │                           │
-  ├─ POST /auth/login ────────────►│                           │
-  │◄─ JWT token ───────────────────│                           │
+  ├─ POST /api/v1/auth/login ─────►│                           │
+  │◄─ Set-Cookie (JWT+CSRF) ───────│                           │
   │                                │                           │
   ├─ POST /studio/projects ───────►│                           │
+  │   (帶 Cookie + X-CSRF-TOKEN)   │                           │
   │◄─ {id: 42} ────────────────────│                           │
   │                                │                           │
   ├─ POST /studio/projects/42/     │                           │
@@ -225,21 +244,6 @@ Banana                          Studio API                    人工
   │                                │◄──────── 編輯、預覽 ───────│
   │                                │◄──────── 點「發布」────────│
   │                                │                           │
-```
-
-### 流程 B：Banana 直接發布（不建議用於正式內容）
-
-```python
-# 建立專案 + 文件
-project = api.post('/studio/projects', {'title': '...'})
-doc = api.post(f'/studio/projects/{project.id}/documents', {
-    'platform': 'blog',
-    'title': '...',
-    'body': '...',
-})
-
-# 直接發布
-api.post(f'/studio/documents/{doc.id}/sync-to-content', {'mode': 'publish'})
 ```
 
 ---
@@ -253,7 +257,7 @@ api.post(f'/studio/documents/{doc.id}/sync-to-content', {'mode': 'publish'})
 ```python
 def find_project_by_external_id(external_id):
     # 查詢所有專案，用 attributes 篩選
-    projects = api.get('/studio/projects?include_archived=true')
+    projects = api.get('/api/v1/studio/projects?include_archived=true')
     return next((p for p in projects['projects']
                  if (p.get('attributes') or {}).get('external_id') == external_id), None)
 ```
@@ -273,9 +277,11 @@ def find_project_by_external_id(external_id):
 
 ```python
 #!/usr/bin/env python3
-"""Banana → Studio 草稿推送範例"""
-import os
+"""Banana → Studio 草稿推送範例（Cookie + CSRF 認證）"""
+import http.cookiejar
 import json
+import os
+import re
 import urllib.request
 import urllib.error
 
@@ -283,64 +289,87 @@ BASE_URL = os.environ.get('STUDIO_API_URL', 'http://127.0.0.1:5000')
 BOT_USERNAME = os.environ.get('STUDIO_BOT_USERNAME', 'banana-bot')
 BOT_PASSWORD = os.environ.get('STUDIO_BOT_PASSWORD', '')
 
-_token_cache = None
 
-def _request(method, path, body=None, token=None):
-    url = f'{BASE_URL}{path}'
-    headers = {'Content-Type': 'application/json'}
-    if token:
-        headers['Authorization'] = f'Bearer {token}'
-    data = json.dumps(body).encode() if body else None
-    req = urllib.request.Request(url, data=data, method=method, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return r.status, json.loads(r.read().decode())
-    except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read().decode()) if e.read() else {}
+class StudioClient:
+    def __init__(self, base_url):
+        self.base_url = base_url.rstrip('/')
+        self.cookie_jar = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(self.cookie_jar)
+        )
+        self.csrf_token = None
 
-def get_token():
-    global _token_cache
-    if _token_cache:
-        return _token_cache
-    status, body = _request('POST', '/auth/login', {
-        'username': BOT_USERNAME,
-        'password': BOT_PASSWORD,
-    })
-    if status != 200:
-        raise Exception(f'Login failed: {body}')
-    _token_cache = body.get('access_token') or body.get('token')
-    return _token_cache
+    def _get_csrf_token(self):
+        """從 cookie jar 讀取 csrf_access_token"""
+        for cookie in self.cookie_jar:
+            if cookie.name == 'csrf_access_token':
+                return cookie.value
+        return None
 
-def api(method, path, body=None):
-    token = get_token()
-    status, data = _request(method, path, body, token)
-    if status == 401:
-        global _token_cache
-        _token_cache = None
-        token = get_token()
-        status, data = _request(method, path, body, token)
-    return status, data
+    def _request(self, method, path, body=None):
+        url = f'{self.base_url}{path}'
+        headers = {'Content-Type': 'application/json'}
+
+        # 非 GET 請求需要帶 CSRF token
+        if method != 'GET' and self.csrf_token:
+            headers['X-CSRF-TOKEN'] = self.csrf_token
+
+        data = json.dumps(body).encode() if body else None
+        req = urllib.request.Request(url, data=data, method=method, headers=headers)
+
+        try:
+            with self.opener.open(req, timeout=30) as r:
+                # 登入後更新 CSRF token
+                self.csrf_token = self._get_csrf_token()
+                return r.status, json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read().decode()) if e.read() else {}
+
+    def login(self, username, password):
+        status, body = self._request('POST', '/api/v1/auth/login', {
+            'username': username,
+            'password': password,
+        })
+        if status == 200:
+            self.csrf_token = self._get_csrf_token()
+        return status, body
+
+    def create_project(self, title, **kwargs):
+        return self._request('POST', '/api/v1/studio/projects', {
+            'title': title,
+            **kwargs,
+        })
+
+    def create_document(self, project_id, platform, title, body, **kwargs):
+        return self._request('POST', f'/api/v1/studio/projects/{project_id}/documents', {
+            'platform': platform,
+            'title': title,
+            'body': body,
+            **kwargs,
+        })
+
 
 def push_draft(title, body_md, external_id=None):
     """推送一篇草稿到 Studio。"""
-    # 1. 建立專案
-    status, proj = api('POST', '/api/v1/studio/projects', {
-        'title': title,
-        'stage': 'write',
-        'attributes': {'external_id': external_id} if external_id else {},
-    })
+    client = StudioClient(BASE_URL)
+
+    # 1. 登入
+    status, resp = client.login(BOT_USERNAME, BOT_PASSWORD)
+    if status != 200:
+        raise Exception(f'Login failed: {resp}')
+
+    # 2. 建立專案
+    attrs = {'external_id': external_id} if external_id else {}
+    status, proj = client.create_project(title, stage='write', attributes=attrs)
     if status != 201:
         raise Exception(f'Create project failed: {proj}')
     project_id = proj['id']
 
-    # 2. 建立 blog 文件
-    status, doc = api('POST', f'/api/v1/studio/projects/{project_id}/documents', {
-        'platform': 'blog',
-        'title': title,
-        'body': body_md,
-        'stage': 'write',
-        'attributes': {'external_id': external_id} if external_id else {},
-    })
+    # 3. 建立 blog 文件
+    status, doc = client.create_document(
+        project_id, 'blog', title, body_md,
+        stage='write', attributes=attrs,
+    )
     if status != 201:
         raise Exception(f'Create document failed: {doc}')
 
@@ -349,6 +378,7 @@ def push_draft(title, body_md, external_id=None):
         'document_id': doc['document']['id'],
         'content_id': doc['document'].get('content_id'),
     }
+
 
 if __name__ == '__main__':
     result = push_draft(
@@ -393,4 +423,4 @@ if __name__ == '__main__':
 | 檔案上傳 | ❌ Bot 不支援 | 圖片需先透過媒體庫上傳，取得 URL |
 | 批次操作 | ❌ 無批次 API | 一次一筆 |
 | Webhook | ❌ 無主動通知 | Banana 需輪詢或依賴排程 |
-| Token refresh | ⚠️ 需 Bot 處理 | 401 時重新登入 |
+| Token refresh | ⚠️ 需 Bot 處理 | 401 時重新登入，或呼叫 `/api/v1/auth/refresh` |
