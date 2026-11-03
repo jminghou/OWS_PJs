@@ -120,7 +120,8 @@ class HTTPClient:
                 self.csrf_token = self._get_csrf_token()
                 return r.status, json.loads(r.read().decode())
         except urllib.error.HTTPError as e:
-            body_text = e.read().decode() if e.read() else ''
+            raw = e.read()
+            body_text = raw.decode() if raw else ''
             return e.code, json.loads(body_text) if body_text else {}
         except Exception as e:
             return 0, {'error': str(e)}
