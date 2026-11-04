@@ -49,6 +49,7 @@ _EXTERNAL_USER_TABLE = os.environ.get('OWS_EXTERNAL_USER_TABLE') or 'account.app
 _EDITOR_PERMS = {
     'contents.create', 'contents.read', 'contents.update', 'contents.publish',
     'media.upload', 'media.delete', 'products.read',
+    'studio.read', 'studio.write',
 }
 _READER_PERMS = {'contents.read', 'products.read'}
 
