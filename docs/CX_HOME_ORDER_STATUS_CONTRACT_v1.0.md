@@ -1,6 +1,7 @@
 # 親紫之間｜Home 訂單狀態機技術契約（v1.0）
 
 **層級：** L2 契約草案（僅文件；不含正式部署、不含程式變更）
+**定案回填：** 2026-11-05 Cook＋Berry 終裁（E1＝收回下載；fulfill＝董事長／指定管理者；對客檔＝PDF）
 **日期：** 2026-11-05（Asia/Taipei）
 **起草：** Poteto（Home／Run 拆解）
 **上游：** `CX_DELIVERY_HANDOFF_MIN_v1.0.md`（Berry 交驗，Cook 2026-11-05 通過，v1.0.1 修訂）
@@ -16,6 +17,8 @@
 ---
 
 ## 0. 讀這份文件前要先知道的三件事
+
+**首單對客交付檔＝PDF。** 【已驗證】 路徑 A／B 落地的都是 `ReportDocument(kind='book_pdf')`；Cook＋Berry 2026-11-05 鎖定對客包為 PDF（文本＋圖組書後匯出之交客 PDF），不含合規／品質分報。
 
 1. **官網沒有「已交付」這個狀態欄位。** `【已驗證】` 訂單只有三個狀態（`pending` / `paid` / `cancelled`，見 §1.1）。顧客眼中的「已交付」在現行程式裡是一個**推導結果**：「這張訂單底下存在一份 current 的報告 PDF」。
 
@@ -173,7 +176,7 @@
 | **T1** | S1 → S2 | **人**：管理者（對帳） | 顧客回報轉帳 → 管理者在後台按「確認收款」 | `【已驗證】` 現行即如此。Mango 確認收款後通知管理者操作 | 不變。`【已驗證】`「收款自動觸發產線」明列不進首單（§4.4） |
 | **T1b** | （S2 內）建工作單 | **系統**：`jobs.handoff_reports` 背景排程 | `handoff_status` `pending` → `sent` | `【已驗證】` 已自動。失敗自動重試，用完次數後每 12h 再試並寄管理者警示 | 不變 |
 | **T1c** | （S2 內）進度更新 | **系統**：`jobs` 輪詢 Run | `GET /public/report-requests/:no` → `ziwei_status` | `【已驗證】` 已自動，成功後約 5 分鐘一輪、失敗指數退避最長 1h；逾 15 分鐘未同步標 `stale` | 不變 |
-| **T2** | S2 → S3 | **人**：Berry／管理者 | **這是契約的核心缺口。** 唯一合法訊號＝§1.6 的 A 或 B 成功落地一份 `ReportDocument` | 首單走 **路徑 A 人工上傳**：審查員放行後把完成檔交 Berry，Berry 核對後由管理者上傳。`【假設】` 須 Cook／Berry 確認「誰實際持有 `report_orders.fulfill` 權限」 | 走 **路徑 B 產線匯入**：`【已驗證】` 程式已在 `origin/main`，但須 Run 側提供 `/artifact` 與 `/artifacts/:v/file` 且其放行條件綁 `human_released`。`【假設】` Run 側端點是否已實作＝待 Apple／Run 確認 |
+| **T2** | S2 → S3 | **人**：Berry／管理者 | **這是契約的核心缺口。** 唯一合法訊號＝§1.6 的 A 或 B 成功落地一份 `ReportDocument` | 首單走 **路徑 A 人工上傳**：審查員放行後把完成檔交 Berry；Berry **核對** formal＋`human_released` 後**指示**上傳；**實際上傳**＝董事長／指定管理者（持 `report_orders.fulfill`）。Berry **不**持後台 fulfill 權限。`【已裁｜Cook＋Berry 2026-11-05】` | 走 **路徑 B 產線匯入**：`【已驗證】` 程式已在 `origin/main`，但須 Run 側提供 `/artifact` 與 `/artifacts/:v/file` 且其放行條件綁 `human_released`。`【假設】` Run 側端點是否已實作＝待 Apple／Run 確認 |
 | **T3** | S3 → S3（更正） | **人**：管理者 | 重新上傳／匯入更高版本 | `【已驗證】` 舊文件 `is_current=False`，新文件遞增；`report_ready` 信**不重寄**（`first_time` 為 False）。首單若更正須人工告知顧客 | 加「報告已更新」通知（L3） |
 | **T4** | S2 → E1 | **人**：管理者 | 後台履約控制面板，帶 `expected_revision` | `【已驗證】` 已有 | 不變 |
 | **T5** | E1 → S2 | **人**：管理者 | 同上，`desired='active'` | `【已驗證】` 已有；恢復時重跑全部資格檢查 | 不變 |
@@ -185,7 +188,7 @@
 - **R1**：T2 只能由「`ReportDocument` 落地」這一個事實驅動。**禁止**用 `ziwei_status == 'completed'`、`deliverable_ready_at`、或任何 Run 側狀態單獨把顧客頁翻成「已交付」。`【已驗證】` 現行程式已符合，本規則是防止二期為了方便而退化。
 - **R2**：交客檔**不含**合規／品質分報（上游 v1.0.1 Apple／Cook 裁定）。路徑 B 的 manifest 只接 `kind == 'book_pdf'` `【已驗證】`，天然符合；路徑 A 靠人（§4 第 5 步）。
 - **R3**：`preview_sampling` 類抽樣件永不進交付。`【已驗證】` 路徑 B 的 `identity()` 比對含 `env`（`test`／`live`），測試件無法混入 live 單。路徑 A 無此保護，靠 §4 人工。
-- **R4**：E1（暫停）優先級高於 S3。`【已驗證】` 前端徽章優先序第 1 條；但 `order.report` 仍會回傳、下載區塊仍會顯示。`【假設】` 暫停時是否該收回下載入口＝**待 Berry 裁定**（見 §6 待決 1）。
+- **R4**：E1（暫停）優先級高於 S3，且**目標態＝收回下載入口**。`【已驗證】` 現行前端徽章優先序第 1 條會顯示「後續履約暫停」，但 `order.report` 仍回傳、下載區塊仍顯示——程式尚未收回。`【已裁｜Cook＋Berry 2026-11-05】` **應收回**；改程式＝二期 L3。首單靠流程擋：暫停單 Berry **不代傳、不主動給連結**。下架／內容有誤走 **T3**（下架 current 或重傳），不綁 E1。
 
 ---
 
@@ -256,7 +259,7 @@ order.report != null ⇔  item.kind == 'purchase'
 | 說明（外部成交證據問題） | 「平台成交證據需要重新釐清，後續製作已暫停，請聯絡客服。此狀態不表示平台已完成退款。」 | `【已驗證】` 已有 |
 | 說明（管理者手動暫停） | 「後續製作暫停處理中，請聯絡客服。此狀態不表示已退款。」 | `【已驗證】` 已有 |
 | 產線進度卡 | **抑制**（blocked 時不顯示） | `【已驗證】` 已有 |
-| 下載入口 | **待決**（R4） | `【已驗證】` 目前仍會顯示 |
+| 下載入口 | **目標態＝應收回**（R4）；現行仍顯示 | `【已驗證】` 程式尚未收回。`【已裁】` 改碼＝二期 L3；首單流程：Berry 不代傳／不主動給連結 |
 
 ### E2 已取消
 
@@ -270,6 +273,8 @@ order.report != null ⇔  item.kind == 'purchase'
 ---
 
 ## 4. 首單人工對照表（過渡期｜對內，勿對外發布）
+
+**前提：首單可以不改任何正式頁。** 對客檔＝**PDF**。上傳權限＝**董事長／指定管理者**（Berry 不持 `report_orders.fulfill`；Berry＝核對 formal＋`human_released` → 指示上傳 → 對客告知）。
 
 **前提：首單可以不改任何正式頁。** `【已驗證】` 理由：S1、S2、E1、E2 的文案與元素今天就已存在；S3 的下載入口與 API 也已存在，只是沒有資料去點亮它。缺的不是程式，是「把檔案放上去」這個人工動作，以及 §6 的幾個待決文案。
 
@@ -288,6 +293,8 @@ order.report != null ⇔  item.kind == 'purchase'
 
 ### 4.2 「代傳／暫時連結」怎麼做（首單）
 
+**E1 暫停單例外（已裁）：** 訂單處於履約暫停時，Berry **不代傳、不主動給連結**（含短效網址）；等恢復後再依下列選項處理。
+
 `【已驗證】` 管理者側已有可直接用的取檔工具，**不需要為首單另做任何東西**：
 
 - `POST /api/v1/admin/report-orders/:order_no/report-pdf/link`（權限 `report_orders.fulfill`）→ 回傳一組短效網址，管理者可自行開啟或轉傳。
@@ -297,7 +304,7 @@ order.report != null ⇔  item.kind == 'purchase'
 
 1. **首選：請顧客登入訂單頁自取。** 入口已經在了，顧客體驗最完整，也順便把 S3 走一次真實驗證。
 2. **次選：Berry 郵件附檔代傳。** 適用於顧客登入有困難或外部平台來的客人。
-3. **末選：管理者用 `/admin/.../report-pdf/link` 取短效網址轉傳。** `【假設】` 這組網址的有效期與是否可重放，須 Poteto 在首驗前讀 `_file_link` 確認後回填；在確認前**不要**把它貼進任何對外訊息。
+3. **末選：管理者用 `/admin/.../report-pdf/link` 取短效網址轉傳。** `【已驗證】` `private_storage.read_file_token(..., max_age=600)`＝**10 分鐘**；憑證為 itsdangerous 限時簽章（到期失效；有效期內同一 token 可重放，非一次性）。E1 暫停單仍禁止主動轉傳（見上）。對外訊息貼連結前確認未過期。
 
 **不要做的代傳方式**：把 PDF 丟進公開 bucket、或產生永久公開連結。`【已驗證】` 報告檔走 `private_storage`，私有 bucket 是刻意設計。
 
@@ -309,7 +316,7 @@ order.report != null ⇔  item.kind == 'purchase'
 
 `【已驗證】` 關閉後 outbox 會留下 `report_ready` 紀錄；`notification_gate` 不會誤寄舊通知（寄送前條件重驗）。
 
-`【假設】` 目前正式環境 `MAIL_*` 是否已設、`REPORT_ADMIN_NOTIFY_EMAIL` 是否為空——**須在首驗前用 CLI 實查，不要憑推測**。這一條若猜錯，後果是顧客在 Berry 代傳前先收到系統信。
+`【已驗證｜部分】` Railway `pure-grace`／`polaris-backend`／`production` **已存在**變數名：`MAIL_DEFAULT_SENDER`、`REPORT_ADMIN_NOTIFY_EMAIL`、`RESEND_API_KEY`（OAuth 連線看不到明文值）。**演練前必須**用 `railway variables` 或儀表板確認是否非空／實際收件人——**不可假設已關閉對客寄信**；若已接通，首單上傳前須先處理環境層關閉或白名單，否則顧客可能在 Berry 告知前先收到 `report_ready`。
 
 ### 4.4 明確不進首單（照抄上游，並補對應的程式位置）
 
@@ -364,10 +371,10 @@ order.report != null ⇔  item.kind == 'purchase'
 
 | # | 問題 | 對口 | 標記 |
 | --- | --- | --- | --- |
-| 1 | ★ E1（暫停）時是否要收回 S3 的下載入口？現行會同時顯示「後續履約暫停」與可下載的報告 | Berry 裁定 | `【已驗證】` 現況；處置待定（R4） |
-| 2 | ★ 正式環境 `MAIL_*` 與 `REPORT_ADMIN_NOTIFY_EMAIL` 的實際值 | Poteto 用 CLI 實查後回填 | `【假設】` |
-| 3 | ★ 誰實際持有 `report_orders.fulfill` 權限（決定第 6 步誰能上傳） | Cook／Berry | `【假設】` |
-| 4 | `/admin/.../report-pdf/link` 短效網址的有效期與可重放性 | Poteto 讀 `_file_link` 後回填 | `【假設】` |
+| 1 | E1（暫停）是否收回 S3 下載入口 | **已裁＝應收回**（Cook＋Berry 2026-11-05） | 現行仍顯示＝`【已驗證】`；改碼＝二期 L3；首單流程擋（不代傳／不給連結） |
+| 2 | ★ 正式環境 `MAIL_*`／`REPORT_ADMIN_NOTIFY_EMAIL`／`RESEND_API_KEY` 明文是否非空與收件人 | Home／Poteto 演練前儀表板或 `railway variables` 實查 | `【已驗證｜部分】` 變數**名**已存在；明文值未讀到——演練前必須回填 |
+| 3 | 誰持有 `report_orders.fulfill`（誰能上傳） | **已裁＝董事長／指定管理者**；Berry **不**持後台權 | Berry＝核對 formal＋`human_released`→指示上傳→對客告知；二期再議 berry 服務帳 |
+| 4 | `/admin/.../report-pdf/link` 短效網址有效期與可重放性 | **已回填** | `【已驗證】` `max_age=600`（10 分鐘）；有效期內可重放 |
 | 5 | Run 側 `/public/report-requests/:no/artifact` 與 `/artifacts/:v/file` 是否已實作、放行條件是否綁 `human_released` | Apple／Run | `【假設】` |
 | 6 | `needs_info`／`failed` 的對客文案定稿 | Lemon（L3） | `【假設】` |
 | 7 | 「已交付時間與對象」的內部紀錄放哪：沿用 `deliverable_ready_at`＋稽核事件，或另開欄位 | Poteto 二期設計 | `【推論】` 現有兩者已夠首單用 |
@@ -414,3 +421,4 @@ order.report != null ⇔  item.kind == 'purchase'
 | 版本 | 日期 | 說明 |
 | --- | --- | --- |
 | v1.0 | 2026-11-05 | 首版 L2 草案。依 `CX_DELIVERY_HANDOFF_MIN_v1.0.md`（含 v1.0.1 修訂）拆 Home 側狀態機；交叉 `origin/main` 程式碼盤點現況；確認首單可不改正式頁。 |
+| v1.0.1 | 2026-11-05 | Cook＋Berry 終裁回填：E1＝**收回**下載（改碼二期 L3；首單流程擋）；`report_orders.fulfill`＝董事長／指定管理者（Berry 不持權）；對客檔＝PDF；§6★4 短效連結 10 分鐘；MAIL 變數名已存在、明文待演練前實查。 |
