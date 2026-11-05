@@ -333,6 +333,8 @@ order.report != null ⇔  item.kind == 'purchase'
 
 ## 5. 首驗點：狀態機桌面演練檢查清單
 
+> **執行 SOP：** 見 [`CX_HOME_SECTION5_DRILL_SOP_v1.0.md`](./CX_HOME_SECTION5_DRILL_SOP_v1.0.md)（本機／test only；禁止 production 路徑 A；production MAIL 暫不動等董事長裁示）。
+
 **演練方式：** 本機環境、一張測試報告訂單（`env='test'`）、不碰正式庫。每一步都要能回答「顧客現在看到哪個狀態、那個狀態是否在 §2.2 的五個之中」。
 
 **通過標準：** 15 條全綠，且**沒有任何一步的畫面無法歸類到 S1／S2／S3／E1／E2**。出現無法歸類的中間態即為不通過，須回頭修契約或修文案。
@@ -422,4 +424,5 @@ order.report != null ⇔  item.kind == 'purchase'
 | v1.0 | 2026-11-05 | 首版 L2 草案。依 `CX_DELIVERY_HANDOFF_MIN_v1.0.md`（含 v1.0.1 修訂）拆 Home 側狀態機；交叉 `origin/main` 程式碼盤點現況；確認首單可不改正式頁。 |
 | v1.0.1 | 2026-11-05 | 回填：`report_orders.fulfill`＝董事長／指定管理者（Berry 不持後台權）；首單對客檔＝PDF；短效連結 `max_age=600`（10 分鐘）；MAIL 變數名已存在、明文待演練前實查。 |
 | v1.0.2 | 2026-11-05 | Cook 凍結 E1：§6★1／R4／E1 下載＝**待董事長裁示（Cook 已凍結，Berry 改口多次）**；去掉「應收回」寫死。fulfill／PDF 維持已裁。暫停單不代傳僅作保守建議、非終態。 |
+| v1.0.4 | 2026-11-05 | 交叉引用 §5 演練 SOP（本機／test；禁 production 路徑 A；MAIL 暫不動）。 |
 | v1.0.3 | 2026-11-05 | E1 終裁（董事長於 Berry t18s1 點選原文）：暫停時收回下載；改程式二期 L3；首單暫停單不代傳、不給連結。 |
