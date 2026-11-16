@@ -20,6 +20,7 @@ describe('surveyPayload', () => {
   it('定稿文案（Lemon 2026-11-16）：題目、題下小字', () => {
     expect(SURVEY_COPY.title).toBe('你是從哪裡認識親紫之間的？');
     expect(SURVEY_COPY.hint).toBe('選填。你的回答能幫我們知道，哪些分享真的幫上了需要的人。');
+    expect(SURVEY_COPY.otherPlaceholder).toBe('例如某個網站、活動或文章（選填）');
   });
 
   it('選項順序與顯示文字依定稿，含 LINE', () => {

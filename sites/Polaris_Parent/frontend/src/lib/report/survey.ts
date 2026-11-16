@@ -16,7 +16,7 @@ export const SURVEY_OTHER_MAX = 100;
 export const SURVEY_COPY = {
   title: '你是從哪裡認識親紫之間的？',
   hint: '選填。你的回答能幫我們知道，哪些分享真的幫上了需要的人。',
-  otherPlaceholder: '請告訴我們（選填）',
+  otherPlaceholder: '例如某個網站、活動或文章（選填）',
 } as const;
 
 // 選項順序＝SURVEY_CHOICES；顯示文字依 Lemon 2026-11-16 定稿
