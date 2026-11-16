@@ -5,6 +5,8 @@
 
 - sanitize()：白名單清洗。未知 key 丟棄、型別不對丟棄、超長截斷；整包 JSON 超過 2KB 直接整包丟棄。
   一律不回 400——歸因是行銷資料，不能讓它擋住客人下單。
+- first_touch_at()：由 attribution.first.at（epoch ms 數字或 ISO 字串）推得首次接觸時間（UTC）。
+  解析不了、晚於伺服器現在＋5 分鐘（時鐘誤差）、早於現在－30 天（前端 TTL）再多 1 小時寬限，一律 NULL。
 - record()：訂單首次建立、已 commit 之後才寫；自己 commit，失敗就 rollback＋記 log，不影響下單。
   同一 submission_key 重送（created=False）不會走到這裡，所以不會覆寫。
 
@@ -12,7 +14,7 @@
 """
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
 from flask import current_app
@@ -24,6 +26,9 @@ UTM_FIELDS = ('source', 'medium', 'campaign', 'content', 'term')
 UTM_MAX = 100
 PATH_MAX = 200
 HOST_MAX = 253
+FIRST_TOUCH_FUTURE_SKEW = timedelta(minutes=5)
+# 前端 first 的 TTL 是 30 天；多給 1 小時寬限吸收時鐘誤差與到期邊界
+FIRST_TOUCH_MAX_AGE = timedelta(days=30, hours=1)
 _HOST_RE = re.compile(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$')
 
 
@@ -68,6 +73,34 @@ def _at(value):
     return value
 
 
+def _parse_at(value):
+    """epoch ms（int/float，非 bool）或 ISO 8601 字串 → UTC-aware datetime；解析不了回 None。"""
+    try:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
+        if isinstance(value, str) and len(value) <= 40:
+            dt = datetime.fromisoformat(value.strip().replace('Z', '+00:00'))
+            return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+    except (ValueError, OverflowError, OSError):
+        return None
+    return None
+
+
+def first_touch_at(raw, now=None):
+    """由原始 payload 的 first.at 推得首次接觸時間；不在 [now-30天-1小時, now+5分鐘] 內回 None。"""
+    if not isinstance(raw, dict) or not isinstance(raw.get('first'), dict):
+        return None
+    at = _parse_at(raw['first'].get('at'))
+    if at is None:
+        return None
+    now = now or datetime.now(timezone.utc)
+    if at > now + FIRST_TOUCH_FUTURE_SKEW or at < now - FIRST_TOUCH_MAX_AGE:
+        return None
+    return at
+
+
 def _touch(raw):
     if not isinstance(raw, dict):
         return None
@@ -106,7 +139,10 @@ def record(order, data):
             return False
         if db.session.get(OrderAttribution, order.id) is not None:
             return False  # 已有就不覆寫
-        db.session.add(OrderAttribution(order_id=order.id, first_touch=clean['first'], last_touch=clean['last']))
+        # first 被清洗掉（沒有來源資訊）就不記首次接觸時間
+        touched_at = first_touch_at(data.get('attribution')) if clean['first'] is not None else None
+        db.session.add(OrderAttribution(order_id=order.id, first_touch=clean['first'], last_touch=clean['last'],
+                                        first_touch_at=touched_at))
         db.session.commit()
         return True
     except Exception:  # noqa: BLE001 — 歸因失敗不能擋單
@@ -127,6 +163,10 @@ def view(order):
         return None
     if row is None:
         return None
+    touched_at = row.first_touch_at
+    if touched_at is not None and touched_at.tzinfo is None:  # SQLite 讀回來是 naive，存的就是 UTC
+        touched_at = touched_at.replace(tzinfo=timezone.utc)
     return {'first': row.first_touch, 'last': row.last_touch,
+            'first_touch_at': touched_at.isoformat() if touched_at else None,
             'survey_choice': row.survey_choice, 'survey_other': row.survey_other,
             'created_at': row.created_at.isoformat() if row.created_at else None}

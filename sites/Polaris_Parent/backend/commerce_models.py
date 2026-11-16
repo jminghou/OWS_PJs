@@ -113,6 +113,7 @@ class OrderAttribution(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey(ORDER_FK, ondelete='CASCADE'), primary_key=True)
     first_touch = db.Column(JSONB)
     last_touch = db.Column(JSONB)
+    first_touch_at = db.Column(db.DateTime(timezone=True))  # 由 first.at 推得，驗證不過為 NULL
     survey_choice = db.Column(db.String(20))
     survey_other = db.Column(db.String(100))
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())

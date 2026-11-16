@@ -582,5 +582,72 @@ class AttributionTests(_Base):
         self.assertIsNone(self.admin_detail(plain)['attribution'])
 
 
+    # ── first_touch_at（由 first.at 推得）────────────────────────────────
+    def _attr_at(self, at):
+        return {'first': {'source': 'ig', 'landing_path': '/', 'at': at}, 'last': None}
+
+    def test_first_touch_at_valid_is_stored(self):
+        from datetime import timezone
+        when = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(days=3)
+        cases = (('draft-fta-iso1', when.isoformat().replace('+00:00', 'Z')),     # ISO 字串
+                 ('draft-fta-ms01', int(when.timestamp() * 1000)))                # epoch ms
+        for key, at in cases:
+            r = self.post(payload(submission_key=key, attribution=self._attr_at(at)))
+            self.assertEqual(r.status_code, 201, r.get_json())
+        for row in OrderAttribution.query.all():
+            got = row.first_touch_at
+            got = got if got.tzinfo else got.replace(tzinfo=timezone.utc)  # SQLite 讀回 naive
+            self.assertEqual(got, when)
+
+    def test_first_touch_at_unparseable_is_null_and_order_succeeds(self):
+        for i, at in enumerate(('not-a-date', True, {'x': 1}, '9' * 60, 10 ** 30)):
+            r = self.post(payload(submission_key=f'draft-ftbad-{i:03d}', attribution=self._attr_at(at)))
+            self.assertEqual(r.status_code, 201, r.get_json())
+        rows = OrderAttribution.query.all()
+        self.assertEqual(len(rows), 5)
+        self.assertTrue(all(row.first_touch_at is None for row in rows))
+        self.assertTrue(all(row.first_touch['source'] == 'ig' for row in rows))
+
+    def test_first_touch_at_future_beyond_skew_is_null(self):
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        far = (now + timedelta(minutes=30)).isoformat()
+        near = (now + timedelta(minutes=2)).isoformat()   # 5 分鐘時鐘誤差內照收
+        self.assertEqual(self.post(payload(submission_key='draft-ftfut-01', attribution=self._attr_at(far))).status_code, 201)
+        self.assertEqual(self.post(payload(submission_key='draft-ftfut-02', attribution=self._attr_at(near))).status_code, 201)
+        rows = OrderAttribution.query.order_by(OrderAttribution.order_id).all()
+        self.assertIsNone(rows[0].first_touch_at)
+        self.assertIsNotNone(rows[1].first_touch_at)
+
+    def test_first_touch_at_older_than_30_days_is_null(self):
+        from datetime import timezone
+        old = int((datetime.now(timezone.utc) - timedelta(days=31)).timestamp() * 1000)
+        r = self.post(payload(attribution=self._attr_at(old)))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertIsNone(OrderAttribution.query.one().first_touch_at)
+
+    def test_customer_order_api_hides_first_touch_at(self):
+        from datetime import timezone
+        at = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        order_no = self.post(payload(attribution=self._attr_at(at))).get_json()['order']['order_no']
+        self.assertIsNotNone(OrderAttribution.query.one().first_touch_at)
+        for body in (self.client.get(f'/api/v1/report-orders/{order_no}', headers=self.headers()).get_data(as_text=True),
+                     self.client.get('/api/v1/report-orders', headers=self.headers()).get_data(as_text=True)):
+            self.assertNotIn('first_touch_at', body)
+            self.assertNotIn('attribution', body)
+
+    def test_admin_detail_shows_first_touch_at(self):
+        from datetime import timezone
+        when = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(days=1)
+        order_no = self.post(payload(attribution=self._attr_at(when.isoformat()))).get_json()['order']['order_no']
+        a = self.admin_detail(order_no)['attribution']
+        self.assertEqual(datetime.fromisoformat(a['first_touch_at']), when)
+        self.assertRegex(a['first_touch_at'], r'[+-]\d{2}:\d{2}$')  # 帶時區位移
+
+        stale = self.post(payload(submission_key='draft-key-0004',
+                                  attribution=self._attr_at('2000-01-01T00:00:00Z'))).get_json()['order']['order_no']
+        self.assertIsNone(self.admin_detail(stale)['attribution']['first_touch_at'])
+
+
 if __name__ == '__main__':
     unittest.main()

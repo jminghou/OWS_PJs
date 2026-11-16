@@ -62,12 +62,25 @@ function TouchLine({ label, touch }: { label: string; touch: AdminAttributionTou
   );
 }
 
+const TAIPEI_TIME = new Intl.DateTimeFormat('zh-TW', {
+  timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+});
+
+/** 首次接觸時間：一律以台北時間顯示；沒有或解析不了顯示「無」 */
+function formatTaipei(iso: string | null | undefined): string {
+  if (!iso) return '無';
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? TAIPEI_TIME.format(t) : '無';
+}
+
 function AttributionSection({ attribution }: { attribution: AdminOrderAttribution | null | undefined }) {
   return (
     <Section title="來源">
       {!attribution ? <p className="text-muted-foreground">無</p> : (
         <>
           <TouchLine label="首次來源" touch={attribution.first} />
+          <p>首次接觸時間：{formatTaipei(attribution.first_touch_at)}</p>
           <TouchLine label="最近來源" touch={attribution.last} />
         </>
       )}

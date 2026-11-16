@@ -199,6 +199,8 @@ export type AdminAttributionTouch = Partial<Record<
 export interface AdminOrderAttribution {
   first: AdminAttributionTouch | null;
   last: AdminAttributionTouch | null;
+  /** 由 first.at 推得的首次接觸時間（ISO 8601 帶時區位移）；驗證不過為 null */
+  first_touch_at?: string | null;
   survey_choice: string | null;
   survey_other: string | null;
   created_at: string | null;
