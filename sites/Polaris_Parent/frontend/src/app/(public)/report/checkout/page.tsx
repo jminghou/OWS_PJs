@@ -19,6 +19,7 @@ import { LANGUAGE_NAMES, REPORT_DEFAULT_LOCALE } from '@/lib/report/locale';
 import { pricePhysical, type PriceLine } from '@/lib/api/reportOrders';
 import { PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
 import { PREVIEW_HREF } from '@/lib/report/steps';
+import { attributionForOrder } from '@/lib/attribution';
 
 const CHECKOUT = '/report/checkout';
 // 表單（docs/BRAND_GUIDELINES.md §6.3）
@@ -123,6 +124,7 @@ export default function ReportCheckoutPage() {
         policy_version: POLICY_VERSION,
         ...(physical ? { shipping, physical: selection ?? undefined } : {}),
         consult_sessions: 0,
+        attribution: attributionForOrder(),
       });
       clearDraft();
       router.push(`/report/orders/${res.order.order_no}`);
