@@ -13,7 +13,7 @@ export interface PrivacyContent {
   contactLinkText: string;
 }
 
-export const PRIVACY_UPDATED_ISO = '2026-09-19';
+export const PRIVACY_UPDATED_ISO = '2026-11-16';
 
 export const privacyContent: Record<string, PrivacyContent> = {
   'zh-TW': {
@@ -99,7 +99,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
   'zh-CN': {
     title: '隐私政策',
     description: '亲紫之间如何收集、使用与保护您的个人资料，以及您可以如何退订与要求删除。',
-    updated: '最后更新：2026 年 9 月 19 日',
+    updated: '最后更新：2026 年 11 月 16 日',
     intro: '亲紫之间重视您的隐私。这份说明列出我们会收集哪些资料、为什么收集，以及您可以怎么做。',
     sections: [
       {
@@ -126,7 +126,46 @@ export const privacyContent: Record<string, PrivacyContent> = {
       },
       {
         heading: 'Cookie',
-        paragraphs: ['本站使用必要的 Cookie 来维持登录状态与记住您选择的语言。'],
+        paragraphs: [
+          '本站使用必要的 Cookie 来维持登录状态与记住您选择的语言。另外，我们会在您浏览器的本地存储空间记录来源信息，用来了解您是从哪里认识我们的，详见『我们如何了解您从哪里认识我们』。',
+        ],
+      },
+      {
+        heading: '我们如何了解您从哪里认识我们',
+        paragraphs: [
+          '为了更了解您是通过哪些分享认识我们的，我们会记录您最初是从哪里来到亲紫之间，例如某个社交平台或 Podcast 的链接。',
+        ],
+        subsections: [
+          {
+            heading: '我们会记录的信息',
+            items: [
+              '链接上带有的来源标记，例如来自哪个平台、哪一则分享',
+              '您从哪个网站点进来（域名）',
+              '您第一次进入的页面',
+              '您第一次访问的时间',
+              '结账时您自愿回答的“从哪里认识我们”问题的答案（选填，不填也能完成购买）',
+            ],
+          },
+          {
+            heading: '我们不会记录的信息',
+            items: [
+              '您的社交账号、好友名单，或您在其他平台上的任何内容',
+              '用来跨网站追踪您的广告标识信息',
+            ],
+          },
+          {
+            heading: '记录方式与保存期限',
+            paragraphs: [
+              '来源信息只存放在您浏览器的本地存储空间，不使用 Cookie。这些信息不会自动传给我们；只有在您下单时，才会随订单一起提交，之后按照订单资料的方式保护与保存。存放在浏览器里的来源信息最多保留 30 天，到期会自动删除。您也可以随时在浏览器中清除，清除后不影响购买。',
+            ],
+          },
+          {
+            heading: '用途',
+            paragraphs: [
+              '这些信息只用来了解哪些分享渠道真正帮到了需要的人、改善我们的内容与服务，不会出售或提供给第三方做广告用途。',
+            ],
+          },
+        ],
       },
       {
         heading: '联系我们',
@@ -138,7 +177,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
   en: {
     title: 'Privacy Policy',
     description: 'How Qin Zi Blog collects, uses and protects your personal data, and how you can unsubscribe or ask for deletion.',
-    updated: 'Last updated: 19 September 2026',
+    updated: 'Last updated: 16 November 2026',
     intro: 'We take your privacy seriously. This page lists what we collect, why we collect it, and what you can do about it.',
     sections: [
       {
@@ -165,7 +204,46 @@ export const privacyContent: Record<string, PrivacyContent> = {
       },
       {
         heading: 'Cookies',
-        paragraphs: ['This site uses essential cookies to keep you logged in and to remember your language choice.'],
+        paragraphs: [
+          "This site uses essential cookies to keep you logged in and to remember your language choice. We also store source information in your browser's local storage to understand how you found us. See 'How we learn where you found us'.",
+        ],
+      },
+      {
+        heading: 'How we learn where you found us',
+        paragraphs: [
+          'To better understand which shares help people find us, we record where you first came to us from, such as a link on a social platform or a podcast.',
+        ],
+        subsections: [
+          {
+            heading: 'What we record',
+            items: [
+              'Source tags carried in the link, such as which platform or which post it came from',
+              'The website you clicked through from (its domain name)',
+              'The first page you landed on',
+              'The time of your first visit',
+              'Your answer to the optional question at checkout about how you heard about us (you can complete your purchase without answering)',
+            ],
+          },
+          {
+            heading: 'What we do not record',
+            items: [
+              'Your social media accounts, friend lists, or anything you post on other platforms',
+              'Advertising identifiers used to track you across websites',
+            ],
+          },
+          {
+            heading: 'How it is stored and for how long',
+            paragraphs: [
+              "Source information is stored only in your browser's local storage. We do not use cookies for it. It is not sent to us automatically; it is sent only together with an order when you place one, and is then protected and kept in the same way as your order data. Source information in your browser is kept for up to 30 days and is then deleted automatically. You can also clear it in your browser at any time, and doing so does not affect your purchase.",
+            ],
+          },
+          {
+            heading: 'How we use it',
+            paragraphs: [
+              'We use this information only to understand which sharing channels genuinely helped the people who were looking for this kind of support, and to improve our content and services. We do not sell it or share it with third parties for advertising.',
+            ],
+          },
+        ],
       },
       {
         heading: 'Contact us',
@@ -177,7 +255,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
   ja: {
     title: 'プライバシーポリシー',
     description: '親紫の間が個人情報をどのように収集・利用・保護するか、また配信停止や削除の方法についてご説明します。',
-    updated: '最終更新日：2026年9月19日',
+    updated: '最終更新日：2026年11月16日',
     intro: '親紫の間はプライバシーを大切にしています。このページでは、収集する情報とその理由、そして皆さまができることをご説明します。',
     sections: [
       {
@@ -204,7 +282,46 @@ export const privacyContent: Record<string, PrivacyContent> = {
       },
       {
         heading: 'Cookie',
-        paragraphs: ['当サイトは、ログイン状態の維持と選択した言語の記憶のために必要な Cookie を使用します。'],
+        paragraphs: [
+          '当サイトは、ログイン状態の維持と選択した言語の記憶のために必要な Cookie を使用します。また、どこから当サイトを知っていただいたかを把握するため、ブラウザのローカルストレージに流入元の情報を記録します。詳しくは『どこから知っていただいたかを把握する方法』をご覧ください。',
+        ],
+      },
+      {
+        heading: 'どこから知っていただいたかを把握する方法',
+        paragraphs: [
+          'どのような紹介をきっかけに当サイトを知っていただいたのかをより理解するため、最初にどこから親紫の間へ来られたか（たとえば SNS や Podcast のリンクなど）を記録します。',
+        ],
+        subsections: [
+          {
+            heading: '記録する情報',
+            items: [
+              'リンクに付いている流入元の目印（どのプラットフォーム、どの投稿からか など）',
+              'クリックして来られたウェブサイト（ドメイン名）',
+              '最初に訪れたページ',
+              '初回訪問の日時',
+              'ご購入手続きの際に任意でご回答いただいた、当サイトを知ったきっかけについての質問への回答（任意です。回答しなくてもご購入いただけます）',
+            ],
+          },
+          {
+            heading: '記録しない情報',
+            items: [
+              'SNS のアカウント、友だちリスト、そのほか他のプラットフォーム上のあらゆる内容',
+              'ウェブサイトをまたいで追跡するための広告識別子',
+            ],
+          },
+          {
+            heading: '記録方法と保存期間',
+            paragraphs: [
+              '流入元の情報はお使いのブラウザのローカルストレージにのみ保存し、Cookie は使用しません。この情報が自動的に当方へ送信されることはなく、ご注文の際にのみ注文とあわせて送信され、その後は注文情報と同じ方法で保護・保管します。ブラウザ内の流入元の情報は最長 30 日間保存され、期限が来ると自動的に削除されます。ブラウザからいつでも削除することもでき、削除してもご購入に影響はありません。',
+            ],
+          },
+          {
+            heading: '利用目的',
+            paragraphs: [
+              'これらの情報は、どの紹介経路が本当に必要としている方のお役に立てたかを把握し、コンテンツとサービスを改善するためにのみ利用します。販売したり、広告目的で第三者に提供したりすることはありません。',
+            ],
+          },
+        ],
       },
       {
         heading: 'お問い合わせ',
