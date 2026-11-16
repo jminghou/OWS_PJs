@@ -19,7 +19,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
   'zh-TW': {
     title: '隱私權政策',
     description: '親紫之間如何收集、使用與保護您的個人資料，以及您可以如何退訂與要求刪除。',
-    updated: '最後更新：2026 年 9 月 19 日',
+    updated: '最後更新：2026 年 11 月 16 日',
     intro: '親紫之間重視您的隱私。這份說明列出我們會收集哪些資料、為什麼收集，以及您可以怎麼做。',
     sections: [
       {
