@@ -16,7 +16,10 @@ import { AdminLoadingSkeleton } from '@ows/ui/admin';
 import { ArrowLeft, Bot, ExternalLink, Mail, Paperclip, ShieldCheck, User } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
 import { channelLabel, languageLabel } from '@/lib/report/proxy';
-import { reportOrdersApi, type AdminOrderDetail, type OrderSource, type TimelineEntry } from '@/lib/api/reportOrders';
+import {
+  reportOrdersApi, type AdminAttributionTouch, type AdminOrderAttribution, type AdminOrderDetail, type OrderSource,
+  type TimelineEntry,
+} from '@/lib/api/reportOrders';
 
 const btnPrimary =
   'inline-flex min-h-[40px] md:min-h-0 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 bg-admin-accent-600 text-white hover:bg-admin-accent-700';
@@ -40,6 +43,35 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="mb-2 text-sm font-semibold">{title}</h2>
       <div className="space-y-1 text-sm">{children}</div>
     </section>
+  );
+}
+
+const TOUCH_FIELDS: [keyof AdminAttributionTouch, string][] = [
+  ['source', 'source'], ['medium', 'medium'], ['campaign', 'campaign'], ['content', 'content'], ['term', 'term'],
+  ['referrer_host', '來自'], ['landing_path', '落地頁'],
+];
+
+/** 一筆來源：純文字渲染（值來自客人瀏覽器，後端已清洗，前端仍不當 HTML 用） */
+function TouchLine({ label, touch }: { label: string; touch: AdminAttributionTouch | null }) {
+  const parts = touch ? TOUCH_FIELDS.filter(([k]) => touch[k]).map(([k, name]) => `${name}: ${touch[k]}`) : [];
+  return (
+    <div>
+      <p>{label}：{parts.length ? parts.join('・') : '無'}</p>
+      {touch?.at && <p className="text-xs text-muted-foreground">記錄於 {formatDate(touch.at)}</p>}
+    </div>
+  );
+}
+
+function AttributionSection({ attribution }: { attribution: AdminOrderAttribution | null | undefined }) {
+  return (
+    <Section title="來源">
+      {!attribution ? <p className="text-muted-foreground">無</p> : (
+        <>
+          <TouchLine label="首次來源" touch={attribution.first} />
+          <TouchLine label="最近來源" touch={attribution.last} />
+        </>
+      )}
+    </Section>
   );
 }
 
@@ -339,6 +371,8 @@ export default function ReportOrderDetailPage() {
                   <Link href="/admin/report-consultations" className="text-xs text-admin-accent-600 hover:underline dark:text-admin-accent-200">到專人解讀 →</Link>
                 </Section>
               )}
+
+              <AttributionSection attribution={order.attribution} />
             </div>
 
             <section className={cardCls}>

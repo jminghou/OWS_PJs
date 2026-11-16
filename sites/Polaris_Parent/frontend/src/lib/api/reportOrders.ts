@@ -40,6 +40,7 @@
  */
 import { getBaseUrl, request } from '@ows/platform-api/client';
 import type { ReportDraft } from '@/lib/report/draft';
+import type { OrderAttribution } from '@/lib/attribution';
 
 export type PaymentMode = 'placeholder' | 'manual';
 
@@ -117,6 +118,8 @@ export interface CreateReportOrderRequest extends Omit<ReportDraft, 'submission_
   shipping?: ShippingInfo;
   physical?: PhysicalSelection;
   consult_sessions?: number;
+  /** 來源歸因（lib/attribution.ts）；過期的那一側是 null。後端清洗後只給後台看 */
+  attribution?: OrderAttribution;
 }
 
 // ── 訂單 ─────────────────────────────────────────────────────────────────
@@ -185,6 +188,20 @@ export interface AdminOrderDetail extends AdminOrderRow {
   related: { relation: string; order_no: string; status_label: string }[];
   external_detail: ExternalOrderDetail | null;
   timeline: TimelineEntry[];
+  /** 來源歸因（shop.order_attributions）；沒有資料是 null。只有後台看得到 */
+  attribution?: AdminOrderAttribution | null;
+}
+
+/** 後端清洗過的來源（只留有值的欄位） */
+export type AdminAttributionTouch = Partial<Record<
+  'source' | 'medium' | 'campaign' | 'content' | 'term' | 'referrer_host' | 'landing_path' | 'at', string>>;
+
+export interface AdminOrderAttribution {
+  first: AdminAttributionTouch | null;
+  last: AdminAttributionTouch | null;
+  survey_choice: string | null;
+  survey_other: string | null;
+  created_at: string | null;
 }
 
 // ── 外部平台代客建單（後端 report_orders/proxy.py） ─────────────────────────

@@ -106,6 +106,18 @@ class CommerceSource(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
 
 
+class OrderAttribution(db.Model):
+    """官網訂單來源歸因（0020）：首次／最近一次來源與結帳問卷。只給後台看，不進 order_summary。"""
+    __tablename__ = 'order_attributions'
+    __table_args__ = {'schema': 'shop'}
+    order_id = db.Column(db.Integer, db.ForeignKey(ORDER_FK, ondelete='CASCADE'), primary_key=True)
+    first_touch = db.Column(JSONB)
+    last_touch = db.Column(JSONB)
+    survey_choice = db.Column(db.String(20))
+    survey_other = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+
+
 class CommerceLine(db.Model):
     """Immutable sale terms. quantity counts priced packages, print_copies counts identical copies."""
     __tablename__ = 'commerce_lines'
