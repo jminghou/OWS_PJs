@@ -121,7 +121,7 @@ export interface CreateReportOrderRequest extends Omit<ReportDraft, 'submission_
   consult_sessions?: number;
   /** 來源歸因（lib/attribution.ts）；過期的那一側是 null。後端清洗後只給後台看 */
   attribution?: OrderAttribution;
-  /** 結帳頁「你從哪裡知道我們？」（選填；lib/report/survey.ts） */
+  /** 結帳頁來源問卷（選填；lib/report/survey.ts） */
   survey?: SurveyAnswer;
 }
 

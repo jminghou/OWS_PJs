@@ -1,32 +1,35 @@
 /**
- * 結帳頁「你從哪裡知道我們？」（選填）。答案隨建單 payload 送 `survey: {choice, other}`，
+ * 結帳頁來源問卷（選填，單選）。答案隨建單 payload 送 `survey: {choice, other}`，
  * 後端存進 shop.order_attributions.survey_choice／survey_other，只有後台看得到。
  *
  * choice 的值是和後端約定的 enum（report_orders/attribution.py SURVEY_CHOICES），不要改；
  * 只有顯示文字可以改。
  */
 
-export const SURVEY_CHOICES = ['instagram', 'facebook', 'threads', 'podcast', 'youtube', 'friend', 'search', 'other'] as const;
+export const SURVEY_CHOICES = [
+  'facebook', 'instagram', 'threads', 'line', 'podcast', 'youtube', 'friend', 'search', 'other',
+] as const;
 export type SurveyChoice = (typeof SURVEY_CHOICES)[number];
 export const SURVEY_OTHER_MAX = 100;
 
-// TODO: Lemon 定稿文案（之後接 i18n；目前只有繁中結帳頁用到）
+// 定稿文案：Lemon 2026-11-16 確認（之後接 i18n；目前只有繁中結帳頁用到）
 export const SURVEY_COPY = {
-  title: '你從哪裡知道我們？',
-  hint: '選填，幫助我們知道哪裡最常遇見你。',
+  title: '你是從哪裡認識親紫之間的？',
+  hint: '選填。你的回答能幫我們知道，哪些分享真的幫上了需要的人。',
   otherPlaceholder: '請告訴我們（選填）',
 } as const;
 
-// TODO: Lemon 定稿文案
+// 選項順序＝SURVEY_CHOICES；顯示文字依 Lemon 2026-11-16 定稿
 export const SURVEY_LABELS: Record<SurveyChoice, string> = {
-  instagram: 'Instagram',
   facebook: 'Facebook',
+  instagram: 'Instagram',
   threads: 'Threads',
+  line: 'LINE',
   podcast: 'Podcast',
   youtube: 'YouTube',
   friend: '親友推薦',
-  search: '搜尋引擎',
-  other: '其他',
+  search: 'Google 等搜尋',
+  other: '其他（可填）',
 };
 
 export interface SurveyAnswer {

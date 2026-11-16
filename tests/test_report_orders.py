@@ -18,7 +18,7 @@ from packages.commerce.models import (
 )
 from sites.Polaris_Parent.backend.extensions import report_orders
 from sites.Polaris_Parent.backend.extensions.member_account import service as account_service
-from sites.Polaris_Parent.backend.extensions.report_orders import service
+from sites.Polaris_Parent.backend.extensions.report_orders import attribution, service
 from sites.Polaris_Parent.backend.commerce_models import (CommerceChannel, CommerceEvent, CommerceExternalReceipt,
                                                          CommerceReceiptBinding, OrderAttribution)
 from sites.Polaris_Parent.backend.models import (MemberEmailVerification, ReportBookDesign, ReportConsultation,
@@ -553,7 +553,6 @@ class AttributionTests(_Base):
         self.assertEqual(OrderAttribution.query.count(), 0)
 
     def test_attribution_write_failure_does_not_block_order(self):
-        from sites.Polaris_Parent.backend.extensions.report_orders import attribution
         with patch.object(attribution, 'sanitize', side_effect=RuntimeError('boom')):
             r = self.post(payload(attribution=ATTR))
         self.assertEqual(r.status_code, 201, r.get_json())
@@ -650,7 +649,7 @@ class AttributionTests(_Base):
 
 
 class SurveyTests(_Base):
-    """結帳問卷「你從哪裡知道我們？」：enum 內才存、other 只在選其他時保留、不合法也不擋單。"""
+    """結帳來源問卷：enum 內才存、other 只在選其他時保留、不合法也不擋單。"""
 
     def row(self):
         return OrderAttribution.query.one()
@@ -661,6 +660,16 @@ class SurveyTests(_Base):
         row = self.row()
         self.assertEqual((row.survey_choice, row.survey_other), ('podcast', None))
         self.assertEqual(row.first_touch['source'], 'ig')
+
+    def test_choice_keys_and_order_match_final_copy(self):
+        self.assertEqual(attribution.SURVEY_CHOICES, ('facebook', 'instagram', 'threads', 'line', 'podcast',
+                                                      'youtube', 'friend', 'search', 'other'))
+
+    def test_line_choice_is_accepted(self):
+        self.assertEqual(attribution.sanitize_survey({'choice': 'line', 'other': '不該存'}), ('line', None))
+        r = self.post(payload(survey={'choice': 'line'}))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertEqual((self.row().survey_choice, self.row().survey_other), ('line', None))
 
     def test_survey_only_still_creates_row(self):
         r = self.post(payload(survey={'choice': 'other', 'other': '  朋友的部落格  '}))

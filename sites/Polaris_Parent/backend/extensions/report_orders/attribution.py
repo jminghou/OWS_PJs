@@ -1,7 +1,7 @@
 """官網訂單來源歸因（shop.order_attributions，0020）。
 
 前端（src/lib/attribution.ts）把 localStorage 裡的首次／最近一次來源放進建單 payload 的
-`attribution: {first, last}`；結帳頁「你從哪裡知道我們？」（選填）放 `survey: {choice, other}`。
+`attribution: {first, last}`；結帳頁來源問卷（選填，單選）放 `survey: {choice, other}`。
 這裡只做兩件事：
 
 - sanitize()：白名單清洗。未知 key 丟棄、型別不對丟棄、超長截斷；整包 JSON 超過 2KB 直接整包丟棄。
@@ -30,7 +30,8 @@ HOST_MAX = 253
 FIRST_TOUCH_FUTURE_SKEW = timedelta(minutes=5)
 # 前端 first 的 TTL 是 30 天；多給 1 小時寬限吸收時鐘誤差與到期邊界
 FIRST_TOUCH_MAX_AGE = timedelta(days=30, hours=1)
-SURVEY_CHOICES = ('instagram', 'facebook', 'threads', 'podcast', 'youtube', 'friend', 'search', 'other')
+# 和前端 src/lib/report/survey.ts 同順序（Lemon 2026-11-16 定稿）；欄位是 String(20)，加值不需 migration
+SURVEY_CHOICES = ('facebook', 'instagram', 'threads', 'line', 'podcast', 'youtube', 'friend', 'search', 'other')
 SURVEY_OTHER_MAX = 100
 _HOST_RE = re.compile(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$')
 
