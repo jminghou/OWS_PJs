@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SURVEY_CHOICES, SURVEY_COPY, SURVEY_LABELS, surveyPayload } from './survey';
+import { SURVEY_CHOICES, SURVEY_COPY, SURVEY_LABELS, formatSurveyForAdmin, surveyPayload } from './survey';
 
 describe('surveyPayload', () => {
   it('沒選不送', () => {
@@ -29,5 +29,32 @@ describe('surveyPayload', () => {
     expect(SURVEY_CHOICES.map((c) => SURVEY_LABELS[c])).toEqual([
       'Facebook', 'Instagram', 'Threads', 'LINE', 'Podcast', 'YouTube', '親友推薦', 'Google 等搜尋', '其他（可填）',
     ]);
+  });
+});
+
+describe('formatSurveyForAdmin', () => {
+  it('其他＋文字 → 其他：文字', () => {
+    expect(formatSurveyForAdmin('other', '朋友的部落格')).toBe('其他：朋友的部落格');
+  });
+
+  it('其他但沒文字 → 其他', () => {
+    expect(formatSurveyForAdmin('other', null)).toBe('其他');
+    expect(formatSurveyForAdmin('other', '  ')).toBe('其他');
+  });
+
+  it('一般選項 → 顯示文字', () => {
+    expect(formatSurveyForAdmin('line', null)).toBe('LINE');
+    expect(formatSurveyForAdmin('friend', null)).toBe('親友推薦');
+  });
+
+  it('沒答 → 無；不認得的值原樣顯示', () => {
+    expect(formatSurveyForAdmin(null, null)).toBe('無');
+    expect(formatSurveyForAdmin(undefined, undefined)).toBe('無');
+    expect(formatSurveyForAdmin('', null)).toBe('無');
+    expect(formatSurveyForAdmin('tiktok', null)).toBe('tiktok');
+  });
+
+  it('結帳頁「其他」選項文字不變', () => {
+    expect(SURVEY_LABELS.other).toBe('其他（可填）');
   });
 });

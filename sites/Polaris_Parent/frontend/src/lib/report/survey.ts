@@ -43,3 +43,17 @@ export function surveyPayload(choice: SurveyChoice | '', other: string): SurveyA
   const text = choice === 'other' ? other.trim().slice(0, SURVEY_OTHER_MAX) : '';
   return { choice, other: text || null };
 }
+
+/**
+ * 後台顯示用（不影響結帳頁選項文字）：「其他」不帶「（可填）」；有文字時「其他：文字」。
+ * 沒答（含沒有來源紀錄）顯示「無」；不認得的 choice 原樣顯示。
+ */
+export const SURVEY_ADMIN_LABELS: Record<SurveyChoice, string> = { ...SURVEY_LABELS, other: '其他' };
+
+export function formatSurveyForAdmin(choice: string | null | undefined, other: string | null | undefined): string {
+  if (!choice) return '無';
+  const label = SURVEY_ADMIN_LABELS[choice as SurveyChoice] ?? choice;
+  if (choice !== 'other') return label;
+  const text = (other ?? '').trim();
+  return text ? `${label}：${text}` : label;
+}
