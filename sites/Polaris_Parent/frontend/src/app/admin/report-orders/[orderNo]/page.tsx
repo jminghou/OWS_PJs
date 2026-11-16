@@ -15,6 +15,7 @@ import FulfilmentControlPanel from '@/components/admin/FulfilmentControlPanel';
 import { AdminLoadingSkeleton } from '@ows/ui/admin';
 import { ArrowLeft, Bot, ExternalLink, Mail, Paperclip, ShieldCheck, User } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
+import { formatSurveyForAdmin } from '@/lib/report/survey';
 import { channelLabel, languageLabel } from '@/lib/report/proxy';
 import {
   reportOrdersApi, type AdminAttributionTouch, type AdminOrderAttribution, type AdminOrderDetail, type OrderSource,
@@ -74,16 +75,14 @@ function formatTaipei(iso: string | null | undefined): string {
   return Number.isFinite(t) ? TAIPEI_TIME.format(t) : '無';
 }
 
+/** 一律顯示四行；沒有來源紀錄時各行都是「無」（問卷存在來源紀錄裡，沒紀錄＝沒答） */
 function AttributionSection({ attribution }: { attribution: AdminOrderAttribution | null | undefined }) {
   return (
     <Section title="來源">
-      {!attribution ? <p className="text-muted-foreground">無</p> : (
-        <>
-          <TouchLine label="首次來源" touch={attribution.first} />
-          <p>首次接觸時間：{formatTaipei(attribution.first_touch_at)}</p>
-          <TouchLine label="最近來源" touch={attribution.last} />
-        </>
-      )}
+      <TouchLine label="首次來源" touch={attribution?.first ?? null} />
+      <p>首次接觸時間：{formatTaipei(attribution?.first_touch_at)}</p>
+      <TouchLine label="最近來源" touch={attribution?.last ?? null} />
+      <p>問卷：{formatSurveyForAdmin(attribution?.survey_choice, attribution?.survey_other)}</p>
     </Section>
   );
 }

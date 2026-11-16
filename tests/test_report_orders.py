@@ -18,7 +18,7 @@ from packages.commerce.models import (
 )
 from sites.Polaris_Parent.backend.extensions import report_orders
 from sites.Polaris_Parent.backend.extensions.member_account import service as account_service
-from sites.Polaris_Parent.backend.extensions.report_orders import service
+from sites.Polaris_Parent.backend.extensions.report_orders import attribution, service
 from sites.Polaris_Parent.backend.commerce_models import (CommerceChannel, CommerceEvent, CommerceExternalReceipt,
                                                          CommerceReceiptBinding, OrderAttribution)
 from sites.Polaris_Parent.backend.models import (MemberEmailVerification, ReportBookDesign, ReportConsultation,
@@ -553,7 +553,6 @@ class AttributionTests(_Base):
         self.assertEqual(OrderAttribution.query.count(), 0)
 
     def test_attribution_write_failure_does_not_block_order(self):
-        from sites.Polaris_Parent.backend.extensions.report_orders import attribution
         with patch.object(attribution, 'sanitize', side_effect=RuntimeError('boom')):
             r = self.post(payload(attribution=ATTR))
         self.assertEqual(r.status_code, 201, r.get_json())
@@ -647,6 +646,69 @@ class AttributionTests(_Base):
         stale = self.post(payload(submission_key='draft-key-0004',
                                   attribution=self._attr_at('2000-01-01T00:00:00Z'))).get_json()['order']['order_no']
         self.assertIsNone(self.admin_detail(stale)['attribution']['first_touch_at'])
+
+
+class SurveyTests(_Base):
+    """結帳來源問卷：enum 內才存、other 只在選其他時保留、不合法也不擋單。"""
+
+    def row(self):
+        return OrderAttribution.query.one()
+
+    def test_survey_choice_is_recorded_with_attribution(self):
+        r = self.post(payload(attribution=ATTR, survey={'choice': 'podcast', 'other': None}))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        row = self.row()
+        self.assertEqual((row.survey_choice, row.survey_other), ('podcast', None))
+        self.assertEqual(row.first_touch['source'], 'ig')
+
+    def test_choice_keys_and_order_match_final_copy(self):
+        self.assertEqual(attribution.SURVEY_CHOICES, ('facebook', 'instagram', 'threads', 'line', 'podcast',
+                                                      'youtube', 'friend', 'search', 'other'))
+
+    def test_line_choice_is_accepted(self):
+        self.assertEqual(attribution.sanitize_survey({'choice': 'line', 'other': '不該存'}), ('line', None))
+        r = self.post(payload(survey={'choice': 'line'}))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertEqual((self.row().survey_choice, self.row().survey_other), ('line', None))
+
+    def test_survey_only_still_creates_row(self):
+        r = self.post(payload(survey={'choice': 'other', 'other': '  朋友的部落格  '}))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        row = self.row()
+        self.assertEqual((row.survey_choice, row.survey_other), ('other', '朋友的部落格'))
+        self.assertIsNone(row.first_touch)
+        self.assertIsNone(row.last_touch)
+
+    def test_other_text_only_kept_for_other_and_truncated(self):
+        self.post(payload(survey={'choice': 'friend', 'other': '不該存'}))
+        self.assertEqual((self.row().survey_choice, self.row().survey_other), ('friend', None))
+        self.post(payload(submission_key='draft-key-0002', survey={'choice': 'other', 'other': 'x' * 300}))
+        newest = OrderAttribution.query.order_by(OrderAttribution.order_id.desc()).first()
+        self.assertEqual(len(newest.survey_other), 100)
+
+    def test_invalid_survey_is_dropped_never_rejected(self):
+        for i, survey in enumerate(({'choice': 'tiktok'}, {'choice': 'OTHER', 'other': 'x'}, {'choice': 3},
+                                    'instagram', ['instagram'], None)):
+            r = self.post(payload(submission_key=f'draft-bad-{i:04d}', survey=survey))
+            self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertEqual(OrderAttribution.query.count(), 0)
+
+    def test_resubmit_does_not_overwrite_survey(self):
+        self.post(payload(survey={'choice': 'youtube'}))
+        again = self.post(payload(survey={'choice': 'facebook'}))
+        self.assertEqual(again.status_code, 200)
+        self.assertEqual(self.row().survey_choice, 'youtube')
+
+    def test_customer_api_hides_survey_and_admin_sees_it(self):
+        order_no = self.post(payload(survey={'choice': 'other', 'other': '秘密來源'})).get_json()['order']['order_no']
+        body = self.client.get(f'/api/v1/report-orders/{order_no}', headers=self.headers()).get_data(as_text=True)
+        for word in ('survey', '秘密來源', 'attribution'):
+            self.assertNotIn(word, body)
+        admin = self.make_user('admin@example.test', verified=True)
+        with patch.object(RBACService, 'get_user_permissions', return_value={'report_orders.read'}):
+            a = self.client.get(f'/api/v1/admin/report-orders/{order_no}/detail',
+                                headers=self.headers(admin)).get_json()['order']['attribution']
+        self.assertEqual((a['survey_choice'], a['survey_other']), ('other', '秘密來源'))
 
 
 if __name__ == '__main__':

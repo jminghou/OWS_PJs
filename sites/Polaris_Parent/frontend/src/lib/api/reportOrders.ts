@@ -41,6 +41,7 @@
 import { getBaseUrl, request } from '@ows/platform-api/client';
 import type { ReportDraft } from '@/lib/report/draft';
 import type { OrderAttribution } from '@/lib/attribution';
+import type { SurveyAnswer } from '@/lib/report/survey';
 
 export type PaymentMode = 'placeholder' | 'manual';
 
@@ -120,6 +121,8 @@ export interface CreateReportOrderRequest extends Omit<ReportDraft, 'submission_
   consult_sessions?: number;
   /** 來源歸因（lib/attribution.ts）；過期的那一側是 null。後端清洗後只給後台看 */
   attribution?: OrderAttribution;
+  /** 結帳頁來源問卷（選填；lib/report/survey.ts） */
+  survey?: SurveyAnswer;
 }
 
 // ── 訂單 ─────────────────────────────────────────────────────────────────
