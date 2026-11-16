@@ -1,7 +1,8 @@
 """官網訂單來源歸因（shop.order_attributions，0020）。
 
 前端（src/lib/attribution.ts）把 localStorage 裡的首次／最近一次來源放進建單 payload 的
-`attribution: {first, last}`。這裡只做兩件事：
+`attribution: {first, last}`；結帳頁「你從哪裡知道我們？」（選填）放 `survey: {choice, other}`。
+這裡只做兩件事：
 
 - sanitize()：白名單清洗。未知 key 丟棄、型別不對丟棄、超長截斷；整包 JSON 超過 2KB 直接整包丟棄。
   一律不回 400——歸因是行銷資料，不能讓它擋住客人下單。
@@ -29,6 +30,8 @@ HOST_MAX = 253
 FIRST_TOUCH_FUTURE_SKEW = timedelta(minutes=5)
 # 前端 first 的 TTL 是 30 天；多給 1 小時寬限吸收時鐘誤差與到期邊界
 FIRST_TOUCH_MAX_AGE = timedelta(days=30, hours=1)
+SURVEY_CHOICES = ('instagram', 'facebook', 'threads', 'podcast', 'youtube', 'friend', 'search', 'other')
+SURVEY_OTHER_MAX = 100
 _HOST_RE = re.compile(r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$')
 
 
@@ -129,20 +132,32 @@ def sanitize(raw):
     return {'first': first, 'last': last}
 
 
+def sanitize_survey(raw):
+    """回傳 (choice, other)；choice 不在 enum 內整筆丟棄（不回 400），other 只在 choice='other' 時保留。"""
+    if not isinstance(raw, dict):
+        return None, None
+    choice = raw.get('choice')
+    if not isinstance(choice, str) or choice not in SURVEY_CHOICES:
+        return None, None
+    other = _text(raw.get('other'), SURVEY_OTHER_MAX) if choice == 'other' else None
+    return choice, other
+
+
 def record(order, data):
     """訂單首次建立後呼叫。任何錯誤都吞掉（rollback＋log），回傳是否寫入。"""
     from sites.Polaris_Parent.backend.commerce_models import OrderAttribution
 
     try:
-        clean = sanitize(data.get('attribution'))
-        if clean is None:
+        clean = sanitize(data.get('attribution')) or {'first': None, 'last': None}
+        choice, other = sanitize_survey(data.get('survey'))
+        if clean['first'] is None and clean['last'] is None and choice is None:
             return False
         if db.session.get(OrderAttribution, order.id) is not None:
             return False  # 已有就不覆寫
         # first 被清洗掉（沒有來源資訊）就不記首次接觸時間
         touched_at = first_touch_at(data.get('attribution')) if clean['first'] is not None else None
         db.session.add(OrderAttribution(order_id=order.id, first_touch=clean['first'], last_touch=clean['last'],
-                                        first_touch_at=touched_at))
+                                        first_touch_at=touched_at, survey_choice=choice, survey_other=other))
         db.session.commit()
         return True
     except Exception:  # noqa: BLE001 — 歸因失敗不能擋單

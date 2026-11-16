@@ -327,7 +327,7 @@ def create_order():
         return _error(exc.message, exc.status, code=exc.code, errors=getattr(exc, 'errors', None))
 
     if created:
-        # 來源歸因：訂單已 commit 才寫、自己 commit／rollback，失敗不擋單；放在 notify 前，
+        # 來源歸因＋結帳問卷：訂單已 commit 才寫、自己 commit／rollback，失敗不擋單；放在 notify 前，
         # 避免歸因失敗的 rollback 連帶丟掉寄信流程尚未 commit 的紀錄
         attribution.record(order, data)
         notify.send_order_created(order, email, mode, bank)

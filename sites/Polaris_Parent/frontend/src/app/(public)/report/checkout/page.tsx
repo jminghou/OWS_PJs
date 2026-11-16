@@ -20,6 +20,9 @@ import { pricePhysical, type PriceLine } from '@/lib/api/reportOrders';
 import { PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
 import { PREVIEW_HREF } from '@/lib/report/steps';
 import { attributionForOrder } from '@/lib/attribution';
+import {
+  SURVEY_CHOICES, SURVEY_COPY, SURVEY_LABELS, SURVEY_OTHER_MAX, surveyPayload, type SurveyChoice,
+} from '@/lib/report/survey';
 
 const CHECKOUT = '/report/checkout';
 // 表單（docs/BRAND_GUIDELINES.md §6.3）
@@ -47,6 +50,8 @@ export default function ReportCheckoutPage() {
   const [verification, setVerification] = useState<{ email: string; verified: boolean } | null>(null);
   const [shipping, setShipping] = useState<ShippingInfo>(EMPTY_SHIPPING);
   const [consented, setConsented] = useState(false);
+  const [surveyChoice, setSurveyChoice] = useState<SurveyChoice | ''>('');
+  const [surveyOther, setSurveyOther] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -125,6 +130,7 @@ export default function ReportCheckoutPage() {
         ...(physical ? { shipping, physical: selection ?? undefined } : {}),
         consult_sessions: 0,
         attribution: attributionForOrder(),
+        survey: surveyPayload(surveyChoice, surveyOther),
       });
       clearDraft();
       router.push(`/report/orders/${res.order.order_no}`);
@@ -193,6 +199,31 @@ export default function ReportCheckoutPage() {
                   : '付款功能尚未開放。送出後訂單會保留為「待付款」，開放付款後我們會以 Email 通知你。'}
             </Alert>
           </section>
+
+          <fieldset className={cardCls}>
+            <legend className="sr-only">{SURVEY_COPY.title}</legend>
+            <h2 className={cardTitleCls} aria-hidden="true">{SURVEY_COPY.title}</h2>
+            <p className="mt-1 text-sm text-muted">{SURVEY_COPY.hint}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {SURVEY_CHOICES.map((c) => (
+                <label key={c} className={clsx(
+                  'cursor-pointer rounded-full border-[1.5px] px-4 py-2 text-sm transition-colors',
+                  'has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-blue-100',
+                  surveyChoice === c ? 'border-blue-500 bg-blue-50 text-ink' : 'border-line-strong bg-white text-text',
+                )}>
+                  <input type="radio" name="survey_choice" value={c} className="sr-only" checked={surveyChoice === c}
+                         onChange={() => setSurveyChoice(c)}
+                         onClick={() => { if (surveyChoice === c) setSurveyChoice(''); }} />
+                  {SURVEY_LABELS[c]}
+                </label>
+              ))}
+            </div>
+            {surveyChoice === 'other' && (
+              <input className={clsx(inputCls(), 'mt-3')} value={surveyOther} maxLength={SURVEY_OTHER_MAX}
+                     onChange={(e) => setSurveyOther(e.target.value)} placeholder={SURVEY_COPY.otherPlaceholder}
+                     aria-label={SURVEY_LABELS.other} />
+            )}
+          </fieldset>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-card bg-white p-6 text-sm leading-6 text-text md:px-8">
             <input type="checkbox" checked={consented} onChange={(e) => setConsented(e.target.checked)}

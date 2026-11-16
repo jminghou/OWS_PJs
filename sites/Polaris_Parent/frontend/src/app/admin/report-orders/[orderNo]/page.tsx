@@ -15,6 +15,7 @@ import FulfilmentControlPanel from '@/components/admin/FulfilmentControlPanel';
 import { AdminLoadingSkeleton } from '@ows/ui/admin';
 import { ArrowLeft, Bot, ExternalLink, Mail, Paperclip, ShieldCheck, User } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
+import { SURVEY_LABELS, type SurveyChoice } from '@/lib/report/survey';
 import { channelLabel, languageLabel } from '@/lib/report/proxy';
 import {
   reportOrdersApi, type AdminAttributionTouch, type AdminOrderAttribution, type AdminOrderDetail, type OrderSource,
@@ -82,6 +83,12 @@ function AttributionSection({ attribution }: { attribution: AdminOrderAttributio
           <TouchLine label="首次來源" touch={attribution.first} />
           <p>首次接觸時間：{formatTaipei(attribution.first_touch_at)}</p>
           <TouchLine label="最近來源" touch={attribution.last} />
+          <p>
+            問卷：{attribution.survey_choice
+              ? `${SURVEY_LABELS[attribution.survey_choice as SurveyChoice] ?? attribution.survey_choice}`
+                + (attribution.survey_other ? `（${attribution.survey_other}）` : '')
+              : '無'}
+          </p>
         </>
       )}
     </Section>
