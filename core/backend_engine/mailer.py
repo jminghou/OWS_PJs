@@ -4,9 +4,11 @@
 為什麼需要：Railway 的 Hobby 方案封鎖對外 SMTP（25/465/587/2525），正式站用 SMTP 會連線逾時；
 HTTPS API 不受方案限制。呼叫端照舊 `mail.send(Message(...))`，不需要知道底下走哪一條。
 用標準函式庫 urllib，core 不因此多一個相依套件。
+Reply-To：兩條路徑一律帶上（config MAIL_REPLY_TO → 環境變數 MAIL_REPLY_TO → DEFAULT_REPLY_TO），呼叫端自帶的不覆蓋。
 """
 
 import json
+import os
 import urllib.error
 import urllib.request
 
@@ -14,6 +16,7 @@ from flask import current_app
 from flask_mail import Mail
 
 RESEND_ENDPOINT = 'https://api.resend.com/emails'
+DEFAULT_REPLY_TO = 'service@polaris-parent.com'
 
 
 class MailSendError(Exception):
@@ -28,8 +31,19 @@ def _format_address(value):
     return value
 
 
+def _default_reply_to():
+    """回信地址：config 優先，其次環境變數，最後程式預設；空字串視為未設定。"""
+    return (current_app.config.get('MAIL_REPLY_TO')
+            or os.environ.get('MAIL_REPLY_TO')
+            or DEFAULT_REPLY_TO)
+
+
 class OwsMail(Mail):
     def send(self, message):
+        # 呼叫端已明確指定 reply_to 就尊重，不覆蓋
+        if not message.reply_to:
+            message.reply_to = _default_reply_to()
+
         api_key = current_app.config.get('RESEND_API_KEY')
         if not api_key:
             return super().send(message)
