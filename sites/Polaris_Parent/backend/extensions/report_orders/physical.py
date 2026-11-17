@@ -673,7 +673,7 @@ def set_consult_preferences(consult, raw, today=None):
     db.session.refresh(consult)
 
     if consult.status not in ('awaiting_payment', 'to_schedule'):
-        raise OrderError('目前無法在這裡更改時段；已約好時間的話，請回覆確認信，或寫信到 service@polaris-parent.com 並附上訂單編號。', 409, 'invalid_status')
+        raise OrderError('目前無法在這裡更改時段；已約好時間的話，請回覆確認信，或寄信到 service@polaris-parent.com 並附上訂單編號。', 409, 'invalid_status')
     consult.preferences = clean_consult_preferences(raw, today)
     consult.preferences_at = datetime.utcnow()
     from . import audit

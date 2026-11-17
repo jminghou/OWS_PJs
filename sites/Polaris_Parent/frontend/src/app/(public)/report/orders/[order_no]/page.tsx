@@ -275,7 +275,7 @@ export default function ReportOrderPage() {
       <AddonSection order={order} />
       {order.status === 'cancelled' && (
         <p className="mt-6 rounded-inner bg-white px-[18px] py-[14px] text-sm leading-relaxed text-text">
-          這筆訂單已取消。{order.paid_at ? '已付款的金額會以轉帳退還，完成後寄信通知你。' : '如果你其實已經轉帳，請寫信到 service@polaris-parent.com，並附上訂單編號，我們會協助你確認。'}
+          這筆訂單已取消。{order.paid_at ? '已付款的金額會以轉帳退還，完成後寄信通知你。' : '如果你其實已經轉帳，請寄信到 service@polaris-parent.com，並附上訂單編號，我們會協助你確認。'}
         </p>
       )}
     </div>

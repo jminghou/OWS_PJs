@@ -157,7 +157,7 @@ def _decide(job, proof_id, decision, comment, actor_id):
         raise OrderError('打樣已更新，請重新整理後查看最新版', 409, 'stale_proof')
     if decision == 'changes_requested' and revisions_left(job) <= 0:
         db.session.rollback()
-        raise OrderError('免費修改次數已用完；如果還需要修改，請寫信到 service@polaris-parent.com，並附上訂單編號', 409, 'no_revisions_left')
+        raise OrderError('免費修改次數已用完；如果還需要修改，請寄信到 service@polaris-parent.com，並附上訂單編號', 409, 'no_revisions_left')
     now = _now()
     proof.decision, proof.comment, proof.decided_at, proof.decided_by = decision, comment, now, actor_id
     if decision == 'changes_requested':
