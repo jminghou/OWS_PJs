@@ -95,7 +95,7 @@ def report_transfer(order, data, today=None):
     commerce.lock_order(order)
     _ensure_open_manual_order(order)
     if order.checkout and order.checkout.expires_at and order.checkout.expires_at < datetime.utcnow():
-        raise OrderError('已超過匯款期限，訂單將會取消；若已轉帳請聯絡客服', 409, 'expired')
+        raise OrderError('已超過匯款期限，訂單將會取消；若已轉帳請寄信到 service@polaris-parent.com', 409, 'expired')
 
     today = today or date.today()
     errors = {}

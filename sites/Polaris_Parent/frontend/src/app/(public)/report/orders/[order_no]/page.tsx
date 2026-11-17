@@ -95,7 +95,7 @@ function ManualPayment({ order, onUpdated }: { order: ReportOrderSummary; onUpda
           </Alert>
         </section>
       ) : (
-        <Alert tone="warning">匯款資訊暫時無法顯示，請聯絡客服。</Alert>
+        <Alert tone="warning">匯款資訊暫時無法顯示，請寄信到 service@polaris-parent.com。</Alert>
       )}
 
       {transfer && !editing && (

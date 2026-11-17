@@ -86,7 +86,7 @@ def _save_chart(clean, email, eng, save_chart):
     if err:
         # 技術細節（連線錯誤、紫微回應）只進 log，不顯示給客人
         current_app.logger.error(f'report order: 紫微 save-and-register 失敗：{err}')
-        raise OrderError('系統暫時無法建立訂單，請稍後再試；若持續發生請聯絡客服。', 502, 'chart_service_error')
+        raise OrderError('系統暫時無法建立訂單，請稍後再試；若持續發生請寄信到 service@polaris-parent.com。', 502, 'chart_service_error')
 
     # 防禦性核對：紫微回傳的命盤必須是這次送出的性別與時間（舊版紫微沒有這些欄位 → 拒絕）
     if res.get('gender') is None or res.get('clock_time') is None:
