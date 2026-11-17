@@ -65,7 +65,7 @@ class PhysicalTests(_Base):
 
     def addon(self, order_no, user=None, physical=None, consult=0, **over):
         body = {'submission_key': over.pop('submission_key', 'addon-key-0001'), 'policy_consented': True,
-                'policy_version': '2026-10-03', 'shipping': SHIPPING, 'consult_sessions': consult}
+                'policy_version': '2026-11-17', 'shipping': SHIPPING, 'consult_sessions': consult}
         if physical is not None:
             body['physical'] = physical
         body.update(over)

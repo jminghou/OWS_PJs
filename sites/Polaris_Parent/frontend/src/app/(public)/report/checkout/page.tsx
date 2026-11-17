@@ -229,10 +229,12 @@ export default function ReportCheckoutPage() {
             <input type="checkbox" checked={consented} onChange={(e) => setConsented(e.target.checked)}
                    className={checkboxCls} />
             <span>
-              我已確認出生資料正確，並了解本商品為客製化商品，不適用七日解除權，付款後不受理取消或退款（例外情形依
+              我已確認出生資料正確，並了解這份報告是依我提供的出生資料客製的數位內容。
+              <br />
+              確認收款後，訂單即進入製作排程，之後不適用七日解除權，也不接受因改變心意的退款；如果報告有製作上的錯誤，我們會盡快處理，無法更正時再退款（詳見
               <Link href="/report/policy" target="_blank"
                     className="text-blue-500 underline-offset-[3px] hover:text-pink-600 hover:underline">《交易政策》</Link>
-              處理）。
+              ）。
             </span>
           </label>
 

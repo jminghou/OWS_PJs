@@ -65,7 +65,6 @@ export default function MyReportOrders({ orders: given }: { orders?: ReportOrder
                 <p className="mt-2 flex flex-wrap gap-2 text-[13px]">
                   <span className="rounded-full bg-tint px-2.5 py-1 text-text">{transferPending ? '匯款確認中' : STATUS[o.status] ?? o.status}</span>
                   {subs.map((x) => <span key={x} className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">{x}</span>)}
-                  {o.commerce?.external?.fulfilment_blocked && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">後續履約暫停</span>}
                   {canAddon && <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">可加購</span>}
                 </p>
               </div>

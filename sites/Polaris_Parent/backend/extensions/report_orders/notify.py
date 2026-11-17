@@ -41,7 +41,7 @@ EVENT_LABELS = {
     'proof_changes_admin': '會員要求修改打樣（後台）', 'proof_approved_admin': '打樣已確認送印（後台）',
 }
 
-POLICY_NOTE = '本報告依你提供的出生資料個別製作，屬客製化商品，不適用七日解除權；付款後不受理取消或退款。'
+POLICY_NOTE = '本報告依你提供的出生資料個別製作，屬客製化商品，不適用七日解除權；確認收款前可全額退款；確認收款後即進入製作排程，不接受改變心意退款。報告有製作錯誤，請寄信到 service@polaris-parent.com，我們會盡快處理；無法更正再退款。'
 
 
 def _frontend_url():

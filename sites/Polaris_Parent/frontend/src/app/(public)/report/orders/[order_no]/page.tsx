@@ -11,8 +11,9 @@ import { useAuthStore } from '@/store/auth';
 import { reportOrdersApi, type ReportOrderSummary } from '@/lib/api';
 import { AddonSection, ConsultStatus, PhysicalStatus, ReportDownload } from '@/components/report/orders/PhysicalSections';
 import ActivationSection from '@/components/report/orders/ActivationSection';
+import { REPORT_COPY, reportPhase } from '@/components/account/orderModel';
 
-const ORDER_STATUS: Record<string, string> = { pending: '待付款', paid: '已付款，報告製作中', cancelled: '已取消' };
+const ORDER_STATUS: Record<string, string> = { pending: '待付款', paid: '已付款，已排入製作。', cancelled: '已取消' };
 
 // 訂單狀態徽章：語意色（待付款＝warning、已付款＝success）；已取消用中性底
 const STATUS_TONE: Record<string, string> = {
@@ -205,6 +206,13 @@ export default function ReportOrderPage() {
 
   const pending = order.status === 'pending';
   const isAddon = order.item?.kind !== 'purchase';
+  const phase = reportPhase(order);
+  const progress = order.production?.progress;
+  // 只有交接已送出且製作端回報進度才說「製作中」；交接未完成或失敗一律「已排入製作」
+  const statusText = phase === 'queued' ? REPORT_COPY.queued
+    : phase === 'in_progress' ? REPORT_COPY.inProgress
+    : phase === 'needs_info' ? progress?.status_label || ORDER_STATUS[order.status] || order.status
+    : ORDER_STATUS[order.status] || order.status;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 md:px-6 md:py-16">
@@ -240,7 +248,7 @@ export default function ReportOrderPage() {
               'inline-flex items-center rounded-full px-3 py-1.5 text-[13px] leading-none',
               STATUS_TONE[order.status] ?? 'bg-tint text-text'
             )}>
-              {order.fulfilment_control?.blocked || order.commerce?.external?.fulfilment_blocked ? '後續履約暫停' : isAddon && order.status === 'paid' ? '已付款' : order.report ? '報告已完成' : order.production?.progress?.status_label || ORDER_STATUS[order.status] || order.status}
+              {isAddon && order.status === 'paid' ? '已付款' : order.report ? '報告已完成' : statusText}
             </span>
           </Row>
           {order.paid_at && <Row label={order.payment.mode === 'external_verified' ? '平台成交確認' : '確認收款'}><span className="font-latin">{fmtDateTime(order.paid_at)}</span></Row>}
@@ -253,21 +261,20 @@ export default function ReportOrderPage() {
         </Alert>
       )}
       {pending && order.payment.mode === 'manual' && <ManualPayment order={order} onUpdated={setOrder} />}
-      {order.commerce?.external?.fulfilment_blocked && <Alert tone="warning" className="mt-6">
-        平台成交證據需要重新釐清，後續製作已暫停，請聯絡客服。此狀態不表示平台已完成退款。
-      </Alert>}
-      {order.fulfilment_control?.blocked && !order.commerce?.external?.fulfilment_blocked && <Alert tone="warning" className="mt-6">後續製作暫停處理中，請聯絡客服。此狀態不表示已退款。</Alert>}
-      {order.status === 'paid' && !isAddon && !order.report && !order.production?.progress?.status && !order.commerce?.external?.fulfilment_blocked && !order.fulfilment_control?.blocked && (
+      {order.status === 'paid' && !isAddon && !order.report && phase === 'queued' && (
         <Alert tone="success" className="mt-6">
-          {order.payment.mode === 'external_verified' ? '已核對平台成交，無須再向官網付款。' : '已確認收款，'}報告製作中。完成後會寄信通知你，到這個頁面就能下載。
+          {order.payment.mode === 'external_verified' ? '已核對平台成交，無須再向官網付款。' : '已確認收款，'}已排入製作。完成後會寄信通知你，到這個頁面就能下載。
         </Alert>
       )}
       <ReportDownload order={order} />
-      {order.production?.progress && !order.fulfilment_control?.blocked && !order.commerce?.external?.fulfilment_blocked && !order.report &&
+      {(phase === 'in_progress' || phase === 'needs_info') && progress &&
         <Alert tone="info" className="mt-6">
-          {order.production.progress.status_label || '等待取得製作進度'}
-          {order.production.progress.member_note && <p>{order.production.progress.member_note}</p>}
-          {order.production.progress.stale && <p>進度待更新，以上為最近取得的狀態。</p>}
+          {phase === 'in_progress' ? REPORT_COPY.inProgress : <>
+            <p>{REPORT_COPY.needsInfo}</p>
+            {progress.status_label && <p>{progress.status_label}</p>}
+          </>}
+          {progress.member_note && <p>{progress.member_note}</p>}
+          {progress.stale && <p>進度待更新，以上為最近取得的狀態。</p>}
         </Alert>}
       <ActivationSection order={order} onUpdated={setOrder} />
       <PhysicalStatus order={order} onUpdated={setOrder} />

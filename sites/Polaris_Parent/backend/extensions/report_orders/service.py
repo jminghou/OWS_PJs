@@ -21,7 +21,7 @@ from packages.commerce.models import Order, OrderCheckout, OrderInvoice, OrderIt
 from sites.Polaris_Parent.backend.models import ReportFulfillment, Shipment
 
 # 交易政策版本：政策文字（前端 /report/policy）改版時一起改，訂單記錄的是同意當下的版本
-POLICY_VERSION = '2026-10-03'
+POLICY_VERSION = '2026-11-17'
 LANGUAGE = 'zh-TW'
 # 官網販售的語言（一種語言一筆商品，2026-10-28）；訂單語言決定交付的報告語言（handoff 帶給紫微端）
 SUPPORTED_LANGUAGES = ('zh-TW', 'zh-CN', 'en', 'ja', 'es', 'no', 'ko')
