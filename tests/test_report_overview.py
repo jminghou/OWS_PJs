@@ -182,7 +182,7 @@ class OverviewTests(_Base):
         self.admin_post(f'report-orders/{parent["order_no"]}/confirm-payment', {'received_amount': parent['amount']})
         r = self.client.post(f'/api/v1/report-orders/{parent["order_no"]}/addons', headers=self.headers(),
                              json={'physical': {'spec_key': 'coated'}, 'shipping': SHIPPING, 'submission_key': 'addon-0001',
-                                   'policy_consented': True, 'policy_version': '2026-10-03', 'consult_sessions': 0})
+                                   'policy_consented': True, 'policy_version': '2026-11-17', 'consult_sessions': 0})
         self.assertEqual(r.status_code, 201, r.get_json())
         child = r.get_json()['order']['order_no']
         d = self.detail(parent['order_no'])

@@ -121,7 +121,7 @@ class DesignTests(_Base):
         self.upload_report(o['order_no'])
         d = self.client.post(f'/api/v1/report-orders/{o["order_no"]}/design-draft', headers=self.headers()).get_json()['design']
         a = self.client.post(f'/api/v1/report-orders/{o["order_no"]}/addons', headers=self.headers(), json={
-            'submission_key': 'addon-with-design', 'policy_consented': True, 'policy_version': '2026-10-03',
+            'submission_key': 'addon-with-design', 'policy_consented': True, 'policy_version': '2026-11-17',
             'shipping': SHIPPING, 'consult_sessions': 0, 'design_id': d['id'],
             'physical': {'spec_key': 'soft', 'custom': ['custom_cover'], 'spreads': 1}}).get_json()['order']
         view = self.client.get(f'/api/v1/report-designs/{d["id"]}', headers=self.headers()).get_json()['design']
