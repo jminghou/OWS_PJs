@@ -195,7 +195,7 @@ function ProofSection({ order, onUpdated }: { order: ReportOrderSummary; onUpdat
           {pending.admin_note && <p className="mt-1 whitespace-pre-line text-sm text-blue-800">這一版的說明：{pending.admin_note}</p>}
           <p className="mt-2 text-caption text-blue-800">
             請在 {fmtDateTime(pending.due_at)} 前回覆；期限內沒有回覆，系統會自動確認送印。
-            {pr.revisions_left > 0 ? `你還有 ${pr.revisions_left} 次免費修改。` : '免費修改次數已用完，這一版請確認送印；若仍需修改請直接回信與我們聯絡。'}
+            {pr.revisions_left > 0 ? `你還有 ${pr.revisions_left} 次免費修改。` : '免費修改次數已用完，這一版請確認送印。如果還需要修改，請寄信到 service@polaris-parent.com，並附上訂單編號。'}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <BrandButton variant="soft" size="S" onClick={() => open(pending)}>開啟打樣 PDF</BrandButton>
@@ -391,7 +391,7 @@ export function ConsultStatus({ order, onUpdated }: { order: ReportOrderSummary;
         )
       )}
       {c.status === 'to_schedule' && needsActivation && <p className="mt-3 text-sm text-text">可先填寫方便的時段；完成啟用後，我們才能安排解讀。</p>}
-      {c.status === 'scheduled' && <p className="mt-4 text-sm text-text">需要更改時間，請直接回覆確認信。</p>}
+      {c.status === 'scheduled' && <p className="mt-4 text-sm text-text">需要更改時間的話，請回覆確認信，或寄信到 service@polaris-parent.com 並附上訂單編號。</p>}
       {c.status === 'cancelled' && (
         <Alert tone="info" className="mt-4">
           專人解讀已取消。{c.refund_due ? (c.refunded_at ? '已完成退款。' : `應退金額 ${nt(c.refund_due, order.currency)}，我們會以轉帳退款。`) : ''}

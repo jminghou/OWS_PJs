@@ -81,7 +81,7 @@ export default function OrderFailedPage() {
 
         {/* Help Text */}
         <p className="mt-6 text-caption text-muted">
-          如果問題持續發生，請聯繫客服：<span className="font-latin">support@example.com</span>
+          如果問題持續發生，請聯繫客服：<span className="font-latin">service@polaris-parent.com</span>
         </p>
       </div>
     </div>

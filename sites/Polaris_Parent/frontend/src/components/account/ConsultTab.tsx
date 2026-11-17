@@ -71,7 +71,7 @@ export default function ConsultTab({ orders, initialBook, onChanged }: {
             <li>選一本書，決定要預約幾次。</li>
             <li>留下 1–3 個你方便的時段，以及想聊的重點（例如書裡的哪幾章）。</li>
             <li>完成付款後，我們依你的時段安排，並以 Email 確認時間。</li>
-            <li>約定時間到了，一對一進行；需要改時間，直接回覆確認信。</li>
+            <li>約定時間到了，一對一進行。需要改時間的話，請回覆確認信，或寄信到 service@polaris-parent.com 並附上訂單編號。</li>
           </ol>
           {consult && (
             <p className="text-muted">

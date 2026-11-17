@@ -24,7 +24,7 @@ export default function ActivationSection({ order, onUpdated }: {
         {pending.map((e) => <li key={e.id}>
           {e.kind === 'book' ? '書籍客製' : e.kind === 'consult' ? '專人解讀' : '報告製作'} #{e.unit_index}：
           {e.activation?.status === 'issued' ? `請於 ${new Date(e.activation.expires_at).toLocaleString('zh-TW')} 前啟用`
-            : '啟用碼已到期或撤銷，請聯絡客服補發'}
+            : '啟用碼已到期或撤銷，請寄信到 service@polaris-parent.com 補發'}
         </li>)}
       </ul>
       {error && <Alert tone="error">{error}</Alert>}
@@ -44,7 +44,7 @@ export default function ActivationSection({ order, onUpdated }: {
           className="w-full rounded-2xl border border-line-strong bg-white px-4 py-3 font-mono text-ink"
           placeholder="PP-…" />
         <BrandButton type="submit" disabled={busy || !code.trim()}>{busy ? '啟用中…' : '啟用服務'}</BrandButton>
-      </form> : !order.commerce?.activation_enabled && <p className="text-sm text-muted">啟用碼服務暫停，請稍後再試或聯絡客服。</p>}
+      </form> : !order.commerce?.activation_enabled && <p className="text-sm text-muted">啟用碼服務暫停，請稍後再試或寄信到 service@polaris-parent.com。</p>}
     </section>
   );
 }
