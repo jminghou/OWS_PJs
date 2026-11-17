@@ -35,6 +35,17 @@ class ResendMailTests(unittest.TestCase):
         self.ctx = self.app.app_context()
         self.ctx.push()
         self.addCleanup(self.ctx.pop)
+        # 隔離外部環境變數，確保走程式預設的 Reply-To
+        env = patch.dict(os.environ)
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop('MAIL_REPLY_TO', None)
+
+    def _resend_payload(self, message):
+        self.app.config['RESEND_API_KEY'] = 're_test'
+        with patch('urllib.request.urlopen', return_value=_FakeResponse()) as urlopen:
+            mail.send(message)
+        return json.loads(urlopen.call_args[0][0].data)
 
     def test_uses_resend_api_when_key_set(self):
         self.app.config['RESEND_API_KEY'] = 're_test'
@@ -45,7 +56,46 @@ class ResendMailTests(unittest.TestCase):
         self.assertEqual(req.get_header('Authorization'), 'Bearer re_test')
         payload = json.loads(req.data)
         self.assertEqual(payload, {'from': '親紫之間 <noreply@polaris-parent.com>', 'to': ['a@example.test'],
-                                   'subject': '驗證碼', 'text': '123456'})
+                                   'subject': '驗證碼', 'text': '123456',
+                                   'reply_to': 'service@polaris-parent.com'})
+
+    def test_resend_payload_has_default_reply_to(self):
+        payload = self._resend_payload(Message(subject='x', recipients=['a@example.test'], body='y'))
+        self.assertEqual(payload['reply_to'], 'service@polaris-parent.com')
+
+    def test_config_reply_to_overrides_default(self):
+        self.app.config['MAIL_REPLY_TO'] = 'help@example.test'
+        os.environ['MAIL_REPLY_TO'] = 'env@example.test'
+        payload = self._resend_payload(Message(subject='x', recipients=['a@example.test'], body='y'))
+        self.assertEqual(payload['reply_to'], 'help@example.test')
+
+    def test_env_reply_to_used_when_config_empty(self):
+        self.app.config['MAIL_REPLY_TO'] = ''
+        os.environ['MAIL_REPLY_TO'] = 'env@example.test'
+        payload = self._resend_payload(Message(subject='x', recipients=['a@example.test'], body='y'))
+        self.assertEqual(payload['reply_to'], 'env@example.test')
+
+    def test_caller_reply_to_not_overridden(self):
+        self.app.config['MAIL_REPLY_TO'] = 'help@example.test'
+        payload = self._resend_payload(Message(subject='x', recipients=['a@example.test'], body='y',
+                                               reply_to='owner@example.test'))
+        self.assertEqual(payload['reply_to'], 'owner@example.test')
+
+    def test_sender_unchanged_with_reply_to(self):
+        payload = self._resend_payload(Message(subject='x', recipients=['a@example.test'], body='y'))
+        self.assertEqual(payload['from'], '親紫之間 <noreply@polaris-parent.com>')
+        self.assertEqual(payload['subject'], 'x')
+        self.assertEqual(payload['text'], 'y')
+
+    def test_smtp_fallback_sets_reply_to(self):
+        self.app.config['RESEND_API_KEY'] = None
+        with patch('flask_mail.Mail.send') as smtp_send, patch('urllib.request.urlopen') as urlopen:
+            mail.send(Message(subject='x', recipients=['a@example.test'], body='y'))
+        urlopen.assert_not_called()
+        sent = smtp_send.call_args[0][0]
+        self.assertEqual(sent.reply_to, 'service@polaris-parent.com')
+        self.assertEqual(sent.sender, '親紫之間 <noreply@polaris-parent.com>')
+        self.assertIn('Reply-To: service@polaris-parent.com', sent.as_string())
 
     def test_http_error_raises_so_callers_log_failure(self):
         import urllib.error
