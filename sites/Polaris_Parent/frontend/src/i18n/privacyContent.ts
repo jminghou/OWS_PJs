@@ -83,6 +83,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
             heading: '用途',
             paragraphs: [
               '這些資訊只用來了解哪些分享管道真的幫上了需要的人、改善我們的內容與服務，不會出售或提供給第三方做廣告用途。',
+              '如果對這些資料有任何疑問，或希望我們刪除與你訂單有關的來源資訊，歡迎寄信到 service@polaris-parent.com 與我們聯繫。',
             ],
           },
         ],

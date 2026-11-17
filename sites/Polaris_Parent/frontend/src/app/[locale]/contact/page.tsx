@@ -280,6 +280,18 @@ export default function LocaleContactPage() {
             {content.generalContact}
           </h2>
 
+          {locale === 'zh-TW' && (
+            <p className="mb-6 text-sm text-text">
+              客服信箱：
+              <a
+                href="mailto:service@polaris-parent.com"
+                className="text-blue-500 underline-offset-[3px] hover:text-pink-600 hover:underline"
+              >
+                service@polaris-parent.com
+              </a>
+            </p>
+          )}
+
           <form onSubmit={handleContactSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className={labelCls}>
