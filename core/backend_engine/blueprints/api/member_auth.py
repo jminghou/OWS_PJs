@@ -183,11 +183,69 @@ def member_set_password():
 # 重寄設定密碼信
 # =============================================================================
 
+# 同一信箱冷卻：同一個（正規化後）email 在這段時間內只會真的寄出一封。
+# 可由 config['RESEND_SET_PASSWORD_COOLDOWN_SECONDS'] 覆寫。
+RESEND_SET_PASSWORD_COOLDOWN = 600
+_RESEND_COOLDOWN_KEY_PREFIX = 'resend_set_pw:'
+
+
+def _acquire_resend_cooldown(email):
+    """
+    嘗試取得此 email 的重寄冷卻鎖；回傳 True 代表可以寄信。
+
+    用 factory 的 throttle_cache.add（鍵不存在才寫入；Redis 為 SET NX 原子操作）當鎖：
+    搶到才寄。鍵是 email 的 sha256，不把原始 email 放進快取或 log。
+
+    為什麼不用 factory.cache：api blueprint 每次寫入成功（含本端點自己的 200）都會
+    cache.clear() 清回應快取，冷卻鍵放那裡會立刻被清掉。throttle_cache 與 cache
+    同後端但 KEY_PREFIX 獨立，不受該 clear 影響。
+
+    SimpleCache（無 Redis 時）的 add 不檢查過期：鍵過期但尚未被 prune 時仍回 False。
+    所以 add 失敗後再以 has() 確認鍵是否真的還有效，已過期就覆寫並放行。
+
+    快取未初始化或後端出錯時 fail-open（照寄），只記 warning ——
+    此時仍有 IP 層級的 3/min 限流兜底，不讓快取故障變成忘記密碼功能故障。
+    """
+    import hashlib
+
+    key = _RESEND_COOLDOWN_KEY_PREFIX + hashlib.sha256(email.encode('utf-8')).hexdigest()
+    timeout = int(current_app.config.get(
+        'RESEND_SET_PASSWORD_COOLDOWN_SECONDS', RESEND_SET_PASSWORD_COOLDOWN))
+    try:
+        from core.backend_engine.factory import throttle_cache
+        if throttle_cache.add(key, 1, timeout=timeout):
+            return True
+        if not throttle_cache.has(key):  # 過期殘留（SimpleCache）
+            throttle_cache.set(key, 1, timeout=timeout)
+            return True
+        return False
+    except Exception as exc:  # noqa: BLE001 - 快取故障不擋功能
+        current_app.logger.warning(
+            f"member_resend_set_password: 冷卻鎖不可用，略過冷卻（{type(exc).__name__}）")
+        return True
+
+
 @bp.route('/auth/member/resend-set-password', methods=['POST'])
 @_limit("3 per minute")
 @_requires_member_auth
 def member_resend_set_password():
-    """重寄設定密碼信（兼忘記密碼）。無論 email 是否存在一律回成功，避免帳號枚舉。"""
+    """
+    重寄設定密碼信（兼忘記密碼）。無論 email 是否存在一律回成功，避免帳號枚舉。
+
+    此端點免登入，任何人都能對任一 email 觸發寄信，所以除了 IP 限流（3/min）之外，
+    再加「同一信箱冷卻」：同一 email 在 RESEND_SET_PASSWORD_COOLDOWN 秒內只寄一封，
+    避免換 IP 對同一個信箱轟炸。
+
+    不洩漏是否註冊的設計：
+    - 冷卻對所有格式有效的 email 一視同仁，先搶冷卻鎖、才查會員；
+      未註冊的 email 也會佔用冷卻，行為與已註冊者一致。
+    - 被冷卻擋下時不寄信，但回應與正常情形完全相同（200、同一份 JSON），
+      不回 429、不加任何可區分的欄位或文案。
+
+    冷卻鍵存在 throttle_cache（不是 cache），理由見 _acquire_resend_cooldown。
+
+    不加 Turnstile：目前沒有前端呼叫此端點，且冷卻 + IP 限流已足以擋濫寄。
+    """
     from core.backend_engine.models import User
 
     data = request.get_json(silent=True) or {}
@@ -195,9 +253,10 @@ def member_resend_set_password():
     if not is_valid_email(email):
         return jsonify({"success": False, "error": "請提供有效的 email"}), 400
 
-    user = User.query.filter_by(username=email).first()
-    if user is not None and user.is_active:
-        send_set_password_email(user.id, email)
+    if _acquire_resend_cooldown(email):
+        user = User.query.filter_by(username=email).first()
+        if user is not None and user.is_active:
+            send_set_password_email(user.id, email)
 
     return jsonify({
         "success": True,
