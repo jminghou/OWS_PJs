@@ -36,6 +36,10 @@ login_manager = LoginManager()
 mail = OwsMail()
 jwt = JWTManager()
 cache = Cache()
+# 防濫用用的短期鎖/冷卻（例如重寄設定密碼信的同一信箱冷卻）。與 cache 同後端，但用獨立
+# KEY_PREFIX —— api blueprint 每次寫入成功都會 cache.clear() 清回應快取，冷卻鍵若放在
+# cache 裡會被一起清掉，等於沒有冷卻。
+throttle_cache = Cache()
 # key 用真實使用者 IP（core/backend_engine/security.py）；正式站有代理，remote_addr 是代理位址
 limiter = Limiter(key_func=client_ip)
 
@@ -257,9 +261,16 @@ def _configure_cache(app: Flask) -> None:
             'CACHE_DEFAULT_TIMEOUT': 300,
             'CACHE_KEY_PREFIX': 'ows_cache:',
         })
+        throttle_cache.init_app(app, config={
+            'CACHE_TYPE': 'RedisCache',
+            'CACHE_REDIS_HOST': client,
+            'CACHE_DEFAULT_TIMEOUT': 300,
+            'CACHE_KEY_PREFIX': 'ows_throttle:',
+        })
         app.logger.info("Cache initialized with Redis backend")
     else:
         cache.init_app(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_KEY_PREFIX': 'ows_cache:'})
+        throttle_cache.init_app(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_KEY_PREFIX': 'ows_throttle:'})
         if redis_url:
             app.logger.warning("REDIS_URL is set but Redis is unreachable; using in-memory SimpleCache")
         else:
@@ -538,5 +549,6 @@ __all__ = [
     'mail',
     'jwt',
     'cache',
+    'throttle_cache',
     'limiter',
 ]
