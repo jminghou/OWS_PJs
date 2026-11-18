@@ -19,6 +19,10 @@ import { LANGUAGE_NAMES, REPORT_DEFAULT_LOCALE } from '@/lib/report/locale';
 import { pricePhysical, type PriceLine } from '@/lib/api/reportOrders';
 import { PriceBreakdown, normaliseSelection } from '@/components/report/PhysicalOptions';
 import { PREVIEW_HREF } from '@/lib/report/steps';
+import { attributionForOrder } from '@/lib/attribution';
+import {
+  SURVEY_CHOICES, SURVEY_COPY, SURVEY_LABELS, SURVEY_OTHER_MAX, surveyPayload, type SurveyChoice,
+} from '@/lib/report/survey';
 
 const CHECKOUT = '/report/checkout';
 // 表單（docs/BRAND_GUIDELINES.md §6.3）
@@ -46,6 +50,8 @@ export default function ReportCheckoutPage() {
   const [verification, setVerification] = useState<{ email: string; verified: boolean } | null>(null);
   const [shipping, setShipping] = useState<ShippingInfo>(EMPTY_SHIPPING);
   const [consented, setConsented] = useState(false);
+  const [surveyChoice, setSurveyChoice] = useState<SurveyChoice | ''>('');
+  const [surveyOther, setSurveyOther] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -123,6 +129,8 @@ export default function ReportCheckoutPage() {
         policy_version: POLICY_VERSION,
         ...(physical ? { shipping, physical: selection ?? undefined } : {}),
         consult_sessions: 0,
+        attribution: attributionForOrder(),
+        survey: surveyPayload(surveyChoice, surveyOther),
       });
       clearDraft();
       router.push(`/report/orders/${res.order.order_no}`);
@@ -192,14 +200,41 @@ export default function ReportCheckoutPage() {
             </Alert>
           </section>
 
+          <fieldset className={cardCls}>
+            <legend className="sr-only">{SURVEY_COPY.title}</legend>
+            <h2 className={cardTitleCls} aria-hidden="true">{SURVEY_COPY.title}</h2>
+            <p className="mt-1 text-sm text-muted">{SURVEY_COPY.hint}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {SURVEY_CHOICES.map((c) => (
+                <label key={c} className={clsx(
+                  'cursor-pointer rounded-full border-[1.5px] px-4 py-2 text-sm transition-colors',
+                  'has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-blue-100',
+                  surveyChoice === c ? 'border-blue-500 bg-blue-50 text-ink' : 'border-line-strong bg-white text-text',
+                )}>
+                  <input type="radio" name="survey_choice" value={c} className="sr-only" checked={surveyChoice === c}
+                         onChange={() => setSurveyChoice(c)}
+                         onClick={() => { if (surveyChoice === c) setSurveyChoice(''); }} />
+                  {SURVEY_LABELS[c]}
+                </label>
+              ))}
+            </div>
+            {surveyChoice === 'other' && (
+              <input className={clsx(inputCls(), 'mt-3')} value={surveyOther} maxLength={SURVEY_OTHER_MAX}
+                     onChange={(e) => setSurveyOther(e.target.value)} placeholder={SURVEY_COPY.otherPlaceholder}
+                     aria-label={SURVEY_LABELS.other} />
+            )}
+          </fieldset>
+
           <label className="flex cursor-pointer items-start gap-3 rounded-card bg-white p-6 text-sm leading-6 text-text md:px-8">
             <input type="checkbox" checked={consented} onChange={(e) => setConsented(e.target.checked)}
                    className={checkboxCls} />
             <span>
-              我已確認出生資料正確，並了解本商品為客製化商品，不適用七日解除權，付款後不受理取消或退款（例外情形依
+              我已確認出生資料正確，並了解這份報告是依我提供的出生資料客製的數位內容。
+              <br />
+              確認收款後，訂單即進入製作排程，之後不適用七日解除權，也不接受因改變心意的退款；如果報告有製作上的錯誤，我們會盡快處理，無法更正時再退款（詳見
               <Link href="/report/policy" target="_blank"
                     className="text-blue-500 underline-offset-[3px] hover:text-pink-600 hover:underline">《交易政策》</Link>
-              處理）。
+              ）。
             </span>
           </label>
 

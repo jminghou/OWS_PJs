@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { isLocale, locales } from '@/i18n/config';
 import { getPublicLocales } from '@/lib/i18n/publicLocales';
+import AttributionTracker from '@/components/platform/public/AttributionTracker';
 
 const notoSansSC = Noto_Sans_SC({
   subsets: ['latin'],
@@ -43,6 +44,8 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       {/* 全站實體資料：與 (public)/layout.tsx 一致，語系頁面也要有 */}
       <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
       <LocalePreviewBar />
+      {/* 訂單來源歸因：記 UTM／站外 referrer 到 localStorage（lib/attribution.ts） */}
+      <AttributionTracker />
       <PublicHeader />
       <main className="flex-1">
         {children}

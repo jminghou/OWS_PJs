@@ -4,7 +4,12 @@ export interface PrivacyContent {
   description: string;
   updated: string;
   intro: string;
-  sections: { heading: string; paragraphs: string[] }[];
+  sections: {
+    heading: string;
+    paragraphs: string[];
+    /** 小標＋段落／條列（例如來源追蹤段落的「我們會記錄的資訊」） */
+    subsections?: { heading: string; paragraphs?: string[]; items?: string[] }[];
+  }[];
   contactLinkText: string;
 }
 
@@ -43,7 +48,44 @@ export const privacyContent: Record<string, PrivacyContent> = {
       {
         heading: 'Cookie',
         paragraphs: [
-          '本站使用必要的 Cookie 來維持登入狀態與記住您選擇的語言。',
+          '我們只使用必要 Cookie（登入、語言）。另外，我們會在你瀏覽器的本機儲存空間記錄來源資訊，用來了解你是從哪裡認識我們的，詳見『我們如何了解你從哪裡認識我們』。',
+        ],
+      },
+      {
+        heading: '我們如何了解你從哪裡認識我們',
+        paragraphs: [
+          '為了更了解你是透過哪些分享認識我們的，我們會記錄你最初是從哪裡來到親紫之間，例如某個社群平台或 Podcast 的連結。',
+        ],
+        subsections: [
+          {
+            heading: '我們會記錄的資訊',
+            items: [
+              '連結上帶有的來源標記，例如來自哪個平台、哪一則分享',
+              '你從哪個網站點進來（網域名稱）',
+              '你第一次進入的頁面',
+              '你第一次進站的時間',
+              '結帳時你自願填寫的「你是從哪裡認識親紫之間的」答案（選填，不填也能完成購買）',
+            ],
+          },
+          {
+            heading: '我們不會記錄的資訊',
+            items: [
+              '你的社群帳號、好友名單，或你在其他平台上的任何內容',
+              '用來跨網站追蹤你的廣告識別資訊',
+            ],
+          },
+          {
+            heading: '記錄方式與保存期限',
+            paragraphs: [
+              '來源資訊只存放在你瀏覽器的本機儲存空間，不使用 Cookie。這些資訊不會自動傳給我們；只有在你下單時，才會跟著訂單一起送出，之後依照訂單資料的方式保護與保存。存放在瀏覽器裡的來源資訊最多保留 30 天，到期會自動刪除。你也可以隨時在瀏覽器中清除，清除後不影響購買。',
+            ],
+          },
+          {
+            heading: '用途',
+            paragraphs: [
+              '這些資訊只用來了解哪些分享管道真的幫上了需要的人、改善我們的內容與服務，不會出售或提供給第三方做廣告用途。',
+            ],
+          },
         ],
       },
       {

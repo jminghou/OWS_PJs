@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ReportOrderSummary } from '@/lib/api';
 import type { MyPerson } from '@/lib/api/astrology';
-import { addBusinessDays, bookTitle, buildTodos, groupFamily, groupReports, ownedBooks, reportStatusText } from './orderModel';
+import { addBusinessDays, bookTitle, buildTodos, groupFamily, groupReports, ownedBooks, reportPhase, reportStatusText } from './orderModel';
 
 type Over = Omit<Partial<ReportOrderSummary>, 'item'> & { item?: Partial<NonNullable<ReportOrderSummary['item']>> };
 const order = (over: Over): ReportOrderSummary => ({
@@ -28,14 +28,63 @@ describe('addBusinessDays', () => {
   });
 });
 
-describe('reportStatusText', () => {
-  it('estimates the finish date while in production, then stops promising once overdue', () => {
-    const o = order({ paid_at: '2026-10-22T02:00:00Z' });
-    expect(reportStatusText(o, Date.UTC(2026, 9, 22, 3))).toBe('老師正在撰寫，預計 10/27 前完成');
-    expect(reportStatusText(o, Date.UTC(2026, 10, 5))).toBe('老師正在做最後的整理，完成會寄信通知你');
+type Production = NonNullable<ReportOrderSummary['production']>;
+const prod = (handoff_status: string, status: string | null): Production => ({
+  handoff_status, ziwei_status: null, member_note: null,
+  progress: { status, status_label: null, member_note: null, last_synced_at: null, stale: false },
+});
+const fakeReport = { uploaded_at: '2026-10-25T00:00:00' } as unknown as ReportOrderSummary['report'];
+
+const QUEUED = '已付款，已排入製作。';
+const IN_PROGRESS = '報告製作中，完成後可以在這裡查看。';
+const NEEDS_INFO = '我們需要和你確認一些資料，請到訂單頁查看說明。';
+const DELIVERED = '報告已完成，可以開始閱讀了。';
+
+/** 每一個案例：[說明, 訂單, 預期 phase, 預期文字] */
+const CASES: [string, ReportOrderSummary, string, string][] = [
+  ['paid, no production yet', order({ production: null }), 'queued', QUEUED],
+  ...(['not_ready', 'pending', 'failed', 'cancelled'] as const).flatMap((h) =>
+    ([null, 'queued', 'in_progress', 'completed', 'failed'] as const).map((s): [string, ReportOrderSummary, string, string] =>
+      [`handoff ${h} / progress ${s}`, order({ production: prod(h, s) }), 'queued', QUEUED])),
+  ['sent / progress queued', order({ production: prod('sent', 'queued') }), 'queued', QUEUED],
+  ['sent / progress null', order({ production: prod('sent', null) }), 'queued', QUEUED],
+  ['sent / no progress object', order({ production: { handoff_status: 'sent', ziwei_status: null, member_note: null, progress: null } }), 'queued', QUEUED],
+  ['sent / in_progress', order({ production: prod('sent', 'in_progress') }), 'in_progress', IN_PROGRESS],
+  ['sent / completed, PDF not uploaded', order({ production: prod('sent', 'completed') }), 'in_progress', IN_PROGRESS],
+  ['sent / needs_info', order({ production: prod('sent', 'needs_info') }), 'needs_info', NEEDS_INFO],
+  ['sent / production failed', order({ production: prod('sent', 'failed') }), 'queued', QUEUED],
+  ['sent / production cancelled', order({ production: prod('sent', 'cancelled') }), 'queued', QUEUED],
+  ['handoff failed but progress in_progress (contradiction)', order({ production: prod('failed', 'in_progress') }), 'queued', QUEUED],
+  ['delivered', order({ report: fakeReport, production: prod('failed', null) }), 'delivered', DELIVERED],
+  ['delivered while blocked', order({ report: fakeReport, fulfilment_control: { blocked: true } }), 'delivered', DELIVERED],
+  ['admin pause + sent + in_progress', order({ fulfilment_control: { blocked: true }, production: prod('sent', 'in_progress') }), 'queued', QUEUED],
+  ['external pause + sent + in_progress',
+    order({ commerce: { external: { receipt_id: 1, evidence_status: 'disputed', fulfilment_blocked: true } } as ReportOrderSummary['commerce'], production: prod('sent', 'in_progress') }),
+    'queued', QUEUED],
+  ['pending, transfer reported',
+    order({ status: 'pending', paid_at: null, payment: { mode: 'manual', deadline: null, transfer: { status: 'created' } } as unknown as ReportOrderSummary['payment'] }),
+    'unpaid', '收到你的匯款回報了，確認後就開始製作'],
+  ['pending, not paid', order({ status: 'pending', paid_at: null }), 'unpaid', '還差一步：完成付款後就開始製作'],
+  ['cancelled', order({ status: 'cancelled', production: prod('sent', 'in_progress') }), 'cancelled', '這份訂單已取消'],
+];
+
+describe('reportPhase / reportStatusText', () => {
+  it.each(CASES)('%s', (_name, o, phase, text) => {
+    expect(reportPhase(o)).toBe(phase);
+    expect(reportStatusText(o)).toBe(text);
   });
-  it('speaks plainly about payment', () => {
-    expect(reportStatusText(order({ status: 'pending', paid_at: null }))).toBe('還差一步：完成付款後就開始製作');
+
+  it('never says 製作中 unless the handoff was sent and production reported progress', () => {
+    for (const [, o, phase] of CASES) {
+      if (phase !== 'in_progress') expect(reportStatusText(o)).not.toMatch(/製作中/);
+    }
+  });
+
+  it('never mentions the teacher or promises a date', () => {
+    for (const [, o] of CASES) {
+      expect(reportStatusText(o)).not.toMatch(/老師|預計/);
+      expect(reportStatusText(o, Date.UTC(2026, 9, 22, 3))).not.toMatch(/老師|預計/);
+    }
   });
 });
 

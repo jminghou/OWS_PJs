@@ -9,11 +9,10 @@ import { ArrowRight } from 'lucide-react';
 import { brandButton } from '@/components/ui/BrandButton';
 import ReportBookCover from '@/components/report/ReportBookCover';
 import { REPORT_PRODUCT } from '@/lib/report/catalog';
-import { REPORT_LEAD_DAYS } from './orderModel';
 
 const STEPS = [
   { title: '填寫孩子的生辰', body: '約 3 分鐘，填好出生日期與時間，先看看他的命盤。' },
-  { title: '老師撰寫', body: `付款後約 ${REPORT_LEAD_DAYS} 個工作天，逐章寫成一份只屬於他的報告。` },
+  { title: '排入製作', body: '謝謝你選擇親紫之間。確認收款後，你的報告就會排入製作；完成後會放在訂單頁，你可以隨時回來查看。' },
   { title: '收到專屬報告', body: '完成會寄信通知你，回到這裡就能打開來讀，也能印成精裝書。' },
 ];
 

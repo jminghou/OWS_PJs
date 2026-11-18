@@ -28,6 +28,23 @@ export default function PrivacyPolicy({ locale }: { locale: string }) {
                 <p key={paragraph} className="[text-wrap:pretty]">{paragraph}</p>
               ))}
             </div>
+            {section.subsections?.map((sub) => (
+              <div key={sub.heading} className="mt-8">
+                <h3 className="font-semibold text-ink [text-wrap:pretty]">{sub.heading}</h3>
+                <div className="mt-3 space-y-4 text-text">
+                  {sub.paragraphs?.map((paragraph) => (
+                    <p key={paragraph} className="[text-wrap:pretty]">{paragraph}</p>
+                  ))}
+                  {sub.items && sub.items.length > 0 && (
+                    <ul className="list-disc space-y-2 pl-6">
+                      {sub.items.map((item) => (
+                        <li key={item} className="[text-wrap:pretty]">{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            ))}
           </section>
         ))}
 

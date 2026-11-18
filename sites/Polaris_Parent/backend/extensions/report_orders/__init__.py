@@ -45,8 +45,8 @@ from packages.commerce.models import Order, OrderItem
 from sites.Polaris_Parent.backend.models import ReportConsultation, ReportFulfillment, ReportPrintJob, Shipment
 from sites.Polaris_Parent.backend.extensions.member_account.service import is_email_verified
 
-from . import (audit, delivery, design, handoff, jobs, money, notify, overview, payment, physical, private_storage,
-               proofs, proxy, service)
+from . import (attribution, audit, delivery, design, handoff, jobs, money, notify, overview, payment, physical,
+               private_storage, proofs, proxy, service)
 from .validation import validate_order, validate_shipping
 
 try:
@@ -327,6 +327,9 @@ def create_order():
         return _error(exc.message, exc.status, code=exc.code, errors=getattr(exc, 'errors', None))
 
     if created:
+        # 來源歸因＋結帳問卷：訂單已 commit 才寫、自己 commit／rollback，失敗不擋單；放在 notify 前，
+        # 避免歸因失敗的 rollback 連帶丟掉寄信流程尚未 commit 的紀錄
+        attribution.record(order, data)
         notify.send_order_created(order, email, mode, bank)
     return jsonify({'success': True, 'created': created, 'order': service.order_summary(order)}), 201 if created else 200
 

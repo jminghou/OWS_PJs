@@ -18,9 +18,9 @@ from packages.commerce.models import (
 )
 from sites.Polaris_Parent.backend.extensions import report_orders
 from sites.Polaris_Parent.backend.extensions.member_account import service as account_service
-from sites.Polaris_Parent.backend.extensions.report_orders import service
+from sites.Polaris_Parent.backend.extensions.report_orders import attribution, service
 from sites.Polaris_Parent.backend.commerce_models import (CommerceChannel, CommerceEvent, CommerceExternalReceipt,
-                                                         CommerceReceiptBinding)
+                                                         CommerceReceiptBinding, OrderAttribution)
 from sites.Polaris_Parent.backend.models import (MemberEmailVerification, ReportBookDesign, ReportConsultation,
                                                  ReportDesignAsset, ReportDocument, ReportFulfillment, ReportJobRun,
                                                  ReportMailOutbox, ReportPrintJob, ReportPrintProof, Shipment,
@@ -120,7 +120,7 @@ class _Base(unittest.TestCase):
                        ReportBookDesign.__table__, ReportDesignAsset.__table__,
                        MemberEmailVerification.__table__, CommerceEvent.__table__, CommerceChannel.__table__,
                        CommerceExternalReceipt.__table__, CommerceReceiptBinding.__table__, ExternalCustomer.__table__,
-                       OrderSourceRecord.__table__]
+                       OrderSourceRecord.__table__, OrderAttribution.__table__]
         self.app.config['REPORT_PAYMENT_MODE'] = self.MODE
         for t in self.tables:
             t.create(db.engine)
@@ -478,6 +478,237 @@ class PlaceholderCannotBePaidTests(_Base):
         self.assertEqual(r.status_code, 409)
         self.assertEqual(Order.query.one().status, 'pending')
         self.assertEqual(ReportFulfillment.query.one().handoff_status, 'not_ready')
+
+
+ATTR = {
+    'first': {'source': 'ig', 'medium': 'social', 'campaign': '20261116_test', 'content': None, 'term': None,
+              'referrer_host': None, 'landing_path': '/', 'at': '2026-11-16T01:02:03.000Z'},
+    'last': {'source': None, 'medium': None, 'campaign': None, 'content': None, 'term': None,
+             'referrer_host': 'www.google.com', 'landing_path': '/zh-TW/report', 'at': '2026-11-16T05:00:00.000Z'},
+}
+
+
+class AttributionTests(_Base):
+    """來源歸因（0020）：建單時寫入、冪等不覆寫、清洗不擋單、客人看不到、後台看得到。"""
+
+    def admin_detail(self, order_no):
+        admin = User.query.filter_by(email='admin@example.test').first() or self.make_user('admin@example.test', True)
+        with patch.object(RBACService, 'get_user_permissions', return_value={'report_orders.read'}):
+            r = self.client.get(f'/api/v1/admin/report-orders/{order_no}/detail', headers=self.headers(admin))
+        self.assertEqual(r.status_code, 200, r.get_json())
+        return r.get_json()['order']
+
+    def test_order_with_attribution_is_created_and_recorded(self):
+        r = self.post(payload(attribution=ATTR))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        row = OrderAttribution.query.one()
+        self.assertEqual(row.order_id, Order.query.one().id)
+        self.assertEqual(row.first_touch, {'source': 'ig', 'medium': 'social', 'campaign': '20261116_test',
+                                           'landing_path': '/', 'at': '2026-11-16T01:02:03.000Z'})
+        self.assertEqual(row.last_touch, {'referrer_host': 'www.google.com', 'landing_path': '/zh-TW/report',
+                                          'at': '2026-11-16T05:00:00.000Z'})
+        self.assertIsNone(row.survey_choice)
+
+    def test_order_without_attribution_writes_nothing(self):
+        for i, over in enumerate(({}, {'attribution': None}, {'attribution': 'junk'},
+                                  {'attribution': {'first': None, 'last': None}})):
+            r = self.post(payload(submission_key=f'draft-none-{i:04d}', **over))
+            self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertEqual(OrderAttribution.query.count(), 0)
+
+    def test_resubmit_does_not_overwrite_attribution(self):
+        self.assertEqual(self.post(payload(attribution=ATTR)).status_code, 201)
+        other = {'first': {'source': 'fb', 'landing_path': '/x'}, 'last': {'source': 'fb', 'landing_path': '/x'}}
+        again = self.post(payload(attribution=other))
+        self.assertEqual(again.status_code, 200)
+        self.assertFalse(again.get_json()['created'])
+        row = OrderAttribution.query.one()
+        self.assertEqual(row.first_touch['source'], 'ig')
+        self.assertNotIn('source', row.last_touch)
+
+    def test_attribution_is_sanitised_never_rejected(self):
+        dirty = {
+            'first': {'source': 'x' * 300, 'medium': 123, 'evil': '<script>', 'landing_path': '/a/b?email=a@b.c#h',
+                      'referrer_host': 'https://user:pw@Example.COM:8080/path?q=1', 'at': 'not-a-date'},
+            'last': {'landing_path': 'https://evil.test/', 'referrer_host': 'bad host!', 'at': '2026-11-16T00:00:00Z'},
+            'unknown': {'source': 'zz'},
+        }
+        r = self.post(payload(attribution=dirty))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        row = OrderAttribution.query.one()
+        self.assertEqual(row.first_touch, {'source': 'x' * 100, 'landing_path': '/a/b',
+                                           'referrer_host': 'example.com'})
+        self.assertIsNone(row.last_touch)  # 只剩時間戳＝沒有來源資訊
+
+        long_path = {'first': {'source': 'ig', 'landing_path': '/' + 'p' * 500}}
+        self.assertEqual(self.post(payload(submission_key='draft-key-0002', attribution=long_path)).status_code, 201)
+        newest = OrderAttribution.query.order_by(OrderAttribution.order_id.desc()).first()
+        self.assertEqual(len(newest.first_touch['landing_path']), 200)
+
+    def test_oversized_attribution_is_dropped_but_order_succeeds(self):
+        huge = {'first': {'source': 'ig'}, 'padding': 'x' * 3000}
+        r = self.post(payload(attribution=huge))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertEqual(Order.query.count(), 1)
+        self.assertEqual(OrderAttribution.query.count(), 0)
+
+    def test_attribution_write_failure_does_not_block_order(self):
+        with patch.object(attribution, 'sanitize', side_effect=RuntimeError('boom')):
+            r = self.post(payload(attribution=ATTR))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertEqual(Order.query.count(), 1)
+        self.assertEqual(OrderAttribution.query.count(), 0)
+        self.assertEqual(self.mail_send.call_count, 1)  # 建單通知照寄
+
+    def test_customer_order_api_hides_attribution(self):
+        order_no = self.post(payload(attribution=ATTR)).get_json()['order']['order_no']
+        bodies = [self.client.get(f'/api/v1/report-orders/{order_no}', headers=self.headers()).get_data(as_text=True),
+                  self.client.get('/api/v1/report-orders', headers=self.headers()).get_data(as_text=True),
+                  self.post(payload(attribution=ATTR)).get_data(as_text=True)]
+        for body in bodies:
+            for word in ('attribution', 'survey', '20261116_test', 'first_touch', 'www.google.com'):
+                self.assertNotIn(word, body)
+        self.assertNotIn('attribution', Order.query.one().attributes or {})
+
+    def test_admin_detail_shows_attribution(self):
+        order_no = self.post(payload(attribution=ATTR)).get_json()['order']['order_no']
+        a = self.admin_detail(order_no)['attribution']
+        self.assertEqual(a['first']['campaign'], '20261116_test')
+        self.assertEqual(a['last']['referrer_host'], 'www.google.com')
+        self.assertIn('survey_choice', a)
+
+        plain = self.post(payload(submission_key='draft-key-0003')).get_json()['order']['order_no']
+        self.assertIsNone(self.admin_detail(plain)['attribution'])
+
+
+    # ── first_touch_at（由 first.at 推得）────────────────────────────────
+    def _attr_at(self, at):
+        return {'first': {'source': 'ig', 'landing_path': '/', 'at': at}, 'last': None}
+
+    def test_first_touch_at_valid_is_stored(self):
+        from datetime import timezone
+        when = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(days=3)
+        cases = (('draft-fta-iso1', when.isoformat().replace('+00:00', 'Z')),     # ISO 字串
+                 ('draft-fta-ms01', int(when.timestamp() * 1000)))                # epoch ms
+        for key, at in cases:
+            r = self.post(payload(submission_key=key, attribution=self._attr_at(at)))
+            self.assertEqual(r.status_code, 201, r.get_json())
+        for row in OrderAttribution.query.all():
+            got = row.first_touch_at
+            got = got if got.tzinfo else got.replace(tzinfo=timezone.utc)  # SQLite 讀回 naive
+            self.assertEqual(got, when)
+
+    def test_first_touch_at_unparseable_is_null_and_order_succeeds(self):
+        for i, at in enumerate(('not-a-date', True, {'x': 1}, '9' * 60, 10 ** 30)):
+            r = self.post(payload(submission_key=f'draft-ftbad-{i:03d}', attribution=self._attr_at(at)))
+            self.assertEqual(r.status_code, 201, r.get_json())
+        rows = OrderAttribution.query.all()
+        self.assertEqual(len(rows), 5)
+        self.assertTrue(all(row.first_touch_at is None for row in rows))
+        self.assertTrue(all(row.first_touch['source'] == 'ig' for row in rows))
+
+    def test_first_touch_at_future_beyond_skew_is_null(self):
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        far = (now + timedelta(minutes=30)).isoformat()
+        near = (now + timedelta(minutes=2)).isoformat()   # 5 分鐘時鐘誤差內照收
+        self.assertEqual(self.post(payload(submission_key='draft-ftfut-01', attribution=self._attr_at(far))).status_code, 201)
+        self.assertEqual(self.post(payload(submission_key='draft-ftfut-02', attribution=self._attr_at(near))).status_code, 201)
+        rows = OrderAttribution.query.order_by(OrderAttribution.order_id).all()
+        self.assertIsNone(rows[0].first_touch_at)
+        self.assertIsNotNone(rows[1].first_touch_at)
+
+    def test_first_touch_at_older_than_30_days_is_null(self):
+        from datetime import timezone
+        old = int((datetime.now(timezone.utc) - timedelta(days=31)).timestamp() * 1000)
+        r = self.post(payload(attribution=self._attr_at(old)))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertIsNone(OrderAttribution.query.one().first_touch_at)
+
+    def test_customer_order_api_hides_first_touch_at(self):
+        from datetime import timezone
+        at = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        order_no = self.post(payload(attribution=self._attr_at(at))).get_json()['order']['order_no']
+        self.assertIsNotNone(OrderAttribution.query.one().first_touch_at)
+        for body in (self.client.get(f'/api/v1/report-orders/{order_no}', headers=self.headers()).get_data(as_text=True),
+                     self.client.get('/api/v1/report-orders', headers=self.headers()).get_data(as_text=True)):
+            self.assertNotIn('first_touch_at', body)
+            self.assertNotIn('attribution', body)
+
+    def test_admin_detail_shows_first_touch_at(self):
+        from datetime import timezone
+        when = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(days=1)
+        order_no = self.post(payload(attribution=self._attr_at(when.isoformat()))).get_json()['order']['order_no']
+        a = self.admin_detail(order_no)['attribution']
+        self.assertEqual(datetime.fromisoformat(a['first_touch_at']), when)
+        self.assertRegex(a['first_touch_at'], r'[+-]\d{2}:\d{2}$')  # 帶時區位移
+
+        stale = self.post(payload(submission_key='draft-key-0004',
+                                  attribution=self._attr_at('2000-01-01T00:00:00Z'))).get_json()['order']['order_no']
+        self.assertIsNone(self.admin_detail(stale)['attribution']['first_touch_at'])
+
+
+class SurveyTests(_Base):
+    """結帳來源問卷：enum 內才存、other 只在選其他時保留、不合法也不擋單。"""
+
+    def row(self):
+        return OrderAttribution.query.one()
+
+    def test_survey_choice_is_recorded_with_attribution(self):
+        r = self.post(payload(attribution=ATTR, survey={'choice': 'podcast', 'other': None}))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        row = self.row()
+        self.assertEqual((row.survey_choice, row.survey_other), ('podcast', None))
+        self.assertEqual(row.first_touch['source'], 'ig')
+
+    def test_choice_keys_and_order_match_final_copy(self):
+        self.assertEqual(attribution.SURVEY_CHOICES, ('facebook', 'instagram', 'threads', 'line', 'podcast',
+                                                      'youtube', 'friend', 'search', 'other'))
+
+    def test_line_choice_is_accepted(self):
+        self.assertEqual(attribution.sanitize_survey({'choice': 'line', 'other': '不該存'}), ('line', None))
+        r = self.post(payload(survey={'choice': 'line'}))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertEqual((self.row().survey_choice, self.row().survey_other), ('line', None))
+
+    def test_survey_only_still_creates_row(self):
+        r = self.post(payload(survey={'choice': 'other', 'other': '  朋友的部落格  '}))
+        self.assertEqual(r.status_code, 201, r.get_json())
+        row = self.row()
+        self.assertEqual((row.survey_choice, row.survey_other), ('other', '朋友的部落格'))
+        self.assertIsNone(row.first_touch)
+        self.assertIsNone(row.last_touch)
+
+    def test_other_text_only_kept_for_other_and_truncated(self):
+        self.post(payload(survey={'choice': 'friend', 'other': '不該存'}))
+        self.assertEqual((self.row().survey_choice, self.row().survey_other), ('friend', None))
+        self.post(payload(submission_key='draft-key-0002', survey={'choice': 'other', 'other': 'x' * 300}))
+        newest = OrderAttribution.query.order_by(OrderAttribution.order_id.desc()).first()
+        self.assertEqual(len(newest.survey_other), 100)
+
+    def test_invalid_survey_is_dropped_never_rejected(self):
+        for i, survey in enumerate(({'choice': 'tiktok'}, {'choice': 'OTHER', 'other': 'x'}, {'choice': 3},
+                                    'instagram', ['instagram'], None)):
+            r = self.post(payload(submission_key=f'draft-bad-{i:04d}', survey=survey))
+            self.assertEqual(r.status_code, 201, r.get_json())
+        self.assertEqual(OrderAttribution.query.count(), 0)
+
+    def test_resubmit_does_not_overwrite_survey(self):
+        self.post(payload(survey={'choice': 'youtube'}))
+        again = self.post(payload(survey={'choice': 'facebook'}))
+        self.assertEqual(again.status_code, 200)
+        self.assertEqual(self.row().survey_choice, 'youtube')
+
+    def test_customer_api_hides_survey_and_admin_sees_it(self):
+        order_no = self.post(payload(survey={'choice': 'other', 'other': '秘密來源'})).get_json()['order']['order_no']
+        body = self.client.get(f'/api/v1/report-orders/{order_no}', headers=self.headers()).get_data(as_text=True)
+        for word in ('survey', '秘密來源', 'attribution'):
+            self.assertNotIn(word, body)
+        admin = self.make_user('admin@example.test', verified=True)
+        with patch.object(RBACService, 'get_user_permissions', return_value={'report_orders.read'}):
+            a = self.client.get(f'/api/v1/admin/report-orders/{order_no}/detail',
+                                headers=self.headers(admin)).get_json()['order']['attribution']
+        self.assertEqual((a['survey_choice'], a['survey_other']), ('other', '秘密來源'))
 
 
 if __name__ == '__main__':

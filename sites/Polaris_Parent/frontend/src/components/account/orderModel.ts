@@ -104,7 +104,7 @@ export function groupFamily(groups: ReportGroup[], people: MyPerson[]): FamilyMe
 
 // ── 給客人看的進度 ────────────────────────────────────────────────────
 
-/** 工期（工作天）：定稿見 docs/品牌資料/report頁面文案.md「數位報告約 3 個工作天、實體書另外約 7 個工作天」 */
+/** 工期（工作天；reportStatusText 已不再顯示日期）：定稿見 docs/品牌資料/report頁面文案.md「數位報告約 3 個工作天、實體書另外約 7 個工作天」 */
 export const REPORT_LEAD_DAYS = 3;
 export const BOOK_LEAD_DAYS = 7;
 
@@ -118,20 +118,44 @@ export function addBusinessDays(from: Date, n: number) {
   return d;
 }
 
-const shortDate = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+/** 已付款報告給客人看的進度用字（會員中心與訂單頁共用） */
+export const REPORT_COPY = {
+  queued: '已付款，已排入製作。',
+  inProgress: '報告製作中，完成後可以在這裡查看。',
+  needsInfo: '我們需要和你確認一些資料，請到訂單頁查看說明。',
+  delivered: '報告已完成，可以開始閱讀了。',
+} as const;
 
-/** 報告卡上的一句話：完成、待付款、製作中（附預估完成日） */
+export type ReportPhase = 'unpaid' | 'cancelled' | 'delivered' | 'queued' | 'in_progress' | 'needs_info';
+
+/**
+ * 報告訂單給客人看的階段。只有交接已送出（handoff_status＝sent）且製作端回報
+ * in_progress／completed 才算「製作中」；交接未完成、失敗、管理者暫停一律算「已排入製作」。
+ */
+export function reportPhase(o: ReportOrderSummary): ReportPhase {
+  if (o.status === 'cancelled') return 'cancelled';
+  if (o.report) return 'delivered';
+  if (o.status !== 'paid') return 'unpaid';
+  // 暫停中顧客端一律只看到「已排入製作」
+  if (o.fulfilment_control?.blocked || o.commerce?.external?.fulfilment_blocked) return 'queued';
+  const progress = o.production?.progress?.status ?? null;
+  if (progress === 'needs_info') return 'needs_info';
+  const sent = o.production?.handoff_status === 'sent';
+  if (sent && (progress === 'in_progress' || progress === 'completed')) return 'in_progress';
+  return 'queued';
+}
+
+/** 報告卡上的一句話：完成、待付款、已排入製作、製作中、待補資料（不給日期；now 保留以維持呼叫簽名） */
 export function reportStatusText(o: ReportOrderSummary, now = Date.now()) {
-  if (o.status === 'cancelled') return '這份訂單已取消';
-  if (o.report) return `${fmtDate(o.report.uploaded_at)} 完成，隨時可以打開來讀`;
-  if (o.status === 'pending') {
-    return o.payment.transfer?.status === 'created' ? '收到你的匯款回報了，確認後就開始製作' : '還差一步：完成付款後就開始製作';
+  switch (reportPhase(o)) {
+    case 'cancelled': return '這份訂單已取消';
+    case 'delivered': return REPORT_COPY.delivered;
+    case 'unpaid':
+      return o.payment.transfer?.status === 'created' ? '收到你的匯款回報了，確認後就開始製作' : '還差一步：完成付款後就開始製作';
+    case 'needs_info': return REPORT_COPY.needsInfo;
+    case 'in_progress': return REPORT_COPY.inProgress;
+    default: return REPORT_COPY.queued;
   }
-  if (!o.paid_at) return '老師正在撰寫';
-  const due = addBusinessDays(toDate(o.paid_at), REPORT_LEAD_DAYS);
-  return due.getTime() > now
-    ? `老師正在撰寫，預計 ${shortDate(due)} 前完成`
-    : '老師正在做最後的整理，完成會寄信通知你';
 }
 
 /** 實體書的一句話（設計、打樣都要客人參與，所以只在印製後才給出貨時間） */

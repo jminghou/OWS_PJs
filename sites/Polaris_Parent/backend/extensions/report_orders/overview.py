@@ -13,7 +13,7 @@ from core.backend_engine.models import User
 from packages.commerce.models import Order, OrderItem, PaymentAttempt
 from sites.Polaris_Parent.backend.models import ReportDocument, ReportFulfillment
 
-from . import audit, handoff, money, physical, service
+from . import attribution, audit, handoff, money, physical, service
 
 ORDER_STATUS_LABELS = {'pending': '待付款', 'paid': '已付款', 'cancelled': '已取消', 'refunded': '已退款'}
 
@@ -188,6 +188,7 @@ def detail(order):
         'related': _related(order, s),
         'external_detail': _external_detail(order),
         'timeline': audit.timeline(order),
+        'attribution': attribution.view(order),
     }
 
 
