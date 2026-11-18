@@ -28,6 +28,8 @@ from core.backend_engine.blueprints.api import (
     settings,
     submissions,
     users,
+    members,  # 後台「會員管理」：會員名冊（大量資料：伺服器端搜尋／篩選／分頁）
     authors,
     rbac_admin,
+    locale_preview,  # 編輯中語言的預覽通行證
 )

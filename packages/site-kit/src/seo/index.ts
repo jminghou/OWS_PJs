@@ -91,13 +91,14 @@ function estimateWordCount(markdown?: string): number | undefined {
 /**
  * 由 Content 的翻譯群組組出 canonical + hreflang。
  * canonical 一律「指向自己」；hreflang 列出所有實際存在的翻譯 + x-default。
+ * publicLocales：只列這些語言（站台有「編輯中」語言時傳入，避免向搜尋引擎宣告尚未公開的版本）。
  */
-export function buildContentAlternates(post: Content, currentLocale: string = defaultLocale()) {
+export function buildContentAlternates(post: Content, currentLocale: string = defaultLocale(), publicLocales?: readonly string[]) {
   const selfUrl = absoluteUrl(localizedPath(currentLocale, `/posts/${post.slug}`));
   const languages: Record<string, string> = { [currentLocale]: selfUrl };
 
   for (const t of post.translations ?? []) {
-    if (t?.language && t?.slug) {
+    if (t?.language && t?.slug && (!publicLocales || publicLocales.includes(t.language))) {
       languages[t.language] = absoluteUrl(localizedPath(t.language, `/posts/${t.slug}`));
     }
   }
@@ -159,11 +160,11 @@ export function buildBreadcrumbJsonLd(items: Array<{ name: string; path: string 
 
 /**
  * 靜態多語言頁（如 /about、/contact）的 canonical + hreflang。
- * 該頁在所有語言都存在，故列出全部支援語言 + x-default。
+ * 該頁在所有語言都存在，故列出全部支援語言 + x-default；有 publicLocales 時只列公開的語言。
  */
-export function buildStaticPageAlternates(path: string, currentLocale: string = defaultLocale()) {
+export function buildStaticPageAlternates(path: string, currentLocale: string = defaultLocale(), publicLocales?: readonly string[]) {
   const languages: Record<string, string> = {};
-  for (const loc of supportedLocales()) {
+  for (const loc of supportedLocales().filter((l) => !publicLocales || publicLocales.includes(l))) {
     languages[loc] = absoluteUrl(localizedPath(loc, path));
   }
   languages['x-default'] = absoluteUrl(localizedPath(defaultLocale(), path));

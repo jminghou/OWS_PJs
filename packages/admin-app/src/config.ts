@@ -71,6 +71,7 @@ export const ADMIN_MODULES = {
   content: { label: '內容', paths: ['/admin/articles', '/admin/categories', '/admin/homepage', '/admin/editor', '/admin/posts'] },
   media: { label: '媒體庫', paths: ['/admin/media'] },
   authors: { label: '作者', paths: ['/admin/authors'] },
+  members: { label: '會員', paths: ['/admin/members'] },
   submissions: { label: '投稿', paths: ['/admin/submissions'] },
   settings: { label: '設定', paths: ['/admin/settings'] },
   rbac: { label: '權限', paths: ['/admin/roles'] },

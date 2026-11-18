@@ -33,6 +33,10 @@ Flask-Mail==0.9.1
 # Cloud Storage
 google-cloud-storage==2.14.0
 
+# Social Auth（packages/social_auth）：驗 Google ID token。google-cloud-storage 本來就間接帶進來，這裡明確列出
+google-auth>=2.23.3,<3
+requests>=2.31,<3
+
 # Image Processing (media_lib)
 Pillow>=10.0.0
 

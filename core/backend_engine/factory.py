@@ -76,6 +76,8 @@ OPTIONAL_MODULES = [
     ('STUDIO_ENABLED', False, 'packages.studio', 'register_studio'),
     # Newsletter（電子報訂閱名單）同樣是新功能 → 預設不掛。
     ('NEWSLETTER_ENABLED', False, 'packages.newsletter', 'register_newsletter'),
+    # Social Auth（Google／LINE 社群帳號註冊登入）同樣是新功能 → 預設不掛。
+    ('SOCIAL_AUTH_ENABLED', False, 'packages.social_auth', 'register_social_auth'),
 ]
 
 

@@ -1,3 +1,4 @@
 .acceptance-frontend/
 .test-tmp/
+.local-private/
 backend/database/backups/

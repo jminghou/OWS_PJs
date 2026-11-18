@@ -9,7 +9,7 @@
  */
 
 export const REPORT_DEFAULT_LOCALE = 'zh-TW';
-export const REPORT_LOCALES = ['zh-TW', 'zh-CN', 'en', 'ja'] as const;
+export const REPORT_LOCALES = ['zh-TW', 'zh-CN', 'en', 'ja', 'es', 'no', 'ko'] as const;
 export type ReportLocale = (typeof REPORT_LOCALES)[number];
 
 /**
@@ -21,10 +21,13 @@ export const SALES_LANGUAGES = [
   { code: 'zh-CN', label: '簡體中文', short: '簡中', currency: 'CNY' },
   { code: 'en', label: '英文', short: '英文', currency: 'USD' },
   { code: 'ja', label: '日文', short: '日文', currency: 'JPY' },
+  { code: 'es', label: '西班牙文', short: '西文', currency: 'EUR' },
+  { code: 'no', label: '挪威文', short: '挪威文', currency: 'NOK' },
+  { code: 'ko', label: '韓文', short: '韓文', currency: 'KRW' },
 ];
 
 /** 中文介面（下單精靈、會員中心）顯示用的語言名稱 */
-export const LANGUAGE_NAMES: Record<string, string> = { 'zh-TW': '繁體中文', 'zh-CN': '簡體中文', en: '英文', ja: '日文' };
+export const LANGUAGE_NAMES: Record<string, string> = { 'zh-TW': '繁體中文', 'zh-CN': '簡體中文', en: '英文', ja: '日文', es: '西班牙文', no: '挪威文', ko: '韓文' };
 
 export const isReportLocale = (v: unknown): v is ReportLocale => REPORT_LOCALES.includes(v as ReportLocale);
 
@@ -64,7 +67,8 @@ export interface ReportUi {
   wizardNote: string;
 }
 
-export const REPORT_UI: Record<ReportLocale, ReportUi> = {
+// 還沒翻譯介面文字的語言（西、挪、韓）先用繁中，見 reportUi()
+export const REPORT_UI: Record<'zh-TW', ReportUi> & Partial<Record<ReportLocale, ReportUi>> = {
   'zh-TW': {
     breadcrumb: '客製報告',
     catalogCount: (n) => `共 ${n} 款報告`,
@@ -171,4 +175,5 @@ export const REPORT_UI: Record<ReportLocale, ReportUi> = {
   },
 };
 
-export const reportUi = (locale: string): ReportUi => REPORT_UI[isReportLocale(locale) ? locale : REPORT_DEFAULT_LOCALE];
+export const reportUi = (locale: string): ReportUi =>
+  (isReportLocale(locale) && REPORT_UI[locale]) || REPORT_UI[REPORT_DEFAULT_LOCALE];

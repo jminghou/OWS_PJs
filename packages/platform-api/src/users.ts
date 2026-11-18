@@ -7,6 +7,8 @@ export const userApi = {
     per_page?: number;
     role?: string;
     search?: string;
+    /** staff＝只列後台人員；members＝只列會員（會員請改用 memberApi） */
+    scope?: 'staff' | 'members';
   }): Promise<{
     users: User[];
     pagination: any;

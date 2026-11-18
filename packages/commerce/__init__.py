@@ -32,6 +32,8 @@ def register_commerce(app, db):
     from core.backend_engine.services.rbac_seed import register_permissions
 
     register_permissions(COMMERCE_PERMISSIONS)
+    from packages.commerce import members
+    members.register()  # 後台「會員管理」的訂單數欄位與篩選
     app.register_blueprint(commerce_bp, url_prefix='/api/v1')
     app.logger.info('Registered commerce blueprint at /api/v1')
 

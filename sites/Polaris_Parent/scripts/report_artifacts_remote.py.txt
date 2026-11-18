@@ -1,0 +1,128 @@
+
+# Versioned final PDFs. Registered explicitly by a completed work request's editor.
+def _artifact_root():
+    import os
+    from pathlib import Path
+    value = os.environ.get('REPORT_ARTIFACT_DIR')
+    if not value:
+        raise HTTPException(status_code=503, detail='尚未設定成品私有儲存目錄')
+    root = Path(value).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _artifact_manifest(request_no):
+    rows = _query("""SELECT a.manifest FROM account.report_request_artifacts a
+        JOIN account.report_requests r ON r.request_no = a.request_no AND r.artifact_revision = a.revision
+        JOIN account.report_request_controls c ON c.request_no = r.request_no
+        WHERE r.request_no = :n AND r.status = 'completed' AND c.desired = 'active'
+          AND r.updated_at = a.source_updated_at
+          AND r.member_id::text = a.manifest->>'member_id'
+          AND r.language = a.manifest->>'language'
+          AND r.env = a.manifest->>'env'
+          AND r.product_code = a.manifest->>'product_code'
+          AND r.variant = a.manifest->>'variant'
+          AND r.chart_id::text IS NOT DISTINCT FROM a.manifest->>'chart_id'
+          AND r.order_no = a.manifest->>'order_no'""", {'n': request_no}).data
+    if not rows:
+        raise HTTPException(status_code=409, detail='尚無可交付的目前版本成品')
+    return _json_field(rows[0]['manifest'])
+
+
+def _register_artifact(request_no, expected_revision, source_updated_at, filename, data, user):
+    import hashlib
+    import os
+    import tempfile
+    row = _require_row(request_no)
+    _require_editable(row, user)
+    if not _lang_ok(user, row['language']):
+        raise HTTPException(status_code=403, detail='沒有此語系的操作權限')
+    if not data.startswith(b'%PDF-') or len(data) > 100 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail='請提供 100 MB 以內的 PDF')
+    name = filename.replace('\\', '/').split('/')[-1][:200]
+    if not name.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail='請提供 PDF 檔名')
+    digest = hashlib.sha256(data).hexdigest()
+    root = _artifact_root()
+    # Only content-addressed filenames; never accept a client supplied local path.
+    fd, tmp = tempfile.mkstemp(dir=root, prefix='.upload-')
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        target = root / (digest + '.pdf')
+        try:
+            os.link(tmp, target)  # atomic create, never overwrite an existing immutable blob
+        except FileExistsError:
+            pass
+        with target.open('rb') as existing:
+            stored = existing.read(100 * 1024 * 1024 + 1)
+        if hashlib.sha256(stored).hexdigest() != digest:
+            raise HTTPException(status_code=503, detail='私有成品儲存內容異常')
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    manifest = {k: str(row[k]) if k in ('member_id', 'chart_id') and row[k] is not None else row[k]
+                for k in ('request_no', 'order_no', 'member_id', 'chart_id', 'env', 'language', 'product_code', 'variant')}
+    manifest.update(version=expected_revision + 1, sha256=digest, bytes=len(data), filename=name, kind='book_pdf')
+    res = _write("""WITH held AS (
+        SELECT r.request_no FROM account.report_requests r
+        JOIN account.report_request_controls c ON c.request_no = r.request_no
+        WHERE r.request_no = :n AND c.desired = 'active' FOR UPDATE OF r, c
+      ), changed AS (
+        UPDATE account.report_requests r SET artifact_revision = artifact_revision + 1 FROM held
+        WHERE r.request_no = held.request_no AND r.artifact_revision = :expected
+          AND r.status = 'completed' AND r.updated_at = CAST(:stamp AS timestamptz)
+          AND r.member_id::text = :member AND r.language = :language AND r.order_no = :order_no
+          AND r.env = :env AND r.product_code = :product_code AND r.variant = :variant
+          AND r.chart_id::text IS NOT DISTINCT FROM :chart_id
+          AND (:admin OR r.assigned_to = :actor)
+        RETURNING r.request_no, r.artifact_revision, r.updated_at
+      ) INSERT INTO account.report_request_artifacts (request_no, revision, source_updated_at, manifest, uploaded_by)
+        SELECT request_no, artifact_revision, updated_at, CAST(:manifest AS jsonb), :actor FROM changed""",
+        {'n': request_no, 'expected': expected_revision, 'stamp': source_updated_at,
+         'member': manifest['member_id'], 'language': manifest['language'], 'order_no': manifest['order_no'],
+         'env': manifest['env'], 'product_code': manifest['product_code'], 'variant': manifest['variant'],
+         'chart_id': manifest['chart_id'],
+         'admin': _is_admin(user), 'actor': user['username'], 'manifest': json.dumps(manifest)})
+    if res.affected_rows != 1:
+        raise HTTPException(status_code=409, detail='工作單或成品版本已改變、尚未完成或已暫停，請重新讀取')
+    return {'artifact': manifest}
+
+
+from fastapi import File, Form, UploadFile
+from fastapi.responses import Response
+
+
+@admin_router.post('/{request_no}/artifact')
+async def register_report_artifact(request_no: str, expected_revision: int = Form(..., ge=0),
+                                   source_updated_at: str = Form(...), file: UploadFile = File(...),
+                                   user=Depends(require_permission('page:editor'))):
+    data = await file.read(100 * 1024 * 1024 + 1)
+    return _register_artifact(request_no, expected_revision, source_updated_at, file.filename or '', data, user)
+
+
+@router.get('/{request_no}/artifact')
+def get_report_artifact(request_no: str):
+    return {'artifact': _artifact_manifest(request_no)}
+
+
+@router.get('/{request_no}/artifacts/{version}/file')
+def get_report_artifact_file(request_no: str, version: int):
+    import hashlib
+    import re
+    manifest = _artifact_manifest(request_no)
+    if version != manifest['version']:
+        raise HTTPException(status_code=409, detail='成品版本已更新')
+    digest = manifest['sha256']
+    if not re.fullmatch('[0-9a-f]{64}', digest):
+        raise HTTPException(status_code=503, detail='成品資訊異常')
+    try:
+        with (_artifact_root() / (digest + '.pdf')).open('rb') as stream:
+            data = stream.read(100 * 1024 * 1024 + 1)
+    except OSError:
+        raise HTTPException(status_code=503, detail='成品檔案暫時無法取得')
+    if len(data) != manifest['bytes'] or hashlib.sha256(data).hexdigest() != digest:
+        raise HTTPException(status_code=503, detail='成品完整性檢查失敗')
+    return Response(content=data, media_type='application/pdf', headers={'Cache-Control': 'no-store'})

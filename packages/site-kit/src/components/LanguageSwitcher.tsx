@@ -9,9 +9,15 @@ interface I18nSettings {
   default_language: string;
   languages: string[];
   language_names: Record<string, string>;
+  // 訪客看得到的語言；languages 裡其餘的是「編輯中」，不出現在切換器（舊後端沒有這欄＝全部公開）
+  public_languages?: string[];
 }
 
-export default function LanguageSwitcher() {
+/**
+ * showUnpublished：持語言預覽通行證的人（站台自己判斷）也列出編輯中的語言，並標「未公開」。
+ * 一般訪客只看到 public_languages。
+ */
+export default function LanguageSwitcher({ showUnpublished = false }: { showUnpublished?: boolean } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -52,8 +58,11 @@ export default function LanguageSwitcher() {
     }
   }, [pathname, i18nSettings]);
 
-  // 如果多語言功能關閉或載入中，不顯示切換器
-  if (isLoading || !i18nSettings?.enabled) {
+  const publicLanguages = i18nSettings?.public_languages ?? i18nSettings?.languages ?? [];
+  const availableLanguages = showUnpublished ? i18nSettings?.languages ?? [] : publicLanguages;
+
+  // 多語言功能關閉、載入中、或只有一種公開語言時，不顯示切換器
+  if (isLoading || !i18nSettings?.enabled || availableLanguages.length < 2) {
     return null;
   }
 
@@ -81,8 +90,6 @@ export default function LanguageSwitcher() {
     setIsOpen(false);
   };
 
-  // 使用後端設定的語言列表和名稱
-  const availableLanguages = i18nSettings.languages;
   const languageNames = i18nSettings.language_names;
 
   return (
@@ -118,6 +125,7 @@ export default function LanguageSwitcher() {
                   }`}
                 >
                   {languageNames[lang] || lang}
+                  {!publicLanguages.includes(lang) && <span className="ml-1.5 text-[11px] text-amber-700">未公開</span>}
                 </button>
               ))}
             </div>

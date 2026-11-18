@@ -1,0 +1,23 @@
+"""Immutable final-PDF manifests; bytes reside in configured private storage."""
+from alembic import op
+import sqlalchemy as sa
+revision = '0031_report_artifacts'
+down_revision = '0030_fulfilment_controls'
+branch_labels = None
+depends_on = None
+
+
+def upgrade():
+    op.execute('ALTER TABLE account.report_requests ADD COLUMN artifact_revision integer NOT NULL DEFAULT 0 CHECK (artifact_revision >= 0)')
+    op.execute('''CREATE TABLE account.report_request_artifacts (
+        request_no varchar(32) NOT NULL REFERENCES account.report_requests(request_no),
+        revision integer NOT NULL CHECK (revision > 0), source_updated_at timestamptz NOT NULL,
+        manifest jsonb NOT NULL, uploaded_by text NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (request_no, revision))''')
+
+
+def downgrade():
+    if op.get_bind().execute(sa.text('SELECT EXISTS (SELECT 1 FROM account.report_request_artifacts)')).scalar():
+        raise RuntimeError('Cannot discard recorded report artifacts')
+    op.drop_table('report_request_artifacts', schema='account')
+    op.drop_column('report_requests', 'artifact_revision', schema='account')

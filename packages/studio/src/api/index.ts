@@ -65,6 +65,12 @@ export const documentApi = {
 
   updatePublishing: (id: number, data: { stage?: Stage; scheduled_at?: string | null; published_at?: string | null; published_url?: string | null }) =>
     request<{ document: Document; revision: Revision | null }>(`${BASE}/documents/${id}/publishing`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  // 網站預覽連結：工作草稿套正式版型，拿到連結的人看得到，讀者與搜尋引擎看不到
+  previewLink: (id: number) =>
+    request<{ token: string; path: string; expires_at: string }>(`${BASE}/documents/${id}/preview-link`, { method: 'POST' }),
+  revokePreviewLinks: (id: number) =>
+    request<{ message: string }>(`${BASE}/documents/${id}/preview-link`, { method: 'DELETE' }),
 };
 
 export const cardApi = {

@@ -107,8 +107,7 @@ def create_customer(data, actor, channel_id=None):
         _fail('客人資料有誤', errors=errors)
     email = f'c-{uuid.uuid4().hex[:16]}@{CUSTOMER_DOMAIN}'
     user = User(username=email, email=email, role='member', is_active=True)
-    # Preserve random entropy while guaranteeing the shared complexity rules.
-    user.set_password(secrets.token_urlsafe(32) + 'Aa1')
+    user.set_unusable_password()  # 不能登入；客人認領後走重設密碼才有自己的密碼
     db.session.add(user)
     db.session.flush()
     c = ExternalCustomer(app_user_id=user.id, channel_id=channel_id, display_name=name, platform_handle=handle,

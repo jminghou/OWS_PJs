@@ -57,6 +57,10 @@ try:
     from packages.newsletter.migrations_manifest import NEWSLETTER_TABLES as _NEWSLETTER_TABLES
 except Exception:  # pragma: no cover
     _NEWSLETTER_TABLES = frozenset()
+try:
+    from packages.social_auth.migrations_manifest import SOCIAL_AUTH_TABLES as _SOCIAL_AUTH_TABLES
+except Exception:  # pragma: no cover
+    _SOCIAL_AUTH_TABLES = frozenset()
 
 
 # 第二期：blog.users 改為 view、RBAC 四表淘汰、member_profiles 由 SQL 自管，
@@ -83,6 +87,9 @@ def _table_managed(schema, table_name):
         return False
     # Newsletter 表歸 packages/newsletter 鏈（同樣住在 blog schema）
     if table_name in _NEWSLETTER_TABLES:
+        return False
+    # Social Auth 表歸 packages/social_auth 鏈（同樣住在 blog schema）
+    if table_name in _SOCIAL_AUTH_TABLES:
         return False
     return True
 

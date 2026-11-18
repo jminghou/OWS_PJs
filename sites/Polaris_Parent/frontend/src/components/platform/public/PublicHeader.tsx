@@ -1,5 +1,7 @@
 'use client';
 
+import { isLocale } from '@/i18n/config';
+import { FLAG_COOKIE } from '@/lib/i18n/localePreview';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -66,7 +68,6 @@ const navContent: Record<string, {
   },
 };
 
-const locales = ['zh-TW', 'zh-CN', 'en', 'ja'];
 
 const PILL =
   'rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors duration-150 ease-out ' +
@@ -82,6 +83,11 @@ export default function PublicHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [i18nEnabled, setI18nEnabled] = useState(false);
+  // 持語言預覽通行證：語言選單也列出編輯中的語言（旗標 cookie 只管顯示，權限由 middleware 驗證）
+  const [previewing, setPreviewing] = useState(false);
+  useEffect(() => {
+    setPreviewing(document.cookie.split('; ').some((c) => c.startsWith(`${FLAG_COOKIE}=`)));
+  }, []);
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, checkAuth, logout } = useAuthStore();
@@ -122,8 +128,10 @@ export default function PublicHeader() {
 
   // 從路徑獲取當前語言
   const pathLocale = pathname.split('/')[1];
-  const currentLocale = locales.includes(pathLocale) ? pathLocale : 'zh-TW';
+  const currentLocale = isLocale(pathLocale) ? pathLocale : 'zh-TW';
   const content = navContent[currentLocale] || navContent['zh-TW'];
+  // 文章預覽頁的連結只對應一個語言版本，換語言改用預覽提示條上的版本連結
+  const showSwitcher = i18nEnabled && !/^(\/[^/]+)?\/preview\//.test(pathname);
   const basePath = currentLocale === 'zh-TW' ? '' : `/${currentLocale}`;
   const homeHref = basePath || '/';
 
@@ -197,11 +205,11 @@ export default function PublicHeader() {
                 </button>
               </>
             )}
-            {i18nEnabled && <LanguageSwitcher />}
+            {showSwitcher && <LanguageSwitcher showUnpublished={previewing} />}
           </nav>
 
           <div className="flex items-center gap-1 lg:hidden">
-            {i18nEnabled && <LanguageSwitcher />}
+            {showSwitcher && <LanguageSwitcher showUnpublished={previewing} />}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-expanded={isMenuOpen}

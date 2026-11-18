@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { buildStaticPageAlternates } from '@ows/site-kit/seo';
 import NewsletterLanding from '@/components/home/NewsletterLanding';
 import { getNewsletterContent } from '@/i18n/newsletterContent';
+import { getPublicLocales } from '@/lib/i18n/publicLocales';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: page.title,
     description: page.description,
-    alternates: buildStaticPageAlternates('/newsletter', locale),
+    alternates: buildStaticPageAlternates('/newsletter', locale, await getPublicLocales()),
   };
 }
 

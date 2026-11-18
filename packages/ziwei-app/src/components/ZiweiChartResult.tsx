@@ -26,6 +26,7 @@ interface ZiweiChartResultProps {
   result: ZiweiCalcResponse;
   /** 排出這張盤時送出的資料（目前未用；保留給日後把這張盤帶進購買流程） */
   payload: ZiweiChartPayload;
+  guidedCopy?: boolean;
 }
 
 /**
@@ -33,7 +34,7 @@ interface ZiweiChartResultProps {
  * 新版規劃：會員中心不再放命盤（只有訂購與報告），所以 CTA 不分登入與否，一律導向購買報告 /report。
  */
 const ZiweiChartResult = forwardRef<HTMLDivElement, ZiweiChartResultProps>(function ZiweiChartResult(
-  { result }, ref,
+  { result, guidedCopy = false }, ref,
 ) {
   const mingGong = result.data?.['宮位資料']?.['命宮'];
 
@@ -71,12 +72,18 @@ const ZiweiChartResult = forwardRef<HTMLDivElement, ZiweiChartResultProps>(funct
 
       {/* 唯一的按鈕：為這張命盤撰寫報告 → 購買報告 */}
       <div className="mt-6 text-center">
+        {guidedCopy && (
+          <div className="mb-4">
+            <p className="font-heading text-h4 text-ink">命盤建立好了，接下來怎麼看？</p>
+            <p className="mt-2 text-sm text-text">想進一步探索他的性格與特質，可以查看這張命盤對應的解讀報告。</p>
+          </div>
+        )}
         <Link
           href="/report"
           // 與 @ows/ui Button 預設樣式一致（原本的 CTA 就是 Button＋品牌紫）
           className="inline-flex h-10 items-center justify-center rounded-md bg-brand-purple-600 px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-brand-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          為這張命盤撰寫報告
+          {guidedCopy ? '了解命盤解讀報告' : '為這張命盤撰寫報告'}
         </Link>
       </div>
     </div>

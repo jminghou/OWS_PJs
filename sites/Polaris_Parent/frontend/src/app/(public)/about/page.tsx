@@ -10,6 +10,7 @@ import { brandButton } from '@/components/ui/BrandButton';
 
 // 從 i18n 訊息檔案載入翻譯（預設使用繁體中文）
 import zhTW from '@/i18n/messages/zh-TW.json';
+import { getPublicLocales } from '@/lib/i18n/publicLocales';
 
 const t = zhTW.aboutPage;
 
@@ -21,11 +22,14 @@ const H2 = 'mb-6 font-heading text-[26px] font-normal leading-[1.35] text-ink [t
 // ISR：關於頁很少變動，但作者資料需偶爾刷新
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: t.title,
-  description: t.description,
-  alternates: buildStaticPageAlternates('/about'),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const publicLocales = await getPublicLocales();
+  return {
+    title: t.title,
+    description: t.description,
+    alternates: buildStaticPageAlternates('/about', undefined, publicLocales),
+  };
+}
 
 async function getAuthors(): Promise<Author[]> {
   try {

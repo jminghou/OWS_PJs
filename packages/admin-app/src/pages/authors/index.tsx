@@ -75,7 +75,8 @@ export default function AuthorsPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const params: any = { page: currentPage, per_page: 20 };
+      // 只列後台人員；會員在「會員管理」（/admin/members）
+      const params: any = { page: currentPage, per_page: 20, scope: 'staff' };
       if (activeTab !== 'all') params.role = activeTab;
       if (searchTerm.trim()) params.search = searchTerm.trim();
 

@@ -5,6 +5,11 @@ import JsonLd from '@ows/site-kit/components/JsonLd';
 import { organizationJsonLd, websiteJsonLd } from '@ows/site-kit/seo';
 import PublicHeader from '@/components/platform/public/PublicHeader';
 import PublicFooter from '@/components/platform/public/PublicFooter';
+import LocalePreviewBar from '@/components/platform/public/LocalePreviewBar';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { isLocale, locales } from '@/i18n/config';
+import { getPublicLocales } from '@/lib/i18n/publicLocales';
 import AttributionTracker from '@/components/platform/public/AttributionTracker';
 
 const notoSansSC = Noto_Sans_SC({
@@ -13,11 +18,15 @@ const notoSansSC = Noto_Sans_SC({
   display: 'swap',
 });
 
-// 支援的語言
-const locales = ['zh-TW', 'zh-CN', 'en', 'ja'];
-
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
+}
+
+// 編輯中的語言：只有持通行證的人進得來（middleware），這裡再加 noindex，萬一網址外流也不被收錄
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const publicLocales = await getPublicLocales();
+  return publicLocales.includes(locale) ? {} : { robots: { index: false, follow: false, nocache: true } };
 }
 
 interface LocaleLayoutProps {
@@ -27,12 +36,14 @@ interface LocaleLayoutProps {
 
 export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {
   const { locale } = await params;
+  if (!isLocale(locale)) notFound();
   const isZhCN = locale === 'zh-CN';
 
   return (
     <div className={`public-site min-h-screen flex flex-col ${isZhCN ? notoSansSC.className : ''}`}>
       {/* 全站實體資料：與 (public)/layout.tsx 一致，語系頁面也要有 */}
       <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
+      <LocalePreviewBar />
       {/* 訂單來源歸因：記 UTM／站外 referrer 到 localStorage（lib/attribution.ts） */}
       <AttributionTracker />
       <PublicHeader />

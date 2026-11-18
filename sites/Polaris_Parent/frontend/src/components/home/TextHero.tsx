@@ -1,41 +1,43 @@
 import type { HeroIntroFields } from '@/types';
+import type { ReactNode } from 'react';
 import { getImageUrl } from '@/lib/utils';
 import Tag from '@/components/ui/Tag';
 import { LogoMark } from '@/components/ui/BrandLogo';
 
 interface TextHeroProps {
   intro: HeroIntroFields & { image_url?: string };
+  children?: ReactNode;
 }
 
 /**
- * 第一屏的文字：用幾句話講清楚「我們是誰、幫誰、解決什麼」。行動（排盤）緊接在下方。
- * 版面依 docs/BRAND_GUIDELINES.md §7.2：≥ md 兩欄、手機單欄圖在下；
- * 左欄 pink 狀態小標籤 → display 標題 → lead 段落；右欄圖片 rounded-[48px]、高 400px（手機 280px）。
- * 這裡刻意沒有按鈕組：首頁的第一個行動是下方的線上排盤（見 HomeLanding）。
- * 右欄一律保留：後台「首頁設定 → 首屏介紹」還沒放圖時顯示佔位面板，版面不會塌成單欄。
+ * 文案與圖片並列，生辰表單接在下方並橫跨內容寬度。
+ * 手機隱藏裝飾圖，命盤結果由 children 橫跨完整網格寬度。
  */
-export default function TextHero({ intro }: TextHeroProps) {
+export default function TextHero({ intro, children }: TextHeroProps) {
   const paragraphs = (intro.body || '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   return (
     <section
       id="hero"
-      className="grid scroll-mt-24 items-center gap-8 text-left md:grid-cols-2 md:gap-12"
+      className="grid scroll-mt-24 items-start gap-x-16 gap-y-8 text-left lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]"
     >
       <div className="min-w-0">
         {intro.eyebrow && (
-          <Tag tone="status" className="mb-5">{intro.eyebrow}</Tag>
+          <Tag tone="status" className="mb-6">{intro.eyebrow}</Tag>
         )}
-        <h1 className="font-heading text-[40px] font-normal leading-[1.25] text-ink [text-wrap:pretty] md:text-display">
-          {intro.headline}
+        <h1 style={{ textWrap: 'balance' }} className="font-heading text-[32px] font-normal leading-[1.3] text-ink md:text-h1">
+          {intro.headline === '從紫微斗數開始，找到理解他的方式' ? <>從紫微斗數開始，<br />找到理解他的方式</> : intro.headline}
         </h1>
-        <div className="mt-6 max-w-[460px] space-y-4 text-[17px] leading-[1.8] text-text md:text-lead">
+        <div className="mt-6 max-w-prose space-y-4 text-base leading-[1.85] text-text md:text-[17px]">
           {paragraphs.map((paragraph, index) => (
-            <p key={index} className="whitespace-pre-line [text-wrap:pretty]">{paragraph}</p>
+            <p key={index} className="whitespace-pre-line [text-wrap:pretty]">{paragraph
+              .replace('？面對事情時', '？\n面對事情時')
+              .replace('為線索，陪你', '為線索，\n陪你')
+              .replace('特質，帶著', '特質，\n帶著')}</p>
           ))}
         </div>
         {intro.proof_line && <p className="mt-8 text-caption text-muted">{intro.proof_line}</p>}
       </div>
-      <div className="min-w-0" aria-hidden="true">
+      <div className="hidden min-w-0 self-center lg:col-start-2 lg:row-start-1 lg:block" aria-hidden="true">
         {intro.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -43,12 +45,13 @@ export default function TextHero({ intro }: TextHeroProps) {
             alt=""
             width={480}
             height={400}
-            className="h-[280px] w-full rounded-[48px] object-cover md:h-[400px]"
+            className="h-[320px] w-full rounded-card object-cover"
           />
         ) : (
           <HeroImagePlaceholder />
         )}
       </div>
+      {children}
     </section>
   );
 }

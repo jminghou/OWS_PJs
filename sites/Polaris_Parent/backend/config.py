@@ -133,6 +133,11 @@ class Config:
         'pool_recycle': int(os.environ.get('DB_POOL_RECYCLE', 3600)),
         'pool_pre_ping': True,
         'max_overflow': int(os.environ.get('DB_MAX_OVERFLOW', 20)),
+        # 連線一律用 UTC：程式寫入時間用 datetime.utcnow()（不帶時區），若資料庫預設時區是
+        # Asia/Taipei（本機 postgresql.conf 就是），寫進 timestamptz 欄位會被當成台灣時間而差 8 小時。
+        # 固定 UTC 後與程式的假設一致，不受資料庫伺服器設定影響。讀回的 timestamptz 是帶時區的
+        # datetime，顯示時再轉台灣時間（api/utils.py）。
+        'connect_args': {'options': '-c timezone=UTC'},
     }
 
     # Additional database bindings (site-specific)
@@ -249,6 +254,17 @@ class Config:
     # 確認信的連結以 FRONTEND_URL 為基底；信中的品牌名稱用 NEWSLETTER_BRAND_NAME。
     NEWSLETTER_ENABLED = _bool_env('NEWSLETTER_ENABLED', True)
     NEWSLETTER_BRAND_NAME = os.environ.get('NEWSLETTER_BRAND_NAME', '親紫之間')
+
+    # Social Auth（Google／LINE 註冊登入，packages/social_auth）：本站啟用。
+    # 多跑一條 migration 鏈：packages/social_auth/migrations（見 docs/MIGRATIONS.md）。
+    # GOOGLE_CLIENT_ID 沒設時 Google 按鈕不出現；Client ID 不是機密。
+    SOCIAL_AUTH_ENABLED = _bool_env('SOCIAL_AUTH_ENABLED', True)
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+    # LINE Login：Channel ID 與 Channel Secret（機密）都設了才會出現 LINE 按鈕。
+    # LINE_REDIRECT_URI 要和 LINE Developers 後台登記的 Callback URL 完全一致；沒設時用 API 主機的完整網址。
+    LINE_CHANNEL_ID = os.environ.get('LINE_CHANNEL_ID', '')
+    LINE_CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET', '')
+    LINE_REDIRECT_URI = os.environ.get('LINE_REDIRECT_URI', '')
 
     # 有 core 藍圖或站台擴充載入失敗時 /health 回 503：搭配 Railway 健康檢查，缺了整組 API 的版本不會上線
     HEALTH_FAIL_ON_MODULE_ERROR = _bool_env('HEALTH_FAIL_ON_MODULE_ERROR', True)

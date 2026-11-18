@@ -16,12 +16,28 @@ from flask_jwt_extended import (
 )
 from datetime import datetime
 
+from sqlalchemy import func
+
 from core.backend_engine.factory import db, limiter
 from core.backend_engine.blueprints.api import bp
 from core.backend_engine.models import User
 from core.backend_engine.schemas.user import UserSchema
 
 user_schema = UserSchema()
+
+
+def _find_login_user(username):
+    """找登入帳號：先完全相符；找不到再不分大小寫、去頭尾空白，且只在恰好一筆時採用。
+
+    瀏覽器自動填入常把帳號存成「Admin」，而帳號是「admin」→ 原本一律 Invalid credentials。
+    先比完全相符，所以帳號本來就有大寫的站台（Claire）行為不變；不分大小寫時若有兩筆
+    （例如 Foo 與 foo 並存）就不猜，維持登入失敗。
+    """
+    user = User.query.filter_by(username=username).first()
+    if user is not None or not isinstance(username, str):
+        return user
+    matches = User.query.filter(func.lower(User.username) == username.strip().lower()).limit(2).all()
+    return matches[0] if len(matches) == 1 else None
 
 
 @bp.route('/auth/login', methods=['POST'])
@@ -35,7 +51,7 @@ def api_login():
     if not username or not password:
         return jsonify({'message': 'Missing username or password'}), 400
 
-    user = User.query.filter_by(username=username).first()
+    user = _find_login_user(username)
 
     if not user or not user.is_active or not user.check_password(password):
         return jsonify({'message': 'Invalid credentials'}), 401
