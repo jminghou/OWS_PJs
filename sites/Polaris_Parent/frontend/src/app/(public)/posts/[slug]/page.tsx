@@ -7,6 +7,7 @@ import PostDetailContent from './PostDetailContent';
 import { JsonLd } from '@ows/site-kit';
 import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@ows/site-kit';
 import { getRelatedPosts } from '@ows/site-kit';
+import { getPublicLocales } from '@/lib/i18n/publicLocales';
 
 // ISR：靜態產生 + 每小時背景重新驗證。文章頁因此從 Vercel 邊緣快取直接送出（點擊秒開），
 // 慢的後端 API 只在「建置 / 背景重新產生」時才被呼叫，不會卡到使用者。
@@ -57,7 +58,7 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
     description: post.meta_description || post.summary,
     keywords: post.tags?.map(tag => tag.name).join(', '),
     // 自我 canonical + 由翻譯群組組出的 hreflang（沒有翻譯時僅輸出自身）
-    alternates: buildContentAlternates(post),
+    alternates: buildContentAlternates(post, undefined, await getPublicLocales()),
     openGraph: {
       type: 'article',
       title: post.title,

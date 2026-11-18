@@ -13,6 +13,7 @@ import zhTW from '@/i18n/messages/zh-TW.json';
 import zhCN from '@/i18n/messages/zh-CN.json';
 import en from '@/i18n/messages/en.json';
 import ja from '@/i18n/messages/ja.json';
+import { getPublicLocales } from '@/lib/i18n/publicLocales';
 
 // 多語言訊息對應
 const messages: Record<string, typeof zhTW> = {
@@ -49,7 +50,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: t.title,
     description: t.description,
-    alternates: buildStaticPageAlternates('/about', locale),
+    alternates: buildStaticPageAlternates('/about', locale, await getPublicLocales()),
   };
 }
 

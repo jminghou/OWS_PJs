@@ -42,9 +42,11 @@ def legacy_line_total(item):
     return item.unit_price * item.quantity
 
 
-def finalize_order(order):
+def finalize_order(order, *, required=False):
     """Shared first-purchase/add-on contract builder, called after all lines/jobs exist."""
-    if not enabled():
+    if tracked(order):
+        return
+    if not required and not enabled():
         return
     from .physical import print_job_for, consultation_for
 
@@ -123,13 +125,16 @@ def grant_paid(order, actor=None, confirmation='payment_confirmed'):
     event(order, f'order:{order.id}:paid', confirmation, actor)
 
 
-def require(item, kind, actor=None):
+def require(item, kind, actor=None, *, check_control=True):
     # Legacy operations must serialize with a concurrent historical conversion.
     order = lock_order(item.order)
-    if not tracked(order):
-        return []
     from . import binding
     binding.require_evidence(order)
+    if check_control:
+        from . import control
+        control.require(order)
+    if not tracked(order):
+        return []
     rows = (CommerceEntitlement.query.filter_by(order_item_id=item.id, kind=kind)
             .order_by(CommerceEntitlement.unit_index).populate_existing().with_for_update().all())
     if order.status != 'paid' or not rows or any(e.status == 'revoked' for e in rows):

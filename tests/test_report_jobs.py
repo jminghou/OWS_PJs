@@ -93,8 +93,9 @@ class MailRetryTests(_JobsBase):
 
     def test_mail_interrupted_mid_send_is_picked_up_later(self):
         order = self.order()
+        # 此單尚未付款且無 PDF，使用有效的付款提醒測試寄送中斷。
         # 模擬：信已寫入，但程序在寄出前被中止（狀態停在 pending）
-        note = OrderNotification(order_id=order.id, event='report_ready', dedupe_key=f'report_ready:{order.id}',
+        note = OrderNotification(order_id=order.id, event='payment_reminder', dedupe_key=f'payment_reminder:{order.id}',
                                  recipient='buyer@example.com', status='pending', attempts=0)
         db.session.add(note)
         db.session.flush()
@@ -103,7 +104,7 @@ class MailRetryTests(_JobsBase):
         db.session.commit()
         self.assertEqual(notify.retry_due(datetime.utcnow()), (0, 0))
         self.assertEqual(notify.retry_due(datetime.utcnow() + timedelta(minutes=11)), (1, 0))
-        self.assertEqual(self.note('report_ready').status, 'sent')
+        self.assertEqual(self.note('payment_reminder').status, 'sent')
 
     def test_duplicate_event_is_not_sent_twice(self):
         order = self.order()
@@ -173,11 +174,11 @@ class JobRunnerTests(_JobsBase):
         first = jobs.run_due(now)
         self.assertEqual(set(first), {name for name, *_ in jobs.JOBS})
         every_tick = {name for name, every, *_ in jobs.JOBS if every == timedelta(0)}
-        self.assertEqual(every_tick, {'retry_mail', 'handoff_reports', 'claim_sync'})
+        self.assertEqual(every_tick, {'retry_mail', 'handoff_reports', 'claim_sync', 'fulfilment_controls'})
         again = jobs.run_due(now + timedelta(minutes=1))
         self.assertEqual(set(again), every_tick)  # 週期 0：每輪都跑
         later = jobs.run_due(now + timedelta(minutes=11))
-        self.assertEqual(set(later), every_tick | {'expire_overdue'})
+        self.assertEqual(set(later), every_tick | {'expire_overdue', 'production_progress'})
         self.assertEqual(set(jobs.run_due(now + timedelta(minutes=12), force=True)), set(first))
         run = db.session.get(ReportJobRun, 'cleanup_designs')
         self.assertEqual((run.last_status, run.last_result), ('ok', '{"removed": 0}'))

@@ -1,5 +1,6 @@
 'use client';
 
+import { isLocale } from '@/i18n/config';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogoMark } from '@/components/ui/BrandLogo';
@@ -41,7 +42,6 @@ const footerContent: Record<string, {
   },
 };
 
-const locales = ['zh-TW', 'zh-CN', 'en', 'ja'];
 
 const LINK = 'rounded-full transition-colors duration-150 ease-out hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100/40';
 
@@ -50,7 +50,7 @@ export default function PublicFooter() {
 
   // 從路徑獲取當前語言
   const pathLocale = pathname.split('/')[1];
-  const currentLocale = locales.includes(pathLocale) ? pathLocale : 'zh-TW';
+  const currentLocale = isLocale(pathLocale) ? pathLocale : 'zh-TW';
   const content = footerContent[currentLocale] || footerContent['zh-TW'];
   const basePath = currentLocale === 'zh-TW' ? '' : `/${currentLocale}`;
 

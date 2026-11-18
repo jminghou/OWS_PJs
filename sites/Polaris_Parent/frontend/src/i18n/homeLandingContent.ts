@@ -6,10 +6,10 @@ import type { HeroIntro, HeroIntroFields } from '@/types';
 export const heroIntroDefaults: HeroIntro['locales'] = {
   'zh-TW': {
     eyebrow: '親紫之間',
-    headline: '用紫微斗數與數據，讀懂孩子的天賦',
+    headline: '從紫微斗數開始，找到理解他的方式',
     body:
-      '每個孩子出生時，都帶著一份自己的「原廠規格書」。親紫之間把紫微斗數當成一套可以驗證的數據庫來讀——不談宿命，只談趨勢與特質。\n\n' +
-      '我們幫家長看懂孩子的天賦、理解他和你的不同，找到他聽得進去的說話方式。',
+      '他在意什麼？面對事情時，為什麼會有和你不同的反應？\n\n' +
+      '親紫之間以紫微斗數為線索，陪你從另一個角度，探索你在乎的人的性格與特質，帶著更多理解回到日常相處。',
     newsletter_note: '訂閱電子報，第一時間收到新的親子紫微文章與觀察。',
   },
   'zh-CN': {
@@ -47,8 +47,8 @@ export interface HomeLandingContent {
 
 export const homeLandingContent: Record<string, HomeLandingContent> = {
   'zh-TW': {
-    ziweiHeading: '線上排盤',
-    ziweiBody: '滑動選擇出生年月日與時間，按下排盤，命盤會直接出現在下方。',
+    ziweiHeading: '先從你想了解的那個人開始',
+    ziweiBody: '輸入他的出生日期與時間，建立一張紫微命盤，作為這次探索的起點。',
     testimonialsHeading: '他們怎麼說',
     subscribeHeading: '訂閱電子報',
   },
@@ -100,5 +100,21 @@ export function resolveHeroIntro(locale: string, saved?: HeroIntro): HeroIntroFi
   (Object.keys(fields) as (keyof HeroIntroFields)[]).forEach((key) => {
     if (fields[key]?.trim()) merged[key] = fields[key];
   });
+  // 舊版文案也可能存於後台。僅替換已知舊文案，保留其他自訂內容與圖片。
+  if (locale === 'zh-TW') {
+    const previous: Partial<Record<keyof HeroIntroFields, string[]>> = {
+      headline: ['用紫微斗數與數據，讀懂孩子的天賦'],
+      body: [
+        '你是否也想多一種方式去理解他在意什麼？他喜歡什麼？以及他正在發展什麼特質？我們借助紫微斗數這門古老的技術更仔細認識你所愛的人，並將這份探索整理成報告。',
+        '每個孩子出生時，都帶著一份自己的「原廠規格書」。親紫之間把紫微斗數當成一套可以驗證的數據庫來讀——不談宿命，只談趨勢與特質。我們幫家長看懂孩子的天賦、理解他和你的不同，找到他聽得進去的說話方式。',
+      ],
+      ziwei_heading: ['線上排盤'],
+      ziwei_body: ['滑動選擇出生年月日與時間，按下排盤，命盤會直接出現在下方。'],
+    };
+    const normalize = (value: string) => value.replace(/\s/g, '');
+    (Object.keys(previous) as (keyof HeroIntroFields)[]).forEach((key) => {
+      if (previous[key]?.some((text) => normalize(text) === normalize(merged[key] ?? ''))) merged[key] = defaults[key];
+    });
+  }
   return { ...merged, image_url: saved?.image_url || undefined };
 }

@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '@ows/admin-app';
+import FulfilmentControlPanel from '@/components/admin/FulfilmentControlPanel';
 import { AdminEmptyState, AdminLoadingSkeleton } from '@ows/ui/admin';
 import { ExternalLink, FileText, Upload } from 'lucide-react';
 import { reportOrdersApi, type AdminDelivery, type DeliveryChart, type HandoffView } from '@/lib/api/reportOrders';
@@ -65,6 +66,8 @@ function HandoffInfo({ h }: { h: HandoffView | null }) {
       <span>紫微工作單</span>
       <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${HANDOFF_CLS[h.status] ?? 'bg-muted'}`}>{h.status_label}</span>
       {h.status === 'sent' && <span>{formatDate(h.sent_at)} 建立</span>}
+      {h.progress && <span>{h.progress.status_label || '等待取得進度'}・最後同步 {formatDate(h.progress.last_synced_at)}
+        {h.progress.stale ? '（待更新）' : ''}{h.progress.error ? `・${h.progress.error}` : ''}</span>}
       {h.status === 'pending' && <span>幾分鐘內會自動送出</span>}
       {h.status === 'failed' && (
         <span className="text-destructive">
@@ -78,6 +81,32 @@ function HandoffInfo({ h }: { h: HandoffView | null }) {
 function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => void; onError: (t: string) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [artifact, setArtifact] = useState<Awaited<ReturnType<typeof reportOrdersApi.adminProductionArtifact>> | null>(null);
+  const checkArtifact = async () => {
+    setBusy(true); setArtifact(null);
+    try { setArtifact(await reportOrdersApi.adminProductionArtifact(d.order_no)); }
+    catch (e) { onError(e instanceof Error ? e.message : '查詢成品失敗'); }
+    finally { setBusy(false); }
+  };
+  const receiveArtifact = async () => {
+    if (!artifact) return;
+    setBusy(true);
+    try {
+      const r = await reportOrdersApi.adminReceiveArtifact(d.order_no, {
+        version: artifact.artifact.version, sha256: artifact.artifact.sha256,
+        current_document_id: artifact.current_document_id,
+      });
+      setArtifact(null);
+      onDone(r.duplicate ? '此版本已交付，未重複建立檔案' : '成品已核對並交付');
+    } catch (e) { setArtifact(null); onError(e instanceof Error ? e.message : '接收成品失敗'); }
+    finally { setBusy(false); }
+  };
+  const syncProduction = async () => {
+    setBusy(true);
+    try { await reportOrdersApi.adminSyncProduction(d.order_no); onDone('製作進度已同步'); }
+    catch (e) { onError(e instanceof Error ? e.message : '同步失敗'); }
+    finally { setBusy(false); }
+  };
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
@@ -137,6 +166,7 @@ function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => 
           <p className="text-muted-foreground">購買者 {d.buyer_email ?? '—'}・付款 {formatDate(d.paid_at)}</p>
           <ChartInfo chart={d.chart} />
           <HandoffInfo h={d.handoff} />
+          <FulfilmentControlPanel orderNo={d.order_no} control={d.handoff?.control} done={() => onDone('履約狀態已更新')} />
           {d.document && (
             <p className="text-muted-foreground">
               <FileText className="mr-1 inline h-3.5 w-3.5" />
@@ -151,12 +181,19 @@ function Row({ d, onDone, onError }: { d: AdminDelivery; onDone: (t: string) => 
             </a>
           )}
           {(d.handoff?.status === 'pending' || d.handoff?.status === 'failed') && (
-            <button type="button" className={`${btnGhost} w-full`} disabled={busy} onClick={sendHandoff}>
+            <button type="button" className={`${btnGhost} w-full`} disabled={busy || d.handoff?.control?.blocked} onClick={sendHandoff}>
               立即送到紫微
             </button>
           )}
           <input ref={input} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
-          <button type="button" className={`${btnPrimary} w-full`} disabled={busy} onClick={() => input.current?.click()}>
+          {d.handoff?.status === 'sent' && <button type="button" disabled={busy} onClick={syncProduction} className={`${btnGhost} w-full`}>立即同步製作進度</button>}
+          {d.handoff?.status === 'sent' && <button type="button" disabled={busy || d.handoff?.control?.blocked} onClick={checkArtifact} className={`${btnGhost} w-full`}>查詢製作端成品</button>}
+          {artifact && <div className="rounded border border-border p-2 text-sm">
+            <p>第 {artifact.artifact.version} 版・{artifact.artifact.filename}・{(artifact.artifact.bytes / 1024 / 1024).toFixed(1)} MB</p>
+            <p className="my-2 text-muted-foreground">核對成功後將開放會員下載{artifact.current_document_id ? '，並取代目前交付版本' : ''}。</p>
+            <button type="button" disabled={busy || d.handoff?.control?.blocked} onClick={receiveArtifact} className={`${btnPrimary} w-full`}>核對並交付此版本</button>
+          </div>}
+          <button type="button" className={`${btnPrimary} w-full`} disabled={busy || d.handoff?.control?.blocked} onClick={() => input.current?.click()}>
             <Upload className="h-4 w-4" /> {busy ? '上傳中…' : d.document ? '上傳更正版' : '上傳報告 PDF'}
           </button>
           {d.document && <button type="button" className={`${btnGhost} w-full`} onClick={preview}>開啟目前的 PDF</button>}

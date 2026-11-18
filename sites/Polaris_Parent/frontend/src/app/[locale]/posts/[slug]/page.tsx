@@ -7,6 +7,7 @@ import PostDetailContent from '@/app/(public)/posts/[slug]/PostDetailContent';
 import { JsonLd } from '@ows/site-kit';
 import { buildArticleJsonLd, buildContentAlternates, buildFaqJsonLd, buildHowToJsonLd } from '@ows/site-kit';
 import { getRelatedPosts } from '@ows/site-kit';
+import { getPublicLocales } from '@/lib/i18n/publicLocales';
 
 // ISR：靜態產生 + 背景重新驗證（從邊緣快取直接送出，慢後端不卡使用者）
 export const revalidate = 3600;
@@ -65,7 +66,7 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
     description: post.meta_description || post.summary,
     keywords: post.tags?.map(tag => tag.name).join(', '),
     // 以當前語言為自我 canonical，並由翻譯群組組出 hreflang
-    alternates: buildContentAlternates(post, locale),
+    alternates: buildContentAlternates(post, locale, await getPublicLocales()),
     openGraph: {
       type: 'article',
       title: post.title,

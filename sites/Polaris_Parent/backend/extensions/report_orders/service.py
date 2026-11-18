@@ -24,7 +24,7 @@ from sites.Polaris_Parent.backend.models import ReportFulfillment, Shipment
 POLICY_VERSION = '2026-10-03'
 LANGUAGE = 'zh-TW'
 # 官網販售的語言（一種語言一筆商品，2026-10-28）；訂單語言決定交付的報告語言（handoff 帶給紫微端）
-SUPPORTED_LANGUAGES = ('zh-TW', 'zh-CN', 'en', 'ja')
+SUPPORTED_LANGUAGES = ('zh-TW', 'zh-CN', 'en', 'ja', 'es', 'no', 'ko')
 CURRENCY = 'TWD'
 PRODUCT_IDS = {'digital': 'natal-report-digital', 'physical': 'natal-report-physical'}
 VARIANT_LABELS = {'digital': '數位版', 'physical': '實體書版'}
@@ -206,7 +206,7 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
                                 address=s['address'], country=s.get('country') or None, status='pending'))
     from . import commerce
     try:
-        commerce.finalize_order(order)
+        commerce.finalize_order(order, required=terms is not None)
         db.session.commit()
     except IntegrityError:
         # 同一份草稿同時送出兩次：另一個請求已先建好（紫微端會回傳同一張盤）
@@ -219,6 +219,7 @@ def create_report_order(user, email, clean, submission_key, eng, save_chart, pay
 
 
 def order_summary(order):
+    from . import control, progress
     from . import commerce
     from .payment import attempt_view, latest_manual_attempt, manual_bank_info
 
@@ -249,6 +250,7 @@ def order_summary(order):
         'commerce': commerce.view(order),
         'order_no': order.order_no,
         'status': order.status,
+        'fulfilment_control': {'blocked': control.view(order)['blocked']},
         'amount': order.amount,
         'currency': order.currency,
         'payment_mode': order.payment_method,
@@ -278,6 +280,7 @@ def order_summary(order):
         'addons': phys.addon_children(item) if item is not None and item.kind == 'purchase' else [],
         'addon_offer': phys.addon_offer(order),
         'production': fulfillment and {'handoff_status': fulfillment.handoff_status,
+                                        'progress': progress.view(fulfillment, public=True),
                                         'ziwei_status': fulfillment.ziwei_status,
                                         'member_note': fulfillment.member_note},
         'shipment': shipment and {'status': shipment.status, 'carrier': shipment.carrier,

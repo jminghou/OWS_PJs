@@ -71,7 +71,10 @@ def revisions_left(job):
 
 
 def _lock(job):
-    return ReportPrintJob.query.filter_by(id=job.id).with_for_update().one()
+    from . import commerce
+    item = db.session.get(OrderItem, job.order_item_id)
+    commerce.require(item, 'book')
+    return ReportPrintJob.query.filter_by(id=job.id).populate_existing().with_for_update().one()
 
 
 # ── 管理者 ───────────────────────────────────────────────────────────────────
@@ -189,6 +192,7 @@ def auto_approve_due(now=None):
         try:
             _decide(job, proof.id, 'auto_approved', None, None)
         except OrderError:
+            db.session.rollback()
             continue  # 剛好被會員或管理者處理掉
         done.append((job, proof))
     return done

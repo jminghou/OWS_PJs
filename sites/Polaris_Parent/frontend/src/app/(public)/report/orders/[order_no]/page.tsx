@@ -240,7 +240,7 @@ export default function ReportOrderPage() {
               'inline-flex items-center rounded-full px-3 py-1.5 text-[13px] leading-none',
               STATUS_TONE[order.status] ?? 'bg-tint text-text'
             )}>
-              {order.commerce?.external?.fulfilment_blocked ? '後續履約暫停' : isAddon && order.status === 'paid' ? '已付款' : order.report ? '報告已完成' : ORDER_STATUS[order.status] ?? order.status}
+              {order.fulfilment_control?.blocked || order.commerce?.external?.fulfilment_blocked ? '後續履約暫停' : isAddon && order.status === 'paid' ? '已付款' : order.report ? '報告已完成' : order.production?.progress?.status_label || ORDER_STATUS[order.status] || order.status}
             </span>
           </Row>
           {order.paid_at && <Row label={order.payment.mode === 'external_verified' ? '平台成交確認' : '確認收款'}><span className="font-latin">{fmtDateTime(order.paid_at)}</span></Row>}
@@ -256,12 +256,19 @@ export default function ReportOrderPage() {
       {order.commerce?.external?.fulfilment_blocked && <Alert tone="warning" className="mt-6">
         平台成交證據需要重新釐清，後續製作已暫停，請聯絡客服。此狀態不表示平台已完成退款。
       </Alert>}
-      {order.status === 'paid' && !isAddon && !order.report && !order.commerce?.external?.fulfilment_blocked && (
+      {order.fulfilment_control?.blocked && !order.commerce?.external?.fulfilment_blocked && <Alert tone="warning" className="mt-6">後續製作暫停處理中，請聯絡客服。此狀態不表示已退款。</Alert>}
+      {order.status === 'paid' && !isAddon && !order.report && !order.production?.progress?.status && !order.commerce?.external?.fulfilment_blocked && !order.fulfilment_control?.blocked && (
         <Alert tone="success" className="mt-6">
           {order.payment.mode === 'external_verified' ? '已核對平台成交，無須再向官網付款。' : '已確認收款，'}報告製作中。完成後會寄信通知你，到這個頁面就能下載。
         </Alert>
       )}
       <ReportDownload order={order} />
+      {order.production?.progress && !order.fulfilment_control?.blocked && !order.commerce?.external?.fulfilment_blocked && !order.report &&
+        <Alert tone="info" className="mt-6">
+          {order.production.progress.status_label || '等待取得製作進度'}
+          {order.production.progress.member_note && <p>{order.production.progress.member_note}</p>}
+          {order.production.progress.stale && <p>進度待更新，以上為最近取得的狀態。</p>}
+        </Alert>}
       <ActivationSection order={order} onUpdated={setOrder} />
       <PhysicalStatus order={order} onUpdated={setOrder} />
       <ConsultStatus order={order} onUpdated={setOrder} />

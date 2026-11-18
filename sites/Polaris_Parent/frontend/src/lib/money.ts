@@ -15,6 +15,7 @@ export const CURRENCIES: Record<string, { exponent: number; symbol: string; labe
   CNY: { exponent: 2, symbol: 'CN¥', label: '人民幣' },
   HKD: { exponent: 2, symbol: 'HK$', label: '港幣' },
   JPY: { exponent: 0, symbol: '¥', label: '日圓' },
+  KRW: { exponent: 0, symbol: '₩', label: '韓圜' },
   AUD: { exponent: 2, symbol: 'A$', label: '澳幣' },
   CAD: { exponent: 2, symbol: 'C$', label: '加幣' },
 };

@@ -8,13 +8,13 @@ export interface PrivacyContent {
   contactLinkText: string;
 }
 
-export const PRIVACY_UPDATED_ISO = '2026-09-19';
+export const PRIVACY_UPDATED_ISO = '2026-11-18';
 
 export const privacyContent: Record<string, PrivacyContent> = {
   'zh-TW': {
     title: '隱私權政策',
     description: '親紫之間如何收集、使用與保護您的個人資料，以及您可以如何退訂與要求刪除。',
-    updated: '最後更新：2026 年 9 月 19 日',
+    updated: '最後更新：2026 年 11 月 18 日',
     intro: '親紫之間重視您的隱私。這份說明列出我們會收集哪些資料、為什麼收集，以及您可以怎麼做。',
     sections: [
       {
@@ -36,6 +36,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
         heading: '會員帳號與命盤',
         paragraphs: [
           '註冊會員時，我們會保存您提供的帳號資料。使用線上排盤時，您輸入的出生資料用於產生命盤；單純試排不會保存。當您從排盤頁註冊會員，或以會員身分選擇保存時，該命盤（含出生資料）才會存進您的帳號。',
+          '使用 Google 或 LINE 帳號註冊或登入時，該平台會提供您的名稱、大頭貼網址與一組帳號識別碼；若您同意，也會提供 Email（LINE 可在同意畫面取消勾選，此時我們會請您另外填寫並驗證 Email）。我們只用這些資料建立與辨識您的會員帳號，並以大頭貼顯示在會員中心；不會取得您在這些平台的密碼，也不會讀取您的聊天內容或帳號裡的其他資料。您可以在會員中心的「登入方式」隨時解除連結。',
           '您可以透過聯絡頁面要求查閱、更正或刪除您的帳號與已保存的命盤。',
         ],
       },
@@ -57,7 +58,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
   'zh-CN': {
     title: '隐私政策',
     description: '亲紫之间如何收集、使用与保护您的个人资料，以及您可以如何退订与要求删除。',
-    updated: '最后更新：2026 年 9 月 19 日',
+    updated: '最后更新：2026 年 11 月 18 日',
     intro: '亲紫之间重视您的隐私。这份说明列出我们会收集哪些资料、为什么收集，以及您可以怎么做。',
     sections: [
       {
@@ -79,6 +80,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
         heading: '会员账号与命盘',
         paragraphs: [
           '注册会员时，我们会保存您提供的账号资料。使用在线排盘时，您输入的出生资料用于生成命盘；单纯试排不会保存。当您从排盘页注册会员，或以会员身份选择保存时，该命盘（含出生资料）才会存进您的账号。',
+          '使用 Google 或 LINE 账号注册或登录时，该平台会提供您的名称、头像网址与一组账号识别码；若您同意，也会提供 Email（LINE 可在同意画面取消勾选，此时我们会请您另外填写并验证 Email）。我们只用这些资料建立与识别您的会员账号，并以头像显示在会员中心；不会取得您在这些平台的密码，也不会读取您的聊天内容或账号里的其他资料。您可以在会员中心的“登录方式”随时解除连结。',
           '您可以通过联系页面要求查阅、更正或删除您的账号与已保存的命盘。',
         ],
       },
@@ -96,7 +98,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
   en: {
     title: 'Privacy Policy',
     description: 'How Qin Zi Blog collects, uses and protects your personal data, and how you can unsubscribe or ask for deletion.',
-    updated: 'Last updated: 19 September 2026',
+    updated: 'Last updated: 18 November 2026',
     intro: 'We take your privacy seriously. This page lists what we collect, why we collect it, and what you can do about it.',
     sections: [
       {
@@ -118,6 +120,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
         heading: 'Member accounts and charts',
         paragraphs: [
           'When you register, we store the account details you provide. When you use the online chart, the birth data you enter is used to generate the chart, and trying it out saves nothing. A chart (including its birth data) is saved to your account only when you register from the chart page or choose to save it as a member.',
+          'If you sign up or log in with Google or LINE, that service shares your name, profile picture URL and an account identifier with us, and your email address if you allow it (LINE lets you untick email; in that case we ask you to enter and verify one). We use them only to create and recognise your member account and to show your picture in the member area. We never receive your passwords for those services and do not read your chats or anything else in those accounts. You can unlink them at any time under "Login methods" in the member area.',
           'You can ask to see, correct or delete your account and saved charts through the contact page.',
         ],
       },
@@ -135,7 +138,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
   ja: {
     title: 'プライバシーポリシー',
     description: '親紫の間が個人情報をどのように収集・利用・保護するか、また配信停止や削除の方法についてご説明します。',
-    updated: '最終更新日：2026年9月19日',
+    updated: '最終更新日：2026年11月18日',
     intro: '親紫の間はプライバシーを大切にしています。このページでは、収集する情報とその理由、そして皆さまができることをご説明します。',
     sections: [
       {
@@ -157,6 +160,7 @@ export const privacyContent: Record<string, PrivacyContent> = {
         heading: '会員アカウントと命盤',
         paragraphs: [
           '会員登録の際にご提供いただいたアカウント情報を保存します。オンライン命盤作成で入力された出生情報は命盤の生成に利用し、お試しの段階では保存しません。命盤作成ページから会員登録した場合、または会員として保存を選択した場合にのみ、命盤（出生情報を含む）がアカウントに保存されます。',
+          'Google または LINE アカウントで登録・ログインした場合、各サービスから名前、プロフィール画像の URL、アカウント識別子が提供され、同意いただいた場合はメールアドレスも提供されます（LINE では同意画面でメールアドレスの提供を外せます。その場合は別途メールアドレスの入力と確認をお願いします）。これらは会員アカウントの作成と識別、および会員ページでのプロフィール画像表示にのみ利用します。各サービスのパスワードを受け取ることはなく、トークやアカウント内のその他の情報にアクセスすることもありません。会員ページの「ログイン方法」からいつでも連携を解除できます。',
           'アカウントや保存した命盤の開示・訂正・削除は、お問い合わせページからご依頼いただけます。',
         ],
       },

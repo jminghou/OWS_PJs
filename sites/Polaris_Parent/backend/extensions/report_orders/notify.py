@@ -82,15 +82,42 @@ def outbox_of(note):
     return ReportMailOutbox.query.filter_by(notification_id=note.id).first()
 
 
+def _lock_notification(note_id, skip_locked=False):
+    # Same order-before-child lock order as fulfilment and document publication.
+    from . import commerce
+    note = db.session.get(OrderNotification, note_id)
+    if note is None:
+        return None
+    order = db.session.get(Order, note.order_id)
+    if order is not None:
+        commerce.lock_order(order)
+    return OrderNotification.query.filter_by(id=note_id).populate_existing().with_for_update(skip_locked=skip_locked).first()
+
+
 def attempt(note, now=None):
     """寄一次。成功標 sent；失敗依 RETRY_BACKOFF 排下次重試，次數用完就停並通知管理者。回傳是否已寄出。
 
     note 必須已存進資料庫。沒有 outbox（0014 之前的舊信）或內文已清除的信無法重寄，原樣回傳。
     """
     now = now or datetime.utcnow()
+    note = _lock_notification(note.id)
+    if note is None:
+        db.session.commit()
+        return False
+    if note.status == 'sent':
+        db.session.commit()
+        return True
     box = outbox_of(note)
     if box is None or box.body is None:
+        db.session.commit()
         return note.status == 'sent'
+    from . import notification_gate
+    action, reason = notification_gate.decision(note, db.session.get(Order, note.order_id), now)
+    if action != 'send':
+        note.status, note.error = ('pending' if action == 'defer' else 'skipped'), reason
+        box.next_attempt_at = now + timedelta(minutes=5) if action == 'defer' else None
+        db.session.commit()
+        return False  # business holds do not consume network retry attempts
     note.attempts = (note.attempts or 0) + 1
     box.last_attempt_at = now
     exhausted = False
@@ -148,7 +175,7 @@ def retry_due(now=None, limit=50):
     db.session.commit()
     sent = failed = 0
     for nid in ids:
-        note = OrderNotification.query.filter_by(id=nid).with_for_update(skip_locked=True).first()
+        note = _lock_notification(nid, skip_locked=True)
         box = outbox_of(note) if note is not None else None
         if (note is None or note.status == 'sent' or box is None or box.next_attempt_at is None
                 or box.next_attempt_at > now):
@@ -156,14 +183,14 @@ def retry_due(now=None, limit=50):
             continue
         if attempt(note, now):
             sent += 1
-        else:
+        elif note.status == 'failed':
             failed += 1
     return sent, failed
 
 
 def resend(note_id):
     """後台手動重寄（不受重試次數限制）。回傳是否寄出；不能重寄時丟 ValueError。"""
-    note = OrderNotification.query.filter_by(id=note_id).with_for_update().first()
+    note = _lock_notification(note_id)
     if note is None:
         db.session.commit()
         raise LookupError('找不到這封信')

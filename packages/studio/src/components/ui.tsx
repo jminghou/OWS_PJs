@@ -44,6 +44,8 @@ const LANGUAGE_GLYPH: Record<string, { glyph: string; name: string; className: s
   en:      { glyph: 'EN', name: 'English', className: 'bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200' },
   ja:      { glyph: '日', name: '日本語', className: 'bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200' },
   ko:      { glyph: '한', name: '한국어', className: 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200' },
+  es:      { glyph: 'ES', name: 'Español', className: 'bg-orange-50 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200' },
+  no:      { glyph: 'NO', name: 'Norsk', className: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200' },
 };
 
 export function LanguageBadge({ language, className = '' }: { language?: string | null; className?: string }) {

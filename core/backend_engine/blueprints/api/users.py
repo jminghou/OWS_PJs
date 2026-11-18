@@ -17,6 +17,7 @@ from core.backend_engine.blueprints.api import bp
 from core.backend_engine.models import User
 from core.backend_engine.schemas.user import UserSchema
 from core.backend_engine.services.rbac import require_permission
+from core.backend_engine.services.member_directory import MEMBER_ROLES
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
@@ -31,8 +32,14 @@ def api_users():
     per_page = min(request.args.get('per_page', 20, type=int), 100)
     role = request.args.get('role')
     search = request.args.get('search')
+    scope = request.args.get('scope')
 
     query = User.query
+    # scope=staff：只列後台人員（作者管理用）；會員改在 /members 管理
+    if scope == 'staff':
+        query = query.filter(~User.role.in_(MEMBER_ROLES))
+    elif scope == 'members':
+        query = query.filter(User.role.in_(MEMBER_ROLES))
     if role:
         query = query.filter_by(role=role)
     if search:

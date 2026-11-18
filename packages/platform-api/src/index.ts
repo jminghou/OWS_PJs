@@ -33,15 +33,20 @@ export {
 } from './imageUtils';
 export type { ImageSize } from './imageUtils';
 
-export { i18nApi, homepageApi, columnProfileApi } from './settings';
+export { i18nApi, localePreviewApi, homepageApi, columnProfileApi } from './settings';
 export type {
   I18nSettings,
+  LocalePreviewPass,
   ColumnProfile,
   ColumnProfileFields,
   ColumnProfileLink,
   ColumnHighlight,
 } from './settings';
 export { userApi, submissionApi } from './users';
+export { memberApi } from './members';
+export type {
+  MemberRow, MemberListResponse, MemberColumnDef, MemberColumnKind, MemberFilterDef, MemberSummary, MemberSort, MemberQuery,
+} from './members';
 export { authorApi } from './authors';
 export type { AuthorContentCard, AuthorDetailResponse } from './authors';
 export { rbacApi } from './rbac';

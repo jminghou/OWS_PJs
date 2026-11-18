@@ -75,6 +75,15 @@ def send(f, now=None, actor=None):
         f.last_error = '訂單不是已付款狀態，未送出'
         db.session.commit()
         return False
+    from . import commerce
+    from .service import OrderError
+    try:
+        commerce.require(item, 'report')
+    except OrderError as exc:
+        db.session.rollback()
+        f.last_error = exc.message
+        db.session.commit()
+        return False  # A business hold is not a failed network attempt.
     data, err = _ziwei_call('POST', '/public/report-requests', payload(f, item, order))
     f.handoff_attempts = (f.handoff_attempts or 0) + 1
     f.updated_at = now.replace(tzinfo=timezone.utc)  # 重試間隔以這次嘗試的時間起算
@@ -125,6 +134,14 @@ def send_due(now=None, limit=20):
     for fid in ids:
         if ok + failed >= limit:
             break
+        # Same order as fulfilment and evidence review: order before child row.
+        parent_id = (db.session.query(OrderItem.order_id)
+                     .join(ReportFulfillment, ReportFulfillment.order_item_id == OrderItem.id)
+                     .filter(ReportFulfillment.id == fid).scalar())
+        parent = Order.query.filter_by(id=parent_id).with_for_update(skip_locked=True).first()
+        if parent is None:
+            db.session.commit()
+            continue
         f = ReportFulfillment.query.filter_by(id=fid).with_for_update(skip_locked=True).first()
         due = f is not None and f.handoff_status in ('pending', 'failed') and \
             (next_attempt_at(f) is None or next_attempt_at(f) <= now)
@@ -142,6 +159,8 @@ def send_now(order, actor=None):
     """後台「立即送出」：不看重試間隔。回傳 [(request_no, 是否成功, 錯誤)]；沒有可送的單回空串列。"""
     results = []
     for item in order.order_items:
+        from . import commerce
+        commerce.lock_order(order)
         f = ReportFulfillment.query.filter_by(order_item_id=item.id).with_for_update().first()
         if f is None or f.handoff_status not in ('pending', 'failed'):
             db.session.commit()
@@ -155,7 +174,10 @@ def view(f):
     if f is None:
         return None
     nxt = next_attempt_at(f) if f.handoff_status == 'failed' else None
+    from . import control, progress
     return {
+        'progress': progress.view(f),
+        'control': control.view(db.session.get(OrderItem, f.order_item_id).order),
         'status': f.handoff_status, 'status_label': HANDOFF_STATUS_LABELS.get(f.handoff_status, f.handoff_status),
         'attempts': f.handoff_attempts or 0, 'error': f.last_error,
         'sent_at': f.sent_at.isoformat() if f.sent_at else None,

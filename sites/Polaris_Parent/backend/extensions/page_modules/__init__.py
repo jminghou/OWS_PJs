@@ -45,8 +45,8 @@ register_permissions([
 
 MODULE_TYPES = ('intro', 'highlights', 'testimonial', 'details', 'features', 'process', 'reviews', 'faq',
                 'audiences', 'catalog_page')
-LANGUAGES = ('zh-TW', 'zh-CN', 'en', 'ja')
-LANGUAGE_NAMES = {'zh-TW': '繁中', 'zh-CN': '簡中', 'en': '英文', 'ja': '日文'}
+LANGUAGES = ('zh-TW', 'zh-CN', 'en', 'ja', 'es', 'no', 'ko')
+LANGUAGE_NAMES = {'zh-TW': '繁中', 'zh-CN': '簡中', 'en': '英文', 'ja': '日文', 'es': '西文', 'no': '挪威文', 'ko': '韓文'}
 DEFAULT_LANGUAGE = 'zh-TW'
 
 PRODUCT_REFS_KEY = 'report_modules'

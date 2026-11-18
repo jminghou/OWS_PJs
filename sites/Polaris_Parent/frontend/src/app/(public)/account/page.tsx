@@ -12,6 +12,7 @@ import FamilyCard from '@/components/account/FamilyCard';
 import FamilyChartViewer from '@/components/account/FamilyChartViewer';
 import Welcome from '@/components/account/Welcome';
 import ConsultTab from '@/components/account/ConsultTab';
+import LoginMethods from '@/components/account/LoginMethods';
 import { buildTodos, groupFamily, groupReports } from '@/components/account/orderModel';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -47,16 +48,17 @@ const pillCls = (active: boolean) =>
   'whitespace-nowrap rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors duration-150 ease-out ' +
   'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 ' +
   (active ? 'bg-blue-50 text-blue-800' : 'text-ink hover:bg-tint active:bg-line');
-type Tab = 'home' | 'orders' | 'consult' | 'coupons';
+type Tab = 'home' | 'orders' | 'consult' | 'coupons' | 'login';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'home', label: '我的家' },
   { key: 'orders', label: '購買紀錄' },
   { key: 'consult', label: '專人解讀' },
   { key: 'coupons', label: '我的優惠' },
+  { key: 'login', label: '登入方式' },
 ];
 /** 通知信與舊連結的 ?tab= 值（reports、charts 是改版前的分頁）→ 現在的分頁 */
 const TAB_ALIASES: Record<string, Tab> = {
-  home: 'home', reports: 'home', charts: 'home', orders: 'orders', consult: 'consult', coupons: 'coupons',
+  home: 'home', reports: 'home', charts: 'home', orders: 'orders', consult: 'consult', coupons: 'coupons', login: 'login',
 };
 // 登出：結束性動作，hover 走 error 色（不用品牌粉）
 const QUIET_DANGER_BTN =
@@ -72,12 +74,15 @@ export default function AccountPage() {
 
   const [tab, setTab] = useState<Tab>('home');
   const [consultBook, setConsultBook] = useState<string | null>(null);
-  // 通知信或其他頁面帶 ?tab= 進來時直接開該分頁（舊的 reports／charts 都落在「我的家」）；?book= 預選專人解讀的書
+  const [linkedProvider, setLinkedProvider] = useState<string | null>(null);
+  // 通知信或其他頁面帶 ?tab= 進來時直接開該分頁（舊的 reports／charts 都落在「我的家」）；?book= 預選專人解讀的書；
+  // ?linked=line 是剛在「登入方式」連結完 LINE 回來
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     const t = q.get('tab');
     if (t && TAB_ALIASES[t]) setTab(TAB_ALIASES[t]);
     setConsultBook(q.get('book'));
+    setLinkedProvider(q.get('linked'));
   }, []);
   const [reportOrders, setReportOrders] = useState<ReportOrderSummary[] | null>(null);
   const [ordersErr, setOrdersErr] = useState('');
@@ -427,6 +432,8 @@ export default function AccountPage() {
             )}
           </div>
         </div>
+      ) : tab === 'login' ? (
+        <LoginMethods justLinked={linkedProvider} />
       ) : null}
 
       {/* 填訂單編號 Modal */}

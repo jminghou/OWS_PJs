@@ -108,6 +108,26 @@ def is_i18n_enabled():
     return get_i18n_setting('i18n_enabled', 'false').lower() == 'true'
 
 
+def get_site_languages():
+    """後台可編輯的語言（i18n_languages）；多語言關閉時只有預設語言。"""
+    default = get_i18n_setting('i18n_default_language', 'zh-TW')
+    if not is_i18n_enabled():
+        return [default]
+    languages = [x.strip() for x in get_i18n_setting('i18n_languages', default).split(',') if x.strip()]
+    return list(dict.fromkeys([default] + languages))
+
+
+def get_public_languages():
+    """一般訪客看得到的語言。沒設 i18n_public_languages 的站台＝全部可編輯語言（舊行為）；
+    有設的站台，其餘語言是「編輯中」，只有持語言預覽通行證的人看得到（locale_preview.py）。"""
+    site = get_site_languages()
+    raw = get_i18n_setting('i18n_public_languages')
+    if raw is None:
+        return site
+    public = {x.strip() for x in raw.split(',') if x.strip()}
+    return [lang for lang in site if lang in public or lang == site[0]]
+
+
 def get_localized_slug(entity, language):
     """Get entity's slug for a specific language"""
     if not entity:

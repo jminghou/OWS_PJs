@@ -28,6 +28,7 @@ core 改一次，所有掛載共用鏈的站台吃到同一份 migration。
 | 電商鏈（選用） | `packages/commerce/migrations` | `alembic_version_commerce` | products / product_prices / product_tags / orders / payment_methods |
 | Studio 鏈（選用） | `packages/studio/migrations` | `alembic_version_studio` | `studio_*` 十張表（內容專案／文件／版本／知識卡片／收集箱／標籤），與 core 表同住 BLOG schema，靠 `studio_` 前綴區分 |
 | Newsletter 鏈（選用） | `packages/newsletter/migrations` | `alembic_version_newsletter` | `newsletter_subscribers`（電子報訂閱名單），同住 BLOG schema，靠 `newsletter_` 前綴區分；沒有任何外鍵 |
+| Social Auth 鏈（選用） | `packages/social_auth/migrations` | `alembic_version_social_auth` | `social_auth_identities`（Google／LINE 帳號連到哪個會員），同住 BLOG schema，靠 `social_auth_` 前綴區分；沒有任何外鍵 |
 | 站台鏈 | `sites/<站>/backend/migrations` | `alembic_version` | 該站 extension 的表 |
 
 電商是**選用模組**（`COMMERCE_ENABLED`）：既有站台（Polaris / Claire）沒設此鍵 → 預設掛載、維持現狀；
@@ -40,6 +41,7 @@ Studio（`STUDIO_ENABLED`）是**新功能**，沒有現狀要維持 → 預設�
 
 Newsletter（`NEWSLETTER_ENABLED`）同樣是新功能、預設關閉，Polaris 的 config 明確打開。只有一張表、沒有外鍵，
 所以它在部署順序裡的位置只是慣例；鏈的寫法與 Studio 相同（只認 `NEWSLETTER_TABLES`）。
+Social Auth（`SOCIAL_AUTH_ENABLED`）同樣預設關閉，Polaris 的 config 明確打開；一張表、沒有外鍵，寫法與 Newsletter 相同。
 新增選用模組時，記得同步：站台鏈 `env.py` 的排除清單、`scripts/check_schema_drift.py`、站台 `Dockerfile` 的 `COPY`。
 
 版本表名稱各不相同，所以各條鏈可以各自演進、互不干擾。
@@ -64,7 +66,10 @@ flask --app "sites.<站>.backend.app:app" db upgrade -d packages/studio/migratio
 # 4. Newsletter 鏈（只有 NEWSLETTER_ENABLED 的站台）—— 無外鍵，排在這裡只是慣例
 flask --app "sites.<站>.backend.app:app" db upgrade -d packages/newsletter/migrations
 
-# 5. 站台鏈（後）
+# 5. Social Auth 鏈（只有 SOCIAL_AUTH_ENABLED 的站台）—— 無外鍵，排在這裡只是慣例
+flask --app "sites.<站>.backend.app:app" db upgrade -d packages/social_auth/migrations
+
+# 6. 站台鏈（後）
 flask --app "sites.<站>.backend.app:app" db upgrade -d sites/<站>/backend/migrations
 ```
 
@@ -87,6 +92,7 @@ flask --app "sites.<站>.backend.app:app" db upgrade -d sites/<站>/backend/migr
 | `COMMERCE_ENABLED` | 未設 → 掛載；`BaseSiteConfig` → `false` | 電商模組（表／路由／權限）是否掛載 |
 | `STUDIO_ENABLED` | 未設 → `false`（Polaris config 預設 `true`） | Studio 模組（表／路由／權限）是否掛載 |
 | `NEWSLETTER_ENABLED` | 未設 → `false`（Polaris config 預設 `true`） | Newsletter 模組（表／路由／權限）是否掛載。確認信連結以 `FRONTEND_URL` 為基底，需要可用的 `MAIL_*` |
+| `SOCIAL_AUTH_ENABLED` | 未設 → `false`（Polaris config 預設 `true`） | Social Auth 模組（表／路由）是否掛載。另需 provider 變數：`GOOGLE_CLIENT_ID`（沒設則不顯示 Google） |
 
 `OWS_IDENTITY_MODE` 是 P5-C 從 `OWS_BLOG_SCHEMA` 拆出來的。原本一個變數同時決定
 「表放哪個 schema」和「用哪種身分模型」，導致第三個站台無法「用 schema 分流表、

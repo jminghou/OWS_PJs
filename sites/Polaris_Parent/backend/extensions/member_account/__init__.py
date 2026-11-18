@@ -216,6 +216,66 @@ def verify_email():
     return jsonify({'success': True, 'email': email, 'email_verified': True})
 
 
+def _mark_social_email_verified(user, profile):
+    """社群登入（packages/social_auth）：provider 已證明信箱屬於本人 → 補寫驗證紀錄，結帳才不會再要驗證碼。
+
+    只在 provider 的信箱與會員目前的信箱相同時寫入（會員改過信箱就不代驗）。
+    """
+    email = normalise_email(user.email or user.username)
+    if profile.email and profile.email_verified and profile.email == email \
+            and not service.is_email_verified(user.id, email):
+        service.mark_verified(user.id, email)
+
+
+def _register_member_directory():
+    """後台「會員管理」加「信箱已驗證」欄位與篩選（core member_directory 的擴充點）。"""
+    from sqlalchemy import exists, func
+
+    from core.backend_engine.services import member_directory as md
+    from sites.Polaris_Parent.backend.models import MemberEmailVerification as V
+
+    def fetch(users):
+        ids = [u.id for u in users]
+        rows = dict(db.session.query(V.app_user_id, V.email).filter(V.app_user_id.in_(ids)).all()) if ids else {}
+        return {u.id: rows.get(u.id) == normalise_email(u.email or u.username) for u in users}
+
+    def apply(query, value):
+        # 驗證的是「哪個 Email」：會員改過信箱，舊紀錄就不算
+        verified = exists().where((V.app_user_id == User.id)
+                                  & (V.email == func.lower(func.coalesce(User.email, User.username))))
+        return query.filter(verified if value == 'yes' else ~verified)
+
+    md.register_column('email_verified', '信箱驗證', kind='boolean', fetch=fetch, order=20)
+    md.register_filter('email_verified', '信箱驗證', order=20, apply=apply,
+                       options=[('yes', '已驗證'), ('no', '未驗證')])
+
+
+_register_member_directory()
+
+
+try:  # 模組未安裝時（例如精簡映像）不影響本 extension
+    from packages.social_auth import hooks as _social_hooks
+    _social_hooks.on_signed_in(_mark_social_email_verified)
+
+    def _social_send_code(email):
+        """社群帳號要證明信箱（沒給信箱、或信箱已是會員）時寄驗證碼。用 verify 用途：碼只寄到該信箱本人。"""
+        try:
+            code = service.issue_code(email, 'verify')
+        except service.RateLimited as rl:
+            raise _social_hooks.CodeRateLimited(rl.retry_after) from rl
+        service.send_code_email(email, 'verify', code)
+
+    def _social_verify_code(email, code):
+        try:
+            service.consume_code(email, 'verify', code)
+        except service.CodeError as exc:
+            raise _social_hooks.CodeInvalid(str(exc)) from exc
+
+    _social_hooks.set_email_codes(send=_social_send_code, verify=_social_verify_code)
+except ImportError:  # pragma: no cover
+    pass
+
+
 @bp.route('/member/verification', methods=['GET'])
 @jwt_required()
 def verification_status():

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useTurnstile } from '@ows/platform-api/turnstile';
+import { SocialSignInButtons, isNeedsLink, type SocialSignInResult } from '@ows/social-auth';
 import { astrologyApi, memberAccountApi } from '@/lib/api';
 import {
   loadPendingChart,
@@ -39,7 +40,7 @@ function LoginContent() {
   const next = safeNext(searchParams.get('next'));
 
   const [mode, setMode] = useState<Mode>(
-    searchParams.get('mode') === 'register' ? 'register' : 'login'
+    searchParams.get('mode') === 'register' ? 'register' : searchParams.get('mode') === 'reset' ? 'reset' : 'login'
   );
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -103,6 +104,32 @@ function LoginContent() {
       await goAfterLogin(normalisedEmail());
     } catch {
       /* 錯誤訊息由 store.error 顯示 */
+    }
+  };
+
+  // Google 登入：後端已設好 cookies（新信箱即註冊），之後與密碼登入走同一套收尾
+  const handleSocialSuccess = async (result: SocialSignInResult) => {
+    await checkAuth();
+    await goAfterLogin(result.user.username);
+  };
+
+  const handleSocialError = (err: unknown) => {
+    if (isNeedsLink(err)) {
+      // 信箱已是會員、但不是 Gmail：後端已設好待完成票 → 到 /login/social 收驗證碼連結
+      router.push(`/login/social?status=pending${next ? `&next=${encodeURIComponent(next)}` : ''}`);
+      return;
+    }
+    setNotice('');
+    setLocalErr((err as Error)?.message || 'Google 登入失敗，請稍後再試');
+  };
+
+  const handleSocialPending = (pending: boolean) => {
+    setBusy(pending);
+    if (pending) {
+      setLocalErr('');
+      setNotice('Google 登入中…');
+    } else {
+      setNotice('');
     }
   };
 
@@ -216,15 +243,26 @@ function LoginContent() {
           </div>
         )}
 
-        <form onSubmit={onSubmit} className="space-y-5">
-          {pendingChart && mode !== 'reset' && (
-            <Alert tone="info">
-              {mode === 'register'
-                ? '註冊完成後，會自動把你剛排的命盤存進帳號。'
-                : '登入成功後，會自動把你剛排的命盤存進帳號。'}
-            </Alert>
-          )}
+        {pendingChart && mode !== 'reset' && (
+          <Alert tone="info" className="mb-5">
+            {mode === 'register'
+              ? '註冊完成後，會自動把你剛排的命盤存進帳號。'
+              : '登入成功後，會自動把你剛排的命盤存進帳號。'}
+          </Alert>
+        )}
 
+        {/* LINE／Google：第一次用就是註冊；後端沒開或沒設定時整塊不出現。LINE 回來由 /login/social 接手 */}
+        {mode !== 'reset' && step === 'email' && (
+          <SocialSignInButtons
+            onSuccess={handleSocialSuccess}
+            onError={handleSocialError}
+            onPending={handleSocialPending}
+            next={next}
+            dividerLabel="或用 Email"
+          />
+        )}
+
+        <form onSubmit={onSubmit} className="space-y-5">
           {mode === 'register' && step === 'email' && (
             <p className="text-sm text-text">
               我們會寄一組驗證碼到你的 Email，驗證後設定密碼即完成註冊。這個帳號用來保管你的訂單與報告。

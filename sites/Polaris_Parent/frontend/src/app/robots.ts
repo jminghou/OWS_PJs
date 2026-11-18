@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/siteConfig';
 
 // 不開放爬取的私有 / 交易路徑
-const disallow = ['/admin/', '/api/', '/order/', '/mock-payment/'];
+const disallow = ['/admin/', '/api/', '/order/', '/mock-payment/', '/preview/', '/*/preview/'];
 
 // 主流 AI / 答案引擎 (AEO) 爬蟲 —— 明確邀請它們收錄，以利被 AI 引用
 const aiBots = [

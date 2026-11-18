@@ -64,6 +64,12 @@
       "@ows/newsletter/*": [
         "../../../packages/newsletter/src/*"
       ],
+      "@ows/social-auth": [
+        "../../../packages/social_auth/src/index.ts"
+      ],
+      "@ows/social-auth/*": [
+        "../../../packages/social_auth/src/*"
+      ],
       "@ows/content-kit": [
         "../../../packages/content-kit/src/index.ts"
       ],
