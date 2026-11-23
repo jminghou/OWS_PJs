@@ -3,15 +3,28 @@ import unittest
 from unittest.mock import patch
 
 from flask_jwt_extended import create_access_token
-from sqlalchemy import text
+from sqlalchemy import BigInteger, text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.compiler import compiles
 
 from core.backend_engine.blueprints.api import contents as core_contents
 from core.backend_engine.factory import db
 from core.backend_engine.models import Category, Content, Setting, Tag, User, content_tags
 from core.backend_engine.services.rbac import RBACService
 from packages.studio.models import (
-    StudioCard, StudioCardRef, StudioDocument, StudioProject, StudioRevision, StudioSource, StudioTag, StudioTagging,
+    StudioCard, StudioCardRef, StudioDocument, StudioDocumentMedia, StudioProject, StudioPublishEvent,
+    StudioPublishRequest, StudioRevision, StudioSource, StudioTag, StudioTagging,
 )
+
+
+@compiles(JSONB, 'sqlite')
+def _jsonb_on_sqlite(type_, compiler, **kw):
+    return 'JSON'
+
+
+@compiles(BigInteger, 'sqlite')
+def _bigint_on_sqlite(type_, compiler, **kw):
+    return 'INTEGER'
 from tests.test_studio_preview import _make_app
 
 
@@ -30,7 +43,8 @@ class StudioDerivationTests(unittest.TestCase):
                     conn.execute(text(f"ATTACH DATABASE ':memory:' AS {schema}"))
         self.tables = [User.__table__, Setting.__table__, Category.__table__, Tag.__table__, Content.__table__, content_tags,
                        StudioProject.__table__, StudioDocument.__table__, StudioRevision.__table__, StudioCard.__table__,
-                       StudioCardRef.__table__, StudioSource.__table__, StudioTag.__table__, StudioTagging.__table__]
+                       StudioCardRef.__table__, StudioSource.__table__, StudioTag.__table__, StudioTagging.__table__,
+                       StudioDocumentMedia.__table__, StudioPublishRequest.__table__, StudioPublishEvent.__table__]
         for t in self.tables:
             t.create(db.engine)
         for p in (patch.object(RBACService, 'get_user_permissions', return_value={'studio.write', 'contents.update'}),

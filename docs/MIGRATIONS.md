@@ -26,7 +26,7 @@ core 改一次，所有掛載共用鏈的站台吃到同一份 migration。
 |---|---|---|---|
 | 共用平台鏈 | `core/migrations` | `alembic_version_core` | `core/backend_engine/models.py` 的 17 張表 + `packages/media_lib` 的 6 張 |
 | 電商鏈（選用） | `packages/commerce/migrations` | `alembic_version_commerce` | products / product_prices / product_tags / orders / payment_methods |
-| Studio 鏈（選用） | `packages/studio/migrations` | `alembic_version_studio` | `studio_*` 十張表（內容專案／文件／版本／知識卡片／收集箱／標籤），與 core 表同住 BLOG schema，靠 `studio_` 前綴區分 |
+| Studio 鏈（選用） | `packages/studio/migrations` | `alembic_version_studio` | `studio_*` 十三張表（內容專案／文件／版本／知識卡片／收集箱／標籤，加上 `studio_document_media`、`studio_publish_requests`、`studio_publish_events`），與 core 表同住 BLOG schema，靠 `studio_` 前綴區分 |
 | Newsletter 鏈（選用） | `packages/newsletter/migrations` | `alembic_version_newsletter` | `newsletter_subscribers`（電子報訂閱名單），同住 BLOG schema，靠 `newsletter_` 前綴區分；沒有任何外鍵 |
 | Social Auth 鏈（選用） | `packages/social_auth/migrations` | `alembic_version_social_auth` | `social_auth_identities`（Google／LINE 帳號連到哪個會員），同住 BLOG schema，靠 `social_auth_` 前綴區分；沒有任何外鍵 |
 | 站台鏈 | `sites/<站>/backend/migrations` | `alembic_version` | 該站 extension 的表 |
@@ -37,7 +37,7 @@ core 改一次，所有掛載共用鏈的站台吃到同一份 migration。
 
 Studio（`STUDIO_ENABLED`）是**新功能**，沒有現狀要維持 → 預設一律關閉，Polaris 的 config 明確打開。
 它的 migration 鏈只認 `STUDIO_TABLES` 裡的表名（`packages/studio/migrations_manifest.py`），
-不會把同 schema 的 core 表當成要刪的東西。
+不會把同 schema 的 core 表當成要刪的東西。鏈在 `0004_studio_derivation` 之後接 `0005_studio_publish_requests`（粉專發文三張表）。
 
 Newsletter（`NEWSLETTER_ENABLED`）同樣是新功能、預設關閉，Polaris 的 config 明確打開。只有一張表、沒有外鍵，
 所以它在部署順序裡的位置只是慣例；鏈的寫法與 Studio 相同（只認 `NEWSLETTER_TABLES`）。

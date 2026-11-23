@@ -26,8 +26,11 @@ def _fingerprint(row):
 def upgrade():
     op.add_column('studio_documents', sa.Column('derived_from_id', sa.Integer()), schema=SCHEMA)
     op.add_column('studio_documents', sa.Column('derived_fingerprint', sa.String(64)), schema=SCHEMA)
-    op.create_foreign_key('fk_studio_derived_from', 'studio_documents', 'studio_documents',
-                          ['derived_from_id'], ['id'], source_schema=SCHEMA, referent_schema=SCHEMA, ondelete='SET NULL')
+    bind = op.get_bind()
+    # SQLite 不能 ALTER 外鍵。欄位與索引照建；自我參照外鍵只在 Postgres 建立。
+    if bind.dialect.name != 'sqlite':
+        op.create_foreign_key('fk_studio_derived_from', 'studio_documents', 'studio_documents',
+                              ['derived_from_id'], ['id'], source_schema=SCHEMA, referent_schema=SCHEMA, ondelete='SET NULL')
     op.create_index('ix_studio_documents_derived_from_id', 'studio_documents', ['derived_from_id'], schema=SCHEMA)
 
     bind = op.get_bind()
@@ -50,6 +53,7 @@ def upgrade():
 
 def downgrade():
     op.drop_index('ix_studio_documents_derived_from_id', 'studio_documents', schema=SCHEMA)
-    op.drop_constraint('fk_studio_derived_from', 'studio_documents', schema=SCHEMA, type_='foreignkey')
+    if op.get_bind().dialect.name != 'sqlite':
+        op.drop_constraint('fk_studio_derived_from', 'studio_documents', schema=SCHEMA, type_='foreignkey')
     op.drop_column('studio_documents', 'derived_fingerprint', schema=SCHEMA)
     op.drop_column('studio_documents', 'derived_from_id', schema=SCHEMA)

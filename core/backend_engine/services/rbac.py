@@ -49,7 +49,8 @@ _EXTERNAL_USER_TABLE = os.environ.get('OWS_EXTERNAL_USER_TABLE') or 'account.app
 _EDITOR_PERMS = {
     'contents.create', 'contents.read', 'contents.update', 'contents.publish',
     'media.upload', 'media.delete', 'products.read',
-    'studio.read', 'studio.write',
+    'studio.read', 'studio.write', 'studio.publish_request',
+    # studio.publish_approve 故意不在這裡。確認還要過白名單，bot 帳號永遠不行。
 }
 _READER_PERMS = {'contents.read', 'products.read'}
 

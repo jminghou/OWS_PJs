@@ -19,10 +19,23 @@ from packages.studio.api._common import (
     attach_tags, bad_request, current_user_id, json_body, parse_dt, set_tags,
     studio_read, studio_write, with_session,
 )
+from packages.studio.social.service import (
+    MANUAL_STAGE_MESSAGE, manual_publish_blocked, note_content_changed,
+)
 
 
 def _iso(dt):
     return dt.isoformat() if dt else None
+
+
+def _blocked_manual_stage(document, stage):
+    if stage in ('published', 'scheduled') and manual_publish_blocked(document):
+        return bad_request(MANUAL_STAGE_MESSAGE, 409)
+    return None
+
+
+def _note_publish_content(document) -> None:
+    note_content_changed(document, current_user_id())
 
 
 def _content_summary(content: Content) -> dict:
@@ -207,13 +220,23 @@ def update_document(document_id):
     """明確儲存（非自動）：更新欄位，不產生版本。"""
     document = StudioDocument.query.get_or_404(document_id)
     data = json_body()
+    blocked = _blocked_manual_stage(document, data.get('stage'))
+    if blocked:
+        return blocked
     if document.content_id and any(k in data for k in ('stage', 'scheduled_at', 'published_at')):
         if 'scheduled_at' in data or 'published_at' in data or data.get('stage') in ('published','scheduled') or document.content.status == 'published':
             return bad_request('Use publication actions for website articles')
+    before_body = document.body
+    before_link = (document.attributes or {}).get('link')
     if 'title' in data:
         document.title = (data.get('title') or '').strip() or document.title
     if 'body' in data:
         document.body = data['body']
+    if 'link' in data:
+        attrs = dict(document.attributes or {})
+        raw = data.get('link')
+        attrs['link'] = (str(raw).strip() if raw else '') or None
+        document.attributes = attrs
     if 'stage' in data:
         if data['stage'] not in STAGES:
             return bad_request('Invalid stage')
@@ -226,6 +249,9 @@ def update_document(document_id):
         return bad_request('Use dedicated article settings and translation review actions')
     if 'tag_ids' in data:
         set_tags('document', document.id, data.get('tag_ids') or [])
+    link_now = (document.attributes or {}).get('link')
+    if document.body != before_body or link_now != before_link:
+        _note_publish_content(document)
     db.session.commit()
     return jsonify({'message': 'Document updated', 'document': _document_detail(document)})
 
@@ -256,9 +282,12 @@ def autosave_document(document_id):
     new_body = data.get('body') if 'body' in data else document.body
     if new_title == document.title and (new_body or '') == (document.body or ''):
         return jsonify({'message': 'No changes', 'saved_at': _iso(document.updated_at), 'revision': None})
+    body_changed = (new_body or '') != (document.body or '')
     document.title = new_title
     document.body = new_body
     document.updated_at = datetime.utcnow()
+    if body_changed:
+        _note_publish_content(document)
     rev = _snapshot(document, 'autosave')
     _prune_autosaves(document.id)
     db.session.commit()
@@ -287,10 +316,13 @@ def create_named_revision(document_id):
     label = (data.get('label') or '').strip()
     if not label:
         return bad_request('Label is required')
+    before_body = document.body
     if 'title' in data and data['title']:
         document.title = data['title']
     if 'body' in data:
         document.body = data['body']
+    if document.body != before_body:
+        _note_publish_content(document)
     rev = _snapshot(document, 'named', label=label)
     document.current_revision_id = rev.id
     db.session.commit()
@@ -331,6 +363,7 @@ def restore_revision(revision_id):
     document.title = rev.title or document.title
     document.body = rev.body
     document.current_revision_id = rev.id
+    _note_publish_content(document)
     db.session.commit()
     return jsonify({
         'message': 'Revision restored',
@@ -374,6 +407,7 @@ def load_from_content(document_id):
     _snapshot(document, 'named', label=f'載入文章前備份 {datetime.utcnow():%m-%d %H:%M}')
     document.title = document.content.title
     document.body = document.content.content or ''
+    _note_publish_content(document)
     _mark_synced(document)
     db.session.commit()
     return jsonify({'message': 'Loaded from article', 'document': _document_detail(document)})
@@ -395,6 +429,10 @@ def sync_to_content(document_id):
     permission = 'contents.update' if mode == 'save' else 'contents.publish'
     if not RBACService.has_any_permission(current_user_id(), [permission]):
         return bad_request('Permission denied', 403)
+    if mode in ('publish', 'schedule'):
+        blocked = _blocked_manual_stage(document, 'published' if mode == 'publish' else 'scheduled')
+        if blocked:
+            return blocked
     content = document.content
     if mode == 'save' and content.status == 'published':
         return bad_request('The working draft is saved separately; publish to update the website', 409)
