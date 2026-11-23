@@ -21,6 +21,7 @@ from core.backend_engine.services.rbac_seed import ROLE_DEFS
 from packages.media_lib.models import MLFile, MLFileVariant
 from packages.studio import STUDIO_PERMISSIONS
 from packages.studio.api import publish_requests  # noqa: F401  註冊路由
+from packages.studio.social.config import publish_mode
 from packages.studio.blueprint import studio_bp
 from packages.studio.models import (
     STUDIO_SCHEMA,
@@ -511,6 +512,7 @@ class PublishApiTests(unittest.TestCase):
         )
         self.assertEqual(listed.status_code, 200)
         self.assertEqual(listed.get_json()['pagination']['total'], 1)
+        self.assertEqual(listed.get_json()['publish_mode'], publish_mode())
         detail = self.client.get(f'/api/v1/studio/publish-requests/{req.id}', headers=self.headers(self.editor))
         self.assertEqual(
             [event['event'] for event in detail.get_json()['events']],

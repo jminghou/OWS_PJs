@@ -10,6 +10,7 @@ import type { FlowStep } from '../constants';
 import type { InboxItem, TodayResponse } from '../types';
 import { FlowBar } from '../components/FlowBar';
 import { NewProjectDialog } from '../components/NewProjectDialog';
+import { PublishAttention } from '../components/fb/FacebookPublishSection';
 import { Empty, PageHeader, Section, StageBadge, StudioPage, btnPrimary, relativeTime } from '../components/ui';
 
 const INBOX_KIND: Record<InboxItem['kind'], { label: string; icon: React.ReactNode }> = {
@@ -46,6 +47,7 @@ export default function TodayPage() {
           actions={<button type="button" onClick={() => setCreating(true)} className={btnPrimary}>建立內容專案</button>}
         />
         {error && <p className="text-sm text-destructive mb-4">{error}</p>}
+        <PublishAttention />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-4 mb-4">
           <Section title="繼續寫作" extra={<Link href={STUDIO_ROUTES.projects} className="text-xs text-muted-foreground hover:text-foreground">全部專案</Link>}>

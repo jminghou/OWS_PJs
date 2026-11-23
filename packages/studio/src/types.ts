@@ -13,6 +13,52 @@ export type InboxStatus = 'new' | 'organized' | 'archived';
 
 export type RevisionKind = 'autosave' | 'named' | 'published';
 
+export type PublishCheckLevel = 'block' | 'warn' | 'pass';
+
+export interface PublishCheck {
+  rule: string;
+  level: PublishCheckLevel;
+  message: string;
+  location?: string | null;
+}
+
+export interface PublishMedia {
+  file_id?: number;
+  public_url?: string;
+  mime?: string;
+}
+
+export interface PublishPayload {
+  message?: string;
+  link?: string | null;
+  media?: PublishMedia[];
+  scheduled_for?: string | null;
+}
+
+export interface PublishRequest {
+  id: number;
+  document_id: number;
+  target: string;
+  state: string;
+  payload: PublishPayload;
+  content_hash: string;
+  check_report: PublishCheck[];
+  error_code?: string | null;
+  error_message?: string | null;
+  external_url?: string | null;
+  external_post_id?: string | null;
+}
+
+/** 粉專發送開關。不是 live 時畫面要標出來。token 與 Page ID 不在這個型別裡。 */
+export type FbPublishMode = 'off' | 'dry_run' | 'fake' | 'live';
+
+export interface FbPublishHealth {
+  mode: FbPublishMode | string;
+  page_id_configured: boolean;
+  token_configured: boolean;
+  page_id_matches: boolean;
+}
+
 export type TagTargetType = 'project' | 'document' | 'card' | 'inbox_item';
 
 export interface StudioTag {

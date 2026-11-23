@@ -14,6 +14,7 @@ from packages.studio.api._common import (
 )
 from packages.studio.blueprint import studio_bp as bp
 from packages.studio.models import StudioDocument, StudioDocumentMedia, StudioPublishEvent, StudioPublishRequest
+from packages.studio.social.config import publish_mode
 from packages.studio.social.publisher import health, publish, reconcile
 from packages.studio.social.service import (
     PublishError, _require_approver, approve_request, cancel_request, clean_link,
@@ -149,7 +150,11 @@ def list_publish_requests():
         query = query.filter_by(external_id=external_id)
     query = query.order_by(StudioPublishRequest.id.desc())
     rows, pagination = paginate(query)
-    return jsonify({'publish_requests': [row.to_dict() for row in rows], 'pagination': pagination})
+    return jsonify({
+        'publish_requests': [row.to_dict() for row in rows],
+        'pagination': pagination,
+        'publish_mode': publish_mode(),
+    })
 
 
 @bp.route('/publish-requests/<int:request_id>', methods=['GET'])
@@ -158,6 +163,7 @@ def get_publish_request(request_id):
     req = StudioPublishRequest.query.get_or_404(request_id)
     data = req.to_dict()
     data['events'] = [event.to_dict() for event in _events(req.id)]
+    data['publish_mode'] = publish_mode()
     return jsonify(data)
 
 

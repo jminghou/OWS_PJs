@@ -74,3 +74,6 @@ jobs:
       - name: vitest
         working-directory: sites/Polaris_Parent/frontend
         run: npx vitest run src/lib/report src/lib/money.test.ts src/components/account
+      - name: Studio 粉專發文介面
+        working-directory: packages/studio
+        run: npx vitest run
