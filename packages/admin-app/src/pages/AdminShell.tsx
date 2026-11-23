@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@ows/platform-api';
+import { SESSION_EXPIRED_EVENT } from '@ows/platform-api/client';
 import { getHomePath, isPathDisabled } from '../config';
 
 export default function AdminShell({
@@ -33,6 +34,17 @@ export default function AdminShell({
   useEffect(() => {
     checkAuth().finally(() => setChecked(true));
   }, [checkAuth]);
+
+  // 分頁開著期間登入失效（cookie 過期、同站別處登出）→ 清掉本地登入狀態，
+  // 交給下面的導向邏輯送回登入頁，而不是讓頁面停在「Request does not contain an access token」。
+  useEffect(() => {
+    const onExpired = () => {
+      if (window.location.pathname === '/admin/login') return;
+      useAuthStore.setState({ user: null, isAuthenticated: false });
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
 
   useEffect(() => {
     if (!checked || isLoading) return;
