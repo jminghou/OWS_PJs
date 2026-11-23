@@ -40,6 +40,7 @@ export default function LocalePreviewBar() {
         <span className="text-amber-900">
           {localeNames[current]}：{hidden ? '尚未公開，一般訪客看不到這一頁。' : '已公開。'}可用頁首的語言選單切換語言。
         </span>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/api/locale-preview/exit" className="ml-auto underline whitespace-nowrap">離開預覽</a>
       </div>
     </div>
