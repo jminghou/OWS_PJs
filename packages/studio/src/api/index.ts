@@ -34,11 +34,13 @@ export const documentApi = {
   options: () => request<EditorOptions>(`${BASE}/editor-options`),
   translate: (id: number, language: string, mode: 'blank' | 'copy') => request<{id:number;document:Document}>(`${BASE}/documents/${id}/translations`, {method:'POST', body:JSON.stringify({language,mode})}),
   reviewed: (id: number) => request<{document:Document}>(`${BASE}/documents/${id}/translation-reviewed`, {method:'POST'}),
+  setMain: (id: number, derived_from_id: number | null) => request<{document:Document}>(`${BASE}/documents/${id}/derivation`, {method:'PUT', body:JSON.stringify({derived_from_id})}),
+  derivedReviewed: (id: number) => request<{document:Document}>(`${BASE}/documents/${id}/derived-reviewed`, {method:'POST'}),
   settings: (id: number, data: ArticleSettings) => request<{document:Document}>(`${BASE}/documents/${id}/article-settings`, {method:'PUT', body:JSON.stringify(data)}),
   catalog: (page=1, search='') => request<{items:{id:number;title:string;language:string;status:string;document_id:number|null}[];pagination:Pagination}>(`${BASE}/articles`, {params:{page,search}}),
   adopt: (id: number) => request<{id:number;document:Document}>(`${BASE}/articles/${id}/adopt`, {method:'POST'}),
   list: (projectId: number) => request<{ documents: Document[] }>(`${BASE}/projects/${projectId}/documents`),
-  create: (projectId: number, data: { platform: Platform; language?: string; title?: string; body?: string; content_id?: number; stage?: Stage; summary?: string }) =>
+  create: (projectId: number, data: { platform: Platform; language?: string; title?: string; body?: string; content_id?: number; stage?: Stage; summary?: string; derived_from_id?: number | null }) =>
     request<{ id: number; document: Document }>(`${BASE}/projects/${projectId}/documents`, { method: 'POST', body: JSON.stringify(data) }),
   get: (id: number) => request<Document>(`${BASE}/documents/${id}`),
   update: (id: number, data: Partial<Document> & { tag_ids?: number[] }) =>

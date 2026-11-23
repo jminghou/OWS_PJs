@@ -15,6 +15,7 @@ import type { ArticleSettings, EditorOptions, Card, ContentStatus, Document, Pla
 import { useAutosave } from '../hooks/useAutosave';
 import { ArticleSettingsPanel } from '../components/ArticleSettingsPanel';
 import { DocumentEditor } from '../components/DocumentEditor';
+import { LineageBar } from '../components/LineageBar';
 import { StudioRightPanel } from '../components/StudioRightPanel';
 import { PlatformIcon } from '../components/PlatformIcon';
 import { TagChips } from '../components/TagChips';
@@ -424,6 +425,9 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                 {doc.source_changed ? '來源內容已更新，請檢查此翻譯；已發布版本會維持原狀。' : '翻譯草稿尚待校對，完成確認後才可發布。'}
                 <button className="underline ml-2" onClick={async()=>{try {await saveDraft();const r=await documentApi.reviewed(doc.id);setDoc(r.document);}catch(e:any){alert(e.message);}}}>已完成翻譯校對</button>
               </div>}
+              <LineageBar doc={doc} disabled={syncing}
+                onChanged={(d) => setDoc(d)}
+                onOpen={async (id) => { try { await saveDraft(); router.push(STUDIO_ROUTES.workspace(id)); } catch (e: any) { alert(e.message); } }} />
               {contentStatus?.content_newer && <div className="p-2 text-xs bg-amber-50 text-amber-900">網站文章有外部修改。<button onClick={loadFromContent} className="underline">備份並載入網站內容</button></div>}
 
               <div className="flex-1 overflow-y-auto">

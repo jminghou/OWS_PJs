@@ -10,10 +10,11 @@ import { cardApi, documentApi, projectApi } from '../api';
 import { FLOW_STEPS, PLATFORMS, PLATFORM_META, STAGE_META, STUDIO_ROUTES } from '../constants';
 import { PlatformIcon } from '../components/PlatformIcon';
 import type { FlowStep } from '../constants';
-import type { Card, Platform, Project, ProjectDetail, Stage } from '../types';
+import type { Card, Document, Platform, Project, ProjectDetail, Stage } from '../types';
 import { CardPicker } from '../components/CardPicker';
 import { NewProjectDialog } from '../components/NewProjectDialog';
 import { TagChips } from '../components/TagChips';
+import { ProjectTree } from '../components/ProjectTree';
 import {
   Empty, EmptyState, KindBadge, LanguageBadge, PlatformBadge, Section, SidebarItem, SidebarSearch, StageBadge, StageSelect, StudioSplit,
   btnDanger, btnGhost, btnPrimary, inputCls, relativeTime, selectCls, stripHtml,
@@ -173,25 +174,8 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
       </Section>
 
       <Section title="各平台版本" extra={<button type="button" onClick={() => setAddingDoc(true)} className={`${btnGhost} text-xs py-1`}><Plus size={12} /> 新增版本</button>}>
-        {project.documents.length === 0 ? <Empty text="還沒有任何版本。新增部落格、FB、IG、Threads、電子報或影片腳本。" /> : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {project.documents.map((d) => (
-              <li key={d.id}>
-                <Link href={STUDIO_ROUTES.workspace(d.id)} className="block rounded-lg border border-border p-3 hover:border-admin-accent-500 hover:bg-admin-accent-50/50 dark:bg-admin-accent-800/20 transition">
-                  <div className="flex items-center gap-2">
-                    <PlatformBadge platform={d.platform} /><LanguageBadge language={d.language} />
-                    <span className="text-sm font-medium text-foreground truncate flex-1">{d.title || '（無標題）'}</span>
-                    <StageBadge stage={d.stage} />
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-1 flex gap-2">
-                    <span>{relativeTime(d.updated_at)}</span>
-                    {d.content_id && <span className="text-blue-500">已綁定文章</span>}
-                    {d.published_url && <span className="truncate">{d.published_url}</span>}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        {project.documents.length === 0 ? <Empty text="還沒有任何版本。先建立部落格主體，再新增 FB、IG、Threads、電子報或影片腳本。" /> : (
+          <ProjectTree documents={project.documents} />
         )}
       </Section>
 
@@ -242,6 +226,7 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
 
       {addingDoc && (
         <NewDocumentDialog projectId={project.id} projectTitle={project.title} existing={project.documents.map((d) => d.platform)}
+          mains={project.documents.filter((d) => !d.translation_source_id && !d.derived_from_id)}
           onClose={() => setAddingDoc(false)}
           onCreated={(id) => { setAddingDoc(false); router.push(STUDIO_ROUTES.workspace(id)); }} />
       )}
@@ -250,10 +235,13 @@ function ProjectDetailView({ project, onChanged, onDeleted }: { project: Project
   );
 }
 
-function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreated }: {
-  projectId: number; projectTitle: string; existing: Platform[]; onClose: () => void; onCreated: (id: number) => void;
+function NewDocumentDialog({ projectId, projectTitle, existing, mains, onClose, onCreated }: {
+  projectId: number; projectTitle: string; existing: Platform[]; mains: Document[]; onClose: () => void; onCreated: (id: number) => void;
 }) {
   const [platform, setPlatform] = useState<Platform>('blog');
+  // 衍生自：預設掛在專案裡唯一的部落格主體；有多篇或沒有時讓使用者選
+  const blogMains = mains.filter((m) => m.platform === 'blog');
+  const [mainId, setMainId] = useState<string>(blogMains.length === 1 ? String(blogMains[0].id) : '');
   const [language, setLanguage] = useState('');
   const [languages, setLanguages] = useState<string[]>([]);
   useEffect(()=>{documentApi.options().then(o=>{setLanguages(o.languages);setLanguage(o.default_language);}).catch(()=>{});},[]);
@@ -283,6 +271,7 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
       const res = await documentApi.create(projectId, {
         platform, title, language: language || undefined,
         content_id: platform === 'blog' && mode === 'bind' && contentId ? contentId : undefined,
+        derived_from_id: platform === 'blog' || !mainId ? null : Number(mainId),
       });
       onCreated(res.id);
     } catch (e: any) { alert(e.message || '建立失敗'); }
@@ -302,6 +291,14 @@ function NewDocumentDialog({ projectId, projectTitle, existing, onClose, onCreat
             </button>
           ))}
         </div>
+        {platform !== 'blog' && mains.length > 0 && (
+          <label className="flex items-center gap-2 text-xs">衍生自
+            <select value={mainId} onChange={(e) => setMainId(e.target.value)} className={`${selectCls} flex-1`}>
+              <option value="">（獨立版本，沒有主體）</option>
+              {mains.map((m) => <option key={m.id} value={m.id}>{PLATFORM_META[m.platform]?.label}・{m.language}・{m.title || '（無標題）'}</option>)}
+            </select>
+          </label>
+        )}
         {platform === 'blog' && (
           <div className="flex gap-1 text-xs">
             <button type="button" onClick={() => setMode('new')} className={`px-2.5 py-2 sm:px-2 sm:py-1 rounded ${mode === 'new' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}>建立新文章草稿</button>

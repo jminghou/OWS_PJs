@@ -137,6 +137,20 @@ def create_document(project_id):
         return bad_request('Create a draft before publishing')
     content = None
 
+    # 衍生自哪篇主體：明確給值（含 null＝獨立）就照給；沒給且不是部落格時，
+    # 專案裡恰好只有一篇部落格主體就自動掛上去（最常見的「一篇文章拆社群貼文」）。
+    from packages.studio.api.derivation import validate_main, _fingerprint
+    if 'derived_from_id' in data:
+        main_id = data.get('derived_from_id')
+    else:
+        mains = [] if platform == 'blog' else StudioDocument.query.filter_by(
+            project_id=project.id, platform='blog', translation_source_id=None, derived_from_id=None).all()
+        main_id = mains[0].id if len(mains) == 1 else None
+    try:
+        main = validate_main(project.id, None, main_id)
+    except ValueError as exc:
+        return bad_request(str(exc))
+
     if platform in PLATFORMS_BOUND_TO_CONTENT:
         content_id = data.get('content_id')
         if content_id:
@@ -163,6 +177,8 @@ def create_document(project_id):
         body=body,
         stage=data.get('stage') or 'write',
         content_id=content.id if content else None,
+        derived_from_id=main.id if main else None,
+        derived_fingerprint=_fingerprint(main) if main else None,
         attributes=data.get('attributes') or {},
     )
     db.session.add(document)
