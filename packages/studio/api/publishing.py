@@ -11,6 +11,7 @@ from packages.studio.models import StudioDocument, StudioProject, StudioRevision
 from packages.studio.api._common import (
     bad_request, current_user_id, json_body, paginate, parse_dt, studio_read, studio_write, with_session,
 )
+from packages.studio.social.service import MANUAL_STAGE_MESSAGE, manual_publish_blocked
 
 
 def _row(doc: StudioDocument, project: StudioProject) -> dict:
@@ -69,6 +70,8 @@ def update_publishing(document_id):
     """更新發布欄位。stage 改成 published 時寫一筆正式版快照。"""
     doc = StudioDocument.query.get_or_404(document_id)
     data = json_body()
+    if data.get('stage') in ('published', 'scheduled') and manual_publish_blocked(doc):
+        return bad_request(MANUAL_STAGE_MESSAGE, 409)
     if doc.content_id:
         return bad_request('Manage website publication in the writing workspace', 409)
     if 'scheduled_at' in data:

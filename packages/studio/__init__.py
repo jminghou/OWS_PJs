@@ -20,6 +20,9 @@ from packages.studio.blueprint import studio_bp
 STUDIO_PERMISSIONS = [
     ('studio.read',  'studio', 'read',  '閱讀 Studio', 'Read Studio'),
     ('studio.write', 'studio', 'write', '編輯 Studio', 'Write Studio'),
+    ('studio.publish_request', 'studio', 'publish_request', '送審發布', 'Request publication'),
+    # 確認權不進 editor。admin 會因 '*' 擁有，但仍要在 STUDIO_PUBLISH_APPROVER_USER_IDS 白名單裡。
+    ('studio.publish_approve', 'studio', 'publish_approve', '確認發布', 'Approve publication'),
 ]
 
 

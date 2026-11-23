@@ -22,6 +22,7 @@ from core.backend_engine.models import (
     qualify as _q,
 )
 from packages.media_lib.config import SCHEMA_NAME as _MEDIA_SCHEMA
+from packages.studio.social.state import EXTERNAL_ID_SQL, OPEN_STATE_SQL
 
 STUDIO_SCHEMA = _BLOG_SCHEMA
 _TABLE_ARGS = {'schema': STUDIO_SCHEMA}
@@ -31,6 +32,11 @@ _MEDIA_FILE_FK = f'{_MEDIA_SCHEMA}.files.id'
 def _s(rest: str) -> str:
     """studio 表的 FK 目標，例如 _s('projects.id') → 'blog.studio_projects.id'。"""
     return _q(f'studio_{rest}', STUDIO_SCHEMA)
+
+
+def _ix(rest: str) -> str:
+    """與 studio migration 的 ix() 同一套：有 schema 就加前綴，沒有就用 ix_<欄位>。"""
+    return f'ix_{STUDIO_SCHEMA}_{rest}' if STUDIO_SCHEMA else f'ix_{rest}'
 
 
 def _trgm(table: str, column: str):
@@ -392,10 +398,183 @@ class StudioTagging(db.Model):
     target_id = db.Column(db.Integer, primary_key=True)
 
 
+# =============================================================================
+# Facebook 粉專發文（發布請求，不沿用 document.stage）
+# =============================================================================
+
+class StudioDocumentMedia(db.Model):
+    """文件附圖。順序由 position 決定，同一份文件的 position 不可重複。"""
+    __tablename__ = 'studio_document_media'
+    __table_args__ = (
+        db.UniqueConstraint('document_id', 'position', name='uq_studio_document_media_position'),
+        _TABLE_ARGS,
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    document_id = db.Column(
+        db.Integer,
+        db.ForeignKey(_s('documents.id'), ondelete='CASCADE', name='fk_studio_document_media_document_id'),
+        nullable=False,
+    )
+    file_id = db.Column(
+        db.Integer,
+        db.ForeignKey(_MEDIA_FILE_FK, ondelete='RESTRICT', name='fk_studio_document_media_file_id'),
+        nullable=False,
+    )
+    position = db.Column(db.Integer, nullable=False)
+    alt_text = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    document = db.relationship('StudioDocument', backref=db.backref('document_media', lazy='dynamic'))
+    file = db.relationship('MLFile', foreign_keys=[file_id])
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'id': self.id,
+            'document_id': self.document_id,
+            'file_id': self.file_id,
+            'position': self.position,
+            'alt_text': self.alt_text,
+            'created_at': _iso(self.created_at),
+        }
+
+
+class StudioPublishRequest(db.Model):
+    """一筆粉專發文請求。狀態機在 social/state.py，跟文件 stage 無關。"""
+    __tablename__ = 'studio_publish_requests'
+    __table_args__ = (
+        db.Index(_ix('studio_publish_requests_state'), 'state'),
+        db.Index(_ix('studio_publish_requests_document_state'), 'document_id', 'state'),
+        db.Index(
+            'uq_studio_publish_requests_open_document', 'document_id',
+            unique=True, postgresql_where=db.text(OPEN_STATE_SQL), sqlite_where=db.text(OPEN_STATE_SQL),
+        ),
+        db.Index(
+            'uq_studio_publish_requests_target_external', 'target', 'external_id',
+            unique=True, postgresql_where=db.text(EXTERNAL_ID_SQL), sqlite_where=db.text(EXTERNAL_ID_SQL),
+        ),
+        _TABLE_ARGS,
+    )
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    document_id = db.Column(
+        db.Integer,
+        db.ForeignKey(_s('documents.id'), ondelete='RESTRICT', name='fk_studio_publish_requests_document_id'),
+        nullable=False,
+    )
+    target = db.Column(db.String(30), nullable=False)
+    target_ref = db.Column(db.String(64))
+    state = db.Column(db.String(20), nullable=False)
+    payload = db.Column(JSONB, nullable=False)
+    content_hash = db.Column(db.String(64), nullable=False)
+    check_report = db.Column(JSONB)
+    checked_at = db.Column(db.DateTime)
+    submitted_by = db.Column(
+        _USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET, name='fk_studio_publish_requests_submitted_by'),
+    )
+    submitted_via = db.Column(db.String(10), nullable=False)
+    external_id = db.Column(db.String(100))
+    approved_by = db.Column(
+        _USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET, name='fk_studio_publish_requests_approved_by'),
+    )
+    approved_at = db.Column(db.DateTime)
+    approved_hash = db.Column(db.String(64))
+    rejected_by = db.Column(
+        _USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET, name='fk_studio_publish_requests_rejected_by'),
+    )
+    rejected_reason = db.Column(db.Text)
+    mode = db.Column(db.String(10), nullable=False)
+    attempt_started_at = db.Column(db.DateTime)
+    attempt_finished_at = db.Column(db.DateTime)
+    external_post_id = db.Column(db.String(100))
+    external_url = db.Column(db.String(500))
+    published_at = db.Column(db.DateTime)
+    scheduled_publish_time = db.Column(db.DateTime)
+    error_code = db.Column(db.String(40))
+    error_subcode = db.Column(db.String(40))
+    error_message = db.Column(db.Text)
+    fbtrace_id = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    document = db.relationship('StudioDocument', backref=db.backref('publish_requests', lazy='dynamic'))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'id': self.id,
+            'document_id': self.document_id,
+            'target': self.target,
+            'target_ref': self.target_ref,
+            'state': self.state,
+            'payload': self.payload or {},
+            'content_hash': self.content_hash,
+            'check_report': self.check_report or [],
+            'checked_at': _iso(self.checked_at),
+            'submitted_by': self.submitted_by,
+            'submitted_via': self.submitted_via,
+            'external_id': self.external_id,
+            'approved_by': self.approved_by,
+            'approved_at': _iso(self.approved_at),
+            'approved_hash': self.approved_hash,
+            'rejected_by': self.rejected_by,
+            'rejected_reason': self.rejected_reason,
+            'mode': self.mode,
+            'attempt_started_at': _iso(self.attempt_started_at),
+            'attempt_finished_at': _iso(self.attempt_finished_at),
+            'external_post_id': self.external_post_id,
+            'external_url': self.external_url,
+            'published_at': _iso(self.published_at),
+            'scheduled_publish_time': _iso(self.scheduled_publish_time),
+            'error_code': self.error_code,
+            'error_subcode': self.error_subcode,
+            'error_message': self.error_message,
+            'fbtrace_id': self.fbtrace_id,
+            'created_at': _iso(self.created_at),
+            'updated_at': _iso(self.updated_at),
+        }
+
+
+class StudioPublishEvent(db.Model):
+    """發布請求的稽核事件。只新增，不提供修改或刪除。"""
+    __tablename__ = 'studio_publish_events'
+    __table_args__ = (
+        db.Index(_ix('studio_publish_events_request_id'), 'request_id'),
+        _TABLE_ARGS,
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(
+        db.BigInteger,
+        db.ForeignKey(_s('publish_requests.id'), ondelete='CASCADE', name='fk_studio_publish_events_request_id'),
+        nullable=False,
+    )
+    event = db.Column(db.String(30), nullable=False)
+    actor_id = db.Column(
+        _USER_ID_TYPE, db.ForeignKey(_USER_FK_TARGET, name='fk_studio_publish_events_actor_id'),
+    )
+    actor_via = db.Column(db.String(10))
+    detail = db.Column(JSONB)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    request = db.relationship('StudioPublishRequest', backref=db.backref('events', lazy='dynamic'))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'id': self.id,
+            'request_id': self.request_id,
+            'event': self.event,
+            'actor_id': self.actor_id,
+            'actor_via': self.actor_via,
+            'detail': self.detail or {},
+            'created_at': _iso(self.created_at),
+        }
+
+
 __all__ = [
     'STUDIO_SCHEMA',
     'StudioProject', 'StudioDocument', 'StudioRevision',
     'StudioCard', 'StudioCardRef', 'studio_card_links',
     'StudioInboxItem', 'StudioSource',
     'StudioTag', 'StudioTagging',
+    'StudioDocumentMedia', 'StudioPublishRequest', 'StudioPublishEvent',
 ]

@@ -20,6 +20,16 @@ def studio_write(f):
     return jwt_required()(_active_user(require_permission('studio.write')(f)))
 
 
+def studio_publish_request(f):
+    """送審、重查、取消。不含確認。"""
+    return jwt_required()(_active_user(require_permission('studio.publish_request')(f)))
+
+
+def studio_publish_approve(f):
+    """確認或退回。呼叫端還要再對白名單，bot 帳號在 service 裡被拒。"""
+    return jwt_required()(_active_user(require_permission('studio.publish_approve')(f)))
+
+
 def _active_user(f):
     @wraps(f)
     def wrapped(*args, **kwargs):

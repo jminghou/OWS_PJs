@@ -85,7 +85,8 @@ ROLE_DEFS: Dict[str, dict] = {
             'media.read', 'media.upload', 'media.delete',
             'products.read',
             'submissions.read',
-            'studio.read', 'studio.write',
+            'studio.read', 'studio.write', 'studio.publish_request',
+            # studio.publish_approve 不給 editor。
         ],
     },
     'user': {

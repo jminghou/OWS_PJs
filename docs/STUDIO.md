@@ -11,9 +11,10 @@
 | 前端 | `packages/studio/src/`（`@ows/studio`） | 七個頁面、API client、`studioNav`、`StudioSearchButton`（⌘K） |
 | 站台掛載 | `sites/Polaris_Parent/frontend/src/app/admin/studio/*/page.tsx` | 一行 re-export |
 
-資料表十張，全部 `studio_` 前綴、落在 BLOG schema（與 core 表同 schema，靠前綴區分，不需新增 schema 環境變數）：
+資料表十三張，全部 `studio_` 前綴、落在 BLOG schema（與 core 表同 schema，靠前綴區分，不需新增 schema 環境變數）：
 `studio_projects` `studio_documents` `studio_revisions` `studio_cards` `studio_card_refs` `studio_card_links`
-`studio_inbox_items` `studio_sources` `studio_tags` `studio_taggings`。
+`studio_inbox_items` `studio_sources` `studio_tags` `studio_taggings`
+`studio_document_media` `studio_publish_requests` `studio_publish_events`。
 
 ## 啟用
 
@@ -35,7 +36,7 @@
    ```
    仍用舊的圖示長條外殼（`shell` 未設）時改成：`extraNav: [...studioNav], globalSearch: <StudioSearchButton />`。
    深色模式靠外殼根節點的 `dark` class，站台 Tailwind 需 `darkMode: 'class'`。
-4. 權限：`studio.read` / `studio.write`。admin 角色自動擁有；editor 角色在 `rbac_seed.ROLE_DEFS` 已加入。
+4. 權限：`studio.read` / `studio.write` / `studio.publish_request` / `studio.publish_approve`。admin 角色自動擁有；editor 有前三個，沒有 `studio.publish_approve`。確認發布還要在 `STUDIO_PUBLISH_APPROVER_USER_IDS`（逗號分隔的 user id）裡，而且 bot 帳號不能確認。這個環境變數沒設，就沒有人能確認。粉專 Page ID 用 `FB_PAGE_ID`，送審時寫進 `target_ref`。
 
 ## 部落格文件與 contents 的關係
 
