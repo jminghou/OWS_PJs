@@ -38,6 +38,19 @@
    深色模式靠外殼根節點的 `dark` class，站台 Tailwind 需 `darkMode: 'class'`。
 4. 權限：`studio.read` / `studio.write` / `studio.publish_request` / `studio.publish_approve`。admin 角色自動擁有；editor 有前三個，沒有 `studio.publish_approve`。確認發布還要在 `STUDIO_PUBLISH_APPROVER_USER_IDS`（逗號分隔的 user id）裡，而且 bot 帳號不能確認。這個環境變數沒設，就沒有人能確認。粉專 Page ID 用 `FB_PAGE_ID`，送審時寫進 `target_ref`。
 
+## 粉專發文：人怎麼操作
+
+寫作工作區、發布中心、今天這三頁都會看到粉專區塊。模式不是 `live` 時，畫面標出目前是 `off`、`dry_run` 或 `fake`。預設是 `off`，不會發到粉專。
+
+1. 在寫作工作區對這份文件按「建立 Facebook 版本」，寫純文字，需要的話再附圖片。
+2. 按「送審」。系統立刻做自動核查。有阻擋就停在核查未過；沒有阻擋才進待核准。
+3. 只有白名單上的核准者看得到「核准」。對話框會列出內容雜湊和貼文預覽，勾過核對才送出核准。其他人沒有這個按鈕。
+4. 核准之後再按一次「發布到粉專」，對話框再確認一次。確認鈕按下去立刻停用，避免連點送出兩次。
+5. `failed` 會標成失敗，並留下錯誤碼。畫面上沒有重發。要再發就另外送審一筆。
+6. `unknown` 會標成結果未知，只提供「對帳」。沒有重發、沒有再送審。對帳對上了才改成已發布；對不上就維持未知。
+
+Bot 不能走第 3、4 步。Banana-Social 的呼叫順序寫在 `docs/STUDIO_BOT_API.md`。
+
 ## 部落格文件與 contents 的關係
 
 - blog 平台的文件 1:1 綁定 `contents` 一列（`studio_documents.content_id` unique）。建立時可綁既有文章或新建草稿文章。

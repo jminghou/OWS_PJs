@@ -20,6 +20,7 @@ import { StudioRightPanel } from '../components/StudioRightPanel';
 import { PlatformIcon } from '../components/PlatformIcon';
 import { TagChips } from '../components/TagChips';
 import { VersionFilterBar, useVersionFilter } from '../components/VersionFilter';
+import { FacebookPublishSection } from '../components/fb/FacebookPublishSection';
 import { EmptyState, LanguageBadge, PlatformBadge, StageBadge, StageSelect, btnGhost, btnPrimary, formatDate, relativeTime, stripHtml } from '../components/ui';
 
 function WorkspaceContent({docId}: {docId: number | null}) {
@@ -429,6 +430,15 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                 onChanged={(d) => setDoc(d)}
                 onOpen={async (id) => { try { await saveDraft(); router.push(STUDIO_ROUTES.workspace(id)); } catch (e: any) { alert(e.message); } }} />
               {contentStatus?.content_newer && <div className="p-2 text-xs bg-amber-50 text-amber-900">網站文章有外部修改。<button onClick={loadFromContent} className="underline">備份並載入網站內容</button></div>}
+              <FacebookPublishSection
+                documentId={doc.id}
+                projectId={doc.project_id}
+                platform={doc.platform}
+                title={title}
+                body={body}
+                beforeSubmit={saveDraft}
+                onCreated={(id) => router.push(STUDIO_ROUTES.workspace(id))}
+              />
 
               <div className="flex-1 overflow-y-auto">
                 {preview ? <iframe title="此語言的內容預覽" sandbox="" className="w-full h-full min-h-[500px]" srcDoc={`<!doctype html><html lang="${doc.language}"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: http: data:; style-src 'unsafe-inline'"><style>body{font:18px/1.8 sans-serif;max-width:780px;margin:40px auto;padding:20px}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:8px}</style><h1>${title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</h1>${PLATFORM_META[doc.platform].editor==='rich'?body:'<pre>'+body.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</pre>'}</html>`} /> : <DocumentEditor key={doc.id} platform={doc.platform} title={title} body={body} onTitleChange={setTitle} onBodyChange={setBody} />}

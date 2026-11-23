@@ -10,7 +10,7 @@
  * 不用的站台完全不會碰到它——沒有頁面、沒有選單、沒有 API client。
  */
 export { studioNav, studioNavGroups } from './nav';
-export { studioApi, todayApi, projectApi, documentApi, cardApi, inboxApi, tagApi, publishingApi, searchApi } from './api';
+export { studioApi, todayApi, projectApi, documentApi, cardApi, inboxApi, tagApi, publishingApi, publishRequestApi, searchApi } from './api';
 export { StudioSearchButton, StudioSearchBar, GlobalSearch } from './components/GlobalSearch';
 export { QuickCollectButton, QuickCollectDialog } from './components/QuickCollect';
 export { InboxBadge } from './components/InboxBadge';

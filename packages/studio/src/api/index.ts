@@ -1,7 +1,7 @@
 import { request } from '@ows/platform-api/client';
 import type {
-  ArticleSettings, EditorOptions, Card, CardKind, CardRef, ContentStatus, Document, InboxItem, InboxStatus, Pagination, Platform,
-  Project, ProjectDetail, Revision, SearchResults, Source, Stage, StudioTag, TagTargetType, TodayResponse,
+  ArticleSettings, EditorOptions, Card, CardKind, CardRef, ContentStatus, Document, FbPublishHealth, InboxItem, InboxStatus, Pagination, Platform,
+  Project, ProjectDetail, PublishRequest, Revision, SearchResults, Source, Stage, StudioTag, TagTargetType, TodayResponse,
 } from '../types';
 
 const BASE = '/studio';
@@ -130,6 +130,29 @@ export const tagApi = {
     request<{ tags: StudioTag[] }>(`${BASE}/tags/assign`, { method: 'PUT', body: JSON.stringify({ target_type, target_id, ...data }) }),
 };
 
+export const publishRequestApi = {
+  list: (params?: { state?: string; document_id?: number; external_id?: string; page?: number; per_page?: number }) =>
+    request<{ publish_requests: PublishRequest[]; pagination: Pagination; publish_mode?: string }>(`${BASE}/publish-requests`, { params }),
+  get: (id: number) => request<PublishRequest & { events?: unknown[]; publish_mode?: string }>(`${BASE}/publish-requests/${id}`),
+  create: (documentId: number, data: { target: string; link?: string | null; scheduled_for?: string | null; external_id?: string }) =>
+    request<{ id: number; state: string; content_hash: string; request: PublishRequest }>(
+      `${BASE}/documents/${documentId}/publish-requests`,
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
+  approve: (id: number, contentHash: string) =>
+    request<{ state: string; content_hash: string }>(`${BASE}/publish-requests/${id}/approve`, {
+      method: 'POST', body: JSON.stringify({ content_hash: contentHash }),
+    }),
+  publish: (id: number) =>
+    request<{ state: string; request: PublishRequest }>(`${BASE}/publish-requests/${id}/publish`, { method: 'POST' }),
+  reconcile: (id: number) =>
+    request<{ state: string; request: PublishRequest }>(`${BASE}/publish-requests/${id}/reconcile`, { method: 'POST' }),
+  recheck: (id: number) =>
+    request<{ state: string; content_hash: string }>(`${BASE}/publish-requests/${id}/recheck`, { method: 'POST' }),
+  /** 只有白名單核准者會成功。403 代表這個人不該看到核准或發布。 */
+  health: () => request<FbPublishHealth>(`${BASE}/social/facebook/health`),
+};
+
 export const publishingApi = {
   list: (params?: { platform?: string; language?: string; stage?: string; project_id?: number; from?: string; to?: string; page?: number; per_page?: number }) =>
     request<{ items: Document[]; pagination: Pagination }>(`${BASE}/publishing`, { params }),
@@ -142,5 +165,5 @@ export const searchApi = {
 
 export const studioApi = {
   today: todayApi, projects: projectApi, documents: documentApi, cards: cardApi,
-  inbox: inboxApi, tags: tagApi, publishing: publishingApi, search: searchApi,
+  inbox: inboxApi, tags: tagApi, publishing: publishingApi, publishRequests: publishRequestApi, search: searchApi,
 };

@@ -2,7 +2,7 @@
 
 讓外部 content bot（如 Banana）透過**既有 Studio API** 推送草稿到 Studio/官網 blog。
 
-> **範圍**：Banana 文章 → Studio 草稿 → 官網 blog。不含 FB/IG/Threads 出站發文。
+> **範圍**：Banana 文章 → Studio 草稿 → 官網 blog。粉專出站另見第九節；Bot 可以建版本、送審、查狀態，不能核准，也不能發布。
 
 ---
 
@@ -424,3 +424,73 @@ if __name__ == '__main__':
 | 批次操作 | ❌ 無批次 API | 一次一筆 |
 | Webhook | ❌ 無主動通知 | Banana 需輪詢或依賴排程 |
 | Token refresh | ⚠️ 需 Bot 處理 | 401 時重新登入，或呼叫 `/api/v1/auth/refresh` |
+
+---
+
+## 九、Banana-Social：粉專貼文
+
+Bot 只負責把 Facebook 版本送進審核佇列，然後輪詢狀態。核准和發布是人的動作。`studio.publish_approve` 即使被授給 bot 帳號，後端仍會拒絕：使用者名稱以 `-bot` 或 `_bot` 結尾、角色是 `bot`、或 `attributes.is_bot` 的帳號不能核准，也不能發布。
+
+正式發送開關 `STUDIO_FB_PUBLISH_MODE` 預設 `off`。這份文件不提供 Page token，也不描述怎麼連上 Meta。
+
+### 9.1 Bot 可以做的
+
+1. 建文件（平台 `facebook`）。沿用第二節的專案與文件 API。
+2. 需要附圖時，先走媒體庫拿到 `file_id`，再整組覆寫：
+
+```http
+PUT /api/v1/studio/documents/<document_id>/media
+Content-Type: application/json
+
+{ "items": [{ "file_id": 123, "position": 0, "alt_text": "" }] }
+```
+
+3. 送審。有 `external_id` 時，同一個粉專目標不能重複。
+
+```http
+POST /api/v1/studio/documents/<document_id>/publish-requests
+Content-Type: application/json
+
+{
+  "target": "facebook_page",
+  "link": "https://example.com/post",
+  "external_id": "banana-social-001"
+}
+```
+
+回應含 `state`、`check_report`、`content_hash`。`check_report` 每一項有 `level`（`block` / `warn` / `pass`）、`message`、`location`。有 `block` 時狀態停在 `pending_review`。
+
+4. 查狀態。列表多一個 `publish_mode`（`off` / `dry_run` / `fake` / `live`），沒有 token，也沒有 Page ID。
+
+```http
+GET /api/v1/studio/publish-requests?external_id=banana-social-001
+GET /api/v1/studio/publish-requests/<id>
+```
+
+`pending_review` 可以再呼叫 `POST /api/v1/studio/publish-requests/<id>/recheck`。內容改過，核准會作廢，要重新送審流程。
+
+### 9.2 Bot 不能做的
+
+| 動作 | 方法 | 結果 |
+|------|------|------|
+| 核准 | `POST /publish-requests/<id>/approve` | 403 |
+| 退回 | `POST /publish-requests/<id>/reject` | 403 |
+| 發布 | `POST /publish-requests/<id>/publish` | 403 |
+| 對帳 | `POST /publish-requests/<id>/reconcile` | 403 |
+| 看憑證是否備妥 | `GET /social/facebook/health` | 403 |
+
+狀態變成 `failed` 或 `unknown` 時，Bot 不要自己再打發布。`unknown` 只由白名單核准者在畫面上按「對帳」。沒有重發 API。
+
+### 9.3 狀態怎麼讀
+
+| state | Bot 接下來 |
+|-------|------------|
+| `pending_review` | 看 `check_report` 的 `block`，改內容後 recheck |
+| `pending_approval` | 停下來，等人核准 |
+| `approved` | 停下來，等人發布 |
+| `publishing` | 繼續輪詢，不要再送一次 |
+| `published` | 結束。`external_url` 有貼文網址 |
+| `scheduled` | 保留，這一版不會由 Bot 排程送出 |
+| `failed` | 結束。看 `error_code`，不要重發 |
+| `unknown` | 停下來，等人對帳。不要重發 |
+| `rejected` / `cancelled` | 結束。要再發就建一筆新的送審 |

@@ -8,6 +8,7 @@ import { AdminResponsiveTable } from '@ows/ui/admin';
 import { documentApi, publishingApi } from '../api';
 import { PLATFORMS, PLATFORM_META, STAGE_META, STUDIO_ROUTES } from '../constants';
 import type { Document, Platform, Stage } from '../types';
+import { PublishAttention } from '../components/fb/FacebookPublishSection';
 import { Empty, LanguageBadge, PageHeader, Pill, PlatformBadge, StageBadge, StudioPage, formatDate, fromLocalInput, selectCls, toLocalInput } from '../components/ui';
 
 const STAGE_FILTERS: Array<{ key: Stage | 'all'; label: string }> = [
@@ -70,6 +71,8 @@ export default function PublishingPage() {
     <AdminLayout>
       <StudioPage width="wide">
         <Link href="/admin/articles" className="inline-block py-2 md:py-0 text-sm underline">所有網站文章／接管既有文章</Link><PageHeader title="發布中心" description="各平台內容的撰寫狀態、預定日期、正式版本、發布日期與網址。" />
+
+        <PublishAttention title="粉專發文" />
 
         <div className="flex flex-wrap items-center gap-2 mb-4"><select aria-label="篩選語言" value={language} onChange={e=>setLanguage(e.target.value)} className={selectCls}><option value="">全部語言</option>{languages.map(l=><option key={l}>{l}</option>)}</select>
           {/* 手機：篩選鈕各自一列、可橫向捲動，不擠在一起 */}
