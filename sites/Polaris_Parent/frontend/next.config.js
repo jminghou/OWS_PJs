@@ -11,7 +11,7 @@ const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
 
   // 轉譯 monorepo 內的套件
-  transpilePackages: ['@ows/ui', '@ows/ziwei-chart', '@ows/ziwei-engine', '@ows/platform-api', '@ows/admin-app', '@ows/content-kit', '@ows/site-kit', '@ows/ziwei-app', '@ows/commerce', '@ows/studio', '@ows/newsletter'],
+  transpilePackages: ['@ows/ui', '@ows/ziwei-chart', '@ows/ziwei-engine', '@ows/platform-api', '@ows/admin-app', '@ows/content-kit', '@ows/site-kit', '@ows/ziwei-app', '@ows/commerce', '@ows/studio', '@ows/newsletter', '@ows/social-auth'],
 
   // 以「路徑別名」解析 @ows/ziwei-chart（指向 monorepo 原始碼），不依賴 workspace symlink，
   // 讓 Vercel 子目錄建置也能解析（與 @ows/ui 用相對路徑的做法一致，修正長期建置失敗）。
@@ -34,6 +34,8 @@ const nextConfig = {
       '@ows/studio': path.resolve(__dirname, '../../../packages/studio/src'),
       '@ows/newsletter$': path.resolve(__dirname, '../../../packages/newsletter/src/index.ts'),
       '@ows/newsletter': path.resolve(__dirname, '../../../packages/newsletter/src'),
+      '@ows/social-auth$': path.resolve(__dirname, '../../../packages/social_auth/src/index.ts'),
+      '@ows/social-auth': path.resolve(__dirname, '../../../packages/social_auth/src'),
       '@ows/admin-app$': path.resolve(__dirname, '../../../packages/admin-app/src/index.ts'),
       '@ows/admin-app': path.resolve(__dirname, '../../../packages/admin-app/src'),
       '@ows/content-kit$': path.resolve(__dirname, '../../../packages/content-kit/src/index.ts'),

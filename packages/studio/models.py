@@ -115,6 +115,9 @@ class StudioDocument(db.Model):
     language = db.Column(db.String(10), nullable=False, default='zh-TW')
     translation_source_id = db.Column(db.Integer, db.ForeignKey(_s('documents.id'), ondelete='SET NULL'))
     source_fingerprint = db.Column(db.String(64))
+    # 平台衍生：社群／電子報／腳本版本從哪篇主體拆出來（同專案、原始語言）；主體刪除時變獨立
+    derived_from_id = db.Column(db.Integer, db.ForeignKey(_s('documents.id'), ondelete='SET NULL'), index=True)
+    derived_fingerprint = db.Column(db.String(64))   # 上次「依主體更新」時主體的指紋
     title = db.Column(db.String(200))
     body = db.Column(db.Text)          # 工作草稿；blog 的正式版在 contents
     stage = db.Column(db.String(20), default='write', nullable=False, index=True)
@@ -144,6 +147,7 @@ class StudioDocument(db.Model):
             'work_id': self.work_id,
             'language': self.language,
             'translation_source_id': self.translation_source_id,
+            'derived_from_id': self.derived_from_id,
             'title': self.title,
             'stage': stage,
             'content_id': self.content_id,

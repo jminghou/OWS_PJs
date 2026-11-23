@@ -67,6 +67,13 @@ export interface EditorOptions {
   default_language: string; enabled: boolean; languages: string[]; language_names: Record<string,string>;
   authors: {id:number;name:string}[]; categories: {id:number;name:string}[]; tags: {id:number;name:string}[];
 }
+export interface DocumentRef {
+  id: number;
+  title: string | null;
+  platform: Platform;
+  language: string;
+}
+
 export interface Document {
   work_id: string;
   language: string;
@@ -74,6 +81,17 @@ export interface Document {
   language_versions?: Document[];
   source_changed?: boolean;
   source_title?: string | null;
+  /** 衍生自哪篇主體（只記在原始語言版本上；翻譯沿 translation_source 找） */
+  derived_from_id?: number | null;
+  /** 主體在上次「依主體更新」之後又改過 */
+  derived_changed?: boolean;
+  /** 這份文件（或其翻譯來源）所屬的主體 id；專案頁用來畫樹 */
+  main_id?: number | null;
+  main_document?: DocumentRef | null;
+  /** 主體才有：從它散出去的全部版本（含翻譯） */
+  derived_documents?: Document[];
+  /** 可指定為主體的文件 */
+  main_candidates?: DocumentRef[];
   article_settings?: ArticleSettings | null;
   id: number;
   project_id: number;

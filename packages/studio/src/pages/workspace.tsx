@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AdminLayout } from '@ows/admin-app';
@@ -10,14 +10,16 @@ import {
   AlertTriangle, ArrowLeft, Check, ChevronDown, Cloud, CloudOff, ExternalLink, Files, Loader2, PanelRight, Plus, Trash2, X,
 } from 'lucide-react';
 import { documentApi, todayApi } from '../api';
-import { PLATFORMS, PLATFORM_META, STUDIO_ROUTES } from '../constants';
+import { PLATFORMS, PLATFORM_META, STAGE_META, STUDIO_ROUTES } from '../constants';
 import type { ArticleSettings, EditorOptions, Card, ContentStatus, Document, Platform, Stage } from '../types';
 import { useAutosave } from '../hooks/useAutosave';
 import { ArticleSettingsPanel } from '../components/ArticleSettingsPanel';
 import { DocumentEditor } from '../components/DocumentEditor';
+import { LineageBar } from '../components/LineageBar';
 import { StudioRightPanel } from '../components/StudioRightPanel';
 import { PlatformIcon } from '../components/PlatformIcon';
 import { TagChips } from '../components/TagChips';
+import { VersionFilterBar, useVersionFilter } from '../components/VersionFilter';
 import { EmptyState, LanguageBadge, PlatformBadge, StageBadge, StageSelect, btnGhost, btnPrimary, formatDate, relativeTime, stripHtml } from '../components/ui';
 
 function WorkspaceContent({docId}: {docId: number | null}) {
@@ -154,6 +156,39 @@ function WorkspaceContent({docId}: {docId: number | null}) {
       setDoc(result.document);
     }
   };
+  // 網站預覽：先存草稿再取簽章連結。新分頁要在點擊當下開（await 之後再開會被彈窗攔截）。
+  const previewUrl = async () => {
+    await saveDraft();
+    const res = await documentApi.previewLink(doc!.id);
+    return new URL(res.path, window.location.origin).href;
+  };
+  const openSitePreview = async () => {
+    if (!doc) return;
+    const win = window.open('', '_blank');
+    setSyncing(true);
+    try {
+      const url = await previewUrl();
+      if (win) win.location.href = url; else window.location.href = url;
+      setPublishOpen(false);
+    } catch (e: any) { win?.close(); alert(e.message || '無法產生預覽'); }
+    finally { setSyncing(false); }
+  };
+  const copyPreviewLink = async () => {
+    if (!doc) return;
+    setSyncing(true);
+    try {
+      const url = await previewUrl();
+      try { await navigator.clipboard.writeText(url); alert('預覽連結已複製，7 天內有效。拿到連結的人都看得到這份草稿。'); }
+      catch { prompt('複製這個預覽連結（7 天內有效）', url); }
+      setPublishOpen(false);
+    } catch (e: any) { alert(e.message || '無法產生預覽'); }
+    finally { setSyncing(false); }
+  };
+  const revokePreviewLinks = async () => {
+    if (!doc || !confirm('停用這個語言版本已發出的所有預覽連結？')) return;
+    try { await documentApi.revokePreviewLinks(doc.id); alert('舊的預覽連結已全部失效'); setPublishOpen(false); }
+    catch (e: any) { alert(e.message); }
+  };
   // Capture in-app links, including the shell, so routing waits for a successful save.
   const saveRef = useRef(saveDraft); saveRef.current = saveDraft;
   useEffect(() => {
@@ -214,6 +249,9 @@ function WorkspaceContent({docId}: {docId: number | null}) {
     return <span className={`${cls} text-muted-foreground/60`}><Cloud size={12} /> <span className="hidden sm:inline">自動儲存</span></span>;
   };
 
+  const versions = useMemo(() => (doc ? [doc, ...siblings.filter((s) => s.id !== doc.id)] : []), [doc, siblings]);
+  const versionFilter = useVersionFilter(versions, doc?.id ?? null);
+
   const docList = (
     <>
       <div className="p-3 border-b border-border/60">
@@ -223,8 +261,9 @@ function WorkspaceContent({docId}: {docId: number | null}) {
           </Link>
         ) : <span className="text-xs text-muted-foreground">寫作工作區</span>}
       </div>
+      {doc && <VersionFilterBar total={versions.length} f={versionFilter} />}
       <div className="flex-1 overflow-y-auto py-2">
-        {doc && [doc, ...siblings.filter((s) => s.id !== doc.id)].sort((a, b) => a.platform.localeCompare(b.platform)).map((d) => (
+        {doc && versionFilter.shown.map((d) => (
           <Link key={d.id} href={STUDIO_ROUTES.workspace(d.id)}
             className={`flex items-center gap-2 px-3 py-3 lg:py-2 text-sm ${d.id === doc.id ? 'bg-admin-accent-50 dark:bg-admin-accent-800/30 text-admin-accent-800 dark:text-admin-accent-100' : 'text-foreground/80 hover:bg-muted'}`}>
             <PlatformBadge platform={d.platform} /><LanguageBadge language={d.language} />
@@ -305,6 +344,7 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                 <button type="button" onClick={() => setDocsOpen(true)} aria-label="版本清單"
                   className="lg:hidden flex items-center justify-center w-10 h-10 -ml-1 rounded-md text-muted-foreground hover:bg-muted"><Files size={18} /></button>
                 <PlatformBadge platform={doc.platform} />
+                <LanguageBadge language={doc.language} />
                 <StageBadge stage={doc.stage} />
                 <div className="order-last basis-full lg:order-none lg:basis-auto flex flex-wrap items-center gap-2 min-w-0 pb-1 lg:pb-0">
                   {!isBlog && <StageSelect value={doc.stage} onChange={setStage} />}
@@ -328,10 +368,15 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                               </div>
                             )}
                             <button type="button" disabled={syncing} onClick={() => sync('save')} className="w-full text-left px-4 py-2 hover:bg-muted disabled:opacity-50">儲存工作草稿</button>
+                            {doc.content_id && <>
+                              <button type="button" disabled={syncing} onClick={openSitePreview} className="w-full text-left px-4 py-2 hover:bg-muted disabled:opacity-50 inline-flex items-center gap-1"><ExternalLink size={12} /> 在網站上預覽</button>
+                              <button type="button" disabled={syncing} onClick={copyPreviewLink} className="w-full text-left px-4 py-2 hover:bg-muted disabled:opacity-50">複製預覽連結</button>
+                            </>}
                             <button type="button" disabled={syncing} onClick={() => sync('publish')} className="w-full text-left px-4 py-2 hover:bg-muted disabled:opacity-50 font-medium">立即發布文章</button>
                             <label className="block px-4 py-2 text-xs">預定時間<input aria-label="預定發布時間" type="datetime-local" value={schedule} onChange={e=>setSchedule(e.target.value)} className="w-full text-foreground bg-card" /></label>
                             <button disabled={syncing || !schedule} onClick={() => sync('schedule')} className="w-full px-4 py-2 text-left disabled:opacity-50">排程此語言</button>
                             {doc.content?.status === 'published' && <button disabled={syncing} onClick={() => sync('unpublish')} className="w-full px-4 py-2 text-left">下架此語言／取消排程</button>}
+                            {doc.content_id && <button type="button" onClick={revokePreviewLinks} className="w-full px-4 py-2 text-left text-xs text-muted-foreground hover:bg-muted">停用已發出的預覽連結</button>}
 
                           </>
                         ) : (
@@ -350,6 +395,8 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                     items={[
                       { label: '文章設定', hidden: !isBlog, onClick: () => setSettingsOpen(true) },
                       { label: preview ? '繼續編輯' : '預覽', onClick: () => setPreview(!preview) },
+                      { label: '在網站上預覽', hidden: !isBlog || !doc.content_id, disabled: syncing, onClick: openSitePreview },
+                      { label: '複製預覽連結', hidden: !isBlog || !doc.content_id, disabled: syncing, onClick: copyPreviewLink },
                       { label: '儲存草稿', disabled: syncing, onClick: () => sync('save') },
                       { label: '引用卡片／版本紀錄', onClick: () => { setSettingsOpen(false); setRightOpen(true); } },
                     ]}
@@ -358,19 +405,29 @@ function WorkspaceContent({docId}: {docId: number | null}) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 px-2 sm:px-4 py-2 border-b text-xs">
-                <label className="flex items-center gap-1">語言 <select value={doc.id} disabled={syncing} onChange={async e => {const id=Number(e.target.value);try {await saveDraft(); router.push(STUDIO_ROUTES.workspace(id));} catch(e:any){alert(e.message);}}} className="bg-card border rounded p-2 lg:p-1 max-w-[11rem]">
-                  {(doc.language_versions || [doc]).map(v=><option key={v.id} value={v.id}>{options?.language_names[v.language] || v.language} · {v.stage}</option>)}
-                </select></label>
-                <select aria-label="新增語言" value={language} onChange={e=>setLanguage(e.target.value)} className="bg-card border rounded p-2 lg:p-1"><option value="">新增語言…</option>{options?.languages.filter(l=>!doc.language_versions?.some(v=>v.language===l)).map(l=><option key={l} value={l}>{options.language_names[l] || l}</option>)}</select>
-                <button className={btnGhost} disabled={!language || syncing} onClick={()=>translate('blank')}>空白翻譯</button>
-                <button className={btnGhost} disabled={!language || syncing} onClick={()=>translate('copy')}>複製為翻譯草稿</button>
-                {options && !options.enabled && <Link href="/admin/settings" className="underline">啟用更多語言</Link>}
+              {/* 語言：左邊切換「正在編輯的版本」，右邊另起一組「新增翻譯」；選了新語言但還沒建立時明確提示 */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-2 sm:px-4 py-2 border-b text-xs">
+                <label className="flex items-center gap-1.5">正在編輯
+                  <select aria-label="正在編輯的語言版本" value={doc.id} disabled={syncing} onChange={async e => {const id=Number(e.target.value);try {await saveDraft(); router.push(STUDIO_ROUTES.workspace(id));} catch(e:any){alert(e.message);}}} className="bg-card border rounded p-2 lg:p-1 max-w-[13rem] font-medium">
+                    {(doc.language_versions || [doc]).map(v=><option key={v.id} value={v.id}>{options?.language_names[v.language] || v.language}（{STAGE_META[v.stage]?.label ?? v.stage}）</option>)}
+                  </select>
+                </label>
+                <div className="flex flex-wrap items-center gap-1.5 sm:border-l sm:pl-4">
+                  <span>新增翻譯</span>
+                  <select aria-label="新增翻譯的語言" value={language} onChange={e=>setLanguage(e.target.value)} className="bg-card border rounded p-2 lg:p-1"><option value="">選擇語言…</option>{options?.languages.filter(l=>!doc.language_versions?.some(v=>v.language===l)).map(l=><option key={l} value={l}>{options.language_names[l] || l}</option>)}</select>
+                  <button className={btnGhost} disabled={!language || syncing} onClick={()=>translate('blank')}>建立空白版本</button>
+                  <button className={btnGhost} disabled={!language || syncing} onClick={()=>translate('copy')}>複製目前內容來翻譯</button>
+                  {language && <span className="text-amber-700 dark:text-amber-300">{options?.language_names[language] || language}版本尚未建立，按左邊任一按鈕建立後會自動切過去。</span>}
+                  {options && !options.enabled && <Link href="/admin/settings" className="underline">啟用更多語言</Link>}
+                </div>
               </div>
               {(doc.source_changed || !!doc.attributes.translation_review_pending) && <div className="p-3 text-sm bg-amber-50 text-amber-900">
                 {doc.source_changed ? '來源內容已更新，請檢查此翻譯；已發布版本會維持原狀。' : '翻譯草稿尚待校對，完成確認後才可發布。'}
                 <button className="underline ml-2" onClick={async()=>{try {await saveDraft();const r=await documentApi.reviewed(doc.id);setDoc(r.document);}catch(e:any){alert(e.message);}}}>已完成翻譯校對</button>
               </div>}
+              <LineageBar doc={doc} disabled={syncing}
+                onChanged={(d) => setDoc(d)}
+                onOpen={async (id) => { try { await saveDraft(); router.push(STUDIO_ROUTES.workspace(id)); } catch (e: any) { alert(e.message); } }} />
               {contentStatus?.content_newer && <div className="p-2 text-xs bg-amber-50 text-amber-900">網站文章有外部修改。<button onClick={loadFromContent} className="underline">備份並載入網站內容</button></div>}
 
               <div className="flex-1 overflow-y-auto">

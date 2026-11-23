@@ -121,6 +121,11 @@ class BaseSiteConfig:
         'pool_recycle': int(os.environ.get('DB_POOL_RECYCLE', 3600)),
         'pool_pre_ping': True,
         'max_overflow': int(os.environ.get('DB_MAX_OVERFLOW', 20)),
+        # 連線一律用 UTC：程式寫入時間用 datetime.utcnow()（不帶時區），若資料庫預設時區是
+        # Asia/Taipei（本機 postgresql.conf 就是），寫進 timestamptz 欄位會被當成台灣時間而差 8 小時。
+        # 固定 UTC 後與程式的假設一致，不受資料庫伺服器設定影響。讀回的 timestamptz 是帶時區的
+        # datetime，顯示時再轉台灣時間（api/utils.py）。
+        'connect_args': {'options': '-c timezone=UTC'},
     }
 
     # Additional database bindings (site-specific)
@@ -243,6 +248,17 @@ class BaseSiteConfig:
 
     # Newsletter 模組（packages/newsletter，電子報訂閱名單）預設**關閉**，要用的站台明確開啟。
     NEWSLETTER_ENABLED = _bool_env('NEWSLETTER_ENABLED', False)
+
+    # Social Auth 模組（packages/social_auth，Google／LINE 社群帳號註冊登入）預設**關閉**。
+    # 打開後還要設 provider 的環境變數（GOOGLE_CLIENT_ID…），沒設的 provider 不會出現。
+    SOCIAL_AUTH_ENABLED = _bool_env('SOCIAL_AUTH_ENABLED', False)
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+    SOCIAL_AUTH_DEFAULT_ROLE = os.environ.get('SOCIAL_AUTH_DEFAULT_ROLE', 'member')
+    # LINE Login：Channel ID 與 Channel Secret（機密）都設了才會出現 LINE 按鈕。
+    # LINE_REDIRECT_URI 要和 LINE Developers 後台登記的 Callback URL 完全一致；沒設時用 API 主機的完整網址。
+    LINE_CHANNEL_ID = os.environ.get('LINE_CHANNEL_ID', '')
+    LINE_CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET', '')
+    LINE_REDIRECT_URI = os.environ.get('LINE_REDIRECT_URI', '')
 
     # Development mode flag (for mock payments, etc.)
     IS_DEV_MODE = _bool_env('IS_DEV_MODE', False)

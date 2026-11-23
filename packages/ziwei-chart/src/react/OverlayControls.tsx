@@ -1,14 +1,12 @@
-import type { CSSProperties, FC } from "react";
+import { useId, useState, type FC } from "react";
 import type { FlowData } from "../core/flow";
-import { OVERLAY_LABEL, OVERLAY_ORDER, type OverlayKind, type OverlayResult } from "../core/overlay";
+import { decadeForAge, OVERLAY_LABEL, OVERLAY_ORDER, type OverlayKind, type OverlayResult } from "../core/overlay";
 import type { ZiweiTheme } from "../core/theme";
-import { YearTimeline } from "./YearTimeline";
 import type { OverlayState } from "./types";
 
 interface OverlayControlsProps {
   flow: FlowData;
   state: OverlayState;
-  /** 已解析的目標年（state.targetYear 為 null 時的預設年也在這裡）。 */
   year: number;
   resolved: OverlayResult | null;
   onChange: (next: OverlayState) => void;
@@ -24,124 +22,109 @@ export function layerInk(theme: ZiweiTheme, kind: OverlayKind | "natal"): string
   }
 }
 
-function firstYear(yearRange: string): number | null {
-  const m = /\d{4}/.exec(yearRange || "");
-  return m ? Number(m[0]) : null;
-}
-
-/**
- * 疊盤切換（對應 PolarisUI 疊盤繪圖的 show_decade/show_small/show_year ＋ target_year）：
- * 三層各自開關、全關＝本命；開了任一層就出現流年時間軸，開大限時另列 12 個大限可跳轉。
- */
-export const OverlayControls: FC<OverlayControlsProps> = ({
-  flow,
-  state,
-  year,
-  resolved,
-  onChange,
-  theme,
-}) => {
+/** One target year drives every visible layer and both navigation levels. */
+export const OverlayControls: FC<OverlayControlsProps> = ({ flow, state, year, onChange, theme }) => {
+  const id = useId();
+  const [jumpOpen, setJumpOpen] = useState(false);
+  const [mode, setMode] = useState<"year" | "age">("year");
+  const [draft, setDraft] = useState("");
+  const entries = (flow.years.length ? flow.years : flow.smallLimits)
+    .filter((e): e is typeof e & { year: number } => e.year != null)
+    .filter((e, i, all) => all.findIndex((x) => x.year === e.year) === i)
+    .sort((a, b) => a.year - b.year);
+  const current = entries.find((e) => e.year === year);
+  // Use the same age-to-decade rule as the renderer; never invent age conversions.
+  const groups: { key: string; label: string; entries: typeof entries }[] = [];
+  for (const entry of entries) {
+    const decade = entry.age == null ? null : decadeForAge(flow, entry.age);
+    const key = decade ? `decade-${decade.order}` : `other-${Math.floor(entries.indexOf(entry) / 10)}`;
+    let group = groups.find((g) => g.key === key);
+    if (!group) {
+      const firstAge = flow.decades.map((d) => Number(d.ageRange.match(/\d+/)?.[0])).filter(Number.isFinite);
+      const before = entry.age != null && firstAge.length > 0 && entry.age < Math.min(...firstAge);
+      group = { key, label: decade ? `${decade.ageRange} 歲（虛歲）` : before ? "起運前" : "其他年份", entries: [] };
+      groups.push(group);
+    }
+    group.entries.push(entry);
+  }
+  const index = groups.findIndex((g) => g.entries.some((e) => e.year === year));
+  const group = groups[index];
+  const rangeLabel = (g: typeof group) => g ? `${g.entries[0].year}–${g.entries[g.entries.length - 1].year} 年` : "";
   const anyOn = state.decade || state.small || state.year;
-  const ink = theme.colors.palaceName;
-  const available: Record<OverlayKind, boolean> = {
-    decade: flow.decades.length > 0,
-    small: flow.smallLimits.length > 0,
-    year: flow.years.length > 0,
-  };
+  const available = { decade: flow.decades.length > 0, small: flow.smallLimits.length > 0, year: flow.years.length > 0 };
+  const canSelect = (y: number) => entries.some((e) => e.year === y);
+  const setYear = (y: number) => { if (canSelect(y)) onChange({ ...state, targetYear: y }); };
+  const today = Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Taipei", year: "numeric" }).format(new Date()));
+  const target = /^\d+$/.test(draft) ? entries.find((e) => (mode === "year" ? e.year : e.age) === Number(draft)) : undefined;
 
-  const chip = (on: boolean, color: string): CSSProperties => ({
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    fontSize: 13,
-    lineHeight: 1.4,
-    padding: "4px 12px",
-    borderRadius: 999,
-    whiteSpace: "nowrap",
-    border: `1px solid ${on ? color : "rgba(0,0,0,0.18)"}`,
-    background: on ? color : "transparent",
-    color: on ? "#fff" : ink,
-    transition: "all 140ms ease",
-  });
-  const dot = (color: string, on: boolean): CSSProperties => ({
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    background: on ? "#fff" : color,
-    flexShrink: 0,
-  });
-
-  // 時間軸以流年層為主（沒有就用小限層），兩者逐歲對齊
-  const timeline = flow.years.length ? flow.years : flow.smallLimits;
-  const tlIndex = Math.max(0, timeline.findIndex((e) => e.year === year));
-  const setYear = (y: number) => onChange({ ...state, targetYear: y });
+  const openPicker = () => { setDraft(String(year)); setMode("year"); setJumpOpen(!jumpOpen); };
 
   return (
-    <div style={{ padding: "2px 2px 8px", fontFamily: theme.fontFamily }}>
-      <div role="group" aria-label="疊盤層" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        <button
-          type="button"
-          aria-pressed={!anyOn}
-          onClick={() => onChange({ ...state, decade: false, small: false, year: false })}
-          style={chip(!anyOn, ink)}
-        >
-          本命
-        </button>
-        {OVERLAY_ORDER.filter((k) => available[k]).map((k) => {
-          const on = state[k];
-          const color = layerInk(theme, k);
-          return (
-            <button
-              key={k}
-              type="button"
-              aria-pressed={on}
-              onClick={() => onChange({ ...state, [k]: !on })}
-              style={chip(on, color)}
-            >
-              <span aria-hidden="true" style={dot(color, on)} />
-              {OVERLAY_LABEL[k]}
-            </button>
-          );
-        })}
-      </div>
-
-      {anyOn && timeline.length > 0 ? (
-        <YearTimeline
-          years={timeline}
-          index={tlIndex}
-          onSelect={(i) => {
-            const y = timeline[i]?.year;
-            if (y != null) setYear(y);
-          }}
-          theme={theme}
-          accent={ink}
-        />
-      ) : null}
-
-      {state.decade && flow.decades.length > 0 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-          {flow.decades.map((d) => {
-            const on = resolved?.decade?.order === d.order;
-            const color = theme.colors.layerDecade;
-            const y0 = firstYear(d.yearRange);
-            return (
-              <button
-                key={d.order}
-                type="button"
-                aria-pressed={on}
-                disabled={y0 == null}
-                onClick={() => y0 != null && setYear(on ? year : y0)}
-                title={`${d.name}　${d.yearRange}`}
-                style={{ ...chip(on, color), fontSize: 12, padding: "3px 10px", gap: 4 }}
-              >
-                {d.ageRange}
-                <span style={{ opacity: 0.75 }}>歲</span>
-              </button>
-            );
-          })}
+    <section className="zw-flow" aria-label="運限切換">
+      <style>{`
+        .zw-flow{font-family:var(--font-noto),"Microsoft JhengHei",sans-serif;color:var(--ink,#1f2333);margin-bottom:8px;container-type:inline-size;font-size:14px;line-height:1.7}
+        .zw-flow *{box-sizing:border-box}
+        .zw-flow button,.zw-flow select,.zw-flow input{font:inherit;min-height:36px;border-radius:9999px;padding:4px 16px;white-space:nowrap;max-width:100%}
+        .zw-flow button{border:0;background:transparent;color:var(--blue-500,#0967e7);font-weight:700;cursor:pointer;transition:filter 150ms ease-out,box-shadow 150ms ease-out}
+        .zw-flow button:hover{background:var(--blue-50,#eef5ff)}
+        .zw-flow button:active{filter:brightness(.9)}
+        .zw-flow button:focus-visible,.zw-flow select:focus-visible,.zw-flow input:focus-visible{outline:0;box-shadow:0 0 0 4px var(--blue-100,#dceaff)}
+        .zw-flow button:disabled{background:var(--line,#e3e5ee);color:var(--muted,#6b7084);cursor:not-allowed;filter:none;box-shadow:none}
+        .zw-flow .zw-top,.zw-flow .zw-layers,.zw-flow .zw-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .zw-flow .zw-top{justify-content:space-between;margin-bottom:4px}
+        .zw-flow .zw-layers{gap:4px}
+        .zw-flow .zw-layers button{color:var(--text,#4b5063);padding-inline:12px}
+        .zw-flow .zw-layers button[aria-pressed=true],.zw-flow .zw-years button[aria-pressed=true]{background:var(--blue-500,#0967e7);color:var(--surface,#ffffff)}
+        .zw-flow .zw-period{font-weight:400;color:var(--muted,#6b7084);padding-inline:8px}
+        .zw-flow .zw-nav{display:flex;gap:4px;align-items:center}
+        .zw-flow .zw-nav button{padding-inline:12px}
+        .zw-flow .zw-current{color:var(--ink,#1f2333);background:var(--tint,#f3f1ec);font-variant-numeric:tabular-nums}
+        .zw-flow .zw-caption{font-size:13px;color:var(--muted,#6b7084);font-weight:400}
+        .zw-flow .zw-picker{margin-top:8px;padding:12px;background:var(--paper,#fcfaf6);border-radius:20px}
+        .zw-flow select,.zw-flow input{background:var(--surface,#ffffff);color:var(--ink,#1f2333);border:1.5px solid var(--line-strong,#c6c9d4);min-width:0}
+        .zw-flow input{width:100px;font-variant-numeric:tabular-nums}
+        .zw-flow .zw-years{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:8px}
+        .zw-flow .zw-years button{padding:4px;border-radius:12px;color:var(--text,#4b5063);font-weight:400;font-variant-numeric:tabular-nums}
+        .zw-flow .zw-years small{display:block;font-size:12px;color:inherit}
+        .zw-flow .zw-form{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+        .zw-flow .zw-hint{font-size:13px;color:var(--muted,#6b7084);margin:4px 0 0}
+        @container(min-width:760px){.zw-flow .zw-years{grid-template-columns:repeat(10,minmax(0,1fr))}}
+        @container(max-width:480px){.zw-flow button,.zw-flow select,.zw-flow input{min-height:44px}.zw-flow .zw-top{gap:0}.zw-flow .zw-nav{justify-content:space-between}.zw-flow .zw-nav button{padding-inline:4px;min-width:44px;font-size:13px}.zw-flow .zw-nav .zw-current{flex:1;min-width:0}.zw-flow .zw-period{padding-left:8px}.zw-flow .zw-current .zw-caption{font-size:12px}}
+        @media(prefers-reduced-motion:reduce){.zw-flow button{transition:none}}
+      `}</style>
+      <div className="zw-top">
+        <div className="zw-layers" role="group" aria-label="疊宮顯示，可複選；本命固定顯示">
+          <button type="button" aria-label="只看本命" aria-pressed={!anyOn} style={!anyOn ? { background: layerInk(theme, "natal"), color: "#ffffff" } : undefined} onClick={() => onChange({ ...state, decade: false, small: false, year: false })}>本命</button>
+          {OVERLAY_ORDER.map((kind) => <button key={kind} type="button" disabled={!available[kind]} aria-pressed={state[kind]} style={state[kind] && available[kind] ? { background: layerInk(theme, kind), color: "#ffffff" } : undefined} title={`${OVERLAY_LABEL[kind]}疊宮（可複選）`} onClick={() => onChange({ ...state, [kind]: !state[kind] })}>{OVERLAY_LABEL[kind]}</button>)}
+          <button type="button" disabled={!canSelect(today)} title={canSelect(today) ? "回到今年" : "今年不在資料範圍內"} onClick={() => setYear(today)}>今年</button>
         </div>
-      ) : null}
-    </div>
+        {entries.length > 0 && <button type="button" className="zw-period" aria-expanded={jumpOpen} aria-controls={`${id}-picker`} onClick={openPicker} title="選擇大限與年份">{group?.label.replace("（虛歲）", "")} · {rangeLabel(group)} · 選年</button>}
+      </div>
+      {!entries.length ? <p className="zw-hint">目前沒有可選的年份資料。</p> : <>
+        <div className="zw-nav" role="group" aria-label="年份快捷操作">
+          {[-10, -1].map((step) => <button key={step} type="button" disabled={!canSelect(year + step)} onClick={() => setYear(year + step)}>−{Math.abs(step)} 年</button>)}
+          <button type="button" className="zw-current" aria-label={`${year} 年，${current?.age ?? "未知"} 虛歲；跳轉年份或歲數`} aria-expanded={jumpOpen} aria-controls={`${id}-picker`} onClick={openPicker}><span>{year}</span><span className="zw-caption">{current?.age != null ? ` · ${current.age} 虛歲` : " 年"}</span></button>
+          {[1, 10].map((step) => <button key={step} type="button" disabled={!canSelect(year + step)} onClick={() => setYear(year + step)}>＋{step} 年</button>)}
+        </div>
+        {jumpOpen && <div id={`${id}-picker`} className="zw-picker" onKeyDown={(e) => { if (e.key === "Escape") setJumpOpen(false); }}>
+          <div className="zw-range">
+            <select aria-label="選擇大限區間" value={group?.key ?? ""} style={{ flex: "1 1 180px" }} onChange={(e) => { const selected = groups.find((g) => g.key === e.target.value); if (selected) { setYear(selected.entries[0].year); setDraft(String(mode === "year" ? selected.entries[0].year : selected.entries[0].age ?? "")); } }}>
+              {!group && <option value="" disabled>選擇區間</option>}
+              {groups.map((g) => <option value={g.key} key={g.key}>{g.label} · {rangeLabel(g)}</option>)}
+            </select>
+            <button type="button" onClick={() => setJumpOpen(false)}>收起</button>
+          </div>
+          <div className="zw-years" role="group" aria-label="此區間內的年份">{group?.entries.map((entry) => <button type="button" key={entry.year} aria-pressed={entry.year === year} aria-label={`${entry.year} 年${entry.age == null ? "" : `，虛歲 ${entry.age} 歲`}`} onClick={() => { setYear(entry.year); setJumpOpen(false); }}>
+            {entry.year}<small>{entry.age == null ? "—" : `${entry.age} 歲`}</small>
+          </button>)}</div>
+          <form className="zw-form" onSubmit={(e) => { e.preventDefault(); if (target) { setYear(target.year); setJumpOpen(false); } }}>
+            <select aria-label="跳轉輸入方式" value={mode} onChange={(e) => { const next = e.target.value as "year" | "age"; setMode(next); setDraft(String((next === "year" ? current?.year : current?.age) ?? "")); }}><option value="year">西元年份</option><option value="age">歲數（虛歲）</option></select>
+            <input aria-label={mode === "year" ? "西元年份" : "虛歲"} inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)} aria-describedby={`${id}-hint`} />
+            <button type="submit" disabled={!target}>前往</button>
+          </form>
+          <p id={`${id}-hint`} aria-live="polite" className="zw-hint">{target ? `${target.year} 年 · ${target.age == null ? "歲數資料未提供" : `${target.age} 歲（虛歲）`}` : `請輸入有資料的${mode === "year" ? "年份" : "虛歲"}（年份範圍：${entries[0].year}–${entries[entries.length - 1].year}）。`}</p>
+        </div>}
+      </>}
+    </section>
   );
 };

@@ -114,7 +114,9 @@ def get_project(project_id):
     project = StudioProject.query.get_or_404(project_id)
     data = attach_tags('project', [project.to_dict()])[0]
     docs = project.documents.order_by(StudioDocument.platform, StudioDocument.updated_at.desc()).all()
-    data['documents'] = attach_tags('document', [d.to_dict(include_body=False) for d in docs])
+    from packages.studio.api.derivation import project_flags
+    flags = project_flags(docs)
+    data['documents'] = attach_tags('document', [dict(d.to_dict(include_body=False), **flags[d.id]) for d in docs])
     data['sources'] = [s.to_dict() for s in project.sources.order_by(StudioSource.created_at.desc()).all()]
     refs = StudioCardRef.query.filter_by(target_type='project', target_id=project.id).all()
     card_ids = [r.card_id for r in refs]

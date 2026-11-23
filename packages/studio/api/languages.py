@@ -47,7 +47,8 @@ def decorate_document(doc, data):
     data['source_changed']=bool(source and doc.source_fingerprint != fingerprint(source))
     data['source_title']=source.title if source else None
     data['article_settings']=article_settings(doc)
-    return data
+    from packages.studio.api.derivation import decorate_lineage
+    return decorate_lineage(doc, data)
 
 
 def root_content(content):

@@ -11,6 +11,7 @@
 
 import { configureSiteKit } from '@ows/site-kit/config';
 import { getImageUrl, getGcsImageUrl } from '@/lib/utils';
+import { locales } from '@/i18n/config';
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
 const SITE_NAME = '親紫之間';
@@ -19,7 +20,7 @@ configureSiteKit({
   siteUrl: SITE_URL,
   siteName: SITE_NAME,
   defaultLocale: 'zh-TW',
-  supportedLocales: ['zh-TW', 'zh-CN', 'en', 'ja'],
+  supportedLocales: locales,
   organization: {
     name: SITE_NAME,
     legalName: SITE_NAME,

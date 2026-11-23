@@ -20,6 +20,7 @@
     "@ows/newsletter": "*",
     "@ows/platform-api": "*",
     "@ows/site-kit": "*",
+    "@ows/social-auth": "*",
     "@ows/studio": "*",
     "@ows/ui": "*",
     "@ows/ziwei-app": "*",

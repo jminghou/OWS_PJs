@@ -7,6 +7,26 @@ import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, LANGUAGE_REGION_LABELS, LANGUAGE
 import AdminLayout from '../components/AdminLayout';
 import Button from '@ows/ui/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@ows/ui/ui/Card';
+import LocaleLaunchSettings from '../components/LocaleLaunchSettings';
+
+/**
+ * 語系設定「語言上線」模式：每個語言分關閉／編輯中／已公開，編輯中的語言只給持語言預覽通行證的人看
+ * （站台 middleware 負責擋）。站台自己的 admin/settings/page.tsx 傳入前台實際有頁面的語系。
+ * 預設匯出（不帶 props，可直接當 Next 頁面）維持原本的開關清單。
+ */
+export function LocaleLaunchSettingsPage({ siteLanguages }: { siteLanguages: readonly string[] }) {
+  return (
+    <AdminLayout>
+      <div className="p-4 md:p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">語系設定</h1>
+          <p className="text-muted-foreground">決定每個語言在網站上的狀態，以及誰可以先看到編輯中的語言</p>
+        </div>
+        <LocaleLaunchSettings siteLanguages={siteLanguages} />
+      </div>
+    </AdminLayout>
+  );
+}
 
 export default function SettingsPage() {
   const router = useRouter();

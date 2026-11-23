@@ -84,7 +84,7 @@ export default function AuthorSidebar({
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="搜尋用戶名或郵箱..."
+            placeholder="搜尋後台人員…"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"

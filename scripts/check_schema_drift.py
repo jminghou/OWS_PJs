@@ -78,12 +78,14 @@ SITES = {
             "packages/commerce/migrations",
             "packages/studio/migrations",
             "packages/newsletter/migrations",
+            "packages/social_auth/migrations",
             "sites/Polaris_Parent/backend/migrations",
         ],
         "env": {
             "COMMERCE_ENABLED": "true",
             "STUDIO_ENABLED": "true",
             "NEWSLETTER_ENABLED": "true",
+            "SOCIAL_AUTH_ENABLED": "true",
             "OWS_BLOG_SCHEMA": "blog",
             "OWS_SHOP_SCHEMA": "shop",
             "OWS_IDENTITY_MODE": "external",
@@ -150,6 +152,7 @@ GLOBAL_IGNORE = {
     "alembic_version_commerce", "blog.alembic_version_commerce", "shop.alembic_version_commerce",
     "alembic_version_studio", "blog.alembic_version_studio", "public.alembic_version_studio",
     "alembic_version_newsletter", "blog.alembic_version_newsletter", "public.alembic_version_newsletter",
+    "alembic_version_social_auth", "blog.alembic_version_social_auth", "public.alembic_version_social_auth",
 }
 
 
@@ -172,7 +175,7 @@ def discover_sites() -> dict:
             continue
         found[path.name] = {
             "chains": ["core/migrations", f"sites/{path.name}/backend/migrations"],
-            "env": {"COMMERCE_ENABLED": "false", "STUDIO_ENABLED": "false", "NEWSLETTER_ENABLED": "false"},   # 產生器的預設
+            "env": {"COMMERCE_ENABLED": "false", "STUDIO_ENABLED": "false", "NEWSLETTER_ENABLED": "false", "SOCIAL_AUTH_ENABLED": "false"},   # 產生器的預設
             "prelude": [],
             "ignore": set(),
         }
@@ -284,6 +287,9 @@ def worker_main() -> int:
     # Newsletter 同樣預設不掛。
     if (os.environ.get("NEWSLETTER_ENABLED") or "false").strip().lower() in ("1", "true", "yes", "on"):
         import packages.newsletter.models  # noqa: F401
+    # Social Auth 同樣預設不掛。
+    if (os.environ.get("SOCIAL_AUTH_ENABLED") or "false").strip().lower() in ("1", "true", "yes", "on"):
+        import packages.social_auth.models  # noqa: F401
     # 站台專屬 models（有才匯入）
     try:
         import_module(f"sites.{site}.backend.models")

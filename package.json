@@ -12,6 +12,7 @@
     "packages/commerce",
     "packages/studio",
     "packages/newsletter",
+    "packages/social_auth",
     "packages/content-kit",
     "packages/site-kit",
     "sites/*/frontend",

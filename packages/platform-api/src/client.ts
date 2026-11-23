@@ -63,6 +63,9 @@ function getCsrfToken(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+/** 登入失效（401 且 refresh 失敗）時在 window 上發出的事件名稱。 */
+export const SESSION_EXPIRED_EVENT = 'ows:session-expired';
+
 // Token refresh 狀態管理（避免多個請求同時觸發 refresh）
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
@@ -155,6 +158,14 @@ export async function request<T>(endpoint: string, options: FetchOptions = {}): 
         if (refreshed) {
           return request<T>(endpoint, { ...options, _retried: true });
         }
+      }
+
+      // 401 且 refresh 也救不回來 → 廣播「登入已失效」。
+      // 分頁開著期間 cookie 過期／在同站別處登出時，後台外殼只在掛載時 checkAuth 一次，
+      // 不廣播的話頁面會停在原處、只印出「Request does not contain an access token」。
+      // /auth/* 自己的 401（帳密錯、未登入的 me）不算，交給呼叫端處理。
+      if (response.status === 401 && typeof window !== 'undefined' && !endpoint.startsWith('/auth/')) {
+        window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
       }
 
       let errorData;

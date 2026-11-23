@@ -45,6 +45,22 @@
 - 文章在文章管理頁被改過時，工作區會提示「從文章載入」（判斷依據：`attributes.content_synced_at`）。
 - SEO、分類、公開標籤、封面仍在文章管理頁設定；工作區提供連結。
 
+## 主體與衍生版本（studio 0004）
+
+一篇主體文章會拆成多個平台版本，每個版本再分多個語言。兩條軸各自記血緣：
+
+| 軸 | 欄位 | 記在哪 | 過期提醒 |
+|---|---|---|---|
+| 語言 | `translation_source_id`＋`source_fingerprint` | 每個翻譯版本 | 來源改過 → 「來源已更新」 |
+| 平台 | `derived_from_id`＋`derived_fingerprint` | 衍生作品的**原始語言**版本 | 主體改過 → 「主體已更新」 |
+
+- 只有一層：主體＝同專案、原始語言、本身不是衍生版本（通常是部落格）。已有衍生版本的主體不能再改掛別人；翻譯不另記主體，沿翻譯來源回溯（API 的 `main_id`）。
+- 新增非部落格版本沒指定時，若專案恰好一篇部落格主體就自動掛上；明確傳 `derived_from_id: null`＝獨立版本。
+- 主體刪除 → `ON DELETE SET NULL`，衍生版本變獨立，不會被連帶刪除。
+- 端點：`PUT /documents/<id>/derivation`（指定／解除主體）、`POST /documents/<id>/derived-reviewed`（已依主體更新）。專案詳情的每份文件帶 `source_changed`／`derived_changed`／`main_id`；工作區文件帶 `main_document`／`derived_documents`／`main_candidates`。
+- 介面：專案頁是「主體 → 平台 → 語言」樹；工作區上方的血緣列可指定主體、看散出的版本、處理過期。
+- 實作：`packages/studio/api/derivation.py`；測試 `tests/test_studio_derivation.py`。
+
 ## 版本
 
 - `autosave`：前端停止輸入 2 秒或最多 30 秒送一次；每份文件保留最近 30 筆。

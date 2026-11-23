@@ -16,12 +16,11 @@ const CONTAINER = 'mx-auto w-full max-w-content px-4 md:px-6';
 const SECTION_Y = 'py-16 md:py-24';
 // 文字區塊置中；命盤與回饋牆使用較寬版面。
 const TEXT_COLUMN = 'mx-auto w-full max-w-[680px]';
-const SECTION_HEADING = 'font-heading text-[26px] font-normal leading-[1.35] text-ink [text-wrap:pretty] md:text-h2';
 
 /**
  * 文字型首頁。第一個行動是線上排盤（直接在首頁滾輪選生日、命盤出現在下方），不是導流按鈕。
- * 順序：文字 Hero → 滾輪排盤＋命盤結果 → 使用者回饋牆（Senja）→ 訂閱電子報（全頁只出現一次）。
- * 區塊底色依 §7.1 交替：Hero（paper）→ 排盤（tint，命盤是白卡）→ 回饋牆（surface）→ 電子報（paper＋pink-50 電子報卡）。
+ * 首屏文案與生辰表單共用 paper 區塊，命盤結果全寬呈現。
+ * 後續接使用者回饋牆（surface）與訂閱電子報（paper）。
  */
 export default function HomeLanding({ locale, homepageSettings }: HomeLandingProps) {
   // 首屏與各區塊標題都可在後台「首頁設定」覆寫，留空退回站台預設
@@ -32,19 +31,18 @@ export default function HomeLanding({ locale, homepageSettings }: HomeLandingPro
 
   return (
     <div className="min-h-[calc(100vh-72px)] bg-paper text-left">
-      <div className={`${CONTAINER} ${SECTION_Y}`}>
-        <TextHero intro={intro} />
+      <div className={`${CONTAINER} py-12 md:py-16`}>
+        <TextHero intro={intro}>
+          <ZiweiQuickChart
+            guidedCopy={locale === 'zh-TW'}
+            integrated
+            formIntro={<div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+              <h2 id="home-ziwei-heading" className="font-heading text-h4 font-normal text-ink">{intro.ziwei_heading}</h2>
+              <p className="text-sm leading-relaxed text-text [text-wrap:pretty]">{intro.ziwei_body}</p>
+            </div>}
+          />
+        </TextHero>
       </div>
-
-      <section id="ziwei" aria-labelledby="home-ziwei-heading" className={`scroll-mt-24 bg-tint ${SECTION_Y}`}>
-        <div className={CONTAINER}>
-          <div className={TEXT_COLUMN}>
-            <h2 id="home-ziwei-heading" className={SECTION_HEADING}>{intro.ziwei_heading}</h2>
-            <p className="mb-8 mt-4 text-text [text-wrap:pretty]">{intro.ziwei_body}</p>
-          </div>
-          <ZiweiQuickChart />
-        </div>
-      </section>
 
       {showWall && (
         <div className={`bg-white ${SECTION_Y}`}>

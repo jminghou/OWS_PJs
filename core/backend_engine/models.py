@@ -240,6 +240,26 @@ class User(UserMixin, db.Model):
         validate_password(password)
         salt = bcrypt.gensalt()
         self.password_hash = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+        # 設過密碼就不再是「只有社群登入」：只在明確標成 False 時才動 attributes，
+        # 其他會員（從沒有這個鍵）完全不受影響。整包重新指派，JSONB 才會被偵測為已變更。
+        if self.get_attribute('password_set') is False:
+            self.attributes = {**self.attributes, 'password_set': True}
+
+    def set_unusable_password(self) -> None:
+        """設一組沒有人知道的密碼（password_hash 不可為空），並標記「沒有可用密碼」。
+
+        給「不靠密碼登入」的帳號用：社群登入（packages/social_auth）註冊的會員、代客建立的客人檔案。
+        密碼登入對它們必定失敗；之後走重設密碼流程呼叫 set_password() 即恢復為一般帳號。
+        """
+        import secrets
+        secret = secrets.token_urlsafe(48)
+        self.password_hash = bcrypt.hashpw(secret.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        self.attributes = {**(self.attributes or {}), 'password_set': False}
+
+    @property
+    def has_usable_password(self) -> bool:
+        """會員自己設過密碼嗎？沒有 password_set 這個鍵的既有帳號一律視為有。"""
+        return self.get_attribute('password_set') is not False
 
     def check_password(self, password: str) -> bool:
         """Verify password against hash."""

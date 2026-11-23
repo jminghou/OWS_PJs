@@ -20,7 +20,7 @@ from datetime import datetime
 
 from core.backend_engine.factory import db
 from core.backend_engine.blueprints.api import bp
-from core.backend_engine.blueprints.api.utils import get_i18n_setting
+from core.backend_engine.blueprints.api.utils import get_i18n_setting, get_public_languages
 from core.backend_engine.models import Setting, User, HomepageSlide, HomepageSettings, Tag
 from core.backend_engine.services.rbac import require_permission
 from core.backend_engine.services.revalidate import trigger_frontend_revalidate
@@ -46,7 +46,10 @@ def api_get_i18n_settings():
         'enabled': enabled,
         'default_language': default_language,
         'languages': languages,
-        'language_names': language_names
+        'language_names': language_names,
+        # 訪客看得到的語言；languages 裡其餘的是「編輯中」（前台 middleware 只放行持通行證的人）
+        'public_languages': get_public_languages(),
+        'locale_gate': get_i18n_setting('i18n_public_languages') is not None,
     }), 200
 
 
@@ -62,6 +65,12 @@ def api_update_i18n_settings():
         'i18n_languages': ','.join(data.get('languages', ['zh-TW'])),
         'i18n_language_names': json.dumps(data.get('language_names', {}), ensure_ascii=False)
     }
+    if 'public_languages' in data:
+        public = data.get('public_languages')
+        if not isinstance(public, list) or not all(isinstance(x, str) for x in public):
+            return jsonify({'message': 'public_languages must be a list of language codes'}), 400
+        editable = set(data.get('languages', ['zh-TW']))
+        settings_to_update['i18n_public_languages'] = ','.join(x for x in public if x in editable)
 
     for key, value in settings_to_update.items():
         setting = Setting.query.filter_by(key=key).first()

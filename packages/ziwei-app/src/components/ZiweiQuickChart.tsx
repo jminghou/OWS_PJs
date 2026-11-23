@@ -12,7 +12,7 @@ const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申',
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
-// 時辰以奇數整點為界（23–1 子、1–3 丑…），所以只選「幾點」就足以決定時辰，不需要分鐘
+// 精確時分交給引擎換算時辰；此處僅用鐘錶小時顯示摘要。
 const branchOf = (hour: number) => BRANCHES[Math.floor(((hour + 1) % 24) / 2)];
 
 // 一行內的控制項共用高度與字級；手機用較小字級才放得進一行
@@ -55,11 +55,11 @@ function PickerButton({ dialogLabel, button, children }: { dialogLabel: string; 
  * 送出後命盤直接出現在下方。日期與時間是按鈕，按下才跳出滾輪選擇器，平常不佔版面。
  * 預設用鐘錶時間；切到「真太陽時」會在卡片內展開出生地選單，同一顆按鈕排出的就是真太陽時命盤，不必換頁。
  */
-export default function ZiweiQuickChart() {
+export default function ZiweiQuickChart({ guidedCopy = false, integrated = false, formIntro }: { guidedCopy?: boolean; integrated?: boolean; formIntro?: ReactNode } = {}) {
   const solarPanelId = useId();
   const thisYear = new Date().getFullYear();
   // 預設落在「學齡孩子」附近，家長少滑一點
-  const [birth, setBirth] = useState({ year: thisYear - 8, month: 1, day: 1, hour: 8 });
+  const [birth, setBirth] = useState({ year: thisYear - 8, month: 1, day: 1, hour: 8, minute: 0 });
   const [gender, setGender] = useState('男');
   // 切回鐘錶時間時已選的地點保留，再切到真太陽時不必重選
   const [useSolarTime, setUseSolarTime] = useState(false);
@@ -84,9 +84,10 @@ export default function ZiweiQuickChart() {
     [dayCount],
   );
   const hours = useMemo<WheelOption<number>[]>(
-    () => Array.from({ length: 24 }, (_, h) => ({ value: h, label: `${pad(h)}:00 ${branchOf(h)}時` })),
+    () => Array.from({ length: 24 }, (_, h) => ({ value: h, label: `${pad(h)} 時` })),
     [],
   );
+  const minutes = useMemo<WheelOption<number>[]>(() => Array.from({ length: 60 }, (_, minute) => ({ value: minute, label: `${pad(minute)} 分` })), []);
   const day = Math.min(birth.day, dayCount);
 
   // 換月份／年份後日數變少（例如 31 日 → 2 月）：把日期收進範圍內
@@ -108,7 +109,7 @@ export default function ZiweiQuickChart() {
       return;
     }
     const payload: ZiweiChartPayload = {
-      year: birth.year, month: birth.month, day, hour: birth.hour, minute: 0,
+      year: birth.year, month: birth.month, day, hour: birth.hour, minute: birth.minute,
       gender, name: '', place: useSolarTime ? `${place.city}, ${place.country}` : '', relation: 'self',
       time_type: useSolarTime ? 'solar_time' : 'clock_time',
       birth_place: useSolarTime ? toZiweiPlace(place) : undefined,
@@ -117,7 +118,7 @@ export default function ZiweiQuickChart() {
     setLoading(true);
     try {
       const res = await astrologyApi.calculate({
-        year: payload.year, month: payload.month, day: payload.day, hour: payload.hour, minute: 0,
+        year: payload.year, month: payload.month, day: payload.day, hour: payload.hour, minute: payload.minute,
         gender,
         time_type: useSolarTime ? 'solar_time' : 'clock_time',
         place: useSolarTime ? toZiweiPlace(place) : undefined,
@@ -138,9 +139,10 @@ export default function ZiweiQuickChart() {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="mx-auto max-w-[680px]">
+      <form id={integrated ? "ziwei" : undefined} aria-labelledby={integrated ? "home-ziwei-heading" : undefined} onSubmit={handleSubmit} className={integrated ? "w-full min-w-0 scroll-mt-24 lg:col-span-2" : "mx-auto max-w-[680px]"}>
+        {formIntro && <div className="mb-4">{formIntro}</div>}
         {/* 整組是一張卡片：第一行輸入與送出；第二行時間制（真太陽時在這裡切換）與目前選定的生日；出生地在卡片內展開 */}
-        <div className="-mx-2 rounded-banner border border-warm-200 bg-white p-2 shadow-[0_8px_30px_rgba(139,92,246,0.06)] sm:mx-0 sm:p-4">
+        <div className={integrated ? "rounded-inner bg-surface p-4 shadow-sm" : "-mx-2 rounded-banner border border-warm-200 bg-white p-2 shadow-[0_8px_30px_rgba(139,92,246,0.06)] sm:mx-0 sm:p-4"}>
           {/* 手機版內距刻意收緊：360px 寬、最長的日期（2016/12/31）也要排成一行；更窄時折行而不溢出 */}
           <div className="flex flex-wrap items-center gap-x-1 gap-y-2 sm:gap-x-3">
             <div role="group" aria-label="性別" className="inline-flex h-11 flex-shrink-0 rounded-banner bg-warm-100 p-1">
@@ -181,26 +183,39 @@ export default function ZiweiQuickChart() {
               button={
                 <>
                   <span className="sr-only">出生時間：</span>
-                  {pad(birth.hour)}:00<span className="hidden sm:inline"> {branchOf(birth.hour)}時</span>
+                  {pad(birth.hour)}:{pad(birth.minute)}
                 </>
               }
             >
-              <div className="w-40">
-                <WheelColumn label="出生時間" options={hours} value={birth.hour} onChange={(hour) => setBirth((p) => ({ ...p, hour }))} />
+              <div className="grid w-56 grid-cols-2 gap-2">
+                <WheelColumn label="小時" options={hours} value={birth.hour} onChange={(hour) => setBirth((p) => ({ ...p, hour }))} />
+                <WheelColumn label="分鐘" options={minutes} value={birth.minute} onChange={(minute) => setBirth((p) => ({ ...p, minute }))} />
               </div>
             </PickerButton>
 
+            {integrated && (
+              <select
+                aria-label="時間制"
+                aria-controls={solarPanelId}
+                value={useSolarTime ? 'solar' : 'clock'}
+                onChange={(e) => { setUseSolarTime(e.target.value === 'solar'); setError(''); }}
+                className="h-11 rounded-full border border-line-strong bg-surface px-3 text-sm text-ink focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+              >
+                <option value="clock">鐘錶時間</option>
+                <option value="solar">真太陽時</option>
+              </select>
+            )}
             <button
               type="submit"
               disabled={loading}
-              className={`${CONTROL} ml-auto flex-shrink-0 bg-brand-purple-600 px-2.5 font-medium text-white transition-colors hover:bg-brand-purple-700 disabled:cursor-not-allowed disabled:opacity-60 sm:px-6`}
+              className={`${CONTROL} ${integrated ? "ml-auto bg-btn-primary" : "ml-auto"} flex-shrink-0 bg-brand-purple-600 px-2.5 font-medium text-white transition-colors hover:bg-brand-purple-700 disabled:cursor-not-allowed disabled:opacity-60 sm:px-6`}
             >
-              {loading ? '排盤中…' : '立即排盤'}
+              {loading ? '建立中…' : guidedCopy ? <><span className={integrated ? 'sm:hidden' : 'hidden'}>建立命盤</span><span className={integrated ? 'hidden sm:inline' : ''}>建立他的命盤</span></> : '立即排盤'}
             </button>
           </div>
 
           {/* 第二行：時間制切換緊貼在日期／時間按鈕下方，樣式與「男｜女」一致 */}
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-warm-100 pt-2 sm:mt-3 sm:pt-3">
+          <div hidden={integrated} className={integrated ? "hidden" : "mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-warm-100 pt-2 sm:mt-3 sm:pt-3"}>
             <div role="group" aria-label="時間制" className="inline-flex h-9 flex-shrink-0 rounded-banner bg-warm-100 p-1 text-sm">
               <button
                 type="button"
@@ -221,8 +236,8 @@ export default function ZiweiQuickChart() {
                 真太陽時
               </button>
             </div>
-            <p aria-live="polite" className="text-sm text-gray-600">
-              國曆 {birth.year} 年 {birth.month} 月 {day} 日 {pad(birth.hour)}:00（{branchOf(birth.hour)}時）・{gender}
+            <p aria-live="polite" className={integrated ? "hidden min-w-0 text-sm text-gray-600 sm:block" : "text-sm text-gray-600"}>
+              國曆 {birth.year} 年 {birth.month} 月 {day} 日 {pad(birth.hour)}:{pad(birth.minute)}（{branchOf(birth.hour)}時）・{gender}
               {useSolarTime && `・真太陽時${place.city ? `（${place.city}）` : ''}`}
             </p>
           </div>
@@ -233,7 +248,7 @@ export default function ZiweiQuickChart() {
               <>
                 <BirthPlaceFields value={place} onChange={(next) => { setPlace(next); setError(''); }} className="mt-2 sm:mt-3" />
                 <p className="mt-2 px-1 text-xs text-gray-500">
-                  真太陽時會依出生地的經度校正時間，可能讓時辰與鐘錶時間差一個時辰。選好城市後按「立即排盤」。
+                  真太陽時會依出生地的經度校正時間，可能讓時辰與鐘錶時間差一個時辰。選好城市後按「{guidedCopy ? '建立他的命盤' : '立即排盤'}」。
                 </p>
               </>
             )}
@@ -248,8 +263,8 @@ export default function ZiweiQuickChart() {
       </form>
 
       {result && submitted && (
-        <div className="mx-auto mt-10 max-w-5xl">
-          <ZiweiChartResult ref={resultRef} result={result} payload={submitted} />
+        <div className={integrated ? "mt-6 w-full min-w-0 lg:col-span-2" : "mx-auto mt-10 max-w-5xl"}>
+          <ZiweiChartResult ref={resultRef} result={result} payload={submitted} guidedCopy={guidedCopy} />
         </div>
       )}
     </>
