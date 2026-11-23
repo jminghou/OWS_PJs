@@ -1,4 +1,4 @@
-"""Facebook 粉專發文的送審 API。沒有 publish / reconcile；publish 固定 409。"""
+"""Facebook 粉專發文的送審與送出 API。mode 預設 off，publish 回 409。"""
 from functools import wraps
 
 from flask import jsonify, request
@@ -14,9 +14,10 @@ from packages.studio.api._common import (
 )
 from packages.studio.blueprint import studio_bp as bp
 from packages.studio.models import StudioDocument, StudioDocumentMedia, StudioPublishEvent, StudioPublishRequest
+from packages.studio.social.publisher import health, publish, reconcile
 from packages.studio.social.service import (
-    PublishError, approve_request, cancel_request, clean_link, note_content_changed,
-    recheck_request, reject_request, submit_request,
+    PublishError, _require_approver, approve_request, cancel_request, clean_link,
+    note_content_changed, recheck_request, reject_request, submit_request,
 )
 from packages.studio.social.state import ALL_STATES, InvalidTransition
 
@@ -204,8 +205,29 @@ def reject_publish_request(request_id):
 
 
 @bp.route('/publish-requests/<int:request_id>/publish', methods=['POST'])
-@studio_publish_request
-def publish_request_disabled(request_id):
-    """這個 PR 不發文。端點固定 409，不讀請求內容、不呼叫 Graph、不進入 publishing。"""
-    StudioPublishRequest.query.get_or_404(request_id)
-    return jsonify({'message': 'Facebook publishing is not available in this release'}), 409
+@studio_publish_approve
+@_guard
+def publish_publish_request(request_id):
+    user = _actor()
+    _require_approver(user)
+    req = publish(request_id, user)
+    return jsonify({'state': req.state, 'request': req.to_dict()})
+
+
+@bp.route('/publish-requests/<int:request_id>/reconcile', methods=['POST'])
+@studio_publish_approve
+@_guard
+def reconcile_publish_request(request_id):
+    user = _actor()
+    _require_approver(user)
+    req = reconcile(request_id, user)
+    return jsonify({'state': req.state, 'request': req.to_dict()})
+
+
+@bp.route('/social/facebook/health', methods=['GET'])
+@studio_publish_approve
+@_guard
+def facebook_health():
+    _require_approver(_actor())
+    body = health()
+    return jsonify(body)

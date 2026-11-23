@@ -1,5 +1,4 @@
-"""Facebook 粉專發文的第一包：發布請求、內容雜湊、自動核查。
+"""Facebook 粉專發文：發布請求、核查，以及可關閉的送出。
 
-這裡不連 Meta，也沒有任何會把貼文送出去的程式。publishing 只能靠
-條件 UPDATE 進入，呼叫端在之後的 PR 才會接上。
+預設 STUDIO_FB_PUBLISH_MODE=off。live 只允許打 graph.facebook.com，而且 token 不進 URL。
 """
