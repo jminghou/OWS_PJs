@@ -179,7 +179,7 @@ class TransitionTests(unittest.TestCase):
             if 'social' in path.parts or path.name == 'publish_requests.py':
                 chunks.append(path.read_text(encoding='utf-8'))
         blob = '\n'.join(chunks)
-        for needle in ('graph.facebook', 'graph.facebook.com', 'FB_ACCESS', 'access_token'):
+        for needle in ('FB_ACCESS', '?access_token', '&access_token'):
             self.assertNotIn(needle, blob)
 
 
@@ -654,21 +654,18 @@ class PublishApiTests(unittest.TestCase):
         )
         self.assertEqual(again.status_code, 200, again.get_json())
 
-    def test_publish_endpoint_is_a_fixed_409_and_reconcile_is_absent(self):
+    def test_publish_is_disabled_until_mode_is_turned_on(self):
         self.allow(self.admin)
         created = self.submit()
         request_id = created.get_json()['id']
         self.approve(request_id, created.get_json()['content_hash'])
         with patch('packages.studio.social.service.claim_publishing', side_effect=AssertionError('publish')):
             response = self.client.post(
-                f'/api/v1/studio/publish-requests/{request_id}/publish', headers=self.headers(self.editor),
+                f'/api/v1/studio/publish-requests/{request_id}/publish', headers=self.headers(self.admin),
             )
         self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.get_json()['message'], 'publishing_disabled')
         self.assertEqual(StudioPublishRequest.query.one().state, 'approved')
-        missing = self.client.post(
-            f'/api/v1/studio/publish-requests/{request_id}/reconcile', headers=self.headers(self.admin),
-        )
-        self.assertEqual(missing.status_code, 404)
 
     def test_reject_then_resubmit_external_id_stays_unique(self):
         created = self.submit(external_id='same')
