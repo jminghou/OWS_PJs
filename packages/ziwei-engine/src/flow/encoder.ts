@@ -85,21 +85,38 @@ export function extractNatalEncoding(natal: string[]): string[] {
 }
 export const extractBrightnessEncoding = (natal: string[]) => natal.filter((c) => c.startsWith("I"));
 
+/** 負數取餘歸一到 0..11，與 Python `(n % 12)` 一致。 */
+function mod12(n: number): number {
+  return ((n % 12) + 12) % 12;
+}
+
+/**
+ * 本命宮位碼 → 運限宮位碼。
+ * 大限順逆只決定 anchor（大限順序等於 targetOrder 的那一宮）。
+ * 運限宮名沿本命宮序正走：PALACE_CODE_ORDER[(natalIndex - anchorIndex) mod 12]。
+ */
 export function buildDecadePalaceMapping(decade: DecadeData, targetOrder: number): Record<string, string> {
-  const sorted = Object.entries(decade).sort((a, b) => +a[1].大限順序 - +b[1].大限順序);
+  const anchor = Object.entries(decade).find(([, info]) => parseInt(info.大限順序, 10) === targetOrder);
+  if (!anchor) throw new Error(`找不到大限順序 ${targetOrder} 的宮位`);
+  const anchorCode = PALACE_NAME_TO_CODE[anchor[0]];
+  const anchorIndex = PALACE_CODE_ORDER.indexOf(anchorCode);
+  if (anchorIndex < 0) throw new Error(`宮名不在宮序中: ${anchor[0]}`);
   const map: Record<string, string> = {};
-  for (let i = 0; i < 12; i++) {
-    const name = sorted[(targetOrder - 1 + i) % 12][0];
-    map[PALACE_NAME_TO_CODE[name]] = PALACE_CODE_ORDER[i];
+  for (const name of Object.keys(decade)) {
+    const natalCode = PALACE_NAME_TO_CODE[name];
+    const natalIndex = PALACE_CODE_ORDER.indexOf(natalCode);
+    if (natalIndex < 0) throw new Error(`宮名不在宮序中: ${name}`);
+    map[natalCode] = PALACE_CODE_ORDER[mod12(natalIndex - anchorIndex)];
   }
   return map;
 }
 
+/** 運限命宮地支 startBranch、星曜地支 starBranch → 宮位碼。(startIndex - starIndex) mod 12。 */
 export function calculatePalaceInDecade(starBranch: string, startBranch: string): string {
   const s = EARTHLY_BRANCH_ORDER.indexOf(startBranch);
   const t = EARTHLY_BRANCH_ORDER.indexOf(starBranch);
   if (s < 0 || t < 0) throw new Error(`地支不在順序表中: ${starBranch}/${startBranch}`);
-  return PALACE_CODE_ORDER[(((t - s) % 12) + 12) % 12];
+  return PALACE_CODE_ORDER[mod12(s - t)];
 }
 
 export function convertToDecadeEncoding(natal: string[], mapping: Record<string, string>): string[] {

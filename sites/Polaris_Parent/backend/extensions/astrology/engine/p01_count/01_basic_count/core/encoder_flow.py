@@ -3,9 +3,9 @@
 負責處理大限、流年、小限的編碼轉換
 
 核心原則：
-1. 從實際大限資料讀取宮位順序（不假設順逆行）
+1. 從實際大限資料讀出「哪一宮」是該運限命宮（大限順序已含順逆，這裡不另假設）
 2. 第1大限 = 本命盤編碼（特殊處理）
-3. 宮位映射從實際順序推導（支援陽男/陰女順行，陰男/陽女逆行）
+3. 運限十二宮一律沿本命宮序正走：宮序 +1、地支 −1，與順逆行無關
 4. 排除本命盤的 Q 字首和前4碼；亮度 I 碼**保留**（2026-07-18 起）——
    I 碼與宮位無關（I{星3}{P/N}{值}），不走宮位映射，於宮位轉換後另行附加，
    讓運限盤的星曜 E 也吃得到亮度修正
@@ -326,58 +326,59 @@ def build_decade_palace_mapping(decade_data: Dict, target_decade_order: int) -> 
     Returns:
         Dict[str, str]: {本命宮位代碼: 大限宮位代碼}
 
-    核心原則：從實際大限順序推導，不假設順逆行方向
+    大限順逆只決定 anchor（大限順序等於 target 的那一宮，即該限命宮）。
+    運限宮名一律沿本命宮序正走，與順逆無關：
 
-    範例（第2大限，父母宮當命宮）:
-        父母(C) → 大限命宮(1)
-        福德(B) → 大限兄弟(2)
-        田宅(A) → 大限夫妻(3)
-        ...
-        命宮(1) → 大限父母(C)
+        PALACE_CODE_ORDER[(natal_index - anchor_index) % 12]
+
+    natal_index / anchor_index 是本命宮在 PALACE_CODE_ORDER 的索引（命宮=0 … 父母=11）。
+    宮序 +1 對應地支 −1，所以這式等同
+    PALACE_CODE_ORDER[(anchor 地支索引 - 該宮地支索引) % 12]。
+
+    範例（父母宮當運限命宮，anchor_index=11）:
+        父母(C) → 運限命宮(1)
+        命宮(1) → 運限兄弟(2)
+        兄弟(2) → 運限夫妻(3)
+        福德(B) → 運限父母(C)
     """
-    # 步驟1: 將12個宮位按「大限順序」排序
-    sorted_palaces = sorted(
-        decade_data.items(),
-        key=lambda x: int(x[1]["大限順序"])
-    )
+    anchor_name = None
+    for palace_name, info in decade_data.items():
+        if int(info["大限順序"]) == target_decade_order:
+            anchor_name = palace_name
+            break
+    if anchor_name is None:
+        raise ValueError(f"找不到大限順序 {target_decade_order} 的宮位")
 
-    # 步驟2: 建立映射表
+    anchor_index = PALACE_CODE_ORDER.index(PALACE_NAME_TO_CODE[anchor_name])
     mapping = {}
-
-    # 從目標大限順序開始，循環建立映射
-    for i in range(12):
-        # 計算在排序陣列中的索引（考慮循環）
-        palace_index = (target_decade_order - 1 + i) % 12
-
-        # 取得該宮位的資訊
-        palace_name = sorted_palaces[palace_index][0]
-        natal_palace_code = PALACE_NAME_TO_CODE[palace_name]
-
-        # 對應到大限的第 i 個宮位
-        decade_palace_code = PALACE_CODE_ORDER[i]
-
-        # 建立映射
-        mapping[natal_palace_code] = decade_palace_code
-
+    for palace_name in decade_data:
+        natal_code = PALACE_NAME_TO_CODE[palace_name]
+        natal_index = PALACE_CODE_ORDER.index(natal_code)
+        # Python 的 % 對負數已落在 0..11，與 TS 的歸一結果一致
+        mapping[natal_code] = PALACE_CODE_ORDER[(natal_index - anchor_index) % 12]
     return mapping
 
 
 def calculate_palace_in_decade(star_branch: str, decade_start_branch: str) -> str:
     """
-    計算星曜在大限盤中的宮位代碼
+    計算星曜在大限／小限／流年盤中的宮位代碼
 
     Args:
         star_branch: 星曜的地支位置（如 "亥"）
-        decade_start_branch: 大限命宮的地支位置（如 "申"）
+        decade_start_branch: 運限命宮的地支位置（如 "申"）
 
     Returns:
         str: 宮位代碼（1-9, A-C）
 
+    宮序 +1 時地支 −1（逆時針），與性別、順逆行無關：
+
+        (start_index - star_index) % 12
+
+    start_index 是運限命宮地支索引，star_index 是星曜地支索引（子=0 … 亥=11）。
+
     範例:
-        大限2（甲申限），命宮在「申」
-        廉貞在「亥」
-        從申順數到亥：申(1) → 酉(2) → 戌(3) → 亥(4)
-        廉貞在大限2的子女宮 → 返回 "4"
+        運限命宮在「申」、星曜在「亥」
+        從申逆數到亥，落在田宅 → 返回 "A"
     """
     try:
         start_index = EARTHLY_BRANCH_ORDER.index(decade_start_branch)
@@ -385,10 +386,7 @@ def calculate_palace_in_decade(star_branch: str, decade_start_branch: str) -> st
     except ValueError as e:
         raise ValueError(f"地支不在順序表中: {e}")
 
-    # 計算相對位置（從大限命宮順時針數）
-    relative_position = (star_index - start_index) % 12
-
-    # 返回對應的宮位代碼
+    relative_position = (start_index - star_index) % 12
     return PALACE_CODE_ORDER[relative_position]
 
 

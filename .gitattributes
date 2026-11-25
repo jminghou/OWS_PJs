@@ -7,6 +7,9 @@
 
 * text=auto eol=lf
 
+# 上游向量以 CRLF 交付，sha256 含換行；不要正規化成 LF
+packages/ziwei-engine/test/fixtures/fortune_direction_test_vectors.json binary
+
 # Windows 專用腳本保留 CRLF
 *.ps1   text eol=crlf
 *.bat   text eol=crlf
